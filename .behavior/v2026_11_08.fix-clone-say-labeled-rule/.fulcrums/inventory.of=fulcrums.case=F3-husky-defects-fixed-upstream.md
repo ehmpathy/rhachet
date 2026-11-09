@@ -24,6 +24,27 @@ defect stays shipped everywhere else. the practice also owns the lock's expected
 asset for an edited hook (`demo-repo-with-edited-timestamp-hook`), so the fix and its clamp belong
 beside them. this is `rule.require.solve-at-cause` (ehmpathy/architect): the cause lives upstream.
 
+## .the amendment, round i002
+
+the one-line defects are also patched here, since the shipped copy should not fail open while the
+upstream fix is in flight, and the next `declapract apply` lands the upstream fix over them: the
+lock halts on an empty index read and guards its `git hash-object` read; the secrets hook lists the
+anthropic shape before the openai one, guards its staged-list read, and reads grep's exit status by
+hand (`status -gt 1` halts as a malfunction), so a scan fault no longer reads as clean. no ci gate
+checks declapract drift (`.github` names it nowhere). `check.timestamps.sh` is hash-locked, so its
+scan gap and its bare staged-list read stay upstream-only: an edit there needs a hand edit of the
+lock's expected id, which the lock's own header forbids. the bare read fails closed meanwhile —
+under `set -eu` a failed `staged=$(…)` halts the commit, with git's raw stderr rather than a branded
+line (5.3 i002, r006).
+
+## .the reviewers disagree, round i004
+
+l1's `arch-hazards-maintenance` blocked on the defects as shipped (a fault a hook swallows). l3's
+`enroll-impl-arch-defects` blocked on the local patch (scope, and a contradiction of A). one diff
+cannot satisfy both, so the call goes to the wisher: keep the local one-line patches (A as amended),
+or revert them and carry the files as stamped (A as first taken). best guess: keep them, since the
+upstream fix carries the same lines and the next upgrade restamps identical content.
+
 ## .rework
 
 clean — once the practice ships the fix, the next `declapract upgrade` here lands it. no caller in

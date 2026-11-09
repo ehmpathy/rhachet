@@ -899,9 +899,9 @@ describe('computeCloneInputState — any bright box content refuses, whoever wro
 //   ❯
 //   ─────────────────────────────────────────
 //
-// a bare-`─` predicate saw one rule, not two. so the band was either absent (`unrecognized`, every
-// say withheld) or paired a plain rule higher up with the bottom rule, and the transcript read as
-// the box (`input-region-dirty`, with a hint that offers `--force` over the real box)
+// the labeled top rule must read as a rule, so the band pairs it with the bare bottom rule. else
+// the band is absent (`unrecognized`) or pairs a plain rule higher up, and the transcript reads as
+// the box (`input-region-dirty`)
 const LABELED_RULE = genSampleCloneScreenRuleLabeled();
 
 const RULE_ROW_CASES: { description: string; row: string; isRule: boolean }[] =
@@ -952,7 +952,44 @@ const RULE_ROW_CASES: { description: string; row: string; isRule: boolean }[] =
       row: `${'─'.repeat(30)} mechanic`,
       isRule: false,
     },
+    {
+      description:
+        'a ruled transcript header reads as a rule (pinned; the band takes the last pair)',
+      row: `${'─'.repeat(22)} Results ${'─'.repeat(22)}`,
+      isRule: true,
+    },
     { description: 'a blank row is no rule', row: '   ', isRule: false },
+    {
+      description: 'a bare run of 20 glyphs, the floor, is a rule',
+      row: '─'.repeat(20),
+      isRule: true,
+    },
+    {
+      description: 'a bare run of 19 glyphs, one under the floor, is no rule',
+      row: '─'.repeat(19),
+      isRule: false,
+    },
+    {
+      description: 'a labeled rule whose lead run sits at the floor is a rule',
+      row: `${'─'.repeat(20)} mechanic ─`,
+      isRule: true,
+    },
+    {
+      description:
+        'a labeled rule whose lead run is one under the floor is no rule',
+      row: `${'─'.repeat(19)} mechanic ─`,
+      isRule: false,
+    },
+    {
+      description: 'a label that abuts its tail with no space is no rule',
+      row: `${'─'.repeat(30)} mechanic─`,
+      isRule: false,
+    },
+    {
+      description: 'an empty label (a lone gap) is no rule',
+      row: `${'─'.repeat(30)} ─`,
+      isRule: false,
+    },
   ];
 
 describe('isRuleRow — a labeled rule is a rule (#655)', () => {
@@ -965,7 +1002,7 @@ describe('isRuleRow — a labeled rule is a rule (#655)', () => {
 
 describe('computeCloneInputState — a box whose top rule carries the agent name (#655)', () => {
   test('[case1] the captured foot rows → focus input, region clear', () => {
-    // red on the bare-`─` predicate: one rule seen, no band, `unrecognized`
+    // face 1: the labeled rule must open the band, or no band is found (`unrecognized`)
     const state = computeCloneInputState({
       screen: asScreen(['● prior turn output', LABELED_RULE, '❯', RULE]),
       message: 'never-on-screen',
@@ -980,8 +1017,8 @@ describe('computeCloneInputState — a box whose top rule carries the agent name
   });
 
   test('[case2a] one plain rule above the transcript, then the labeled box → clear', () => {
-    // the shape #655's 2026-10-25 capture fits: the labeled rule sat as the LAST row of the box the
-    // old locator found, which held the transcript. red on the bare-`─` predicate: `dirty`
+    // the shape #655's second capture fits: one plain rule above the transcript, which must never
+    // pair with the bottom rule into a box
     const state = computeCloneInputState({
       screen: asScreen([
         RULE,
@@ -998,7 +1035,7 @@ describe('computeCloneInputState — a box whose top rule carries the agent name
   });
 
   test('[case2b] the transcript between two plain rules, then the labeled box → clear', () => {
-    // the shape #655 prescribes. red on the bare-`─` predicate: the box read `[labeled, ❯]`, dirty
+    // the shape #655 prescribes: the band must be `[❯]`, never `[labeled, ❯]`
     const state = computeCloneInputState({
       screen: asScreen([
         RULE,
@@ -1060,5 +1097,84 @@ describe('computeCloneInputState — a box whose top rule carries the agent name
       message: 'never-on-screen',
     });
     expect(state.focus).toEqual('modal');
+  });
+
+  test('[case4] an unparsed box rule beneath plain rules → dirty, never clear (the residual)', () => {
+    // pins the deferred residual (F2, #737): a top rule the predicate cannot parse leaves the band
+    // on the plain rules above, so the transcript reads as the box. fail-safe: no write, `dirty`
+    const state = computeCloneInputState({
+      screen: asScreen([
+        RULE,
+        '● Ran 1 shell command',
+        RULE,
+        `${'─'.repeat(30)} a ─ b ─`,
+        '❯',
+        RULE,
+      ]),
+      message: 'never-on-screen',
+    });
+    expect(state.input).not.toEqual('clear');
+    expect(state).toMatchObject({ focus: 'input', input: 'dirty' });
+  });
+
+  test('[case3] an unparsed box rule with no rule above → unrecognized, the say fails closed', () => {
+    // the vision's case 3: a box rule the predicate cannot parse, and no plain rule above to
+    //   pair with, leaves one rule on screen — no band, so `unrecognized` and no write
+    const state = computeCloneInputState({
+      screen: asScreen([
+        '● prior turn output',
+        `${'─'.repeat(30)} a ─ b ─`,
+        '❯',
+        RULE,
+      ]),
+      message: 'never-on-screen',
+    });
+    expect(state.focus).toEqual('unrecognized');
+  });
+
+  test('🔴 a labeled row BENEATH the box never closes it — a human mid-type still reads dirty', () => {
+    // a status line shaped like a labeled rule must not pair with the bottom rule into an empty
+    // band: that would read `clear` and a say would write over the human's text
+    const state = computeCloneInputState({
+      screen: asScreen([
+        RULE,
+        '❯ human typed text',
+        RULE,
+        `${'─'.repeat(30)} 87% ─`,
+      ]),
+      message: 'never-on-screen',
+    });
+    expect(state.input).not.toEqual('clear');
+    expect(state).toMatchObject({ focus: 'input', input: 'dirty' });
+  });
+
+  test('a labeled BOTTOM rule closes no box — fail closed, the say is withheld', () => {
+    // only the top rule is measured to carry a label; a labeled bottom is unmeasured, so it may
+    // open a band but never close one. with no bare rule to close on, no band is found
+    const state = computeCloneInputState({
+      screen: asScreen(['● prior turn output', RULE, '❯', LABELED_RULE]),
+      message: 'never-on-screen',
+    });
+    expect(state.focus).toEqual('unrecognized');
+  });
+
+  test('a busy driver in a labeled box → queued, region clear (the dim hint is the box content)', () => {
+    const state = computeCloneInputState({
+      screen: asScreenWithDim({
+        lines: [
+          '❯ QUEUED-labeled',
+          LABELED_RULE,
+          '❯ Press up to edit queued messages',
+          RULE,
+        ],
+        dim: [2],
+      }),
+      message: 'QUEUED-labeled',
+    });
+    expect(state).toMatchObject({
+      focus: 'input',
+      input: 'clear',
+      queued: true,
+    });
   });
 });

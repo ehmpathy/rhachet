@@ -42,8 +42,10 @@ import { getOneRepoPath } from '@src/infra/host/getOneRepoPath';
  *   - it emits the rendered grids to a research artifact so the build reads MEASURED
  *     structure, per rule.require.playtest-via-real-dogfood.
  *
- * .note = a real-brain tier: credential-gated, costly, gates LOUD (never skips) via
- *   getRealClaudeOrThrow, per rule.forbid.faked-or-quarantined-acceptance.
+ * .note = a real-brain tier: costly, so it runs on demand — `describeBrainLiveOnDemand` holds it
+ *   behind `BRAIN_LIVE_SCOPE=all` and prints a `[gated: live brain]` todo row when off (off on
+ *   cicd too). once on, an absent brain or credential fails LOUD via getRealClaudeOrThrow, never
+ *   a silent pass.
  */
 
 // a cold claude boot plus several dispatches runs minutes on a small ci runner — the
@@ -637,16 +639,25 @@ describeBrainLiveOnDemand('screen dogfood — a real brain-cli renders its input
         // .note = the CLAIM is unchanged (`rule.forbid.test-intent-violations`) — the brain
         //   dims what it drew, full carries it, bright-only does not. only the live cell the
         //   claim is measured against moved, to one this brain version actually renders.
+        // a locator of its own, apart from `getInputBand`, so this cell can catch a box the
+        //   classifier mislocates: the box closes on the last bare rule and opens on the nearest
+        //   rule above it, bare or labeled (`──…── mechanic ─`, ehmpathy/rhachet#655)
         const bandOf = (rows: string[]): string[] => {
-          const ruleRows = rows
-            .map((row, index) => ({ row: row.trim(), index }))
-            .filter((it) => /^─+$/.test(it.row) && it.row.length >= 20)
-            .map((it) => it.index);
-          if (ruleRows.length < 2) return [];
-          return rows.slice(
-            ruleRows[ruleRows.length - 2]! + 1,
-            ruleRows[ruleRows.length - 1]!,
-          );
+          const isRuleBare = (row: string): boolean => /^─{20,}$/.test(row.trim());
+          const isRule = (row: string): boolean =>
+            /^─{20,}(?:\s+[^─\s][^─]*\s+─+)?$/.test(row.trim());
+          const rowsBare = rows
+            .map((row, index) => ({ row, index }))
+            .filter((it) => isRuleBare(it.row));
+          const bottom = rowsBare[rowsBare.length - 1]?.index;
+          if (bottom === undefined) return [];
+          const rowsAbove = rows
+            .slice(0, bottom)
+            .map((row, index) => ({ row, index }))
+            .filter((it) => isRule(it.row));
+          const top = rowsAbove[rowsAbove.length - 1]?.index;
+          if (top === undefined) return [];
+          return rows.slice(top + 1, bottom);
         };
         const contentOf = (rows: string[]): string =>
           rows

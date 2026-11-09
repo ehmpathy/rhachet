@@ -15,8 +15,8 @@ const RULE = '─'.repeat(40);
 /**
  * .what = a rendered grid in the shape a brain-cli draws — a turn above, a rule-bounded
  *   input band at the foot
- * .why = the band the classifier reads is index-relative (between the last two full-width
- *   rules), so a clamp of the RENDER must carry that shape; a flat block of text would
+ * .why = the band the classifier reads is index-relative (it closes on the last bare rule and
+ *   opens on the nearest rule above it), so a clamp of the RENDER must carry that shape; a flat block of text would
  *   prove the render works on a screen the read channel never sees
  */
 const asGrid = (input: {

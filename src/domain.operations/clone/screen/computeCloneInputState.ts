@@ -62,27 +62,44 @@ export interface CloneInputState {
   queued: boolean;
 }
 
-// a lead run of ≥20 `─`, then at most one label and a `─` tail (see `isRuleRow`)
-const RULE_ROW = /^─{20,}(?:\s+[^─\s][^─]*\s+─+)?$/;
+// the shortest lead run of `─` a rule may open with — an absolute floor, never a share of `cols`
+const RULE_LEAD_MIN = 20;
+
+// a lead run of ≥RULE_LEAD_MIN `─`, then at most one label and a `─` tail (see `isRuleRow`)
+const RULE_ROW = new RegExp(
+  `^─{${RULE_LEAD_MIN},}(?:\\s+[^─\\s][^─]*\\s+─+)?$`,
+);
 
 /**
  * .what = a full-width horizontal rule, bare or with one label — the brain draws the input box
  *   as a band between a pair
  * .why = the box locator rests on the two `─` rules that fence the `❯` row at the viewport foot
- *   (the measured structure, real haiku v2.1.87). half-width guards against a short divider
+ *   (the measured structure, real haiku v2.1.87). a lead run of ≥20 glyphs guards against a
+ *   short divider; the floor is absolute, never a share of `cols`
  * .note = EXPORTED because a rule is a REGION BOUNDARY, and the queue walk in
  *   `computeCloneInputContent` needs the same one. it walks upward from the band's top rule and
  *   must stop at the nearest boundary above — a blank row OR another rule. a walk that stopped
  *   only at a blank row would run into a prior box's chrome on any screen where the queue abuts
  *   the rule above it (measured against the stub's `busy` screen, which renders exactly that)
  * .note = a rule may carry ONE label: claude code draws the agent name into the box's top rule,
- *   `────────────────────────────── mechanic ─` (measured 2026-10-24, #655). a bare-`─` match saw
- *   one rule, not two, so the band was absent (`unrecognized`) or paired a plain rule higher up
- *   and read the transcript as the box (`input-region-dirty`). the half-width guard rides on the
- *   LEAD run, so a short divider (`── note ──`) and a prose row with a `─` stay no rule. a label
- *   that holds a `─` reads no rule — the fail-closed direction
+ *   `────────────────────────────── mechanic ─` (#655). the ≥20 floor rides on the LEAD run, so a
+ *   short divider (`── note ──`) and a prose row with a `─` stay no rule. a label that holds a
+ *   `─` reads no rule — the fail-closed direction. how a rule opens or closes a box is
+ *   `getInputBand`'s contract
  */
 export const isRuleRow = (line: string): boolean => RULE_ROW.test(line.trim());
+
+// a bare rule — a run of ≥RULE_LEAD_MIN `─` and no label
+const RULE_ROW_BARE = new RegExp(`^─{${RULE_LEAD_MIN},}$`);
+
+/**
+ * .what = a rule with no label — the only rule shape that may CLOSE a box
+ * .why = any rule opens a box, but only a bare one closes it (see `getInputBand`). the measured
+ *   box closes on a bare rule, so a labeled row beneath the box (a status line) never pairs with
+ *   the bottom rule into an empty band that would read a false `clear` over a human's text
+ */
+const isRuleRowBare = (line: string): boolean =>
+  RULE_ROW_BARE.test(line.trim());
 
 /**
  * .what = one row of a numbered option list — `❯ 1. Review the diff`, or `  2. Run the tests`
@@ -130,7 +147,7 @@ const hasOptionRun = (lines: string[]): boolean =>
 /**
  * .what = the footer a selection widget draws BENEATH its option list — the modal's own chrome
  * .why = a selection modal fences its OWN option list in a rule pair, so the box locator (which
- *   takes the LAST pair) captures the menu as the box, and the above-band scan then excludes the
+ *   takes the band at the foot, see `getInputBand`) captures the menu as the box, and the above-band scan then excludes the
  *   very rows that hold `❯ 1.`. measured 2026-09-17, live claude v2.1.87:
  *
  *     a normal input box          a selection modal
@@ -241,7 +258,8 @@ const countNeedleInLines = (input: {
 };
 
 /**
- * .what = the input-box band — its two rule indices and the `❯`-led rows between the LAST pair
+ * .what = the input-box band — its two rule indices and the `❯`-led rows between them. the box
+ *   CLOSES on the last bare rule and OPENS on the nearest rule above it, bare or labeled
  * .why = `say` classifies a REGION, never a single row: `asCloneDispatchFrame` maps interior
  *   newlines into the box as real lines, so a multi-line message occupies several rows. a row-scoped read
  *   makes `buffered` unreachable and reintroduces the clobber on a human's multi-line entry. the
@@ -249,8 +267,12 @@ const countNeedleInLines = (input: {
  *   as a prompt (r7-i003-b1)
  * .note = returns null when no box band is present (a modal that replaced it, or an unrecognized
  *   screen). the measured structure (real haiku v2.1.87): the box is the single `❯` region
- *   between the last full-width `─` rule pair at the viewport foot; turns and any prompt render
- *   ABOVE the top rule
+ *   between two full-width `─` rules at the viewport foot; turns and any prompt render ABOVE the
+ *   top rule. the top rule may carry the agent name (#655), the bottom rule is bare
+ * .note = the opener/closer asymmetry is fail-closed in both directions it can err: a labeled
+ *   row beneath the box closes no band (no false `clear` from a status line), and a labeled
+ *   bottom rule closes no band (`unrecognized`, the say withheld). the residual: a rule row INSIDE
+ *   a human's draft opens the band below it, which a bare divider could do before (#737)
  * .note = `bottom` rides along so the modal FOOTER scan can read the rows BENEATH the band —
  *   the one region a human's typed text can never reach, since box content lives between the
  *   rules. that is what makes the footer a structural signal rather than a phrase whitelist
@@ -268,15 +290,20 @@ export const getInputBand = (input: {
   linesBright: string[];
 } | null => {
   const lines = input.screen.lines;
-  // .note = deliberate mutation — walk from the foot to find the last rule pair
+  // .note = deliberate mutation — collect every rule row, top to bottom
   const ruleRows: number[] = [];
   for (let y = 0; y < lines.length; y++)
     if (isRuleRow(lines[y]!)) ruleRows.push(y);
-  if (ruleRows.length < 2) return null;
 
-  // the box sits between the LAST two rule rows near the viewport foot
-  const bottom = ruleRows[ruleRows.length - 1]!;
-  const top = ruleRows[ruleRows.length - 2]!;
+  // the box closes on the LAST bare rule; a labeled row may open a box, never close one
+  const ruleRowsBare = ruleRows.filter((y) => isRuleRowBare(lines[y]!));
+  const bottom = ruleRowsBare[ruleRowsBare.length - 1];
+  if (bottom === undefined) return null;
+
+  // the box opens on the nearest rule above it, bare or labeled
+  const ruleRowsAbove = ruleRows.filter((y) => y < bottom);
+  const top = ruleRowsAbove[ruleRowsAbove.length - 1];
+  if (top === undefined) return null;
   return {
     top,
     bottom,

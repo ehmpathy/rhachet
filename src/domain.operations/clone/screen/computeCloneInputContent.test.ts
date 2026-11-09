@@ -122,8 +122,8 @@ describe('computeCloneInputContent — a box whose top rule carries the agent na
   });
 
   test('a labeled box beneath a plain rule → the box rows, never the transcript', () => {
-    // the bare-`─` read paired the plain rule above with the bottom rule, and handed back the
-    // transcript between them as the human's own input
+    // the band must pair the labeled rule with the bottom rule, so the transcript above it never
+    // reads as the human's own input
     const content = readContent({
       screen: asScreen({
         lines: [
@@ -137,6 +137,59 @@ describe('computeCloneInputContent — a box whose top rule carries the agent na
       }),
     });
     expect(content.buffer).toEqual(['party']);
+  });
+
+  test('a busy driver in a labeled box → the queue above the band, the dim hint in the box', () => {
+    // the common foreman case: a mid-turn driver holds a queued message above the labeled box
+    const screen = asScreen({
+      lines: [
+        '● turn in flight',
+        '',
+        '  ❯ QUEUED-labeled',
+        LABELED_RULE,
+        '❯ Press up to edit queued messages',
+        RULE,
+      ],
+      dim: [4],
+    });
+    expect(computeCloneInputState({ screen, message: '' }).queued).toEqual(
+      true,
+    );
+    const content = readContent({ screen });
+    expect(content.queue).toEqual(['QUEUED-labeled']);
+    expect(content.buffer).toEqual(['Press up to edit queued messages']);
+  });
+
+  test('a queue that abuts a labeled rule above it → the walk stops at that rule', () => {
+    // the walk's second boundary is a rule; a labeled one must fence it too, or the walk runs
+    //   up into the prior box's chrome
+    const screen = asScreen({
+      lines: [
+        '● turn in flight',
+        LABELED_RULE,
+        '  ❯ QUEUED-labeled',
+        LABELED_RULE,
+        '❯ Press up to edit queued messages',
+        RULE,
+      ],
+      dim: [4],
+    });
+    expect(computeCloneInputState({ screen, message: '' }).queued).toEqual(
+      true,
+    );
+    const content = readContent({ screen });
+    expect(content.queue).toEqual(['QUEUED-labeled']);
+  });
+
+  test('[case4] an unparsed box rule beneath plain rules → the buffer shows that rule row, so the misread is visible', () => {
+    // pins the deferred residual (#737): the foreman reads the misplaced band through `--what buffer`
+    const ROW_UNPARSED = `${'─'.repeat(30)} a ─ b ─`;
+    const content = readContent({
+      screen: asScreen({
+        lines: [RULE, '● Ran 1 shell command', RULE, ROW_UNPARSED, '❯', RULE],
+      }),
+    });
+    expect(content.buffer).toContain(ROW_UNPARSED);
   });
 });
 

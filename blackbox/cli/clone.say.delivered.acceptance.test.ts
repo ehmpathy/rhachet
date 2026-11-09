@@ -9,6 +9,7 @@ import {
   asSnapshotSafe,
   invokeRhachetCliBinaryAsync,
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import { genSampleCloneScreenRuleLabeled } from '@src/.test/assets/genSampleCloneScreenRuleLabeled';
 
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -20,6 +21,18 @@ import { join } from 'node:path';
  *   describe name is kept, so each snapshot key is the one it held before the split
  */
 describe('rhx clone reach (acceptance)', () => {
+  /**
+   * .mock = the brain-cli, for every [case17*] below (the stub at `src/.test/assets/stubBrainCli.cjs`)
+   * .why = each case needs one exact box shape on screen — a labeled top rule, a human draft, a
+   *   modal, a busy turn — and a real claude draws a label only for a named agent, on its own
+   *   schedule, and a human draft or a modal not at all on demand. the stub draws the one shape
+   *   ehmpathy/rhachet#655 captured (`genSampleCloneScreenRuleLabeled`), byte for byte. rhx, the
+   *   socket, the pty and the screen read are all real; only the brain is stubbed, as in every
+   *   other case in this file
+   * .real = `clone.screen-dogfood.realbrain.acceptance.test.ts` reads a real claude's input band
+   *   through the same `getInputBand`. a real named-agent cell that asserts the labeled rule is
+   *   ehmpathy/rhachet#738 (both run on demand, behind `BRAIN_LIVE_SCOPE=all`)
+   */
   given('[case17] a clone whose box top rule carries its agent name (#655)', () => {
     // RHACHET_STUB_MODE=labeled → the stub draws `──…── mechanic ─` as the box's top rule,
     //   beneath a plain rule higher on screen. a reader blind to the labeled rule pairs the
@@ -34,6 +47,7 @@ describe('rhx clone reach (acceptance)', () => {
         PATH: stubPath,
         CLAUDE_CONFIG_DIR: configDir,
         RHACHET_STUB_MODE: 'labeled',
+        RHACHET_STUB_RULE_TOP: genSampleCloneScreenRuleLabeled(),
       };
       const { bg } = await enrollCloneAndWaitReady({ dir, env, as: '@:labeled' });
       return { dir, env, bg };
@@ -55,6 +69,39 @@ describe('rhx clone reach (acceptance)', () => {
       then('it exits 0 and shows the box, never the transcript above it', () => {
         expect(read.status).toEqual(0);
         expect(read.stdout).not.toContain('a prior turn');
+        expect(read.stdout).toMatch(/holds 1 row/);
+        expect(read.stdout).toContain('Try "a message"');
+      });
+
+      then('the buffer read stdout is locked (visual spot-check)', () => {
+        expect(asSnapshotSafe(read.stdout)).toMatchSnapshot();
+      });
+
+      const json = useThen('the `--output json` twin returns', () =>
+        invokeRhachetCliBinaryAsync({
+          args: ['clone', 'get', '@:labeled', '--what', 'buffer', '--output', 'json'],
+          cwd: scene.dir,
+          env: scene.env,
+          logOnError: false,
+        }),
+      );
+
+      then('the json twin reads focus input and a clear box, for a machine caller', () => {
+        // the tree twin alone is not coverage: `state.focus` / `state.input` are the fields
+        //   #655 broke, and a daemon that polls a clone reads them off this contract
+        expect(json.status).toEqual(0);
+        const parsed = JSON.parse(json.stdout) as {
+          state: { focus: string; input: string; queued: boolean };
+          content: { buffer: string[]; queue: string[] };
+        };
+        expect(parsed.state.focus).toEqual('input');
+        expect(parsed.state.input).toEqual('clear');
+        expect(parsed.content.buffer.join('\n')).not.toContain('a prior turn');
+        expect(parsed.content.queue).toEqual([]);
+      });
+
+      then('the json twin on a labeled box is locked', () => {
+        expect(asSnapshotSafe(json.stdout)).toMatchSnapshot();
       });
     });
 
@@ -84,6 +131,543 @@ describe('rhx clone reach (acceptance)', () => {
         };
         expect(parsed.verdict).toEqual('released');
         expect(parsed.delivered).toEqual(true);
+      });
+
+      then('the released json envelope on a labeled box is locked', () => {
+        expect(asSnapshotSafe(said.stdout)).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case17b] a clone whose labeled box sits at the screen foot (#655)', () => {
+    // RHACHET_STUB_MODE=labeledfoot → the labeled top rule with NO plain rule above. a reader
+    //   blind to the label finds one rule, no band, and withholds every say as
+    //   `focus-unrecognized` — the first face ehmpathy/rhachet#655 measured, whose hint
+    //   advises a teardown of a healthy clone
+    const scene = useBeforeAll(async () => {
+      const dir = genTempDir({ slug: 'clone-labeledfoot' });
+      const configDir = genTempDir({ slug: 'clone-labeledfoot-cfg' });
+      setupEnrollFixture({ dir });
+      const stubPath = setupRichStubBrainPath({ dir });
+      const env = {
+        PATH: stubPath,
+        CLAUDE_CONFIG_DIR: configDir,
+        RHACHET_STUB_MODE: 'labeledfoot',
+        RHACHET_STUB_RULE_TOP: genSampleCloneScreenRuleLabeled(),
+      };
+      const { bg } = await enrollCloneAndWaitReady({ dir, env, as: '@:labeledfoot' });
+      return { dir, env, bg };
+    });
+    afterAll(async () => scene.bg.kill());
+
+    when('[t0] a buffer read of the clone', () => {
+      // async, never sync — the live pty must drain while the read runs
+      //   (rule.forbid.sync-invoke-while-a-pty-is-live)
+      const read = useThen('the read returns', () =>
+        invokeRhachetCliBinaryAsync({
+          args: ['clone', 'get', '@:labeledfoot', '--what', 'buffer'],
+          cwd: scene.dir,
+          env: scene.env,
+          logOnError: false,
+        }),
+      );
+
+      then('it exits 0 and shows the one-row box', () => {
+        expect(read.status).toEqual(0);
+        expect(read.stdout).toMatch(/holds 1 row/);
+        expect(read.stdout).toContain('Try "a message"');
+      });
+
+      then('the buffer read stdout on a labeled foot box is locked (visual spot-check)', () => {
+        expect(asSnapshotSafe(read.stdout)).toMatchSnapshot();
+      });
+
+      const json = useThen('the `--output json` twin returns', () =>
+        invokeRhachetCliBinaryAsync({
+          args: ['clone', 'get', '@:labeledfoot', '--what', 'buffer', '--output', 'json'],
+          cwd: scene.dir,
+          env: scene.env,
+          logOnError: false,
+        }),
+      );
+
+      then('the json twin reads focus input and a clear box — never unrecognized', () => {
+        expect(json.status).toEqual(0);
+        const parsed = JSON.parse(json.stdout) as {
+          state: { focus: string; input: string };
+          content: { buffer: string[] };
+        };
+        expect(parsed.state.focus).toEqual('input');
+        expect(parsed.state.input).toEqual('clear');
+        expect(parsed.content.buffer).toEqual(['Try "a message"']);
+      });
+
+      then('the json twin on a labeled foot box is locked', () => {
+        expect(asSnapshotSafe(json.stdout)).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] a say to the clone', () => {
+      const said = useThen('the say returns', () =>
+        invokeRhachetCliBinaryAsync({
+          args: [
+            'clone',
+            'say',
+            '@:labeledfoot',
+            '--what',
+            'poke labeledfoot-x9',
+            '--output',
+            'json',
+          ],
+          cwd: scene.dir,
+          env: scene.env,
+          logOnError: false,
+        }),
+      );
+
+      then('it exits 0 and lands — never withheld as focus-unrecognized', () => {
+        expect(said.status).toEqual(0);
+        const parsed = JSON.parse(said.stdout) as {
+          verdict: string;
+          delivered: boolean;
+        };
+        expect(parsed.verdict).toEqual('released');
+        expect(parsed.delivered).toEqual(true);
+      });
+
+      then('the released json envelope on a labeled foot box is locked', () => {
+        expect(asSnapshotSafe(said.stdout)).toMatchSnapshot();
+      });
+    });
+
+    when('[t2] a second say, after the clone redrew its labeled box, on the human tree channel', () => {
+      // the stub redraws the labeled box after each turn; a foreman steers more than once, and
+      //   reads the tree frame at a terminal by default
+      const said = useThen('the say returns', () =>
+        invokeRhachetCliBinaryAsync({
+          args: ['clone', 'say', '@:labeledfoot', '--what', 'poke labeledfoot-y7'],
+          cwd: scene.dir,
+          env: scene.env,
+          logOnError: false,
+        }),
+      );
+
+      then('it exits 0 and lands again — the redrawn labeled box still reads as the box', () => {
+        expect(said.status).toEqual(0);
+        expect(said.stdout).toContain('@:labeledfoot');
+        expect(said.stderr).not.toMatch(/withheld|unrecognized/);
+      });
+
+      then('the released tree frame on a labeled foot box is locked', () => {
+        expect(asSnapshotSafe(said.stdout)).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case17c] a human mid-type in a labeled box (#655)', () => {
+    // RHACHET_STUB_MODE=labeleddirty → a labeled box that holds a human's draft, beneath a plain
+    //   rule. the cure lets the band find this box, so it must find the human's row too: the say
+    //   is withheld as `input-region-dirty`, and the draft is never pasted over
+    const scene = useBeforeAll(async () => {
+      const dir = genTempDir({ slug: 'clone-labeleddirty' });
+      const configDir = genTempDir({ slug: 'clone-labeleddirty-cfg' });
+      setupEnrollFixture({ dir });
+      const stubPath = setupRichStubBrainPath({ dir });
+      const env = {
+        PATH: stubPath,
+        CLAUDE_CONFIG_DIR: configDir,
+        RHACHET_STUB_MODE: 'labeleddirty',
+        RHACHET_STUB_RULE_TOP: genSampleCloneScreenRuleLabeled(),
+      };
+      const { bg } = await enrollCloneAndWaitReady({ dir, env, as: '@:labeleddirty' });
+      return { dir, env, bg };
+    });
+    afterAll(async () => scene.bg.kill());
+
+    when('[t0] an unforced say to the clone', () => {
+      const said = useThen('the say returns', () =>
+        invokeRhachetCliBinaryAsync({
+          args: [
+            'clone',
+            'say',
+            '@:labeleddirty',
+            '--what',
+            'poke labeleddirty-x9',
+            '--output',
+            'json',
+          ],
+          cwd: scene.dir,
+          env: scene.env,
+          logOnError: false,
+        }),
+      );
+
+      then('it exits 2, withheld as input-region-dirty — the human draft is kept', () => {
+        expect(said.status).toEqual(2);
+        const parsed = JSON.parse(said.stderr) as {
+          metadata: { verdict: string; reason: string; delivered: boolean };
+        };
+        expect(parsed.metadata.verdict).toEqual('withheld');
+        expect(parsed.metadata.reason).toEqual('input-region-dirty');
+        expect(parsed.metadata.delivered).toEqual(false);
+      });
+
+      then('the withheld json envelope on a labeled dirty box is locked', () => {
+        expect(asSnapshotSafe(said.stderr)).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] the buffer read the withheld hint points at', () => {
+      // the refusal tells the foreman to run `clone get --what buffer`; on a labeled box that
+      //   read must show the human's draft, never the transcript above the box
+      const read = useThen('the read returns', () =>
+        invokeRhachetCliBinaryAsync({
+          args: ['clone', 'get', '@:labeleddirty', '--what', 'buffer'],
+          cwd: scene.dir,
+          env: scene.env,
+          logOnError: false,
+        }),
+      );
+
+      then('it exits 0 and shows the human draft verbatim', () => {
+        expect(read.status).toEqual(0);
+        expect(read.stdout).toContain('HUMAN-DRAFT-half-typed-and-uncommitted');
+        expect(read.stdout).toMatch(/holds 1 row/);
+        expect(read.stdout).not.toContain('a prior turn');
+      });
+
+      then('the buffer read stdout on a labeled dirty box is locked (visual spot-check)', () => {
+        expect(asSnapshotSafe(read.stdout)).toMatchSnapshot();
+      });
+
+      const json = useThen('the `--output json` twin returns', () =>
+        invokeRhachetCliBinaryAsync({
+          args: ['clone', 'get', '@:labeleddirty', '--what', 'buffer', '--output', 'json'],
+          cwd: scene.dir,
+          env: scene.env,
+          logOnError: false,
+        }),
+      );
+
+      then('the json twin reads a dirty box that holds the draft', () => {
+        expect(json.status).toEqual(0);
+        const parsed = JSON.parse(json.stdout) as {
+          state: { focus: string; input: string; queued: boolean };
+          content: { buffer: string[]; queue: string[] };
+        };
+        expect(parsed.state.focus).toEqual('input');
+        expect(parsed.state.input).toEqual('dirty');
+        expect(parsed.content.buffer).toEqual([
+          'HUMAN-DRAFT-half-typed-and-uncommitted',
+        ]);
+      });
+
+      then('the json twin on a labeled dirty box is locked', () => {
+        expect(asSnapshotSafe(json.stdout)).toMatchSnapshot();
+      });
+    });
+
+    when('[t2] the foreman re-sends with --force, as the hint offers', () => {
+      // last in this scene: the force clobbers the draft, by design
+      const said = useThen('the say returns', () =>
+        invokeRhachetCliBinaryAsync({
+          args: [
+            'clone',
+            'say',
+            '@:labeleddirty',
+            '--what',
+            'poke labeleddirty-force',
+            '--force',
+            '--output',
+            'json',
+          ],
+          cwd: scene.dir,
+          env: scene.env,
+          logOnError: false,
+        }),
+      );
+
+      then('it exits 0 and is delivered — the labeled dirty box is forceable', () => {
+        expect(said.status).toEqual(0);
+        const parsed = JSON.parse(said.stdout) as {
+          verdict: string;
+          delivered: boolean;
+        };
+        expect(parsed.verdict).toEqual('released');
+        expect(parsed.delivered).toEqual(true);
+      });
+    });
+  });
+
+  given('[case17d] an unparsed box rule beneath a plain rule — the residual (#737)', () => {
+    // RHACHET_STUB_MODE=unparsed → a box top rule with a `─` inside its label, beneath a plain
+    //   rule. the predicate reads no rule there, so the band pairs the plain rule with the box
+    //   bottom and reads the transcript as the box: a false `input-region-dirty`. this snap pins
+    //   what the foreman reads today, so the #737 anchor fix lands as a visible diff
+    const scene = useBeforeAll(async () => {
+      const dir = genTempDir({ slug: 'clone-unparsed' });
+      const configDir = genTempDir({ slug: 'clone-unparsed-cfg' });
+      setupEnrollFixture({ dir });
+      const stubPath = setupRichStubBrainPath({ dir });
+      const env = {
+        PATH: stubPath,
+        CLAUDE_CONFIG_DIR: configDir,
+        RHACHET_STUB_MODE: 'unparsed',
+      };
+      const { bg } = await enrollCloneAndWaitReady({ dir, env, as: '@:unparsed' });
+      return { dir, env, bg };
+    });
+    afterAll(async () => scene.bg.kill());
+
+    when('[t0] an unforced say to the clone', () => {
+      const said = useThen('the say returns', () =>
+        invokeRhachetCliBinaryAsync({
+          args: ['clone', 'say', '@:unparsed', '--what', 'poke unparsed-x9'],
+          cwd: scene.dir,
+          env: scene.env,
+          logOnError: false,
+        }),
+      );
+
+      then('it exits 2, withheld — fail closed, never a paste', () => {
+        expect(said.status).toEqual(2);
+        expect(said.stderr.toLowerCase()).toMatch(/uncommitted|dirty|mid-type/);
+      });
+
+      then('the withheld stderr the foreman reads is locked', () => {
+        expect(asSnapshotSafe(said.stderr)).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] the buffer read the hint names — the residual made visible', () => {
+      // the one safeguard in the residual: the read shows transcript rows, not a human draft,
+      //   so a careful foreman does not force. pinned so the #737 fix lands as a diff here too
+      const read = useThen('the read returns', () =>
+        invokeRhachetCliBinaryAsync({
+          args: ['clone', 'get', '@:unparsed', '--what', 'buffer'],
+          cwd: scene.dir,
+          env: scene.env,
+          logOnError: false,
+        }),
+      );
+
+      then('it exits 0 and shows the transcript rows, never a human draft', () => {
+        expect(read.status).toEqual(0);
+        expect(read.stdout).toContain('a prior turn');
+        expect(read.stdout).not.toContain('HUMAN-DRAFT');
+      });
+
+      then('the buffer read stdout on the residual is locked (visual spot-check)', () => {
+        expect(asSnapshotSafe(read.stdout)).toMatchSnapshot();
+      });
+
+      const json = useThen('the `--output json` twin returns', () =>
+        invokeRhachetCliBinaryAsync({
+          args: ['clone', 'get', '@:unparsed', '--what', 'buffer', '--output', 'json'],
+          cwd: scene.dir,
+          env: scene.env,
+          logOnError: false,
+        }),
+      );
+
+      then('the json twin reads a dirty box whose buffer holds the transcript', () => {
+        expect(json.status).toEqual(0);
+        const parsed = JSON.parse(json.stdout) as {
+          state: { focus: string; input: string };
+          content: { buffer: string[] };
+        };
+        expect(parsed.state.focus).toEqual('input');
+        expect(parsed.state.input).toEqual('dirty');
+        expect(parsed.content.buffer.join('\n')).toContain('a prior turn');
+      });
+
+      then('the json twin on the residual is locked', () => {
+        expect(asSnapshotSafe(json.stdout)).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case17e] a busy driver behind a labeled box (#655)', () => {
+    // RHACHET_STUB_MODE=labeledbusy → a brain mid-turn holds the message above a still-clear
+    //   labeled box, so the say lands `enqueued` — the common foreman case, a steer of a
+    //   driver mid-turn
+    const scene = useBeforeAll(async () => {
+      const dir = genTempDir({ slug: 'clone-labeledbusy' });
+      const configDir = genTempDir({ slug: 'clone-labeledbusy-cfg' });
+      setupEnrollFixture({ dir });
+      const stubPath = setupRichStubBrainPath({ dir });
+      const env = {
+        PATH: stubPath,
+        CLAUDE_CONFIG_DIR: configDir,
+        RHACHET_STUB_MODE: 'labeledbusy',
+        RHACHET_STUB_RULE_TOP: genSampleCloneScreenRuleLabeled(),
+      };
+      const { bg } = await enrollCloneAndWaitReady({ dir, env, as: '@:labeledbusy' });
+      return { dir, env, bg };
+    });
+    afterAll(async () => scene.bg.kill());
+
+    when('[t0] a say to the busy clone', () => {
+      const said = useThen('the say returns', () =>
+        invokeRhachetCliBinaryAsync({
+          args: [
+            'clone',
+            'say',
+            '@:labeledbusy',
+            '--what',
+            'hold-me-labeled',
+            '--output',
+            'json',
+          ],
+          cwd: scene.dir,
+          env: scene.env,
+          logOnError: false,
+        }),
+      );
+
+      then('it exits 0 and reports enqueued — never withheld', () => {
+        expect(said.status).toEqual(0);
+        const parsed = JSON.parse(said.stdout) as {
+          verdict: string;
+          delivered: boolean;
+        };
+        expect(parsed.verdict).toEqual('enqueued');
+        expect(parsed.delivered).toEqual(true);
+      });
+
+      then('the enqueued json envelope on a labeled box is locked', () => {
+        expect(asSnapshotSafe(said.stdout)).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] a queue read of the busy clone', () => {
+      // the queue read finds the labeled box and reports its gate. the stub draws no dim
+      //   `Press up to edit queued` hint, so `queued` is false and the walk is gated off: the
+      //   walk itself, on a labeled rule, is clamped in `computeCloneInputContent.test.ts`
+      const read = useThen('the read returns', () =>
+        invokeRhachetCliBinaryAsync({
+          args: ['clone', 'get', '@:labeledbusy', '--what', 'queue', '--output', 'json'],
+          cwd: scene.dir,
+          env: scene.env,
+          logOnError: false,
+        }),
+      );
+
+      then('it exits 0, finds the labeled box, and gates the queue empty', () => {
+        expect(read.status).toEqual(0);
+        const parsed = JSON.parse(read.stdout) as {
+          state: { focus: string; input: string; queued: boolean };
+          content: { buffer: string[]; queue: string[] };
+        };
+        expect(parsed.state.focus).toEqual('input');
+        expect(parsed.state.input).toEqual('clear');
+        expect(parsed.content.buffer).toEqual(['Try "a message"']);
+        expect(parsed.state.queued).toEqual(false);
+        expect(parsed.content.queue).toEqual([]);
+      });
+
+      then('the gated queue read on a labeled busy box is locked (the gate only, not the walk)', () => {
+        expect(asSnapshotSafe(read.stdout)).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case17f] a modal above a labeled box (#655)', () => {
+    // RHACHET_STUB_MODE=labeledmodal → a `❯`-led option menu with a confirm footer above a
+    //   labeled box. the widened predicate must leave a real modal read as `modal`, so a say
+    //   can never answer a permission prompt on a clone with an agent name
+    const scene = useBeforeAll(async () => {
+      const dir = genTempDir({ slug: 'clone-labeledmodal' });
+      const configDir = genTempDir({ slug: 'clone-labeledmodal-cfg' });
+      setupEnrollFixture({ dir });
+      const stubPath = setupRichStubBrainPath({ dir });
+      const env = {
+        PATH: stubPath,
+        CLAUDE_CONFIG_DIR: configDir,
+        RHACHET_STUB_MODE: 'labeledmodal',
+        RHACHET_STUB_RULE_TOP: genSampleCloneScreenRuleLabeled(),
+      };
+      const { bg } = await enrollCloneAndWaitReady({ dir, env, as: '@:labeledmodal' });
+      return { dir, env, bg };
+    });
+    afterAll(async () => scene.bg.kill());
+
+    when('[t0] a say while the modal holds focus', () => {
+      const said = useThen('the say returns', () =>
+        invokeRhachetCliBinaryAsync({
+          args: [
+            'clone',
+            'say',
+            '@:labeledmodal',
+            '--what',
+            'poke labeledmodal-x9',
+            '--output',
+            'json',
+          ],
+          cwd: scene.dir,
+          env: scene.env,
+          logOnError: false,
+        }),
+      );
+
+      then('it exits 2, withheld as modal-holds-focus — never an answer to the prompt', () => {
+        expect(said.status).toEqual(2);
+        const parsed = JSON.parse(said.stderr) as {
+          metadata: { verdict: string; reason: string; delivered: boolean };
+        };
+        expect(parsed.metadata.verdict).toEqual('withheld');
+        expect(parsed.metadata.reason).toEqual('modal-holds-focus');
+        expect(parsed.metadata.delivered).toEqual(false);
+      });
+
+      then('the withheld json envelope for a modal above a labeled box is locked', () => {
+        expect(asSnapshotSafe(said.stderr)).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] the same say, on the human tree channel', () => {
+      // the frame a foreman reads at a terminal by default
+      const said = useThen('the say returns', () =>
+        invokeRhachetCliBinaryAsync({
+          args: ['clone', 'say', '@:labeledmodal', '--what', 'poke labeledmodal-y7'],
+          cwd: scene.dir,
+          env: scene.env,
+          logOnError: false,
+        }),
+      );
+
+      then('it exits 2 and names the modal', () => {
+        expect(said.status).toEqual(2);
+        expect(said.stderr.toLowerCase()).toContain('modal');
+      });
+
+      then('the withheld tree frame for a modal above a labeled box is locked', () => {
+        expect(asSnapshotSafe(said.stderr)).toMatchSnapshot();
+      });
+    });
+
+    when('[t2] a json buffer read while the modal holds focus', () => {
+      // the fields a daemon polls: a real modal above a labeled box still reads `modal`
+      const read = useThen('the read returns', () =>
+        invokeRhachetCliBinaryAsync({
+          args: ['clone', 'get', '@:labeledmodal', '--what', 'buffer', '--output', 'json'],
+          cwd: scene.dir,
+          env: scene.env,
+          logOnError: false,
+        }),
+      );
+
+      then('it exits 0 and reads focus modal', () => {
+        expect(read.status).toEqual(0);
+        const parsed = JSON.parse(read.stdout) as {
+          state: { focus: string };
+          content: { buffer: string[] };
+        };
+        expect(parsed.state.focus).toEqual('modal');
+      });
+
+      then('the json buffer read for a modal above a labeled box is locked', () => {
+        expect(asSnapshotSafe(read.stdout)).toMatchSnapshot();
       });
     });
   });

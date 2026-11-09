@@ -41,11 +41,13 @@ timestamps_lock_malfunction() {
 [ -f "$TIMESTAMPS_LOCK_HOOK" ] || timestamps_lock_halt 'absent' 'on disk'
 
 # halt if the hook on disk differs
-TIMESTAMPS_LOCK_DISK=$(git hash-object -- "$TIMESTAMPS_LOCK_HOOK")
+TIMESTAMPS_LOCK_DISK=$(git hash-object -- "$TIMESTAMPS_LOCK_HOOK") || timestamps_lock_malfunction
 [ "$TIMESTAMPS_LOCK_DISK" = "$TIMESTAMPS_LOCK_EXPECTED" ] || timestamps_lock_halt "$TIMESTAMPS_LOCK_DISK" 'on disk'
 
 # halt if the hook in the index differs (a staged edit, then a revert on disk, still commits the edit)
 # the index read stands alone, so a failed read halts rather than reads as "not staged"
 TIMESTAMPS_LOCK_STAGE=$(git ls-files -s -- "$TIMESTAMPS_LOCK_HOOK") || timestamps_lock_malfunction
 TIMESTAMPS_LOCK_INDEX=$(printf '%s\n' "$TIMESTAMPS_LOCK_STAGE" | awk '{ print $2 }')
-[ -z "$TIMESTAMPS_LOCK_INDEX" ] || [ "$TIMESTAMPS_LOCK_INDEX" = "$TIMESTAMPS_LOCK_EXPECTED" ] || timestamps_lock_halt "$TIMESTAMPS_LOCK_INDEX" 'in the index'
+# an empty read means the hook left the index (`git rm --cached`), so it no longer ships
+[ -n "$TIMESTAMPS_LOCK_INDEX" ] || timestamps_lock_halt 'absent' 'in the index'
+[ "$TIMESTAMPS_LOCK_INDEX" = "$TIMESTAMPS_LOCK_EXPECTED" ] || timestamps_lock_halt "$TIMESTAMPS_LOCK_INDEX" 'in the index'

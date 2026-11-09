@@ -16,7 +16,7 @@ exports[`rhx given: [case5] rhx init bare-sigil alias when: [t0] \`rhx init +arc
    │  ├─ + .agent/repo=ehmpathy/role=architect/boot.yml
    │  └─ + .agent/repo=ehmpathy/role=architect/briefs
    └─ stats
-      └─ 53 brief(s)
+      └─ 45 brief(s)
 
 🔑 keyrack init
    ├─ org: ehmpathy
@@ -29,8 +29,12 @@ exports[`rhx given: [case5] rhx init bare-sigil alias when: [t0] \`rhx init +arc
       └─ created — 1 role
 
 🔭 search for linked roles with hooks...
+   └─ ehmpathy/architect
 
-🫧 no roles with hooks found
+🪝 apply hooks to brains...
+
+✨ hooks
+   └─ no changes needed
 
 "
 `;
@@ -47,8 +51,12 @@ exports[`rhx given: [case5] rhx init bare-sigil alias when: [t2.1] \`rhx init -e
       └─ rhachet init --hooks --roles architect
 
 🔭 search for linked roles with hooks...
+   └─ ehmpathy/architect
 
-🫧 no roles with hooks found
+🪝 apply hooks to brains...
+
+✨ hooks
+   └─ no changes needed
 
 "
 `;
@@ -60,8 +68,12 @@ exports[`rhx given: [case5] rhx init bare-sigil alias when: [t2] \`rhx init -erg
    └─ untouched (1)
 
 🔭 search for linked roles with hooks...
+   └─ ehmpathy/architect
 
-🫧 no roles with hooks found
+🪝 apply hooks to brains...
+
+✨ hooks
+   └─ no changes needed
 
 "
 `;

@@ -2,95 +2,85 @@
 
 🗿 route.stone.set
    ├─ stone = 5.1.execution.from_vision
-   ├─ passage = blocked
-   ├─ reason = blockers exceed threshold (7 > 0)
-   └─ guard
-      ├─ artifacts
-      │   ├─ $route/5.1.execution.from_vision.yield.md
-      │   └─ src/**/*
-      ├─ reviews
-      │   ├─ r1: repo-rules (l1, 1/3)
-      │   │   ├─ rejected 251.8s
-      │   │   ├─ 2 blockers 🔴
-      │   │   ├─ 2 nitpicks 🟠
-      │   │   ├─ given: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i001.5a597be69b5ceb654f.r001._.given.by_peer.repo-rules.md
-      │   │   └─ taken: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i001.5a597be69b5ceb654f.r001._.taken.by_self.repo-rules.md
-      │   ├─ r2: mech-failhides (l1, 1/3)
-      │   │   ├─ rejected 145.7s
-      │   │   ├─ 1 blocker 🔴
-      │   │   ├─ 2 nitpicks 🟠
-      │   │   ├─ given: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i001.5a597be69b5ceb654f.r002._.given.by_peer.mech-failhides.md
-      │   │   └─ taken: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i001.5a597be69b5ceb654f.r002._.taken.by_self.mech-failhides.md
-      │   ├─ r3: mech-decode-friction (l1, 1/3)
-      │   │   ├─ approved 211.5s
-      │   │   ├─ 0 blockers ✓
-      │   │   ├─ 0 nitpicks ✓
-      │   │   ├─ given: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i001.5a597be69b5ceb654f.r003._.given.by_peer.mech-decode-friction.md
-      │   │   └─ taken: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i001.5a597be69b5ceb654f.r003._.taken.by_self.mech-decode-friction.md
-      │   ├─ r4: arch-opport-decomposition (l1, 1/3)
-      │   │   ├─ approved 165.9s
-      │   │   ├─ 0 blockers ✓
-      │   │   ├─ 0 nitpicks ✓
-      │   │   ├─ given: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i001.5a597be69b5ceb654f.r004._.given.by_peer.arch-opport-decomposition.md
-      │   │   └─ taken: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i001.5a597be69b5ceb654f.r004._.taken.by_self.arch-opport-decomposition.md
-      │   ├─ r5: arch-smell-scopeleaks (l1, 1/3)
-      │   │   ├─ approved 109.6s
-      │   │   ├─ 0 blockers ✓
-      │   │   ├─ 0 nitpicks ✓
-      │   │   ├─ given: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i001.5a597be69b5ceb654f.r005._.given.by_peer.arch-smell-scopeleaks.md
-      │   │   └─ taken: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i001.5a597be69b5ceb654f.r005._.taken.by_self.arch-smell-scopeleaks.md
-      │   ├─ r6: arch-hazards-maintenance (l1, 1/3)
-      │   │   ├─ rejected 275.5s
-      │   │   ├─ 1 blocker 🔴
-      │   │   ├─ 1 nitpick 🟠
-      │   │   ├─ given: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i001.5a597be69b5ceb654f.r006._.given.by_peer.arch-hazards-maintenance.md
-      │   │   └─ taken: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i001.5a597be69b5ceb654f.r006._.taken.by_self.arch-hazards-maintenance.md
-      │   ├─ r7: arch-hazards-behavior (l1, 1/3)
-      │   │   ├─ approved 185.4s
-      │   │   ├─ 0 blockers ✓
-      │   │   ├─ 0 nitpicks ✓
-      │   │   ├─ given: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i001.5a597be69b5ceb654f.r007._.given.by_peer.arch-hazards-behavior.md
-      │   │   └─ taken: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i001.5a597be69b5ceb654f.r007._.taken.by_self.arch-hazards-behavior.md
-      │   ├─ r8: behavior-intent-coverage (l1, 1/3)
-      │   │   ├─ rejected 224.3s
-      │   │   ├─ 1 blocker 🔴
-      │   │   ├─ 2 nitpicks 🟠
-      │   │   ├─ given: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i001.5a597be69b5ceb654f.r008._.given.by_peer.behavior-intent-coverage.md
-      │   │   └─ taken: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i001.5a597be69b5ceb654f.r008._.taken.by_self.behavior-intent-coverage.md
-      │   ├─ r9: ergo-friction-hazards (l1, 1/3)
-      │   │   ├─ rejected 144.0s
-      │   │   ├─ 2 blockers 🔴
-      │   │   ├─ 3 nitpicks 🟠
-      │   │   ├─ given: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i001.5a597be69b5ceb654f.r009._.given.by_peer.ergo-friction-hazards.md
-      │   │   └─ taken: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i001.5a597be69b5ceb654f.r009._.taken.by_self.ergo-friction-hazards.md
-      │   ├─ r10: enroll-impl-behavior-intent (l3, 0/3)
-      │   │   └─ awaits l1 terminal
-      │   └─ r11: enroll-impl-arch-defects (l3, 0/3)
-      │       └─ awaits l1 terminal
-      └─ judges
-          └─ j1: $rhachet run --repo bhrain --skill route.stone.judge --mechanism reviewed? --stone $stone --route $route --allow-blockers 0 --allow-nitpicks 7
-              ├─ finished 3.9s ✗
-              └─ reason: blockers exceed threshold (7 > 0)
-
-────────────────────────────────────────────────────────────────
-
-🪶 judge 1
-   ├─ stdout
-   │  ├─
-   │  │
-   │  │  🪨 run solid skill repo=bhrain/role=driver/skill=route.stone.judge
-   │  │
-   │  │  passed: false
-   │  │  reason: blockers exceed threshold (7 > 0)
-   │  │
-   │  └─
-   ├─ stderr
-   │  ├─
-   │  │
-   │  │  🪨 run solid skill repo=bhrain/role=driver/skill=route.stone.judge
-   │  │     └─ ✋ blocked by constraints
-   │  │
-   │  └─
-   └─ passage blocked
-      ├─ blocked by constraints
-      └─ exit code: 2 ✋
+   ├─ passage = allowed
+   ├─ guard
+   │  ├─ artifacts
+   │  │   ├─ $route/5.1.execution.from_vision.yield.md
+   │  │   └─ src/**/*
+   │  ├─ reviews
+   │  │   ├─ r1: repo-rules (l1, 3/3)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 1 nitpick 🟠
+   │  │   │   ├─ given: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i003.c1f1e6e77489132dbb.r001._.given.by_peer.repo-rules.md
+   │  │   │   └─ taken: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i003.c1f1e6e77489132dbb.r001._.taken.by_self.repo-rules.md
+   │  │   ├─ r2: mech-failhides (l1, 3/3)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i003.c1f1e6e77489132dbb.r002._.given.by_peer.mech-failhides.md
+   │  │   │   └─ taken: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i003.c1f1e6e77489132dbb.r002._.taken.by_self.mech-failhides.md
+   │  │   ├─ r3: mech-decode-friction (l1, 3/3)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i003.c1f1e6e77489132dbb.r003._.given.by_peer.mech-decode-friction.md
+   │  │   │   └─ taken: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i003.c1f1e6e77489132dbb.r003._.taken.by_self.mech-decode-friction.md
+   │  │   ├─ r4: arch-opport-decomposition (l1, 3/3)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i003.c1f1e6e77489132dbb.r004._.given.by_peer.arch-opport-decomposition.md
+   │  │   │   └─ taken: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i003.c1f1e6e77489132dbb.r004._.taken.by_self.arch-opport-decomposition.md
+   │  │   ├─ r5: arch-smell-scopeleaks (l1, 3/3)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i003.c1f1e6e77489132dbb.r005._.given.by_peer.arch-smell-scopeleaks.md
+   │  │   │   └─ taken: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i003.c1f1e6e77489132dbb.r005._.taken.by_self.arch-smell-scopeleaks.md
+   │  │   ├─ r6: arch-hazards-maintenance (l1, 3/3)
+   │  │   │   ├─ exhausted 🌙, cached
+   │  │   │   ├─ terminal — does not block higher levels
+   │  │   │   ├─ 1 blocker 🔴
+   │  │   │   ├─ 1 nitpick 🟠
+   │  │   │   ├─ given: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i003.c1f1e6e77489132dbb.r006._.given.by_peer.arch-hazards-maintenance.md
+   │  │   │   └─ taken: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i003.c1f1e6e77489132dbb.r006._.taken.by_self.arch-hazards-maintenance.md
+   │  │   ├─ r7: arch-hazards-behavior (l1, 3/3)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i003.c1f1e6e77489132dbb.r007._.given.by_peer.arch-hazards-behavior.md
+   │  │   │   └─ taken: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i003.c1f1e6e77489132dbb.r007._.taken.by_self.arch-hazards-behavior.md
+   │  │   ├─ r8: behavior-intent-coverage (l1, 3/3)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 2 nitpicks 🟠
+   │  │   │   ├─ given: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i003.c1f1e6e77489132dbb.r008._.given.by_peer.behavior-intent-coverage.md
+   │  │   │   └─ taken: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i003.c1f1e6e77489132dbb.r008._.taken.by_self.behavior-intent-coverage.md
+   │  │   ├─ r9: ergo-friction-hazards (l1, 3/3)
+   │  │   │   ├─ approved, cached
+   │  │   │   ├─ 0 blockers ✓
+   │  │   │   ├─ 0 nitpicks ✓
+   │  │   │   ├─ given: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i003.c1f1e6e77489132dbb.r009._.given.by_peer.ergo-friction-hazards.md
+   │  │   │   └─ taken: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i003.c1f1e6e77489132dbb.r009._.taken.by_self.ergo-friction-hazards.md
+   │  │   ├─ r10: enroll-impl-behavior-intent (l3, 3/3)
+   │  │   │   ├─ exhausted 🌙, cached
+   │  │   │   ├─ terminal — does not block higher levels
+   │  │   │   ├─ 2 blockers 🔴
+   │  │   │   ├─ 4 nitpicks, 1 disputed → 3 tallied 🟠
+   │  │   │   ├─ tallied by reviewer@openrouter/deepseek/flash
+   │  │   │   ├─ given: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i006.b9b7c48aae88d2df73.r010._.given.by_peer.enroll-impl-behavior-intent.md
+   │  │   │   └─ taken: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i006.b9b7c48aae88d2df73.r010._.taken.by_self.enroll-impl-behavior-intent.md
+   │  │   └─ r11: enroll-impl-arch-defects (l3, 3/3)
+   │  │       ├─ exhausted 🌙, cached
+   │  │       ├─ terminal — does not block higher levels
+   │  │       ├─ 1 blocker 🔴
+   │  │       ├─ 5 nitpicks, 1 disputed → 4 tallied 🟠
+   │  │       ├─ given: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i006.b9b7c48aae88d2df73.r011._.given.by_peer.enroll-impl-arch-defects.md
+   │  │       └─ taken: .behavior/v2026_11_08.fix-clone-say-labeled-rule/.reviews/peer/5.1.execution.from_vision._.review.i006.b9b7c48aae88d2df73.r011._.taken.by_self.enroll-impl-arch-defects.md
+   │  └─ judges
+   │      └─ j1: $rhachet run --repo bhrain --skill route.stone.judge --mechanism reviewed? --stone $stone --route $route --allow-blockers 0 --allow-nitpicks 7
+   │          └─ finished 1.7s ✓
+   │
+   └─ the way continues, run
+      └─ rhx route.drive
