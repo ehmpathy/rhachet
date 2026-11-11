@@ -5,4 +5,4 @@
 - **rework:** clean — one key function inside the rank; no channel, flag, or file shape depends on it
 - **confidence:** 70% — the key compares two percents of two budgets of unpublished size, so at 5h 96% / 7d 95% it keys by the 5h window though the week is near spent too. a token-weighted rank would be truer and needs window sizes the api does not publish
 - **where:** `1.vision.yield.md` §4 and what is awkward; `1.vision.experience.case=3…` t4; `1.vision.experience.dimensions.md` D10
-- **verdict:** —
+- **verdict:** accepted as guessed, by the director on 2026-11-10

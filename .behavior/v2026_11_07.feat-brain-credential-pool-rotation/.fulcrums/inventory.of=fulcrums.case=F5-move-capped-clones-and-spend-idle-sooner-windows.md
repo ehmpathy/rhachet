@@ -8,4 +8,4 @@ means `resets_at` null; the slug is kept so extant links hold.)
 - **rework:** clean — a rank filter
 - **confidence:** 75% — the idle-member rule is my interpretation of "no capacity left unused"; the commander may want the full re-home
 - **where:** `1.vision.yield.md` §4, case 4 `[t4]`, `[t5]`
-- **verdict:** —
+- **verdict:** accepted as guessed, by the director on 2026-11-10

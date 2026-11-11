@@ -8,22 +8,22 @@
       ├─ artifacts
       ├─ reviews
       │   ├─ r1: dimensional-decomposition (l1, 3/3)
-      │   │   ├─ approved 255.6s
+      │   │   ├─ approved 247.4s
       │   │   ├─ 0 blockers ✓
-      │   │   ├─ 3 nitpicks 🟠
-      │   │   ├─ given: .behavior/v2026_11_07.feat-brain-credential-pool-rotation/.reviews/peer/1.vision._.review.i003.6e6ffbe9604c93052c.r001._.given.by_peer.dimensional-decomposition.md
-      │   │   └─ taken: .behavior/v2026_11_07.feat-brain-credential-pool-rotation/.reviews/peer/1.vision._.review.i003.6e6ffbe9604c93052c.r001._.taken.by_self.dimensional-decomposition.md
+      │   │   ├─ 5 nitpicks 🟠
+      │   │   ├─ given: .behavior/v2026_11_07.feat-brain-credential-pool-rotation/.reviews/peer/1.vision._.review.i003.124f46f9c0112b53bc.r001._.given.by_peer.dimensional-decomposition.md
+      │   │   └─ taken: .behavior/v2026_11_07.feat-brain-credential-pool-rotation/.reviews/peer/1.vision._.review.i003.124f46f9c0112b53bc.r001._.taken.by_self.dimensional-decomposition.md
       │   └─ r2: experience-coverage (l1, 3/3)
-      │       ├─ approved 168.9s
+      │       ├─ approved 236.7s
       │       ├─ 0 blockers ✓
       │       ├─ 1 nitpick 🟠
-      │       ├─ given: .behavior/v2026_11_07.feat-brain-credential-pool-rotation/.reviews/peer/1.vision._.review.i003.6e6ffbe9604c93052c.r002._.given.by_peer.experience-coverage.md
-      │       └─ taken: .behavior/v2026_11_07.feat-brain-credential-pool-rotation/.reviews/peer/1.vision._.review.i003.6e6ffbe9604c93052c.r002._.taken.by_self.experience-coverage.md
+      │       ├─ given: .behavior/v2026_11_07.feat-brain-credential-pool-rotation/.reviews/peer/1.vision._.review.i003.124f46f9c0112b53bc.r002._.given.by_peer.experience-coverage.md
+      │       └─ taken: .behavior/v2026_11_07.feat-brain-credential-pool-rotation/.reviews/peer/1.vision._.review.i003.124f46f9c0112b53bc.r002._.taken.by_self.experience-coverage.md
       └─ judges
           ├─ j1: $rhachet run --repo bhrain --skill route.stone.judge --mechanism reviewed? --stone $stone --route $route --allow-blockers 0 --allow-nitpicks 7
-          │   └─ finished 3.6s ✓
+          │   └─ finished 3.4s ✓
           └─ j2: $rhachet run --repo bhrain --skill route.stone.judge --mechanism approved? --stone $stone --route $route
-              ├─ finished 5.1s ✗
+              ├─ finished 2.7s ✗
               └─ reason: wait for human approval
 
 ────────────────────────────────────────────────────────────────
