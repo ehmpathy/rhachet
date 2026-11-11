@@ -5,4 +5,4 @@
 - **rework:** clean — a path and a loader
 - **confidence:** 70% — the issue named the per-actor shape, and an actor-owned default pool may still be wanted
 - **where:** `1.vision.yield.md` §2
-- **verdict:** —
+- **verdict:** accepted as guessed, by the director on 2026-11-10

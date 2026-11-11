@@ -5,4 +5,4 @@
 - **rework:** clean — the verb is the same under either host
 - **confidence:** 80%
 - **where:** `1.vision.yield.md` §4
-- **verdict:** —
+- **verdict:** accepted as guessed, by the director on 2026-11-10
