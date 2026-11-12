@@ -852,9 +852,9 @@ exports[`rhx enroll owns the system prompt (acceptance) given: [case1] a linked 
   "--setting-sources",
   "user",
   "--settings",
-  "$TESTDIR",
-  "--system-prompt",
-  "<empty>",
+  "$TESTDIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json",
+  "--system-prompt-file",
+  "$TESTDIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/boot.md",
 ]
 `;
 
@@ -863,7 +863,7 @@ exports[`rhx enroll owns the system prompt (acceptance) given: [case1] a linked 
 ✋ ConstraintError: enroll owns the system prompt; the passthrough may not override it
 
 {
-  "hint": "rhachet spawns every clone with \`--system-prompt ''\` and boots its briefs via CLAUDE.md. to add text, pass \`--append-system-prompt <text>\`; to change what a clone knows, add a brief to one of its roles",
+  "hint": "rhachet spawns every clone with its actor's boot.md as the system prompt. to add text, pass \`--append-system-prompt <text>\`, or \`--append-system-prompt-file <path>\` for a file; to change what a clone knows, add a brief to one of its roles",
   "overrides": [
     "--system-prompt"
   ]
@@ -871,6 +871,39 @@ exports[`rhx enroll owns the system prompt (acceptance) given: [case1] a linked 
 
 [args] enroll,claude,--system-prompt,you are a pirate
 
+"
+`;
+
+exports[`rhx enroll owns the system prompt (acceptance) given: [case1] a linked repo whose \`claude\` records the argv it is spawned with when: [t3] \`enroll claude --system-prompt-file=<path>\` (the file form, inline) then: the refusal is locked to a snapshot 1`] = `
+"
+✋ ConstraintError: enroll owns the system prompt; the passthrough may not override it
+
+{
+  "hint": "rhachet spawns every clone with its actor's boot.md as the system prompt. to add text, pass \`--append-system-prompt <text>\`, or \`--append-system-prompt-file <path>\` for a file; to change what a clone knows, add a brief to one of its roles",
+  "overrides": [
+    "--system-prompt-file=./prompt.md"
+  ]
+}
+
+[args] enroll,claude,--system-prompt-file=./prompt.md
+
+"
+`;
+
+exports[`rhx enroll owns the system prompt (acceptance) given: [case1] a linked repo whose \`claude\` records the argv it is spawned with when: [t4] \`enroll claude --system-prompt <text> --output json\` (the machine channel) then: the json refusal a machine parses is locked 1`] = `
+"{
+  "class": "ConstraintError",
+  "message": "enroll owns the system prompt; the passthrough may not override it",
+  "hint": "rhachet spawns every clone with its actor's boot.md as the system prompt. to add text, pass \`--append-system-prompt <text>\`, or \`--append-system-prompt-file <path>\` for a file; to change what a clone knows, add a brief to one of its roles",
+  "reachState": null,
+  "reachCause": null,
+  "metadata": {
+    "overrides": [
+      "--system-prompt"
+    ],
+    "hint": "rhachet spawns every clone with its actor's boot.md as the system prompt. to add text, pass \`--append-system-prompt <text>\`, or \`--append-system-prompt-file <path>\` for a file; to change what a clone knows, add a brief to one of its roles"
+  }
+}
 "
 `;
 

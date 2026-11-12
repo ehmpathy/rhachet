@@ -77,7 +77,11 @@ Options:
   --await <target>  wait until the message reaches enqueue (default; a release
                     satisfies it too, since release is downstream) or release —
                     bounded by a 15s poll, after which it reports the last state
-                    observed (never a hang) (default: "enqueue")
+                    observed (never a hang). a fresh clone's FIRST say may first
+                    wait, up to 45s, while a peer of the same boot sends its
+                    first request, so the boot is written to cache once; stderr
+                    names the wait (under --output json, the clone's trace log
+                    names it instead) (default: "enqueue")
   --debug           capture the whole decision record — the baseline, every poll
                     cycle, and the exact screen rows the classifier read — even
                     when the say SUCCEEDS (a failure always captures)

@@ -1,0 +1,35 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx clone say, boot cache gate (acceptance) given: [case1] a fresh clone whose boot lead record cannot be read when: [t0] the clone gets its first say then: the faulted stderr is locked 1`] = `
+"🟡 the boot cache gate faulted (EISDIR: illegal operation on a directory, read); this say goes unheld
+"
+`;
+
+exports[`rhx clone say, boot cache gate (acceptance) given: [case2] two clones of one boot; the lead has sent and not answered when: [t0] the follower gets its first say, and the lead answers 10s in then: the held stderr is locked 1`] = `
+"ℹ held for the boot cache, up to <n>s, until @:<lead> begins its first reply; @:<lead> sent the first request of this boot
+ℹ held <n>s for the boot cache, until @:<lead> began its first reply; this clone reads the boot from cache
+"
+`;
+
+exports[`rhx clone say, boot cache gate (acceptance) given: [case3] a json say held on a lead that has not sent when: [t0] the follower gets its first say with \`--output json\` then: the hold lines reach the trace log: it began, and the bound ended it 1`] = `
+"ℹ held for the boot cache, up to <n>s, until @:<lead> begins its first reply; @:<lead> claimed the first request of this boot and has not sent it yet
+ℹ held <n>s for the boot cache; @:<lead> has not replied, so this clone writes the boot itself"
+`;
+
+exports[`rhx clone say, boot cache gate (acceptance) given: [case3] a json say held on a lead that has not sent when: [t0] the follower gets its first say with \`--output json\` then: the say is delivered, exit 0, and stdout is the json envelope 1`] = `
+"{
+  "delivered": true,
+  "verdict": "<delivered>",
+  "reason": null,
+  "probe": "capable",
+  "serial": "<uuid>",
+  "slug": "jsonfollow"
+}
+"
+`;
+
+exports[`rhx clone say, boot cache gate (acceptance) given: [case4] a cold fleet of four clones of one boot, no lead record seeded when: [t2] the fourth clone says first on a lead that sent and never answers then: the bound stderr is locked 1`] = `
+"ℹ held for the boot cache, up to <n>s, until @:<lead> begins its first reply; @:<lead> sent the first request of this boot
+ℹ held <n>s for the boot cache; @:<lead> has not replied, so this clone writes the boot itself
+"
+`;

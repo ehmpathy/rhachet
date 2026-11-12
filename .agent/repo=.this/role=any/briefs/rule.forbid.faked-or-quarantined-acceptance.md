@@ -44,6 +44,14 @@ real one into an opt-in config.
   emit (not the nondeterministic prose), bound the wall-clock — NOT by demotion of the test to a
   fake or exile of it to a nightly config.
 
+## .the boundary with the live-brain flag
+
+a suite wrapped in `describeBrainLiveOnDemand` is no quarantine: it sits in the one default config, is
+skipped by name beside a todo row that names `BRAIN_LIVE_SCOPE=all`, and runs whole when the flag is
+set (`rule.require.live-brain-tests-run-on-a-named-flag`). the gate is for a suite whose asserts spend
+the paid test key. a gated suite that needs no live answer, or a separate config, is still the
+forbidden shape.
+
 ## .the test
 
 "if the real external dependency broke, would the **default** acceptance gate go red before

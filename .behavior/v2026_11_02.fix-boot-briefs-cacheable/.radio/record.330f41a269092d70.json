@@ -1,0 +1,19 @@
+{
+  "key": "330f41a269092d70",
+  "kind": "create",
+  "repo": {
+    "owner": "ehmpathy",
+    "name": "rhachet"
+  },
+  "exid": null,
+  "title": "fix(clone): a clone history links its own session by id, never by a spawn window",
+  "description": "# fix(clone): a clone history links its own session by id, never by a spawn window\n\na dedicated PR, planned from ehmpathy/rhachet branch `fix-boot-briefs-cacheable` (fulcrum F13).\n\n## .the gap\n\n- clones of one actor share one transcript dir, so every peer transcript is a candidate for the history link\n- the link admits a transcript by its birth within `spawnedAt − 2s`; two candidates refuse all (`.exids/*.ambiguous`), one is adopted, whose it may be\n- the boot cache gate reads a lead's progress off that history, so a close-spawned same-actor fleet reads its lead as unsent, or a follower as started. it fails safe (bounded at 5s / 45s), and the boot cache share is lost\n\n## .the bounded diff\n\n1. at spawn, mint a uuid and pass `--session-id <uuid>` to the brain-cli; store it in the clone dir\n2. link `history/` by that id alone (`<uuid>.jsonl`); drop the window and the ambiguous refusal for it\n3. keep the window as the declared fallback for a brain-cli that takes no session id\n4. clamp: a stub fleet of four clones of one actor, spawned back to back; each `history/` holds exactly its own transcript, and the boot cache gate holds the three followers\n\n## .files\n\n- `src/domain.operations/clone/genCloneHistoryLink.ts`\n- `src/domain.operations/clone/pty/genBrainCliPtyClone.ts`, `genBrainCliPlainClone.ts`\n- `src/contract/cli/invokeEnroll.ts`\n- the brief `define.invariant.clone-history-holds-only-its-own-session` (its provenance residual closes)\n\n## .why its own PR\n\nit changes the clone subsystem's identity rule: how every clone, of every actor, finds its own transcript. `clone get`, the history invariant, enroll, and both spawn paths read that rule. it is a core contract with many callers, so it gets its own focused review.",
+  "status": null,
+  "via": "gh.issues",
+  "auth": "as-human",
+  "idem": "findsert",
+  "heldSeq": 1,
+  "recordStatus": "DELIVERED",
+  "reason": null,
+  "deliveredExid": "703"
+}
