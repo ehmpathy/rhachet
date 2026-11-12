@@ -49,6 +49,7 @@ describe('asBrainDirSyncReportLines', () => {
             drops: ['CLAUDE.md'],
             moves: ['settings.json', 'keep.json'],
           }),
+          untracked: [],
           repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
         });
 
@@ -71,6 +72,7 @@ describe('asBrainDirSyncReportLines', () => {
       const lines = asBrainDirSyncReportLines({
         render: genRender({ bootMdCreated: true }),
         symlink: genSymlink({ effect: 'CREATED' }),
+        untracked: [],
         repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
       });
 
@@ -85,6 +87,7 @@ describe('asBrainDirSyncReportLines', () => {
       const lines = asBrainDirSyncReportLines({
         render: genRender(),
         symlink: genSymlink({ effect: 'FOUND' }),
+        untracked: [],
         repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
       });
 
@@ -107,6 +110,7 @@ describe('asBrainDirSyncReportLines', () => {
             stats: { ...BOOT_STATS_ZERO, roles: 1, chars: 512 },
           }),
           symlink: null,
+          untracked: [],
           repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
         });
 
@@ -124,6 +128,7 @@ describe('asBrainDirSyncReportLines', () => {
             scope: { kind: 'actor', actorExid: 'hash=051970ec' },
           }),
           symlink: null,
+          untracked: [],
           repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
         });
 
@@ -143,6 +148,7 @@ describe('asBrainDirSyncReportLines', () => {
           moves: ['settings.json', 'rules'],
           overwrites: ['settings.json'],
         }),
+        untracked: [],
         repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
       });
 
@@ -162,6 +168,7 @@ describe('asBrainDirSyncReportLines', () => {
       const lines = asBrainDirSyncReportLines({
         render: genRender({ agentsMdReset: true }),
         symlink: genSymlink({ effect: 'FOUND' }),
+        untracked: [],
         repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
       });
 
@@ -169,6 +176,61 @@ describe('asBrainDirSyncReportLines', () => {
         'the reset is never silent — the human lost hand edits (S11)',
         () => {
           expect(lines).toMatchSnapshot();
+        },
+      );
+    });
+  });
+
+  given(
+    '[case6] a sync that dropped a machine-named link from git index',
+    () => {
+      when('[t0] the lines are rendered, with no other change', () => {
+        const lines = asBrainDirSyncReportLines({
+          render: genRender(),
+          symlink: genSymlink({ effect: 'FOUND' }),
+          untracked: [`${REPO_ACTOR_BRAIN_DIR_REL}/settings.of.grove.json`],
+          repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+        });
+
+        then(
+          'the untrack is never silent — it lands as a staged deletion',
+          () => {
+            expect(lines).toContain(
+              `   │  └─ ${REPO_ACTOR_BRAIN_DIR_REL}/settings.of.grove.json — names this machine; kept on disk, commit its deletion`,
+            );
+            expect(lines).toContain(
+              `   │     └─ cure — a teammate whose pull git refuses runs \`git checkout -- ${REPO_ACTOR_BRAIN_DIR_REL}/settings.of.grove.json\`, then pulls`,
+            );
+            expect(lines).toMatchSnapshot();
+          },
+        );
+      });
+    },
+  );
+
+  given('[case7] a sync that dropped two paths from git index', () => {
+    when('[t0] the lines are rendered', () => {
+      const lines = asBrainDirSyncReportLines({
+        render: genRender(),
+        symlink: genSymlink({ effect: 'FOUND' }),
+        untracked: [
+          `${REPO_ACTOR_BRAIN_DIR_REL}/a.json`,
+          `${REPO_ACTOR_BRAIN_DIR_REL}/b.json`,
+        ],
+        repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+      });
+
+      then(
+        'each cure nests beneath its own path, never between two paths',
+        () => {
+          const untrackedAt = lines.indexOf('   ├─ untracked');
+          expect(lines.slice(untrackedAt, untrackedAt + 5)).toEqual([
+            '   ├─ untracked',
+            `   │  ├─ ${REPO_ACTOR_BRAIN_DIR_REL}/a.json — names this machine; kept on disk, commit its deletion`,
+            `   │  │  └─ cure — a teammate whose pull git refuses runs \`git checkout -- ${REPO_ACTOR_BRAIN_DIR_REL}/a.json\`, then pulls`,
+            `   │  └─ ${REPO_ACTOR_BRAIN_DIR_REL}/b.json — names this machine; kept on disk, commit its deletion`,
+            `   │     └─ cure — a teammate whose pull git refuses runs \`git checkout -- ${REPO_ACTOR_BRAIN_DIR_REL}/b.json\`, then pulls`,
+          ]);
         },
       );
     });

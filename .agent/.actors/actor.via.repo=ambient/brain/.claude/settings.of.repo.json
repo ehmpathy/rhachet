@@ -526,7 +526,7 @@
     "padding": 0
   },
   "claudeMdExcludes": [
-    "/home/vlad/.claude/CLAUDE.md",
+    "**/!(brain)/.claude/CLAUDE.md",
     "**/CLAUDE.local.md"
   ]
 }

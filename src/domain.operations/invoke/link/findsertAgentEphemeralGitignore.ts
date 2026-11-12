@@ -1,4 +1,5 @@
 import {
+  ACTOR_BRAIN_DIR_NAME,
   ACTORS_GITIGNORE_LINE,
   REPO_ACTOR_DIR_NAME,
 } from '@src/domain.operations/actor/enrolled/constants';
@@ -34,9 +35,9 @@ const GITIGNORE_CONTENT_ACTORS = `${GITIGNORE_HEADER}# .note = the repo actor's 
 !/.gitignore
 ${ACTORS_GITIGNORE_LINE.selfRepoActorNegation}
 /${REPO_ACTOR_DIR_NAME}/*
-!/${REPO_ACTOR_DIR_NAME}/brain/
-/${REPO_ACTOR_DIR_NAME}/brain/*
-!/${REPO_ACTOR_DIR_NAME}/brain/.claude/
+!/${REPO_ACTOR_DIR_NAME}/${ACTOR_BRAIN_DIR_NAME}/
+/${REPO_ACTOR_DIR_NAME}/${ACTOR_BRAIN_DIR_NAME}/*
+!/${REPO_ACTOR_DIR_NAME}/${ACTOR_BRAIN_DIR_NAME}/.claude/
 `;
 
 /**

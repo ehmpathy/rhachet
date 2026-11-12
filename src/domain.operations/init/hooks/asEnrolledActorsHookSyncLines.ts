@@ -9,11 +9,14 @@ import { asEnrolledActorHookSyncRow } from './asEnrolledActorHookSyncRow';
  *   by a snapshot (rule.forbid.snapshot-visual-blemishes)
  *
  * .note = no actor → no block; the caller prints naught
+ * .note = each `claudeMdExcludes` entry the derivation dropped hangs beneath its actor row, so a
+ *   cleanup of a committed file (a per-machine home path) is never silent
  */
 export const asEnrolledActorsHookSyncLines = (input: {
   actors: {
     actorExid: string;
     outcome: { changes: string } | { error: unknown };
+    excludesDropped: string[];
     hint: string | null;
   }[];
 }): string[] => {
@@ -26,8 +29,15 @@ export const asEnrolledActorsHookSyncLines = (input: {
         count: input.actors.length,
       });
 
-      // the fault's fix hangs beneath the actor row
-      const heads = actor.hint ? [`hint: ${actor.hint}`] : [];
+      // each dropped exclude, then the fault's fix, hang beneath the actor row
+      // .note = the derivation drops only absolute entries, so one tail fits every drop
+      const heads = [
+        ...actor.excludesDropped.map(
+          (pattern) =>
+            `claudeMdExcludes dropped ${pattern} — an absolute path; the excludes keep only portable globs`,
+        ),
+        ...(actor.hint ? [`hint = ${actor.hint}`] : []),
+      ];
       return [
         `   ${branch} ${asEnrolledActorHookSyncRow({ actorExid: actor.actorExid, outcome: actor.outcome })}`,
         ...heads.map((head, headIndex) => {

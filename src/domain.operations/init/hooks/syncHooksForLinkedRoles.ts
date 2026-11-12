@@ -244,15 +244,17 @@ export const syncHooksForLinkedRoles = async (
     // .note = deliberate mutation — the actors derive one at a time, in order, so the rows
     //   print in the order the actors were read; the list is local to this block
     for (const actor of actorsEnrolled) {
-      const { outcome, fault } = await getOneEnrolledActorSettingsOutcome({
-        actor,
-        repoPath: context.cwd,
-      });
+      const { outcome, excludesDropped, fault } =
+        await getOneEnrolledActorSettingsOutcome({
+          actor,
+          repoPath: context.cwd,
+        });
       if (fault)
         errors.push({ source: `sync:actor=${actor.exid}`, error: fault });
       actorRows.push({
         actorExid: actor.exid,
         outcome,
+        excludesDropped,
         hint: asErrorHintOrNull({ error: fault }),
       });
     }
@@ -282,6 +284,7 @@ const getOneEnrolledActorSettingsOutcome = async (input: {
   repoPath: string;
 }): Promise<{
   outcome: { changes: string } | { error: Error };
+  excludesDropped: string[];
   fault: Error | null;
 }> => {
   try {
@@ -292,7 +295,10 @@ const getOneEnrolledActorSettingsOutcome = async (input: {
       updated: tally.updated.length,
       deleted: tally.deleted.length,
     });
-    return { outcome: { changes }, fault: null };
+    const excludesDropped = derived.excludes.before.filter(
+      (pattern) => !derived.excludes.after.includes(pattern),
+    );
+    return { outcome: { changes }, excludesDropped, fault: null };
   } catch (error) {
     // an allowlist: a classed or fs fault is this actor's row; a code defect surfaces loud
     if (isCodeDefectError({ error })) throw error;
@@ -304,7 +310,7 @@ const getOneEnrolledActorSettingsOutcome = async (input: {
             reason: error,
             hint: 'rerun `rhx init --hooks`; if it fails again, report this output as a rhachet bug',
           });
-    return { outcome: { error: fault }, fault };
+    return { outcome: { error: fault }, excludesDropped: [], fault };
   }
 };
 
