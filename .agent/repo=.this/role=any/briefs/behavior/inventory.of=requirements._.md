@@ -1,13 +1,13 @@
 # inventory.of=requirements
 
-> **every behavioral requirement rhachet has promised, each one clamped and each one proven. an entry
-> here is never dropped — see `rule.forbid.dropped-behavioral-requirements`.**
+> **every behavioral requirement rhachet has promised, each one `owed` until clamped and proven. an
+> entry here is never dropped — see `rule.forbid.dropped-behavioral-requirements`.**
 
 ## .what
 
 one file per requirement (`inventory.of=requirements.case=<n>.<slug>.md`). each entry names:
 
-- **the requirement** — the observable behavior, in the words a user would check it by
+- **the requirement** — the observable behavior, in the words a human would check it by
 - **the clamp** — the code that enforces it, by path
 - **the proof** — the test that fails if the behavior regresses, by path
 - **the source** — who asked for it, and when
@@ -15,7 +15,7 @@ one file per requirement (`inventory.of=requirements.case=<n>.<slug>.md`). each 
 ## .why
 
 a requirement that lives only in one behavior's wish is lost the next time a design question gets
-"answered from code". measured 2026-10-02: `rhx init --roles -xyz` was meant to drop `xyz` from the
+"answered from code". the record of case 1 holds the evidence: `rhx init --roles -xyz` was meant to drop `xyz` from the
 `prepare:rhachet` entry, and the `v2026_07_07.fix-rhx-init` vision closed that question as "flags act
 on the passed specifiers". the removal unlinked `xyz` while the next `npm install` linked it back.
 no test failed, because none asserted the requirement.
@@ -36,6 +36,16 @@ reviewer checks a change against it.
 | 7 | [a brain dir holds one answer, rhachet's — no kept-aside copies](./inventory.of=requirements.case=7.no-kept-aside-one-answer.md) | proven |
 | 8 | [role inits meet the split layout: `settings.of.repo.json` always present, the layout before the inits](./inventory.of=requirements.case=8.role-inits-meet-the-split-layout.md) | proven |
 | 9 | 🔴 [a clone loads no hook from a role it is not enrolled in, from any settings layer](./inventory.of=requirements.case=9.clone-loads-only-its-roles-hooks.md) | proven |
+| 10 | [a brain dir `rhx init` cannot write fails loud before any role's hook lands](./inventory.of=requirements.case=10.unwritable-brain-dir-fails-before-any-hook.md) | owed |
+| 11 | [an init that fails part way leaves no hooks for roles not enrolled](./inventory.of=requirements.case=11.partial-init-leaves-no-unenrolled-hooks.md) | owed |
+| 12 | [a `<repo>/.claude` link that lands on the repo actor brain dir is accepted](./inventory.of=requirements.case=12.claude-link-that-lands-here-is-accepted.md) | owed |
+| 13 | [a `<repo>/.claude` link that aims elsewhere refuses before any role links](./inventory.of=requirements.case=13.claude-link-that-aims-elsewhere-refuses-first.md) | owed |
+| 14 | [a foreign lock cache is named before any key is taken](./inventory.of=requirements.case=14.foreign-lock-cache-is-named.md) | owed |
+| 15 | [a global rhx that differs from the repo's pin is named](./inventory.of=requirements.case=15.global-rhx-skew-is-named.md) | owed |
+| 16 | [a booted clone with the declared lock cache writes boot.md, silent](./inventory.of=requirements.case=16.declared-lock-cache-boot-write-is-silent.md) | owed |
+
+🔴 marks a critical requirement: its regression ships harm on every install or every clone. each
+entry's own file cites its proof by path.
 
 ## .how to add an entry
 

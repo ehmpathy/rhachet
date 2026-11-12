@@ -171,3 +171,100 @@ exports[`rhachet upgrade given: [case17] a linked role whose brain adapter refus
 
 hint: hooks did not land — fix the hook sync faults above, then rerun \`rhx upgrade\`"
 `;
+
+exports[`rhachet upgrade given: [case18] a linked role whose repo actor brain dir no init may write through when: [t0] the brain dir is not writable (vision case 2) then: the refusal matches snapshot 1`] = `
+{
+  "stderr": "
+✋ ConstraintError: the repo actor brain dir is not writable
+
+{
+  "hint": "grant this user write to /TMP_REPO/.agent/.actors/actor.via.repo=ambient/brain/.claude, then rerun \`rhx init\`; no role was linked",
+  "path": "/TMP_REPO/.agent/.actors/actor.via.repo=ambient/brain/.claude",
+  "probe": "/TMP_REPO/.agent/.actors/actor.via.repo=ambient/brain/.claude",
+  "errno": "EACCES",
+  "owner": {
+    "uid": "$UID",
+    "gid": "$GID"
+  },
+  "mode": "555"
+}
+
+[args] upgrade,--roles,test/tester,--which,local
+
+",
+  "stdout": "🫧 skip (local refs): rhachet-roles-test
+",
+}
+`;
+
+exports[`rhachet upgrade given: [case18] a linked role whose repo actor brain dir no init may write through when: [t1] <repo>/.claude is a symlink to another place (vision case 4) then: the refusal matches snapshot 1`] = `
+{
+  "stderr": "
+✋ ConstraintError: <repo>/.claude is a symlink to another place
+
+{
+  "hint": "remove /TMP_REPO/.claude, then rerun \`rhx init\`",
+  "path": "/TMP_REPO/.claude",
+  "found": "a symlink to other",
+  "realpathFound": "/TMP_REPO/other",
+  "wanted": "a symlink to .agent/.actors/actor.via.repo=ambient/brain/.claude",
+  "realpathWanted": "/TMP_REPO/.agent/.actors/actor.via.repo=ambient/brain/.claude"
+}
+
+[args] upgrade,--roles,test/tester,--which,local
+
+",
+  "stdout": "🫧 skip (local refs): rhachet-roles-test
+",
+}
+`;
+
+exports[`rhachet upgrade given: [case19] a linked role whose init fails part-way on upgrade (vision case 3) when: [t0] upgrade --roles test/tester --which local then: the refusal matches snapshot, stdout and stderr 1`] = `
+{
+  "status": 1,
+  "stderr": "
+💥 RolesPartWayMalfunctionError: role init failed part-way, at repo=test/role=tester
+
+{
+  "hint": "fix the failed init, then rerun the same command",
+  "failed": "repo=test/role=tester",
+  "linked": [
+    "repo=test/role=tester"
+  ],
+  "notLinked": [],
+  "cause": {
+    "class": "Error",
+    "message": "init command failed: /TMP_REPO/node_modules/rhachet-roles-test/roles/tester/inits/fail.sh (exit code 1)"
+  }
+}
+
+[args] upgrade,--roles,test/tester,--which,local
+
+",
+  "stdout": "🫧 skip (local refs): rhachet-roles-test
+
+🔧 init 1 role(s)...
+
+📚 link role repo=test/role=tester
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=test/readme.md (updated)
+   │  ├─ ✓ .agent/repo=test/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=test/role=tester/readme.md (updated)
+   │  ├─ ↻ .agent/repo=test/role=tester/briefs (updated)
+   │  └─ ↻ .agent/repo=test/role=tester/skills (updated)
+   └─ stats
+      ├─ 1 brief(s)
+      └─ 1 skill(s)
+
+💪 init role repo=test/role=tester
+   └─ node_modules/rhachet-roles-test/roles/tester/inits/fail.sh
+      ├─
+      │
+      │ tester init fails
+      │
+      └─
+",
+}
+`;

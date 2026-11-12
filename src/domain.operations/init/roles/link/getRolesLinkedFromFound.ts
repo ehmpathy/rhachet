@@ -5,6 +5,8 @@ import type { RoleSpecifier } from '@src/domain.objects/RoleSpecifier';
 import { execRoleInits } from '@src/domain.operations/invoke/init/execRoleInits';
 import { execRoleLink } from '@src/domain.operations/invoke/link/execRoleLink';
 
+import { withRolesPartWayFault } from './withRolesPartWayFault';
+
 /**
  * .what = links + inits a set of already-found roles (the source of truth link loop)
  * .why = both the absolute path (initRolesFromPackages) and the incremental
@@ -27,15 +29,31 @@ export const getRolesLinkedFromFound = async (
   },
   context: ContextCli,
 ): Promise<{ repo: string; role: string }[]> => {
-  // link + init each role (sequential for deterministic, readable output)
-  for (const one of input.found) {
-    execRoleLink({ role: one.role, repo: one.repo }, context);
-    await execRoleInits({ role: one.role, repo: one.repo });
+  // the concrete { repo, role } of each found role, in loop order
+  const slugs = asRoleSlugsOfFound({ found: input.found });
+
+  // link + init each role (sequential for deterministic, readable output); the first fault
+  //   stops the loop (F5) and names which roles linked
+  for (const [faultAt, one] of input.found.entries()) {
+    // link the role; a link fault leaves this role unlinked
+    await withRolesPartWayFault({ slugs, faultAt, step: 'link' }, () =>
+      execRoleLink({ role: one.role, repo: one.repo }, context),
+    );
+
+    // init the role; an init fault leaves this role linked (F1)
+    await withRolesPartWayFault({ slugs, faultAt, step: 'init' }, () =>
+      execRoleInits({ role: one.role, repo: one.repo }),
+    );
   }
 
   // report the concrete { repo, role } of each linked role
-  return input.found.map((one) => ({
-    repo: one.repo.slug,
-    role: one.role.slug,
-  }));
+  return slugs;
 };
+
+/**
+ * .what = the concrete { repo, role } slugs of each found role, in loop order
+ */
+const asRoleSlugsOfFound = (input: {
+  found: { repo: RoleRegistryManifest; role: RoleManifest }[];
+}): { repo: string; role: string }[] =>
+  input.found.map((one) => ({ repo: one.repo.slug, role: one.role.slug }));
