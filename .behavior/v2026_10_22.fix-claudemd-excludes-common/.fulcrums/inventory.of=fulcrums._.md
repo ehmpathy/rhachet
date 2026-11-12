@@ -1,6 +1,6 @@
 # inventory.of=fulcrums
 
-axis = `case` (occurrence, declared as they arise). 14 cases, 1 ruled.
+axis = `case` (occurrence, declared as they arise). 17 cases, 1 ruled.
 
 | case | title | rework | status | confidence |
 |---|---|---|---|---|
@@ -18,3 +18,6 @@ axis = `case` (occurrence, declared as they arise). 14 cases, 1 ruled.
 | F12 | the git read fixtures in three new integration tests stay per file | clean | best-guessed | 75% |
 | F13 | the l3 acceptance nitpicks wait on the commander's word, to land together in one more batch pair | clean | ruled — own follow-up pr | 70% |
 | F14 | the hook-sync `hint` row reads `hint =`, and its two extant assertions move with it | clean | best-guessed | 80% |
+| F15 | the split plan prices review time linear in changed lines, calibrated to 63 min | clean | best-guessed | 75% |
+| F16 | the rule brief lands with the base libs (L2), before any code that cites it | clean | best-guessed | 85% |
+| F17 | the route splits into its record (L5) and its machinery (L6) | clean | best-guessed | 70% |
