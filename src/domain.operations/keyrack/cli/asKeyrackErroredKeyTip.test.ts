@@ -66,6 +66,30 @@ describe('asKeyrackErroredKeyTip', () => {
       });
     });
 
+    when('[t0.5] the fault opts in to name a cure for a recurrence', () => {
+      then(
+        'the retry comes first, then the hint for a fault that recurs',
+        () => {
+          const tip = asKeyrackErroredKeyTip({
+            cause: new MalfunctionError(
+              'aws configure export-credentials hung',
+              {
+                profile: 'acme-test',
+                hint: "run `aws configure export-credentials --profile 'acme-test'` by hand to see where it stalls",
+                hintAfterRetry: true,
+              },
+            ),
+            slug: 'acme.test.AWS_PROFILE',
+            orgDefault: 'acme',
+            owner: null,
+          });
+          expect(tip).toEqual(
+            "aws configure export-credentials hung — retry: rhx keyrack unlock --env test --key AWS_PROFILE; if it recurs, run `aws configure export-credentials --profile 'acme-test'` by hand to see where it stalls",
+          );
+        },
+      );
+    });
+
     // case=8 — a member key retried with no `--org` would read the default org's twin
     when('[t1] the key sits under a non-default allowlist member', () => {
       then('the retry carries `--org <member>`', () => {

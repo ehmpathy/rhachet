@@ -1,6 +1,9 @@
+import { delAwsProfileExport } from '@src/domain.operations/keyrack/adapters/mechanisms/aws.sso/delAwsProfileExport';
 import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath';
 import { daemonAccessRelock } from '@src/domain.operations/keyrack/daemon/sdk';
 import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
+
+import { getAllKeyrackAwsProfilesHeld } from './getAllKeyrackAwsProfilesHeld';
 
 /**
  * .what = relock keyrack keys by prune from daemon memory and clear vault caches
@@ -37,6 +40,13 @@ export const relockKeyrack = async (
     owner: input?.owner ?? null,
   });
 
+  // read which aws profiles the keys to purge point at, before the purge forgets them
+  const awsProfilesHeld = await getAllKeyrackAwsProfilesHeld({
+    socketPath,
+    slugs: input?.slugs?.length ? input.slugs : null,
+    env: input?.env ?? null,
+  });
+
   // the sdk's input is a UNION — a slug ask and an env sweep are two shapes, not one bag with
   // two optionals — so the documented `slugs > env > all` priority is spelled at the call site
   // rather than left for the callee to unpick. one branch per shape, and the compiler checks it
@@ -44,6 +54,13 @@ export const relockKeyrack = async (
     ? await daemonAccessRelock({ socketPath, slugs: input.slugs })
     : await daemonAccessRelock({ socketPath, env: input?.env });
   const relocked = result?.relocked ?? [];
+
+  // drop keyrack's cached aws exports of each relocked aws.config key, so no creds rest on disk
+  // .note = only keyrack's own export cache; the aws sso session is the vault relock's to end
+  // .note = an export whose grant the daemon no longer holds (expired, daemon killed) rests until
+  //         its own expiry; a vault relock (with context) drops it by the manifest's exid
+  for (const { slug, profile } of awsProfilesHeld)
+    if (relocked.includes(slug)) delAwsProfileExport({ profile });
 
   // if context provided, call vault adapter relock for each slug
   const hostManifest = context?.hostManifest;

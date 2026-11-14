@@ -4,9 +4,36 @@ import { relockKeyrack } from './relockKeyrack';
 
 // mock the daemon interactions to avoid socket access in unit tests
 const mockDaemonAccessRelock = jest.fn();
+const mockDaemonAccessGet = jest.fn();
+const mockDaemonAccessStatus = jest.fn();
 jest.mock('../daemon/sdk', () => ({
   daemonAccessRelock: (...args: unknown[]) => mockDaemonAccessRelock(...args),
+  daemonAccessGet: (...args: unknown[]) => mockDaemonAccessGet(...args),
+  daemonAccessStatus: (...args: unknown[]) => mockDaemonAccessStatus(...args),
 }));
+
+/**
+ * .mock = delAwsProfileExport, as a spy
+ * .why = the drop is disk; a unit case asserts only which profiles the relock drops
+ * .real = genAwsProfileExport.integration.test.ts [case14] proves the drop on disk, and the
+ *   acceptance keyrack.vault.awsIamSso [case20] proves `rhx keyrack relock` drops the cache
+ */
+const mockDelAwsProfileExport = jest.fn();
+jest.mock('../adapters/mechanisms/aws.sso/delAwsProfileExport', () => ({
+  delAwsProfileExport: (...args: unknown[]) => mockDelAwsProfileExport(...args),
+}));
+
+/**
+ * .what = a held grant row as the daemon GET returns it
+ */
+const asHeldRow = (input: { slug: string; vault: string; secret: string }) => ({
+  slug: input.slug,
+  key: { secret: input.secret, grade: null },
+  source: { vault: input.vault, mech: 'PERMANENT_VIA_REPLICA' },
+  env: 'test',
+  org: 'acme',
+  expiresAt: '2099-01-01T00:00:00.000Z',
+});
 
 // mock the daemon socket path
 jest.mock('../daemon/infra/getKeyrackDaemonSocketPath', () => ({
@@ -18,6 +45,12 @@ jest.mock('../daemon/infra/getKeyrackDaemonSocketPath', () => ({
 describe('relockKeyrack', () => {
   beforeEach(() => {
     mockDaemonAccessRelock.mockReset();
+    mockDaemonAccessGet.mockReset();
+    mockDaemonAccessStatus.mockReset();
+    mockDelAwsProfileExport.mockReset();
+    // default: the daemon holds no grant
+    mockDaemonAccessGet.mockResolvedValue({ keys: [] });
+    mockDaemonAccessStatus.mockResolvedValue({ keys: [] });
   });
 
   given('[case1] bare relock (no filters)', () => {
@@ -143,6 +176,114 @@ describe('relockKeyrack', () => {
           slugs: undefined,
           env: undefined,
         });
+      });
+    });
+  });
+
+  given('[case7] held aws.config keys point at cached aws exports', () => {
+    when('[t0] a slug relock purges an aws.config key and a peer key', () => {
+      then(
+        "it drops the aws.config key's export by its profile, and no other",
+        async () => {
+          mockDaemonAccessGet.mockResolvedValue({
+            keys: [
+              asHeldRow({
+                slug: 'acme.test.AWS_PROFILE',
+                vault: 'aws.config',
+                secret: 'acme-test',
+              }),
+              asHeldRow({
+                slug: 'acme.test.API_KEY',
+                vault: 'os.secure',
+                secret: 'not-a-profile',
+              }),
+            ],
+          });
+          mockDaemonAccessRelock.mockResolvedValue({
+            relocked: ['acme.test.AWS_PROFILE', 'acme.test.API_KEY'],
+          });
+
+          await relockKeyrack({
+            slugs: ['acme.test.AWS_PROFILE', 'acme.test.API_KEY'],
+          });
+
+          expect(mockDaemonAccessGet.mock.calls[0]![0]).toMatchObject({
+            slugs: ['acme.test.AWS_PROFILE', 'acme.test.API_KEY'],
+          });
+          expect(mockDelAwsProfileExport.mock.calls).toEqual([
+            [{ profile: 'acme-test' }],
+          ]);
+        },
+      );
+    });
+
+    when('[t1] an env sweep purges the held keys of one env', () => {
+      then(
+        'it reads the held slugs of that env, and drops their exports',
+        async () => {
+          mockDaemonAccessStatus.mockResolvedValue({
+            keys: [
+              { slug: 'acme.test.AWS_PROFILE', env: 'test', org: 'acme' },
+              { slug: 'acme.prod.AWS_PROFILE', env: 'prod', org: 'acme' },
+            ],
+          });
+          mockDaemonAccessGet.mockResolvedValue({
+            keys: [
+              asHeldRow({
+                slug: 'acme.test.AWS_PROFILE',
+                vault: 'aws.config',
+                secret: 'acme-test',
+              }),
+            ],
+          });
+          mockDaemonAccessRelock.mockResolvedValue({
+            relocked: ['acme.test.AWS_PROFILE'],
+          });
+
+          await relockKeyrack({ env: 'test' });
+
+          expect(mockDaemonAccessGet.mock.calls[0]![0]).toMatchObject({
+            slugs: ['acme.test.AWS_PROFILE'],
+          });
+          expect(mockDelAwsProfileExport.mock.calls).toEqual([
+            [{ profile: 'acme-test' }],
+          ]);
+        },
+      );
+    });
+
+    when(
+      '[t2] the held grant answers for a slug the relock did not purge (an env=all fallback)',
+      () => {
+        then('it drops no export', async () => {
+          mockDaemonAccessGet.mockResolvedValue({
+            keys: [
+              asHeldRow({
+                slug: 'acme.all.AWS_PROFILE',
+                vault: 'aws.config',
+                secret: 'acme-all',
+              }),
+            ],
+          });
+          mockDaemonAccessRelock.mockResolvedValue({ relocked: [] });
+
+          await relockKeyrack({ slugs: ['acme.test.AWS_PROFILE'] });
+
+          expect(mockDelAwsProfileExport).not.toHaveBeenCalled();
+        });
+      },
+    );
+
+    when('[t3] the daemon is not reachable', () => {
+      then('it drops no export and relocks naught', async () => {
+        mockDaemonAccessGet.mockResolvedValue(null);
+        mockDaemonAccessStatus.mockResolvedValue(null);
+        mockDaemonAccessRelock.mockResolvedValue(null);
+
+        const result = await relockKeyrack({});
+
+        expect(result.relocked).toEqual([]);
+        expect(mockDelAwsProfileExport).not.toHaveBeenCalled();
       });
     });
   });

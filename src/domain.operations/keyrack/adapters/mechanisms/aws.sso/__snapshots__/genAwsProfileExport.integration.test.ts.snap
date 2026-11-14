@@ -1,0 +1,165 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`genAwsProfileExport given: [case1] a burst of callers in separate processes, cache absent when: [t0] five processes ask for one profile at once then: a waiter prints one wait notice, and no process prints aught else 1`] = `
+{
+  "noticesDistinct": [
+    "ℹ another process exports aws credentials for profile acme-burst; this one will wait for it, up to 5 minutes (if the other process was killed, the wait ends on its own within 3 minutes)
+",
+  ],
+  "silentProcessesExist": true,
+}
+`;
+
+exports[`genAwsProfileExport given: [case5] the cache at rest and the errors in flight when: [t1] the export returns too few keys then: it throws with the key names and a hint, never the value 1`] = `
+"💥 MalfunctionError: aws configure export-credentials did not return expected credentials
+
+{
+  "profile": "acme-incomplete",
+  "keysFound": [
+    "AWS_ACCESS_KEY_ID"
+  ],
+  "hint": "run \`aws configure export-credentials --profile 'acme-incomplete'\` by hand to see what the cli emits, fix the profile's config, then retry",
+  "hintAfterRetry": true
+}"
+`;
+
+exports[`genAwsProfileExport given: [case5] the cache at rest and the errors in flight when: [t1] the export returns too few keys then: it throws with the key names and a hint, never the value 2`] = `"aws configure export-credentials did not return expected credentials — retry: rhx keyrack unlock --env test --key AWS_PROFILE; if it recurs, run \`aws configure export-credentials --profile 'acme-incomplete'\` by hand to see what the cli emits, fix the profile's config, then retry"`;
+
+exports[`genAwsProfileExport given: [case6.5] an export that fails under override config files when: [t0] a caller asks then: the hand-run hint carries both overrides, so a human reruns the same config 1`] = `
+"💥 MalfunctionError: aws configure export-credentials did not return expected credentials
+
+{
+  "profile": "acme-alt",
+  "keysFound": [
+    "AWS_ACCESS_KEY_ID"
+  ],
+  "hint": "run \`AWS_CONFIG_FILE='<home>/alt.config' AWS_SHARED_CREDENTIALS_FILE='<home>/alt.credentials' aws configure export-credentials --profile 'acme-alt'\` by hand to see what the cli emits, fix the profile's config, then retry",
+  "hintAfterRetry": true
+}"
+`;
+
+exports[`genAwsProfileExport given: [case6] an export that fails when: [t0] a caller asks then: it throws with the profile and the fix, and writes no cache 1`] = `
+"💥 MalfunctionError: aws configure export-credentials failed
+
+{
+  "profile": "acme-fail",
+  "cliError": "Error from sso: Token has expired and refresh failed",
+  "hint": "run \`aws configure export-credentials --profile 'acme-fail'\` by hand to see the cli's own error, then fix the profile or its sso session",
+  "hintAfterRetry": true
+}"
+`;
+
+exports[`genAwsProfileExport given: [case6] an export that fails when: [t0] a caller asks then: it throws with the profile and the fix, and writes no cache 2`] = `"aws configure export-credentials failed — retry: rhx keyrack unlock --env test --key AWS_PROFILE; if it recurs, run \`aws configure export-credentials --profile 'acme-fail'\` by hand to see the cli's own error, then fix the profile or its sso session"`;
+
+exports[`genAwsProfileExport given: [case9] an export that hangs when: [t0] a caller asks then: it fails loud at the hang guard, kills the cli, and writes no cache 1`] = `
+"💥 MalfunctionError: aws configure export-credentials hung
+
+{
+  "profile": "acme-hang",
+  "hangGuard": {
+    "seconds": 1
+  },
+  "isKillSent": true,
+  "hint": "run \`aws configure export-credentials --profile 'acme-hang'\` by hand to see where it stalls",
+  "hintAfterRetry": true
+}"
+`;
+
+exports[`genAwsProfileExport given: [case9] an export that hangs when: [t0] a caller asks then: it fails loud at the hang guard, kills the cli, and writes no cache 2`] = `"aws configure export-credentials hung — retry: rhx keyrack unlock --env test --key AWS_PROFILE; if it recurs, run \`aws configure export-credentials --profile 'acme-hang'\` by hand to see where it stalls"`;
+
+exports[`genAwsProfileExport given: [case9] an export that hangs when: [t1] a waiter sits behind a holder that hangs past its bound then: the waiter fails loud past its wait bound 1`] = `
+"✋ ConstraintError: another process held the aws export for this profile past the wait bound
+
+{
+  "profile": "acme-hang-queue",
+  "wait": {
+    "seconds": 1
+  },
+  "hint": "if the other process was killed, its hold lapses on its own within 5 seconds; retry then, or run \`aws configure export-credentials --profile 'acme-hang-queue'\` by hand to check that it completes"
+}"
+`;
+
+exports[`genAwsProfileExport given: [case9] an export that hangs when: [t1] a waiter sits behind a holder that hangs past its bound then: the waiter fails loud past its wait bound 2`] = `"another process held the aws export for this profile past the wait bound — fix: if the other process was killed, its hold lapses on its own within 5 seconds; retry then, or run \`aws configure export-credentials --profile 'acme-hang-queue'\` by hand to check that it completes"`;
+
+exports[`genAwsProfileExport given: [case11] a cache act that the disk refuses when: [t0] a dir takes the cache file path mid-export then: it throws with the path and the disk error, never a value, and leaves no temp 1`] = `
+"✋ ConstraintError: aws export cache write failed
+
+{
+  "profile": "acme-wfault",
+  "path": "<home>/.rhachet/keyrack/cache/aws.export/profile=acme-wfault.<sha8>.json",
+  "diskError": "EISDIR: illegal operation on a directory, rename '<home>/.rhachet/keyrack/cache/aws.export/.profile=acme-wfault.<sha8>.json.<pid>.<rand>.tmp' -> '<home>/.rhachet/keyrack/cache/aws.export/profile=acme-wfault.<sha8>.json'",
+  "hint": "move aside the dir at <home>/.rhachet/keyrack/cache/aws.export/profile=acme-wfault.<sha8>.json, then retry; the disk said EISDIR"
+}"
+`;
+
+exports[`genAwsProfileExport given: [case11] a cache act that the disk refuses when: [t1] a file takes the cache dir path then: it throws with the dir path and the disk error, and runs no export 1`] = `
+"✋ ConstraintError: a file blocks the aws export cache dir
+
+{
+  "profile": "acme-dfault",
+  "path": "<home>/.rhachet/keyrack/cache/aws.export",
+  "diskError": "EEXIST: file already exists, mkdir '<home>/.rhachet/keyrack/cache/aws.export'",
+  "hint": "move aside the file at <home>/.rhachet/keyrack/cache/aws.export, then retry; the disk said EEXIST"
+}"
+`;
+
+exports[`genAwsProfileExport given: [case11] a cache act that the disk refuses when: [t1] a file takes the cache dir path then: it throws with the dir path and the disk error, and runs no export 2`] = `"a file blocks the aws export cache dir — fix: move aside the file at <home>/.rhachet/keyrack/cache/aws.export, then retry; the disk said EEXIST"`;
+
+exports[`genAwsProfileExport given: [case11] a cache act that the disk refuses when: [t2] a refresh meets a dir at the cache file path then: it throws with the path and the disk error, never a value, and runs no export 1`] = `
+"✋ ConstraintError: aws export cache drop failed
+
+{
+  "profile": "acme-dirat-t2",
+  "path": "<home>/.rhachet/keyrack/cache/aws.export/profile=acme-dirat-t2.<sha8>.json",
+  "diskError": "Path is a directory: rm returned EISDIR (is a directory) <home>/.rhachet/keyrack/cache/aws.export/profile=acme-dirat-t2.<sha8>.json",
+  "hint": "move aside the dir at <home>/.rhachet/keyrack/cache/aws.export/profile=acme-dirat-t2.<sha8>.json, then retry; the disk said ERR_FS_EISDIR"
+}"
+`;
+
+exports[`genAwsProfileExport given: [case11] a cache act that the disk refuses when: [t3] a read meets a dir at the cache file path then: it throws with the path and the disk error, never a value, and runs no export 1`] = `
+"✋ ConstraintError: aws export cache read failed
+
+{
+  "profile": "acme-dirat-t3",
+  "path": "<home>/.rhachet/keyrack/cache/aws.export/profile=acme-dirat-t3.<sha8>.json",
+  "diskError": "EISDIR: illegal operation on a directory, read",
+  "hint": "move aside the dir at <home>/.rhachet/keyrack/cache/aws.export/profile=acme-dirat-t3.<sha8>.json, then retry; the disk said EISDIR"
+}"
+`;
+
+exports[`genAwsProfileExport given: [case11] a cache act that the disk refuses when: [t4] the config file the identity reads is a dir then: it throws with the config path and the disk code, and runs no export 1`] = `
+"✋ ConstraintError: aws config file could not be read
+
+{
+  "profile": "acme-cfgdir",
+  "path": "<home>/config-is-a-dir",
+  "diskError": "EISDIR: illegal operation on a directory, read",
+  "hint": "make <home>/config-is-a-dir readable by this user, then retry; the disk said EISDIR"
+}"
+`;
+
+exports[`genAwsProfileExport given: [case11] a cache act that the disk refuses when: [t4] the config file the identity reads is a dir then: it throws with the config path and the disk code, and runs no export 2`] = `"aws config file could not be read — fix: make <home>/config-is-a-dir readable by this user, then retry; the disk said EISDIR"`;
+
+exports[`genAwsProfileExport given: [case14] a relock drops the cached exports of one profile when: [t2] a dir sits at the cache file path of the profile then: the drop throws with the cache dir, the move that cures it, and the disk error 1`] = `
+"✋ ConstraintError: aws export cache drop failed
+
+{
+  "profile": "acme-dropfault",
+  "path": "<home>/.rhachet/keyrack/cache/aws.export",
+  "diskError": "Path is a directory: rm returned EISDIR (is a directory) <home>/.rhachet/keyrack/cache/aws.export/profile=acme-dropfault.<sha8>.json",
+  "hint": "move aside the dir at <home>/.rhachet/keyrack/cache/aws.export, then retry; the disk said ERR_FS_EISDIR"
+}"
+`;
+
+exports[`genAwsProfileExport given: [case15] the expiry the cli names, in the form it prints when: [t1] the cli names an expiry that does not parse then: it fails loud with the profile and the value, and writes no cache 1`] = `
+"💥 MalfunctionError: aws configure export-credentials named an expiry that does not parse
+
+{
+  "profile": "acme-badexp",
+  "expiration": "soon",
+  "hint": "run \`aws configure export-credentials --profile 'acme-badexp'\` by hand to see the expiry the cli emits, then report it",
+  "hintAfterRetry": true
+}"
+`;
+
+exports[`genAwsProfileExport given: [case15] the expiry the cli names, in the form it prints when: [t1] the cli names an expiry that does not parse then: it fails loud with the profile and the value, and writes no cache 2`] = `"aws configure export-credentials named an expiry that does not parse — retry: rhx keyrack unlock --env test --key AWS_PROFILE; if it recurs, run \`aws configure export-credentials --profile 'acme-badexp'\` by hand to see the expiry the cli emits, then report it"`;

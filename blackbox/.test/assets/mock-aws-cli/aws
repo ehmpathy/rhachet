@@ -93,11 +93,26 @@ case "$1 $2" in
     fi
     ;;
   "configure export-credentials")
+    # MOCK_AWS_EXPORT_CALLS → append one line per export, so a case can count the exports run
+    if [[ -n "${MOCK_AWS_EXPORT_CALLS:-}" ]]; then
+      echo "export $*" >> "$MOCK_AWS_EXPORT_CALLS"
+    fi
+    # MOCK_AWS_EXPORT_MODE=fail → a cli fault that names no expiry, as the real cli prints for a bad profile
+    if [[ "${MOCK_AWS_EXPORT_MODE:-}" == "fail" ]]; then
+      echo "The config profile (mock) could not be found" >&2
+      exit 255
+    fi
+    # MOCK_AWS_EXPORT_SLEEP → seconds the export takes, so a burst's peers meet the hold and wait
+    sleep "${MOCK_AWS_EXPORT_SLEEP:-0}"
     # returns env-no-export format credentials for sso profile
-    echo "AWS_ACCESS_KEY_ID=AKIAMOCKACCESSKEY123"
+    echo "AWS_ACCESS_KEY_ID=AKIA_MOCK_ACCESS_KEY_123"
     echo "AWS_SECRET_ACCESS_KEY=MockSecretAccessKey123456789"
     echo "AWS_SESSION_TOKEN=MockSessionToken123456789012345678901234567890"
-    echo "AWS_CREDENTIAL_EXPIRATION=2099-12-31T23:59:59Z"
+    # MOCK_AWS_EXPORT_EXPIRATION → the expiry to print, e.g. in the utc offset form the real cli prints
+    # the default is the last second of 2099, computed from its epoch (gnu date, then bsd date), so this
+    #   file holds no literal clock time
+    expiration_default=$(date -u -d @4102444799 +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -r 4102444799 +%Y-%m-%dT%H:%M:%SZ)
+    echo "AWS_CREDENTIAL_EXPIRATION=${MOCK_AWS_EXPORT_EXPIRATION:-$expiration_default}"
     ;;
   "sso logout")
     ;;

@@ -7,7 +7,8 @@ import { asKeyrackSlugParts } from '../asKeyrackSlugParts';
  * .why = the G5 per-key fault-isolation render must show a caught fault legibly, not dump the
  *        raw HelpfulError class + metadata json. a ConstraintError is caller-fixable, so its own
  *        hint IS the fix (no "retry"); a transient (non-ConstraintError) fault gets the retry
- *        suffix. extracted from the unlock orchestrator so the loop reads as narrative
+ *        suffix, then its own hint if the fault opts in (`hintAfterRetry`). extracted from
+ *        the unlock orchestrator so the loop reads as narrative
  *        (rule.forbid.inline-decode-friction)
  */
 export const asKeyrackErroredKeyTip = (input: {
@@ -63,9 +64,17 @@ export const asKeyrackErroredKeyTip = (input: {
     input.cause instanceof HelpfulError ? input.cause.metadata?.hint : null;
   const hint = typeof hintValue === 'string' ? hintValue : null;
 
+  // a fault opts in to show its hint after the retry: only a fault whose hint is a cure for a
+  //   recurrence (a hand-run command) sets it, so every other fault's row is left as it was
+  const isHintAfterRetry =
+    input.cause instanceof HelpfulError &&
+    input.cause.metadata?.hintAfterRetry === true;
+
   // a caller-fixable ConstraintError → its hint is the fix (never a "retry": a bad input does
-  // not fix itself on re-run). a transient MalfunctionError/unknown → a retry may help
-  // the retry names the one key, at its own org and env, as the owner the sweep ran as
+  //   not fix itself on re-run), or naught if it carries none
+  // any other fault → a retry may help; it names the one key, at its own org and env, as the
+  //   owner the sweep ran as. a fault that opts in adds its hint, for the case the retry fails
+  //   again
   const { org, env, keyName } = asKeyrackSlugParts({ slug: input.slug });
   const ownerFlag = input.owner ? ` --owner ${input.owner}` : '';
   const orgFlag = (() => {
@@ -75,10 +84,10 @@ export const asKeyrackErroredKeyTip = (input: {
     return ` --org ${org}`;
   })();
   const suffix = (() => {
-    if (!(input.cause instanceof ConstraintError))
-      return ` — retry: rhx keyrack unlock${ownerFlag} --env ${env} --key ${keyName}${orgFlag}`;
-    if (!hint) return '';
-    return ` — fix: ${hint}`;
+    if (input.cause instanceof ConstraintError)
+      return hint ? ` — fix: ${hint}` : '';
+    const retry = ` — retry: rhx keyrack unlock${ownerFlag} --env ${env} --key ${keyName}${orgFlag}`;
+    return hint && isHintAfterRetry ? `${retry}; if it recurs, ${hint}` : retry;
   })();
 
   return `${bareMessage}${suffix}`.trim();

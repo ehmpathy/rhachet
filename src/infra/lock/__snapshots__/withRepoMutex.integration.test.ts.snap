@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`withRepoMutex given: [case2] a file a peer holds when: [t0] the wait bound passes before the peer releases then: it announces the wait once, then fails loud with the file path 1`] = `
+"✋ ConstraintError: another rhx process holds this file
+
+{
+  "path": "<repo>/settings.of.repo.json",
+  "waitMs": 300,
+  "hint": "wait for the other rhx init / enroll to finish, then retry. a hold left by a killed rhx lapses on its own within five minutes"
+}"
+`;

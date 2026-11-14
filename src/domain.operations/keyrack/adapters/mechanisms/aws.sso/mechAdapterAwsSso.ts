@@ -1,14 +1,9 @@
-import { MalfunctionError } from 'helpful-errors';
-import { addDuration, asIsoTimeStamp, isIsoTimeStamp } from 'iso-time';
-
 import type { KeyrackGrantMechanismAdapter } from '@src/domain.objects/keyrack';
 import { assertKeyrackReachAbsent } from '@src/domain.operations/keyrack/reach/assertKeyrackReachAbsent';
 
-import { exec, execSync } from 'node:child_process';
-import { promisify } from 'node:util';
+import { execSync } from 'node:child_process';
+import { genAwsProfileExport } from './genAwsProfileExport';
 import { setupAwsSsoWithGuide } from './setupAwsSsoWithGuide';
-
-const execAsync = promisify(exec);
 
 /**
  * .what = validate that profile name is a valid format
@@ -132,55 +127,13 @@ export const mechAdapterAwsSso: KeyrackGrantMechanismAdapter = {
    * .why = transforms sso profile name into session credentials
    *
    * .note = assumes sso session is valid (vault unlock handles login)
-   * .note = uses AWS_CREDENTIAL_EXPIRATION if available, else 55 min buffer
+   * .note = through the single-flight export, so a burst of callers runs the cli once
    */
   deliverForGet: async (input) => {
-    const profile = input.source;
-
-    try {
-      // export credentials as json
-      const { stdout } = await execAsync(
-        `aws configure export-credentials --profile "${profile}" --format env-no-export`,
-      );
-
-      // parse the env output into json
-      const lines = stdout.trim().split('\n');
-      const credentials: Record<string, string> = {};
-
-      for (const line of lines) {
-        const match = line.match(/^([A-Z_]+)=(.*)$/);
-        if (match) {
-          const key = match[1];
-          const value = match[2];
-          if (key) credentials[key] = value ?? '';
-        }
-      }
-
-      if (
-        !credentials.AWS_ACCESS_KEY_ID ||
-        !credentials.AWS_SECRET_ACCESS_KEY
-      ) {
-        throw new MalfunctionError(
-          'aws sso export did not return expected credentials',
-          { stdout, credentials },
-        );
-      }
-
-      // use AWS_CREDENTIAL_EXPIRATION if available, else default to 55 min from now
-      const awsExpiration = credentials.AWS_CREDENTIAL_EXPIRATION;
-      const expiresAt =
-        awsExpiration && isIsoTimeStamp(awsExpiration)
-          ? awsExpiration
-          : addDuration(asIsoTimeStamp(new Date()), { minutes: 55 });
-
-      return { secret: JSON.stringify(credentials), expiresAt };
-    } catch (error) {
-      if (error instanceof MalfunctionError) throw error;
-
-      throw new MalfunctionError('aws sso credential refresh failed', {
-        profile,
-        error,
-      });
-    }
+    const { credentials, expiresAt } = await genAwsProfileExport({
+      profile: input.source,
+      refresh: false,
+    });
+    return { secret: JSON.stringify(credentials), expiresAt };
   },
 };
