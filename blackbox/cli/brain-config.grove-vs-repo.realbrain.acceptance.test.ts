@@ -6,11 +6,11 @@ import { enrollRealClaudeAndWaitReach } from '@/blackbox/.test/infra/enrollClone
 import { genIsolatedClaudeHome } from '@/blackbox/.test/infra/genIsolatedClaudeHome';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
-import { RUN_LIVE_API_TEST } from '@/blackbox/.test/infra/RUN_LIVE_API_TEST';
 import {
   type RhachetBackgroundHandle,
   spawnPtyCliBackground,
 } from '@/blackbox/.test/infra/spawnPtyCliBackground';
+import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
 
 import { spawnSync } from 'node:child_process';
 import {
@@ -519,7 +519,7 @@ describe('brain config: auth, grove, repo (real claude)', () => {
     });
   });
 
-  given.runIf(RUN_LIVE_API_TEST)('[case5] a home CLAUDE.md that names a codeword', () => {
+  describeBrainLiveOnDemand('given: [case5] a home CLAUDE.md that names a codeword', () => {
     const scene = useBeforeAll(() => genBrainConfigScene({ slug: 'brain-cfg-home-memory' }));
 
     when('[t0] a plain claude outside any repo is asked for its codeword', () => {
@@ -558,7 +558,7 @@ describe('brain config: auth, grove, repo (real claude)', () => {
     });
   });
 
-  given.runIf(RUN_LIVE_API_TEST)('[case2] a plain claude at the repo root', () => {
+  describeBrainLiveOnDemand('given: [case2] a plain claude at the repo root', () => {
     const scene = useBeforeAll(() => genBrainConfigScene({ slug: 'brain-cfg-plain' }));
 
     when('[t0] it runs the repo probe and the grove probe', () => {
@@ -668,7 +668,7 @@ describe('brain config: auth, grove, repo (real claude)', () => {
     });
   });
 
-  given.runIf(RUN_LIVE_API_TEST)('[case3] a claude launched with CLAUDE_CONFIG_DIR=<repo>/.claude — the explicit opt-in', () => {
+  describeBrainLiveOnDemand('given: [case3] a claude launched with CLAUDE_CONFIG_DIR=<repo>/.claude — the explicit opt-in', () => {
     const scene = useBeforeAll(async () => {
       const found = await genBrainConfigScene({ slug: 'brain-cfg-optin' });
       const configDir = join(found.repo, '.claude');
@@ -745,7 +745,7 @@ describe('brain config: auth, grove, repo (real claude)', () => {
     });
   });
 
-  given.runIf(RUN_LIVE_API_TEST)('[case4] a clone enrolled via rhx enroll claude', () => {
+  describeBrainLiveOnDemand('given: [case4] a clone enrolled via rhx enroll claude', () => {
     const scene = useBeforeAll(async () => {
       const found = await genBrainConfigScene({ slug: 'brain-cfg-clone' });
       const env = {
@@ -947,7 +947,7 @@ describe('brain config: auth, grove, repo (real claude)', () => {
     });
   });
 
-  given.runIf(RUN_LIVE_API_TEST)('[case6] a plain claude at the root of a git worktree of the repo', () => {
+  describeBrainLiveOnDemand('given: [case6] a plain claude at the root of a git worktree of the repo', () => {
     const scene = useBeforeAll(async () => {
       // the repo as rhx init left it, committed, so a worktree checks out the tracked layout
       const base = await genBrainConfigScene({ slug: 'brain-cfg-worktree' });
