@@ -698,7 +698,7 @@ exports[`rhx enroll --roles (acceptance) given: [case10] pre-spawn validation er
 
 exports[`rhx enroll --roles (acceptance) given: [case10] pre-spawn validation errors on a linked repo when: [t1] \`enroll openai --roles mechanic\` (unsupported brain) then: the error output is locked to a snapshot 1`] = `
 "
-✋ ConstraintError: brain 'openai' not supported. supported: claude, claude-code
+✋ ConstraintError: brain 'openai' not supported. supported: claude, claude-code, anthropic/claude/code
 
 {
   "brain": "openai"
