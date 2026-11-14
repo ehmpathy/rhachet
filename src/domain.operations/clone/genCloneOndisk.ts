@@ -6,16 +6,16 @@ import type { BrainSlug } from '@src/domain.objects/BrainSlug';
 import type { CloneOndisk } from '@src/domain.objects/CloneOndisk';
 import type { ContextOfRepoRoles } from '@src/domain.objects/ContextOfRepoRoles';
 import type { RoleSlug } from '@src/domain.objects/RoleSlug';
+import { findsertActorOndisk } from '@src/domain.operations/actor/enrolled/findsertActorOndisk';
+import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
+import { getActorsRootDir } from '@src/domain.operations/actor/enrolled/getActorsRootDir';
+import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
+import { getOneActorOndiskExid } from '@src/domain.operations/actor/enrolled/getOneActorOndiskExid';
 import { getHomeHash } from '@src/infra/host/getHomeHash';
 import { getOneRepoPath } from '@src/infra/host/getOneRepoPath';
 
 import { mkdirSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
-import { findsertActorOndisk } from '../actor/enrolled/findsertActorOndisk';
-import { getActorOndiskDir } from '../actor/enrolled/getActorOndiskDir';
-import { getActorsRootDir } from '../actor/enrolled/getActorsRootDir';
-import { getBrainOndiskDir } from '../actor/enrolled/getBrainOndiskDir';
-import { getOneActorOndiskExid } from '../actor/enrolled/getOneActorOndiskExid';
 import { asCloneDirName } from './asCloneDirName';
 import { asCloneSocketOmissionReasonError } from './asCloneSocketOmissionReasonError';
 import {

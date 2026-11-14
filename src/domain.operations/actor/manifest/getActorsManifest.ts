@@ -33,10 +33,13 @@ export const getActorsManifest = (input: {
   const path = getActorsManifestPath({ repoPath: input.repoPath });
   if (!existsSync(path)) return null;
 
+  // read the file outside the parse guard, so a read fault is never labelled bad yaml
+  const content = readFileSync(path, 'utf8');
+
   // parse the yaml; a bare `@` value names the quote fix
   const parsed = ((): unknown => {
     try {
-      return parseYaml(readFileSync(path, 'utf8'));
+      return parseYaml(content);
     } catch (error) {
       if (!(error instanceof Error)) throw error;
       if (isErrorOfBareAtValue({ error }))
@@ -44,11 +47,13 @@ export const getActorsManifest = (input: {
           path,
           error: error.message,
           hint: "quote each value that opens with `@` — yaml reserves it: `ambient: '@builder'`, `- '@ehmpathy/builder'`",
+          cause: error,
         });
       throw new ConstraintError('actors.yml has invalid yaml', {
         path,
         error: error.message,
         hint: 'fix the yaml at the line the error names',
+        cause: error,
       });
     }
   })();

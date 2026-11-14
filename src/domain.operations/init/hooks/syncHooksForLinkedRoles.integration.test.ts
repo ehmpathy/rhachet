@@ -4,6 +4,8 @@ import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 import { genSampleErrnoError } from '@src/.test/assets/genSampleErrnoError';
 import { ContextCli } from '@src/domain.objects/ContextCli';
 
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { syncHooksForLinkedRoles } from './syncHooksForLinkedRoles';
 
 /**
@@ -446,4 +448,103 @@ given('[case7] the ROOT prune lands, then the ROOT sync THROWS', () => {
       expect(scene.errors.map((e) => e.source)).toEqual(['sync:root']);
     });
   });
+});
+
+/**
+ * .what = the manifest gate of the root hook pass reads the git root, never the cwd
+ * .why = an init run from a subdir must see the same manifest every other read of that run
+ *        sees; a read from the cwd missed it, so the root pass wrote the whole union into the
+ *        repo actor's claude file and handed its clones a peer's hooks
+ *        (inventory.of=requirements.case=9)
+ */
+describe('syncHooksForLinkedRoles (manifest gate)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  given(
+    '[case1] a manifest at the git root, and init run from a subdir',
+    () => {
+      const scene = useBeforeAll(async () => {
+        const gitroot = genTempDir({ slug: 'sync-hooks-manifest-subdir' });
+        const cwd = join(gitroot, 'src', 'deep');
+        mkdirSync(cwd, { recursive: true });
+        mkdirSync(join(gitroot, '.agent'), { recursive: true });
+        writeFileSync(
+          join(gitroot, '.agent', 'actors.yml'),
+          [
+            "ambient: '@builder'",
+            'actor:',
+            '  - slug: builder',
+            '    brain: anthropic/claude/code',
+            '    roles: [ehmpathy/mechanic]',
+          ].join('\n'),
+        );
+        mockGetLinkedRolesWithHooks.mockResolvedValue({
+          roles: [{ slug: 'mechanic', repo: 'ehmpathy' }],
+          errors: [],
+        });
+        mockPruneOrphanedRoleHooksFromAllBrains.mockResolvedValue({
+          removed: [],
+        });
+        mockSyncAllRoleHooksIntoEachBrainRepl.mockResolvedValue({
+          applied: [],
+          errors: [],
+        });
+        // a useBeforeAll runs before the describe's beforeEach, so clear the calls of prior cases
+        mockGetAllActorsOndisk.mockClear();
+        mockGenBrainCliConfigArtifact.mockClear();
+        mockSyncAllRoleHooksIntoEachBrainRepl.mockClear();
+        mockGetAllActorsOndisk.mockReturnValue([
+          new ActorOndisk({
+            repoPath: gitroot,
+            exid: 'slug=builder',
+            brain: 'claude',
+            roles: ['mechanic'],
+          }),
+        ]);
+        mockGenBrainCliConfigArtifact.mockResolvedValue({
+          configPath: `${gitroot}/settings.of.repo.json`,
+        });
+        const context = new ContextCli({ cwd, gitroot });
+        await captureConsoleOutput({
+          logic: () =>
+            syncHooksForLinkedRoles(
+              { brains: ['anthropic/claude/code'] },
+              context,
+            ),
+        });
+        return {
+          gitroot,
+          brainsSynced: mockSyncAllRoleHooksIntoEachBrainRepl.mock.calls.map(
+            (call) => call[0].brains,
+          ),
+          actorsReadFrom: mockGetAllActorsOndisk.mock.calls.map(
+            (call) => call[0].repoPath,
+          ),
+          actorsDerivedAt: mockGenBrainCliConfigArtifact.mock.calls.length,
+        };
+      });
+
+      when('[t0] the hook sync runs', () => {
+        then(
+          'the root pass never writes claude — the actor pass owns it',
+          () => {
+            expect(scene.brainsSynced.flat()).not.toContain(
+              'anthropic/claude/code',
+            );
+          },
+        );
+        then(
+          'the actor pass reads its actors from the git root, never the cwd',
+          () => {
+            expect(scene.actorsReadFrom).toEqual([scene.gitroot]);
+          },
+        );
+        then('the actor pass runs, and derives each actor it read', () => {
+          expect(scene.actorsDerivedAt).toBeGreaterThan(0);
+        });
+      });
+    },
+  );
 });

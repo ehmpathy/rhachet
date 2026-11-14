@@ -203,6 +203,88 @@ describe('getActorExpanded', () => {
     },
   );
 
+  given('[case6] a base that gains a role', () => {
+    const asManifest = (input: { crewRoles: string[] }) =>
+      new ActorsManifest({
+        ambient: '@crew',
+        actor: [
+          new ActorDeclared({
+            slug: 'crew',
+            brain: 'claude',
+            roles: input.crewRoles,
+          }),
+          new ActorDeclared({
+            slug: 'kin',
+            brain: null,
+            roles: ['@crew', '+bhrain/librarian'],
+          }),
+          new ActorDeclared({
+            slug: 'heir',
+            brain: null,
+            roles: ['@ehmpathy/builder', '-driver'],
+          }),
+        ],
+      });
+
+    when('[t0] the peer base @crew gains bhuild/behaver', () => {
+      const getKin = (input: { crewRoles: string[] }) =>
+        getActorExpanded(
+          { ref: '@kin', scope: null, trail: [] },
+          {
+            manifest: asManifest(input),
+            getPublishedActor: genGetPublishedActor({ actors: PUBLISHED }),
+          },
+        );
+
+      then('the extension gains it too, with no edit of its own', () => {
+        expect(getKin({ crewRoles: ['ehmpathy/mechanic'] }).roles).toEqual([
+          'ehmpathy/mechanic',
+          'bhrain/librarian',
+        ]);
+        expect(
+          getKin({ crewRoles: ['ehmpathy/mechanic', 'bhuild/behaver'] }).roles,
+        ).toEqual(['ehmpathy/mechanic', 'bhuild/behaver', 'bhrain/librarian']);
+      });
+    });
+
+    when('[t1] the published base @ehmpathy/builder gains a role', () => {
+      const getHeir = (input: { builder: ActorDeclared }) =>
+        getActorExpanded(
+          { ref: '@heir', scope: null, trail: [] },
+          {
+            manifest: asManifest({ crewRoles: ['ehmpathy/mechanic'] }),
+            getPublishedActor: genGetPublishedActor({
+              actors: { 'ehmpathy/builder': input.builder },
+            }),
+          },
+        );
+
+      then(
+        'the extension gains it at the next expand, its own delta still applied',
+        () => {
+          const builderGrown = new ActorDeclared({
+            slug: 'builder',
+            brain: 'anthropic/claude/code',
+            roles: [
+              'ehmpathy/mechanic',
+              'bhrain/driver',
+              'bhuild/behaver',
+              'bhrain/reviewer',
+            ],
+          });
+          expect(
+            getHeir({ builder: PUBLISHED['ehmpathy/builder'] }).roles,
+          ).toEqual(['ehmpathy/mechanic', 'bhuild/behaver']);
+          expect(getHeir({ builder: builderGrown }).roles).toEqual([
+            'ehmpathy/mechanic',
+            'bhuild/behaver',
+            'bhrain/reviewer',
+          ]);
+        },
+      );
+    });
+  });
+
   given('[case4] refusals', () => {
     when('[t0] a base names an undeclared peer', () => {
       then('it lists the declared actors', async () => {
@@ -225,6 +307,30 @@ describe('getActorExpanded', () => {
           'actors.yml names an actor not declared: @nobody',
         );
         expect(error.message).toContain("'@a'");
+        expect(error.message).not.toContain('did you mean');
+      });
+      then('a typo of a declared slug names the actor meant', async () => {
+        const manifest = new ActorsManifest({
+          ambient: '@crew',
+          actor: [
+            new ActorDeclared({
+              slug: 'crew',
+              brain: 'claude',
+              roles: ['ehmpathy/mechanic'],
+            }),
+            new ActorDeclared({ slug: 'kin', brain: null, roles: ['@crw'] }),
+          ],
+        });
+        const error = await getError(() =>
+          getActorExpanded(
+            { ref: '@kin', scope: null, trail: [] },
+            {
+              manifest,
+              getPublishedActor: genGetPublishedActor({ actors: {} }),
+            },
+          ),
+        );
+        expect(error.message).toContain("did you mean '@crew'?");
       });
     });
 

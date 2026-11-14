@@ -12,6 +12,7 @@ import { getAllLinkedRoleRefs } from '@src/domain.operations/init/roles/link/get
 import { asBrainDirSyncResult } from './asBrainDirSyncResult';
 import { asRepoActorBrainDirOutcome } from './asRepoActorBrainDirOutcome';
 import { asRoleSlugsOfRefs } from './asRoleSlugsOfRefs';
+import { setDeclaredActorsOndisk } from './setDeclaredActorsOndisk';
 import { setRepoActorBrainDir } from './setRepoActorBrainDir';
 import { syncActiveActorBrainDirs } from './syncActiveActorBrainDirs';
 
@@ -62,6 +63,17 @@ export const syncBootsForBrainDirs = async (
     rolesLinked: asRoleSlugsOfRefs({ refs: refsLinked }),
   });
 
+  // each declared actor of `.agent/actors.yml` re-derives from the manifest as it reads now,
+  //   so an edit to an actor's roles reaches its dir at init (the sync invariant)
+  const declaredOutcome = await setDeclaredActorsOndisk(
+    {
+      repoPath: input.repoPath,
+      refsLinked,
+      rolesAmbient: asRoleSlugsOfRefs({ refs: refsAmbient }),
+    },
+    context,
+  );
+
   // each active actor; its own failures are already collected per scope
   const actorOutcome = await syncActiveActorBrainDirs({
     repoPath: input.repoPath,
@@ -78,6 +90,7 @@ export const syncBootsForBrainDirs = async (
       failures: [
         ...repoActorResult.failures,
         ...deltaOutcome.failures,
+        ...declaredOutcome.failures,
         ...actorOutcome.failures,
       ],
     }),

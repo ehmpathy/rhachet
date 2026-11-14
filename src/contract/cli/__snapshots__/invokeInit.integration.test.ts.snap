@@ -1,7 +1,9 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`invokeInit (integration) given: [case2] init against the brain dirs when: [t0] <repo>/.claude is a real dir with a COMMITTED hand AGENTS.md then: it migrates the dir: boot files drop, the rest move, and the link lands 1`] = `
-"🧠 brain://repo=ambient
+"[2m💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them[0m
+
+🧠 brain://repo=ambient
    ├─ moved
    │  └─ .claude/settings.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json
    ├─ dropped

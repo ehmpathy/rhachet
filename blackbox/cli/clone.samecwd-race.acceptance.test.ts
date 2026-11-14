@@ -88,9 +88,13 @@ describe('rhx clone get same-cwd-race degradation (acceptance)', () => {
         // falls back to `~/.claude` for a clone that PREDATES its actor's brain dir
         // (the D8 upgrade path), so a fixture that spawns first reads a different
         // transcript dir than the one it plants into — and the ambiguous marker
-        // below would be scoped out in silence
+        // below would be scoped out in silence. the stamp is the wall clock, floored
+        // at the dir's birth: a host with no birth time reports 0, which `Math.max`
+        // ignores, so the stamp never falls back to 1970
         const spawnedAt = asIsoTimeStamp(
-          new Date(Math.ceil(statSync(brainDir).birthtimeMs)).toISOString(),
+          new Date(
+            Math.max(Date.now(), Math.ceil(statSync(brainDir).birthtimeMs)),
+          ).toISOString(),
         );
         const planted = await genSampleCloneOndisk({
           repoPath: dir,

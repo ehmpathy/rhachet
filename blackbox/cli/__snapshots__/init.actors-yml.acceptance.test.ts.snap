@@ -1,5 +1,13 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case1] a manifest with a repo actor and a peer extension when: [t0] \`init\` with no --roles then: the brain dir header names the repo actor, \`brain://slug=crew\` 1`] = `
+"🧠 brain://slug=crew
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.slug=crew/brain/.claude
+   └─ boot.md
+      └─ created — 2 roles"
+`;
+
 exports[`rhx init under .agent/actors.yml (acceptance) given: [case1] a manifest with a repo actor and a peer extension when: [t0] \`init\` with no --roles then: the report block holds its shape 1`] = `
 "🎭 actors.yml
    ├─ repo actor = @crew
@@ -19,4 +27,251 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case2] a role lin
       └─ ehmpathy/architect
          ├─ to keep it, declare \`ehmpathy/architect\` in .agent/actors.yml
          └─ to drop it, unlink .agent/repo=ehmpathy/role=architect"
+`;
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case3] \`--roles\` beside a manifest when: [t0] \`init --roles mechanic\` then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: --roles is refused beside .agent/actors.yml
+
+{
+  "hint": "edit the actor roles in .agent/actors.yml, then run \`rhx init\` with no --roles. to keep a --roles list instead, remove .agent/actors.yml",
+  "roles": [
+    "mechanic"
+  ]
+}
+
+[args] init,--roles,mechanic
+
+"
+`;
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case3] \`--roles\` beside a manifest when: [t1] \`init --roles -behaver\`, an incremental delta then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: --roles is refused beside .agent/actors.yml
+
+{
+  "hint": "edit the actor roles in .agent/actors.yml, then run \`rhx init\` with no --roles. to keep a --roles list instead, remove .agent/actors.yml",
+  "roles": [
+    "-behaver"
+  ]
+}
+
+[args] init,--roles,-behaver
+
+"
+`;
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case3] \`--roles\` beside a manifest when: [t2] \`init --prep\` then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: --prep is refused beside .agent/actors.yml
+
+{
+  "hint": "the manifest is the replay: set \`prepare:rhachet\` to \`rhx init\` with no flags, and declare the roles in .agent/actors.yml",
+  "prep": true
+}
+
+[args] init,--prep
+
+"
+`;
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case4] a manifest with no \`ambient:\` key when: [t0] \`init\` then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: actors.yml has no \`ambient:\` key
+
+{
+  "hint": "add \`ambient: '@<slug>'\` to name the repo actor — one of '@solo'",
+  "path": "/TMP_TEST_DIR/.agent/actors.yml",
+  "actors": [
+    "@solo"
+  ]
+}
+
+[args] init
+
+"
+`;
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case5] a native \`.this\` role that no actor declares when: [t0] \`init\` with no --roles then: the report block holds its shape 1`] = `
+"🎭 actors.yml
+   ├─ repo actor = @solo
+   ├─ 1 actor(s), 1 role(s) declared
+   ├─ short → restored
+   │  └─ ehmpathy/mechanic ↺ linked
+   └─ native → not booted, undeclared
+      └─ .this/tuner
+         └─ to boot it, declare \`.this/tuner\` under @solo in .agent/actors.yml"
+`;
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case6] \`--keys\` beside a manifest, with no --roles when: [t0] \`init --keys\` then: the keyrack block holds its shape 1`] = `
+"🔑 keyrack init
+   ├─ org: ehmpathy
+   ├─ extends:
+   │  └─ .agent/repo=ehmpathy/role=mechanic/keyrack.yml
+   └─ created .agent/keyrack.yml"
+`;
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case7] a declared actor, then a manifest that drops its slug (F15) when: [t0] \`init\` with no --roles then: the report block holds its shape 1`] = `
+"🎭 actors.yml
+   ├─ repo actor = @crew
+   ├─ 1 actor(s), 2 role(s) declared
+   ├─ in sync, no role short
+   ├─ extra → kept, undeclared
+   │  └─ bhrain/librarian
+   │     ├─ to keep it, declare \`bhrain/librarian\` in .agent/actors.yml
+   │     └─ to drop it, unlink .agent/repo=bhrain/role=librarian
+   └─ actor dirs → kept, slug undeclared
+      └─ actor.via.slug=reader
+         ├─ to keep it, re-declare \`@reader\` in .agent/actors.yml
+         └─ to reap its dead clones, rhx clone prune"
+`;
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case8] a manifest with an authored mistake when: [t0] an unquoted \`@\` value, then \`init\` then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: actors.yml has an unquoted \`@\` value
+
+{
+  "hint": "quote each value that opens with \`@\` — yaml reserves it: \`ambient: '@builder'\`, \`- '@ehmpathy/builder'\`",
+  "path": "/TMP_TEST_DIR/.agent/actors.yml",
+  "error": "Plain value cannot start with reserved character @ at line 1, column 10:\\n\\nambient: @crew\\n         ^\\n",
+  "cause": {
+    "class": "YAMLParseError",
+    "message": "Plain value cannot start with reserved character @ at line 1, column 10:\\n\\nambient: @crew\\n         ^\\n"
+  }
+}
+
+[args] init
+
+"
+`;
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case8] a manifest with an authored mistake when: [t1] invalid yaml, then \`init\` then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: actors.yml has invalid yaml
+
+{
+  "hint": "fix the yaml at the line the error names",
+  "path": "/TMP_TEST_DIR/.agent/actors.yml",
+  "error": "Sequence item without - indicator at line 4, column 1:\\n\\n  - slug: crew\\n   brain: [claude\\n^\\n",
+  "cause": {
+    "class": "YAMLParseError",
+    "message": "Sequence item without - indicator at line 4, column 1:\\n\\n  - slug: crew\\n   brain: [claude\\n^\\n"
+  }
+}
+
+[args] init
+
+"
+`;
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case8] a manifest with an authored mistake when: [t2] a base that names an undeclared peer, then \`init\` then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: actors.yml names an actor not declared: @nobody
+
+{
+  "hint": "use one of '@crew', or a published actor as '@<repo>/<slug>'",
+  "ref": "@nobody",
+  "actors": [
+    "@crew"
+  ]
+}
+
+[args] init
+
+"
+`;
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case8] a manifest with an authored mistake when: [t3] a published base whose package is not installed, then \`init\` then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: actors.yml names a published actor not found: @ghlitch/watcher
+
+{
+  "hint": "install the role package that publishes it (rhachet-roles-ghlitch), or check the slug",
+  "ref": "@ghlitch/watcher"
+}
+
+[args] init
+
+"
+`;
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case8] a manifest with an authored mistake when: [t4] an extension cycle, then \`init\` then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: actors.yml has an extension cycle
+
+{
+  "hint": "break the cycle: one actor in the path must list concrete roles",
+  "cycle": "@a → @b → @a"
+}
+
+[args] init
+
+"
+`;
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case8] a manifest with an authored mistake when: [t5] concrete roles mixed with deltas, then \`init\` then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: actors.yml actor @a mixes concrete roles with a base or deltas
+
+{
+  "hint": "either list concrete roles only, or a quoted \`'@<slug>'\` base then \`+role\` / \`-role\` deltas",
+  "path": "/TMP_TEST_DIR/.agent/actors.yml",
+  "roles": [
+    "ehmpathy/mechanic",
+    "-driver"
+  ]
+}
+
+[args] init
+
+"
+`;
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case8] a manifest with an authored mistake when: [t6] deltas with no base, then \`init\` then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: actors.yml actor @a has deltas with no base
+
+{
+  "hint": "add a quoted \`'@<slug>'\` base at the head of \`roles:\`, or drop the \`+\` / \`-\` sigils",
+  "path": "/TMP_TEST_DIR/.agent/actors.yml",
+  "roles": [
+    "+mechanic"
+  ]
+}
+
+[args] init
+
+"
+`;
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case8] a manifest with an authored mistake when: [t7] two bases, then \`init\` then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: actors.yml actor @a names more than one base
+
+{
+  "hint": "keep one \`@<slug>\` base and express the rest as \`+role\` / \`-role\` deltas",
+  "path": "/TMP_TEST_DIR/.agent/actors.yml",
+  "roles": [
+    "@b",
+    "@c"
+  ]
+}
+
+[args] init
+
+"
+`;
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case8] a manifest with an authored mistake when: [t8] an actor that reaches no brain, then \`init\` then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: actors.yml actor @a reaches no brain
+
+{
+  "hint": "add \`brain: <slug>\` — only an actor that extends a base may omit it",
+  "path": "/TMP_TEST_DIR/.agent/actors.yml"
+}
+
+[args] init
+
+"
 `;

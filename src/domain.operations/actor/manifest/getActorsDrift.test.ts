@@ -17,7 +17,7 @@ describe('getActorsDrift', () => {
     ];
 
     when('[t0] the drift is computed', () => {
-      const drift = getActorsDrift({ declared, linked });
+      const drift = getActorsDrift({ declared, linked, linkedNative: [] });
 
       then('a declared role not linked is short, with its source', () => {
         expect(drift.short).toEqual([
@@ -39,8 +39,35 @@ describe('getActorsDrift', () => {
         const drift = getActorsDrift({
           declared: [{ role: 'ehmpathy/mechanic', via: null }],
           linked: ['ehmpathy/mechanic'],
+          linkedNative: [],
         });
-        expect(drift).toEqual({ short: [], extra: [] });
+        expect(drift).toEqual({ short: [], extra: [], nativeUndeclared: [] });
+      });
+    });
+  });
+
+  given('[case3] native `.this` roles, one declared and one not', () => {
+    when('[t0] the drift is computed', () => {
+      const drift = getActorsDrift({
+        declared: [
+          { role: 'ehmpathy/mechanic', via: null },
+          { role: '.this/tuner', via: null },
+        ],
+        linked: ['ehmpathy/mechanic'],
+        linkedNative: ['.this/any', '.this/tuner'],
+      });
+
+      then(
+        'the undeclared native role is named, and the declared one is not',
+        () => {
+          expect(drift.nativeUndeclared).toEqual(['.this/any']);
+        },
+      );
+      then('a declared native role is present, never short', () => {
+        expect(drift.short).toEqual([]);
+      });
+      then('a native role is never extra', () => {
+        expect(drift.extra).toEqual([]);
       });
     });
   });
@@ -56,10 +83,12 @@ describe('asActorsDriftReportLines', () => {
         drift: {
           short: [{ role: 'bhrain/learner', via: '@ehmpathy/builder' }],
           extra: ['ghlitch/observer'],
+          nativeUndeclared: [],
         },
         warnings: [
           '@builder removes -driver, which @ehmpathy/builder does not hold',
         ],
+        actorsUndeclared: [],
       });
 
       then('it names the repo actor, each drift row and both fixes', () => {
@@ -85,12 +114,63 @@ describe('asActorsDriftReportLines', () => {
         ambient: '@scholar',
         countActors: 1,
         countRoles: 3,
-        drift: { short: [], extra: [] },
+        drift: { short: [], extra: [], nativeUndeclared: [] },
         warnings: [],
+        actorsUndeclared: [],
       });
 
       then('it says the set is in sync', () => {
         expect(lines.join('\n')).toContain('in sync, no role short');
+      });
+      then('it matches the snapshot', () => {
+        expect(lines.join('\n')).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case3] a native `.this` role no actor declares', () => {
+    when('[t0] the report is rendered', () => {
+      const lines = asActorsDriftReportLines({
+        ambient: '@builder',
+        countActors: 1,
+        countRoles: 1,
+        drift: { short: [], extra: [], nativeUndeclared: ['.this/any'] },
+        warnings: [],
+        actorsUndeclared: [],
+      });
+
+      then('it names the role and the fix, under the ambient actor', () => {
+        const text = lines.join('\n');
+        expect(text).toContain('native → not booted, undeclared');
+        expect(text).toContain(
+          'to boot it, declare `.this/any` under @builder in .agent/actors.yml',
+        );
+      });
+      then('it matches the snapshot', () => {
+        expect(lines.join('\n')).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case4] actor dirs whose base slug left actors.yml (F15)', () => {
+    when('[t0] the report is rendered', () => {
+      const lines = asActorsDriftReportLines({
+        ambient: '@builder',
+        countActors: 1,
+        countRoles: 2,
+        drift: { short: [], extra: [], nativeUndeclared: [] },
+        warnings: [],
+        actorsUndeclared: ['slug=scholar', 'slug=scholar._.delta=f00d'],
+      });
+
+      then('it names each kept dir and both fixes', () => {
+        const text = lines.join('\n');
+        expect(text).toContain('actor dirs → kept, slug undeclared');
+        expect(text).toContain('actor.via.slug=scholar._.delta=f00d');
+        expect(text).toContain(
+          'to keep it, re-declare `@scholar` in .agent/actors.yml',
+        );
+        expect(text).toContain('to reap its dead clones, rhx clone prune');
       });
       then('it matches the snapshot', () => {
         expect(lines.join('\n')).toMatchSnapshot();

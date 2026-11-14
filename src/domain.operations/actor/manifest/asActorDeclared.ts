@@ -3,6 +3,8 @@ import { ConstraintError } from 'helpful-errors';
 import { ActorDeclared } from '@src/domain.objects/ActorDeclared';
 import type { BrainSlug } from '@src/domain.objects/BrainSlug';
 
+import { isPlainObject } from './isPlainObject';
+
 /**
  * .what = the kind of one role entry in an actor's `roles`
  */
@@ -17,12 +19,6 @@ const asActorRoleEntryKind = (input: { entry: string }): ActorRoleEntryKind => {
   if (input.entry.startsWith('-')) return 'minus';
   return 'concrete';
 };
-
-/**
- * .what = whether a value is a plain object (not null, not an array)
- */
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /**
  * .what = cast one parsed `actor:` entry into an ActorDeclared, or refuse it with the fix
@@ -121,7 +117,7 @@ export const asActorDeclared = (input: {
     );
 
   // an actor with no base must state its brain (F11, S7)
-  const brainFound = typeof brain === 'string' ? (brain as BrainSlug) : null;
+  const brainFound: BrainSlug | null = typeof brain === 'string' ? brain : null;
   if (!countBase && !brainFound)
     throw new ConstraintError(`actors.yml actor @${slug} reaches no brain`, {
       path: input.path,

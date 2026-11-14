@@ -73,16 +73,16 @@ export const findsertActorOndisk = async (
   // persist the identity manifest atomically (temp write + rename). a delta actor
   //   records its delta, so a later init re-derives its roles from the ambient set
   //   (`setDeltaActorsOndisk`). a delta that collapses into the repo actor (`+mechanic`
-  //   when mechanic is already ambient) records none: the repo actor IS the ambient set
+  //   when mechanic is already ambient) records none: the repo actor IS the ambient set.
+  //   a declared derived actor (`slug=<x>._.delta=<h>`) records its delta over its base, so
+  //   `setDeclaredActorsOndisk` re-derives it from the base's declared roles
   await setActorOndiskManifest({
     repoPath,
     actorDir,
     brain: input.brain,
     roles: input.roles,
     rolesDelta:
-      exid === context.repo.ambient.exid || input.exidDeclared !== null
-        ? null
-        : (input.rolesDelta ?? null),
+      exid === context.repo.ambient.exid ? null : (input.rolesDelta ?? null),
   });
 
   // append a roles-log event, unless this is a pure live-slug reuse

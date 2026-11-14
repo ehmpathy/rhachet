@@ -36,7 +36,6 @@ exports[`rhx init --roles incremental (acceptance) given: [case1] an empty repo,
       │    • deny: extended (no duplicates)
       │    • ask: extended (no duplicates)
       │
-      │ 📦 backed up prior settings to: .claude/settings.$TIMESTAMP.bak.json
       │ 👌 claude config ready
       │
       └─

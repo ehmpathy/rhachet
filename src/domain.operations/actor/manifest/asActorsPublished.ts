@@ -3,12 +3,8 @@ import { ConstraintError } from 'helpful-errors';
 import type { ActorDeclared } from '@src/domain.objects/ActorDeclared';
 
 import { asActorDeclared } from './asActorDeclared';
-
-/**
- * .what = whether a value is a plain object (not null, not an array)
- */
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
+import { asSlugsDuplicated } from './asSlugsDuplicated';
+import { isPlainObject } from './isPlainObject';
 
 /**
  * .what = cast a role package's parsed actor yml into its published actors, or fail fast
@@ -48,10 +44,9 @@ export const asActorsPublished = (input: {
   );
 
   // each slug is declared once
-  const slugs = actors.map((one) => one.slug);
-  const slugsTwice = slugs.filter(
-    (slug, index) => slugs.indexOf(slug) !== index,
-  );
+  const slugsTwice = asSlugsDuplicated({
+    slugs: actors.map((one) => one.slug),
+  });
   if (slugsTwice.length)
     throw new ConstraintError(
       'published actors yml declares a slug more than once',

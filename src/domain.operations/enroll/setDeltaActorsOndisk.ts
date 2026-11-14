@@ -2,16 +2,16 @@ import { MalfunctionError } from 'helpful-errors';
 
 import type { ActorOndisk } from '@src/domain.objects/ActorOndisk';
 import type { RoleSlug } from '@src/domain.objects/RoleSlug';
+import { asActorsDelta } from '@src/domain.operations/actor/enrolled/asActorsDelta';
 import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
 import { getActorOndiskManifest } from '@src/domain.operations/actor/enrolled/getActorOndiskManifest';
 import { getAllActorsOndisk } from '@src/domain.operations/actor/enrolled/getAllActorsOndisk';
 import { getOneRepoActorExid } from '@src/domain.operations/actor/enrolled/getOneRepoActorExid';
 import { isRolesetEqual } from '@src/domain.operations/actor/enrolled/isRolesetEqual';
-import { setActorOndiskManifestWithinLock } from '@src/domain.operations/actor/enrolled/setActorOndiskManifest';
+import { setActorOndiskManifestRoles } from '@src/domain.operations/actor/enrolled/setActorOndiskManifestRoles';
 import type { BrainDirBootFailure } from '@src/domain.operations/boot/BrainDirBootRender';
 import { asRoleSlugsAmbientAtFocus } from '@src/domain.operations/roles/focus/ambient/asRoleSlugsAmbientAtFocus';
 import { getRepoAmbientRoleFoci } from '@src/domain.operations/roles/focus/ambient/getRepoAmbientRoleFoci';
-import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 import { isCodeDefectError } from '@src/utils/isCodeDefectError';
 
 import { join } from 'node:path';
@@ -148,7 +148,7 @@ const getOneDeltaActorOutcome = async (input: {
       actor: { ...actor, roles: rolesNext },
       repoPath: actor.repoPath,
     });
-    await setActorManifestRolesRecorded({ actor, roles: rolesNext });
+    await setActorOndiskManifestRoles({ actor, roles: rolesNext });
     return {
       rederived: {
         actorExid: actor.exid,
@@ -206,44 +206,6 @@ const getActorRolesRederivedOrNull = (input: {
 };
 
 /**
- * .what = record the roles a delta actor's settings were just derived for, in its `actor.json`
- * .why = the read and the write hold the `actor.json` mutex, so two concurrent `rhx init`s
- *   cannot each read one record and drop the other's write. the delta comes from the record
- *   read under the mutex, never the one read before it
- */
-const setActorManifestRolesRecorded = async (input: {
-  actor: ActorOndisk;
-  roles: RoleSlug[];
-}): Promise<void> => {
-  const manifestPath = getActorManifestPath({ actor: input.actor });
-  await withRepoMutex(
-    { repoPath: input.actor.repoPath, path: manifestPath },
-    async () => {
-      const manifest = getActorOndiskManifest({
-        manifestPath,
-        exid: input.actor.exid,
-      });
-      if (
-        isRolesetEqual({
-          left: input.roles,
-          right: manifest.roles as RoleSlug[],
-        })
-      )
-        return;
-      setActorOndiskManifestWithinLock({
-        actorDir: getActorOndiskDir({
-          repoPath: input.actor.repoPath,
-          exid: input.actor.exid,
-        }),
-        brain: input.actor.brain,
-        roles: input.roles,
-        rolesDelta: manifest.rolesDelta,
-      });
-    },
-  );
-};
-
-/**
  * .what = the path of one actor's `actor.json`
  */
 const getActorManifestPath = (input: { actor: ActorOndisk }): string =>
@@ -264,8 +226,10 @@ const getAllActorsOrFailure = (input: {
 }): { actors: ActorOndisk[] } | { failure: BrainDirBootFailure } => {
   try {
     const actors = getAllActorsOndisk({ repoPath: input.repoPath });
+    // a declared actor (`slug=`) re-derives from `.agent/actors.yml`, never the ambient set
+    //   (`setDeclaredActorsOndisk`), so this sweep leaves it alone
     const exidRepoActor = getOneRepoActorExid({ repoPath: input.repoPath });
-    return { actors: actors.filter((actor) => actor.exid !== exidRepoActor) };
+    return { actors: asActorsDelta({ actors, exidRepoActor }) };
   } catch (error) {
     // an allowlist: a classed or fs fault is the sweep's row; a code defect surfaces loud
     if (isCodeDefectError({ error })) throw error;

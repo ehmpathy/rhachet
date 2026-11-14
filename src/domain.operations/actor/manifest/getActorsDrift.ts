@@ -13,6 +13,13 @@ export interface ActorsDrift {
    * .what = linked roles not declared — init keeps them, and names them (F4)
    */
   extra: string[];
+
+  /**
+   * .what = native `.this` roles no actor declares — no clone boots them under a manifest
+   * .why = a `.this` role is ambient only where the `ambient:` actor names it, so one left out
+   *        is lost to every clone; the loss is named, never silent. init adds none by itself
+   */
+  nativeUndeclared: string[];
 }
 
 /**
@@ -27,11 +34,13 @@ export interface ActorsDrift {
 export const getActorsDrift = (input: {
   declared: { role: string; via: string | null }[];
   linked: string[];
+  /** the native `.this` roles present, as `.this/<role>` */
+  linkedNative: string[];
 }): ActorsDrift => {
-  // declared roles that no linked role matches
+  // declared roles that no linked role matches; a native role is present, never restored
   const short = input.declared.filter(
     (one) =>
-      !input.linked.some((role) =>
+      ![...input.linked, ...input.linkedNative].some((role) =>
         isRoleSpecifierMatch({ left: role, right: one.role }),
       ),
   );
@@ -44,5 +53,13 @@ export const getActorsDrift = (input: {
       ),
   );
 
-  return { short, extra };
+  // native roles that no declared role matches
+  const nativeUndeclared = input.linkedNative.filter(
+    (role) =>
+      !input.declared.some((one) =>
+        isRoleSpecifierMatch({ left: role, right: one.role }),
+      ),
+  );
+
+  return { short, extra, nativeUndeclared };
 };

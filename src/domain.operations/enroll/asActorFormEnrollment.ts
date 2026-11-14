@@ -7,6 +7,7 @@ import type { RoleSlug } from '@src/domain.objects/RoleSlug';
 import { asActorRolesDelta } from '@src/domain.operations/actor/enrolled/asActorRolesDelta';
 import { genEnrollmentHashOfActorDelta } from '@src/domain.operations/actor/enrolled/genEnrollmentHashOfActorDelta';
 import type { ActorExpanded } from '@src/domain.operations/actor/manifest/getActorExpanded';
+import { asRoleSlugsOfRefs } from '@src/domain.operations/init/boots/asRoleSlugsOfRefs';
 import { isRoleSpecifierMatch } from '@src/domain.operations/roles/isRoleSpecifierMatch';
 
 import { computeBrainCliEnrollment } from './computeBrainCliEnrollment';
@@ -60,7 +61,7 @@ export const asActorFormEnrollment = (input: {
     brain,
     spec: input.spec,
     rolesAmbient: rolesBase,
-    rolesLinked: input.refsLinked.map((ref) => ref.role),
+    rolesLinked: asRoleSlugsOfRefs({ refs: input.refsLinked }),
   });
   const rolesDelta = asActorRolesDelta({ spec: input.spec });
 

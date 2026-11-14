@@ -2,8 +2,11 @@ import { ConstraintError } from 'helpful-errors';
 
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 
+import { asActorRefNearbyHint } from './asActorRefNearbyHint';
+import { asSlugsOfActorsDeclared } from './asSlugsOfActorsDeclared';
 import type { ActorExpanded } from './getActorExpanded';
 import { getActorsManifest, getActorsManifestPath } from './getActorsManifest';
+import { isActorDeclared } from './isActorDeclared';
 
 /**
  * .what = one declared actor of this repo's `.agent/actors.yml`, expanded over the installed
@@ -25,12 +28,14 @@ export const getOneActorExpandedOfRepo = async (
 
   // the actor by slug, or the `ambient:` actor; an unknown slug lists the declared ones
   const ref = 'slug' in input.actor ? `@${input.actor.slug}` : manifest.ambient;
-  const isDeclared = manifest.actor.some((actor) => `@${actor.slug}` === ref);
-  if (!isDeclared)
+  if (!isActorDeclared({ manifest, ref }))
     throw new ConstraintError(`${ref} is not a declared actor`, {
       actor: ref,
       path: getActorsManifestPath({ repoPath: context.gitroot }),
-      hint: `declared actors: ${manifest.actor.map((actor) => `@${actor.slug}`).join(', ')}`,
+      hint: asActorRefNearbyHint({
+        ref,
+        slugs: asSlugsOfActorsDeclared({ manifest }),
+      }),
     });
 
   // expand it over the installed packages

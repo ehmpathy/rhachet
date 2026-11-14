@@ -32,6 +32,13 @@ linked role's hooks, so a `-driver` peer booted the driver's hooks and drove the
   (`getAllHooksOfUnenrolledRoles.ts`): a leak under the human's home is a `ConstraintError` (exit 2, fix
   the home settings); a leak in a file rhachet wrote is a `MalfunctionError`. enroll is the one path that
   spawns a clone, so the guard covers every clone
+- under `.agent/actors.yml`, the repo actor is one actor among peers, so it holds its own roles'
+  hooks and no union:
+  - `src/domain.operations/init/hooks/syncHooksForLinkedRoles.ts` — the root pass skips claude, so the
+    linked-role union never lands in the repo actor's `settings.of.repo.json`
+  - `src/domain.operations/enroll/genBrainCliConfigArtifact.ts` — each actor's hooks narrow from the
+    linked roles' declared hooks, computed in-mem (`getAllHooksOfLinkedRolesForClaudeCode.ts`); with no
+    manifest the source stays the repo actor's file, byte-identical to main
 
 ## .proof
 
@@ -41,6 +48,7 @@ linked role's hooks, so a `-driver` peer booted the driver's hooks and drove the
 | unit | `src/domain.operations/enroll/getAllHooksOfUnenrolledRoles.test.ts` — a driver hook is reported for a `-driver` clone; enrolled and authorless hooks are not; a prefix slug is matched by whole segment | ✅ green 2026-10-13 |
 | integration | `src/domain.operations/enroll/assertCloneSettingsLayersHoldOnlyEnrolledRoles.integration.test.ts` [case1]–[case4] — clean passes; a repo-layer leak is a malfunction; a grove leak is a constraint; a repo `settings.local.json` is not read; with the role filter disabled, the clamp goes red | ✅ green 2026-10-13 |
 | acceptance | `blackbox/cli/enroll.acceptance.test.ts` [case2e] [t0] — a real `-driver` enroll: no layer of the recorded spawn argv carries a driver hook; [t1] — a driver hook in the HOME grove makes enroll refuse with exit 2 before the brain spawns; with the role filter disabled, the clamp goes red | ✅ green 2026-10-13 |
+| integration | `blackbox/cli/enroll.actors-yml.integration.test.ts` [case2] — under a manifest, with a hook held only by a peer actor: a bare enroll spawns clean and holds the repo actor's hooks alone [t0]; the peer holds its own alone [t1]; an edit to a declared actor's roles reaches its dir at `init` [t3]. with both fix sites disabled, the clamp goes red. integration, since it spawns a stub brain cli rather than a real one | ✅ green 2026-11-13, log `.log/role=mechanic/skill=git.repo.test/what=integration/2026-11-14T01-24-03Z.stdout.log` |
 
 ## .source
 
