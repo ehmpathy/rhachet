@@ -1,0 +1,57 @@
+🦉 the way speaks for itself
+
+🗿 route.stone.set
+   ├─ stone = 1.vision
+   ├─ passage = blocked
+   ├─ reason = wait for human approval
+   └─ guard
+      ├─ artifacts
+      ├─ reviews
+      │   ├─ r1: dimensional-decomposition (l1, 3/3)
+      │   │   ├─ approved 247.4s
+      │   │   ├─ 0 blockers ✓
+      │   │   ├─ 5 nitpicks 🟠
+      │   │   ├─ given: .behavior/v2026_11_07.feat-brain-credential-pool-rotation/.reviews/peer/1.vision._.review.i003.124f46f9c0112b53bc.r001._.given.by_peer.dimensional-decomposition.md
+      │   │   └─ taken: .behavior/v2026_11_07.feat-brain-credential-pool-rotation/.reviews/peer/1.vision._.review.i003.124f46f9c0112b53bc.r001._.taken.by_self.dimensional-decomposition.md
+      │   └─ r2: experience-coverage (l1, 3/3)
+      │       ├─ approved 236.7s
+      │       ├─ 0 blockers ✓
+      │       ├─ 1 nitpick 🟠
+      │       ├─ given: .behavior/v2026_11_07.feat-brain-credential-pool-rotation/.reviews/peer/1.vision._.review.i003.124f46f9c0112b53bc.r002._.given.by_peer.experience-coverage.md
+      │       └─ taken: .behavior/v2026_11_07.feat-brain-credential-pool-rotation/.reviews/peer/1.vision._.review.i003.124f46f9c0112b53bc.r002._.taken.by_self.experience-coverage.md
+      └─ judges
+          ├─ j1: $rhachet run --repo bhrain --skill route.stone.judge --mechanism reviewed? --stone $stone --route $route --allow-blockers 0 --allow-nitpicks 7
+          │   └─ finished 3.4s ✓
+          └─ j2: $rhachet run --repo bhrain --skill route.stone.judge --mechanism approved? --stone $stone --route $route
+              ├─ finished 2.7s ✗
+              └─ reason: wait for human approval
+
+────────────────────────────────────────────────────────────────
+
+🪶 judge 2
+   ├─ stdout
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=driver/skill=route.stone.judge
+   │  │
+   │  │  passed: false
+   │  │  reason: wait for human approval
+   │  │
+   │  │  ✋ halted, human approval required
+   │  │     ├─ please ask your human to
+   │  │     │  └─ rhx route.stone.set --stone 1.vision --as approved
+   │  │     │
+   │  │     └─ after human approves, run
+   │  │        └─ rhx route.stone.set --stone 1.vision --as passed
+   │  │
+   │  └─
+   ├─ stderr
+   │  ├─
+   │  │
+   │  │  🪨 run solid skill repo=bhrain/role=driver/skill=route.stone.judge
+   │  │     └─ ✋ blocked by constraints
+   │  │
+   │  └─
+   └─ passage blocked
+      ├─ blocked by constraints
+      └─ exit code: 2 ✋

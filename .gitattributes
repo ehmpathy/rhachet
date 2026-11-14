@@ -1,3 +1,11 @@
+# [rhachet] collapse route robocode in pr diffs; yields and radio stay open
+.route/** linguist-generated
+.route/**/*.yield.* -linguist-generated
+.route/**/.radio/** -linguist-generated
+.behavior/** linguist-generated
+.behavior/**/*.yield.* -linguist-generated
+.behavior/**/.radio/** -linguist-generated
+
 package-lock.json -diff
 
 # exclude package locks from git diff; https://stackoverflow.com/a/72834452/3068233
