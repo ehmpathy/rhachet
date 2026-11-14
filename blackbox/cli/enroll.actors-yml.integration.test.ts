@@ -688,6 +688,71 @@ describe('rhx clone @<slug> under .agent/actors.yml (integration)', () => {
       });
     });
   });
+
+  given('[case6] an actor that names the documented repl slug `anthropic/claude/code`', () => {
+    const dir = genTempDir({ slug: 'enroll-actors-yml-repl-slug' });
+    const scene = useBeforeAll(async () => {
+      setupRoleFixtureRepo({ dir });
+      setActorsYml({
+        dir,
+        lines: [
+          "ambient: '@crew'",
+          'actor:',
+          '  - slug: crew',
+          '    brain: anthropic/claude/code',
+          '    roles: [ehmpathy/mechanic]',
+          '  - slug: scholar',
+          '    brain: anthropic/claude/code',
+          '    roles: [ehmpathy/mechanic]',
+          '',
+        ],
+      });
+      const init = invokeRhachetCliBinary({ args: ['init'], cwd: dir });
+      if (init.status !== 0)
+        throw new MalfunctionError('fixture init failed', {
+          stderr: init.stderr,
+          hint: 'the fixture setup broke, not the case under test; read the stderr above, then rebuild (`npm run build`) if dist/ is stale',
+        });
+      return { path: setupRichStubBrainPath({ dir }) };
+    });
+
+    when('[t0] a bare `enroll` boots the repo actor', () => {
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinary({
+          args: ['enroll'],
+          cwd: dir,
+          env: { PATH: scene.path },
+          logOnError: false,
+        }),
+      );
+
+      then('the repl slug spawns, never refused as unsupported', () => {
+        expect(run.stderr).not.toContain('not supported');
+        expect(run.status).toEqual(0);
+      });
+    });
+
+    when('[t1] `clone @scholar` boots a peer on the repl slug', () => {
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinary({
+          args: ['clone', '@scholar'],
+          cwd: dir,
+          env: { PATH: scene.path },
+          logOnError: false,
+        }),
+      );
+
+      then('the peer spawns, and its clone dir lands under its slug', () => {
+        expect(run.stderr).not.toContain('not supported');
+        expect(run.status).toEqual(0);
+        expect(
+          existsSync(
+            join(dir, '.agent', '.actors', 'actor.via.slug=scholar', 'clones'),
+          ),
+        ).toEqual(true);
+      });
+    });
+  });
 });
 
 /**

@@ -19,6 +19,7 @@ const symlink = {
   drops: [],
   moves: [],
   overwrites: [],
+  carries: [],
 };
 
 describe('asRepoActorBrainDirOutcome', () => {

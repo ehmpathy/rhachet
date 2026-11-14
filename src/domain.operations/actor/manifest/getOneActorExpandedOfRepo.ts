@@ -48,12 +48,16 @@ export const getOneActorExpandedOfRepo = async (
     import('./genGetPublishedActorOfPackages'),
     import('./getActorExpanded'),
   ]);
-  const { manifests } = await getRoleRegistriesByConfigImplicit(context);
+  const { manifests, errors } =
+    await getRoleRegistriesByConfigImplicit(context);
   return getActorExpanded(
     { ref, scope: null, trail: [] },
     {
       manifest,
-      getPublishedActor: genGetPublishedActorOfPackages({ manifests }),
+      getPublishedActor: genGetPublishedActorOfPackages({
+        manifests,
+        failures: errors,
+      }),
     },
   );
 };

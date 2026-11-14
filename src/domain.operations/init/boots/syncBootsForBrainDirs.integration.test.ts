@@ -197,6 +197,7 @@ describe('syncBootsForBrainDirs', () => {
           drops: ['AGENTS.md'],
           moves: ['settings.json'],
           overwrites: [],
+          carries: [],
         });
       });
     });

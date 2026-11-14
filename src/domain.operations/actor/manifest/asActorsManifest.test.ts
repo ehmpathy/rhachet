@@ -141,6 +141,21 @@ const CASES_REFUSED = [
     message: 'actors.yml actor @a reaches no brain',
   },
   {
+    description: 'an unknown key on an actor (a typo of brain)',
+    parsed: {
+      ambient: '@a',
+      actor: [
+        {
+          slug: 'a',
+          brain: 'claude',
+          brian: 'codex',
+          roles: ['ehmpathy/mechanic'],
+        },
+      ],
+    },
+    message: "actors.yml actor[0] has an unknown key: 'brian'",
+  },
+  {
     description: 'a slug declared twice',
     parsed: {
       ambient: '@a',

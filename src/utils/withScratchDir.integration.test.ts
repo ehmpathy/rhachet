@@ -67,4 +67,43 @@ describe('withScratchDir', () => {
       });
     });
   });
+
+  given('[case3] two concurrent callers share one fresh parent', () => {
+    const scene = useBeforeAll(async () => {
+      const repoPath = genTempDir({ slug: 'scratch-dir-concurrent' });
+      const within = join(repoPath, '.agent', '.cache', 'scratch');
+
+      // the second caller holds its dir open until the first, which created the parent, returns
+      const firstDone = { settle: (): void => undefined };
+      const firstReturned = new Promise<void>((settle) => {
+        firstDone.settle = settle;
+      });
+      const first = withScratchDir({ within, prefix: 'render-' }, async () => {
+        await new Promise((settle) => setTimeout(settle, 10));
+        return 'first';
+      }).then((result) => {
+        firstDone.settle();
+        return result;
+      });
+      const second = withScratchDir(
+        { within, prefix: 'render-' },
+        async (scratchDir) => {
+          await firstReturned;
+          return { survived: existsSync(join(scratchDir, '.gitignore')) };
+        },
+      );
+      const [, secondSeen] = await Promise.all([first, second]);
+      return { repoPath, secondSeen };
+    });
+
+    when('[t0] the creator of the parent returns first', () => {
+      then('the sibling caller scratch dir survives it', () => {
+        expect(scene.secondSeen.survived).toEqual(true);
+      });
+
+      then('the last caller out removes every created dir', () => {
+        expect(existsSync(join(scene.repoPath, '.agent'))).toEqual(false);
+      });
+    });
+  });
 });

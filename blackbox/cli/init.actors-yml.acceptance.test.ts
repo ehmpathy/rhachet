@@ -127,6 +127,24 @@ describe('rhx init under .agent/actors.yml (acceptance)', () => {
           stderr: prior.stderr,
           hint: 'the fixture setup broke, not the case under test; read the stderr above, then rebuild (`npm run build`) if dist/ is stale',
         });
+
+      // a hand-added hook in the repo actor's own settings — the human's, kept by F14
+      const settingsAmbientPath = join(
+        testDir,
+        '.agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json',
+      );
+      const settingsAmbient = JSON.parse(readFileSync(settingsAmbientPath, 'utf8'));
+      writeFileSync(
+        settingsAmbientPath,
+        JSON.stringify({
+          ...settingsAmbient,
+          hooks: {
+            ...settingsAmbient.hooks,
+            Notification: [{ hooks: [{ type: 'command', command: 'echo hand-added' }] }],
+          },
+        }),
+      );
+
       setActorsYml({
         dir: testDir,
         lines: [
@@ -153,6 +171,23 @@ describe('rhx init under .agent/actors.yml (acceptance)', () => {
         expect(realpathSync(join(testDir, '.claude'))).toEqual(
           realpathSync(join(testDir, '.agent', '.actors', 'actor.via.slug=solo', 'brain', '.claude')),
         );
+      });
+      then('the hand-added hook of the former repo actor is carried to the new one', () => {
+        const settingsSolo = readFileSync(
+          join(
+            testDir,
+            '.agent/.actors/actor.via.slug=solo/brain/.claude/settings.of.repo.json',
+          ),
+          'utf8',
+        );
+        expect(settingsSolo).toContain('echo hand-added');
+      });
+      then('the carry is named in the brain dir report', () => {
+        const block = asStdoutBlock({ stdout: run.stdout, header: '🧠 brain://' });
+        expect(block).toContain(
+          '.agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json → .agent/.actors/actor.via.slug=solo/brain/.claude/settings.of.repo.json',
+        );
+        expect(block).toMatchSnapshot();
       });
       then('the extra role is named, with both fixes', () => {
         const block = asActorsReportBlock({ stdout: run.stdout });
@@ -181,7 +216,7 @@ describe('rhx init under .agent/actors.yml (acceptance)', () => {
       then('it is refused, and names the actors.yml edit', () => {
         expect(run.status).toEqual(2);
         expect(run.stderr).toContain('--roles is refused beside .agent/actors.yml');
-        expect(run.stderr).toContain('edit the actor roles in .agent/actors.yml');
+        expect(run.stderr).toContain('declare the roles in .agent/actors.yml');
       });
       then('the refusal holds its shape', () => {
         expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
@@ -199,7 +234,7 @@ describe('rhx init under .agent/actors.yml (acceptance)', () => {
       then('it is refused too, and names the actors.yml edit (requirement 1, F13)', () => {
         expect(run.status).toEqual(2);
         expect(run.stderr).toContain('--roles is refused beside .agent/actors.yml');
-        expect(run.stderr).toContain('edit the actor roles in .agent/actors.yml');
+        expect(run.stderr).toContain('declare the roles in .agent/actors.yml');
       });
       then('the refusal holds its shape', () => {
         expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
@@ -467,6 +502,21 @@ describe('rhx init under .agent/actors.yml (acceptance)', () => {
       description: 'an actor that reaches no brain',
       lines: ["ambient: '@a'", 'actor:', '  - slug: a', '    roles: [ehmpathy/mechanic]', ''],
       message: 'actors.yml actor @a reaches no brain',
+    },
+    {
+      description: 'a role slug with a typo',
+      lines: ["ambient: '@a'", 'actor:', '  - slug: a', '    brain: claude', '    roles: [ehmpathy/mechnaic]', ''],
+      message: "actors.yml declares role 'ehmpathy/mechnaic', which rhachet-roles-ehmpathy@",
+    },
+    {
+      description: 'an unknown key on an actor',
+      lines: ["ambient: '@a'", 'actor:', '  - slug: a', '    brain: claude', '    brian: codex', '    roles: [ehmpathy/mechanic]', ''],
+      message: "actors.yml actor[0] has an unknown key: 'brian'",
+    },
+    {
+      description: 'a role of a package not installed',
+      lines: ["ambient: '@a'", 'actor:', '  - slug: a', '    brain: claude', '    roles: [surfschool/coach]', ''],
+      message: "actors.yml declares role 'surfschool/coach', which no installed role package carries",
     },
   ];
 

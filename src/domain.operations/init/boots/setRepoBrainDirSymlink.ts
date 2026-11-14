@@ -1,7 +1,10 @@
 import { ConstraintError, MalfunctionError } from 'helpful-errors';
 
 import { asActorOndiskExidFromDirName } from '@src/domain.operations/actor/enrolled/asActorOndiskExidFromDirName';
-import { REPO_ACTOR_DIR_NAME_LEGACY } from '@src/domain.operations/actor/enrolled/constants';
+import {
+  REPO_ACTOR_DIR_NAME,
+  REPO_ACTOR_DIR_NAME_LEGACY,
+} from '@src/domain.operations/actor/enrolled/constants';
 import { getActorsRootDir } from '@src/domain.operations/actor/enrolled/getActorsRootDir';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
 import { getAllPathsGitCannotRestore } from '@src/infra/git/getAllPathsGitCannotRestore';
@@ -9,6 +12,7 @@ import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 import { setSymlinkSwapped } from '@src/infra/setSymlinkSwapped';
 
 import {
+  copyFileSync,
   lstatSync,
   mkdirSync,
   readdirSync,
@@ -114,6 +118,7 @@ export const setRepoBrainDirSymlink = async (input: {
   drops: string[];
   moves: string[];
   overwrites: string[];
+  carries: string[];
 }> => {
   mkdirSync(input.repoActorBrainDir, { recursive: true });
   return withRepoMutex(
@@ -139,6 +144,7 @@ const setRepoBrainDirSymlinkWithinLock = (input: {
   drops: string[];
   moves: string[];
   overwrites: string[];
+  carries: string[];
 } => {
   const linkPath = join(input.repoPath, '.claude');
   const linkTarget = relative(input.repoPath, input.repoActorBrainDir);
@@ -148,7 +154,13 @@ const setRepoBrainDirSymlinkWithinLock = (input: {
   // absent → create the link
   if (!stat) {
     symlinkSync(linkTarget, linkPath);
-    return { effect: 'CREATED', drops: [], moves: [], overwrites: [] };
+    return {
+      effect: 'CREATED',
+      drops: [],
+      moves: [],
+      overwrites: [],
+      carries: [],
+    };
   }
 
   // a symlink to the repo actor brain dir → keep it, or rewrite an absolute one relative
@@ -164,8 +176,21 @@ const setRepoBrainDirSymlinkWithinLock = (input: {
       realpathFound !== realpathWanted &&
       isActorBrainDirOfRepo({ repoPath: input.repoPath, path: pathAimed })
     ) {
+      // carry the former repo actor's own settings into the new one, before the swap — a hand
+      //   edit there is the human's (F14), and the new dir would otherwise meet a blank `{}`
+      const carries = setRepoActorSettingsCarried({
+        repoPath: input.repoPath,
+        brainDirFormer: pathAimed,
+        brainDirLatter: input.repoActorBrainDir,
+      });
       setSymlinkSwapped({ path: linkPath, target: linkTarget });
-      return { effect: 'REWRITTEN', drops: [], moves: [], overwrites: [] };
+      return {
+        effect: 'REWRITTEN',
+        drops: [],
+        moves: [],
+        overwrites: [],
+        carries,
+      };
     }
 
     if (realpathFound !== realpathWanted)
@@ -179,9 +204,21 @@ const setRepoBrainDirSymlinkWithinLock = (input: {
         },
       );
     if (!isAbsolute(readlinkSync(linkPath)))
-      return { effect: 'FOUND', drops: [], moves: [], overwrites: [] };
+      return {
+        effect: 'FOUND',
+        drops: [],
+        moves: [],
+        overwrites: [],
+        carries: [],
+      };
     setSymlinkSwapped({ path: linkPath, target: linkTarget });
-    return { effect: 'REWRITTEN', drops: [], moves: [], overwrites: [] };
+    return {
+      effect: 'REWRITTEN',
+      drops: [],
+      moves: [],
+      overwrites: [],
+      carries: [],
+    };
   }
 
   // a file → refuse; only a dir can migrate
@@ -249,5 +286,64 @@ const setRepoBrainDirSymlinkWithinLock = (input: {
     drops: plan.drops,
     moves: plan.moves,
     overwrites: plan.overwrites,
+    carries: [],
   };
+};
+
+/**
+ * .what = the brain dir files a former repo actor holds that are its own, never derived
+ * .note = boot.md is derived from the roles and re-rendered; the arrows are re-findserted
+ */
+const REPO_ACTOR_SETTINGS_CARRIED = ['settings.of.repo.json'];
+
+/**
+ * .what = copy a former repo actor's own settings into the latter repo actor's brain dir,
+ *         where the latter holds none yet; return each carried path, repo-relative
+ * .why = a change of repo actor (a manifest adopted, or `ambient:` renamed) repoints
+ *        `<repo>/.claude`. the layout findsert then writes `{}` where the file is absent, so a
+ *        hand-added hook or permission in the former file would drop with no message
+ *
+ * .note = a copy, never a move: the former actor dir stays a whole actor, which a peer may
+ *         still reach (e.g. `@a` after `ambient:` moves to `@b`)
+ * .note = the latter's file, where present, is its own and is never overwritten
+ * .note = a dangled former dir (the legacy `actor.via.slug=.default`, moved by
+ *         `setRepoActorDirFromLegacy` this same run) is read at its current name
+ * .note = the hook sync after the role inits re-narrows the carried file: role hooks follow
+ *         the latter's roles, and an authorless (hand-added) hook stays (F14)
+ */
+const setRepoActorSettingsCarried = (input: {
+  repoPath: string;
+  brainDirFormer: string;
+  brainDirLatter: string;
+}): string[] => {
+  const brainDirSource = asBrainDirFormerLive(input);
+  return REPO_ACTOR_SETTINGS_CARRIED.filter((name) => {
+    const pathSource = join(brainDirSource, name);
+    const pathTarget = join(input.brainDirLatter, name);
+    if (!getOneLstatOrNull({ path: pathSource })?.isFile()) return false;
+    if (getOneLstatOrNull({ path: pathTarget })) return false;
+    copyFileSync(pathSource, pathTarget);
+    return true;
+  }).map((name) => relative(input.repoPath, join(brainDirSource, name)));
+};
+
+/**
+ * .what = the live location of a former repo actor brain dir — the legacy dir reads at the
+ *         current repo actor name once it has moved
+ */
+const asBrainDirFormerLive = (input: {
+  repoPath: string;
+  brainDirFormer: string;
+}): string => {
+  const actorDirFormer = dirname(dirname(input.brainDirFormer));
+  if (basename(actorDirFormer) !== REPO_ACTOR_DIR_NAME_LEGACY)
+    return input.brainDirFormer;
+  if (getOneLstatOrNull({ path: input.brainDirFormer }))
+    return input.brainDirFormer;
+  return getBrainOndiskDir({
+    actorDir: join(
+      getActorsRootDir({ repoPath: input.repoPath }),
+      REPO_ACTOR_DIR_NAME,
+    ),
+  });
 };
