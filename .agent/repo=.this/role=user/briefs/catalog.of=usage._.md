@@ -18,6 +18,12 @@
 | `actors/inventory.of=experience.case=4.named-clone-on-enroll` | `enroll --as @:<slug>` names the clone; the actor stays a hash |
 | `actors/inventory.of=experience.case=5.supervisor-observes-prod` | an ad-hoc cross-supplier extension gets a delta-hash identity |
 
+## .roles — change a role this repo consumes
+
+| brief | what it settles |
+|---|---|
+| `roles/howto.mod-a-role` | shadow, add, or not a package role's files via `.agent/repo=.mods/`, with no release |
+
 ## .brains — the sdk surface for brains
 
 | brief | what it settles |

@@ -1,0 +1,18 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asRoleModsUncostedReadout given: [case2] two modded roles lack a boot.yml when: [t0] the readout is rendered then: it matches its snapshot 1`] = `
+"🧢 .agent/repo=.mods
+   └─ [~] modded, with no boot.yml to cost (rhx roles boot shows what its mod does)
+      ├─ bhuild/behaver
+      └─ ehmpathy/mechanic"
+`;
+
+exports[`asRoleModsUncostedReadout given: [case3] one role of each kind: no spec, a stale view, a refused mod when: [t0] the readout is rendered then: it matches its snapshot 1`] = `
+"🧢 .agent/repo=.mods
+   ├─ [~] modded, with no boot.yml to cost (rhx roles boot shows what its mod does)
+   │  └─ ehmpathy/mechanic
+   ├─ [~] modded, view not current (rhx init --hooks)
+   │  └─ test/surfer
+   └─ [~] modded, refused (rhx roles boot names why)
+      └─ bhuild/behaver"
+`;

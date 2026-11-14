@@ -29,8 +29,17 @@ export const getRepoFromRoleSupplierSlug = (slug: RoleSupplierSlug): string =>
   slug.split('/')[0] as string;
 
 /**
+ * .what = converts a role repo slug to its package name
+ * .why = one place names the `rhachet-roles-$repo` convention, so no caller builds it by hand
+ *
+ * .example = 'ehmpathy' => 'rhachet-roles-ehmpathy'
+ */
+export const toRolePackageFromRepo = (repo: string): string =>
+  `rhachet-roles-${repo}`;
+
+/**
  * .what = converts role supplier slug to package name
  * .why = enables resolution from slug to npm package
  */
 export const toRolePackageFromSlug = (slug: RoleSupplierSlug): string =>
-  `rhachet-roles-${getRepoFromRoleSupplierSlug(slug)}`;
+  toRolePackageFromRepo(getRepoFromRoleSupplierSlug(slug));

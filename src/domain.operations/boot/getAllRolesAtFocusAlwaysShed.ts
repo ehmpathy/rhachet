@@ -1,6 +1,6 @@
 import type { RoleLinkRefAtFocus } from '@src/domain.objects/RoleLinkRefAtFocus';
+import { getOneRoleBootSpecFromRef } from '@src/domain.operations/role/getOneRoleBootSpecFromRef';
 
-import { getOneRoleBootSpecFromRef } from './getOneRoleBootSpecFromRef';
 import { isAlwaysShed } from './isAlwaysShed';
 
 /**

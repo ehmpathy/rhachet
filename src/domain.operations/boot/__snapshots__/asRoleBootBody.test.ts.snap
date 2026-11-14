@@ -11,3 +11,25 @@ ride it
 `;
 
 exports[`asRoleBootBody given: [case4] a focused role, one subject said when: [t2] the focus names every declared subject then: the focus line matches its snapshot 1`] = `"<focus given="101,reef,tide" elsewhere="" always="kept"/>"`;
+
+exports[`asRoleBootBody given: [case5] a modded role: a shadow, an add, a not, a dropped .md.min when: [t0] the body is composed then: the body matches its snapshot 1`] = `
+"<mod of="ehmpathy/surfer@1.2.3">
+role ehmpathy/surfer@1.2.3 is modded in this repo — 1 shadow, 1 add, 1 not
+[-] not briefs/wipeout.md
+[~] shadow briefs/wave.md drops the published briefs/wave.md.min
+</mod>
+
+<brief.say path=".agent/repo=ehmpathy/role=surfer/briefs/wave.md" mod="shadow">
+ride it, modded
+</brief.say>
+
+<brief.say path=".agent/repo=ehmpathy/role=surfer/briefs/reef.md" mod="add">
+mind the reef
+</brief.say>
+
+<brief.ref path=".agent/repo=ehmpathy/role=surfer/briefs/tide.md"/>
+
+<skill.ref path=".agent/repo=ehmpathy/role=surfer/skills/paddle.sh"/>
+
+"
+`;

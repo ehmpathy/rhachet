@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`getOneRolePackageVersion given: [case4] the installed manifest is not json at all when: [t0] its version is read then: it fails loud as a malfunction, with the path and the reinstall 1`] = `
+"💥 MalfunctionError: the installed role package has an unreadable package.json
+
+{
+  "path": "/TMP_REPO/node_modules/rhachet-roles-acme/package.json",
+  "problem": "<parse error>",
+  "fix": "reinstall it: pnpm install rhachet-roles-acme"
+}"
+`;

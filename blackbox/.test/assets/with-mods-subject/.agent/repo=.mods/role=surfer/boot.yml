@@ -1,0 +1,9 @@
+of: test/surfer@1.0.0
+always:
+  briefs:
+    ref:
+      - briefs/rule.require.reef-etiquette.md
+      - briefs/rule.require.surf-wax.md
+  skills:
+    not:
+      - skills/fins.check.sh

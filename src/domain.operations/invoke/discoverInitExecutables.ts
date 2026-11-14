@@ -1,4 +1,5 @@
 import { RoleInitExecutable } from '@src/domain.objects/RoleInitExecutable';
+import { getAllRepoDirsOfKind } from '@src/domain.operations/role/getAllRepoDirsOfKind';
 import { getAllFilesFromDir } from '@src/infra/filesystem/getAllFilesFromDir';
 
 import { existsSync, readdirSync } from 'node:fs';
@@ -34,10 +35,11 @@ export const discoverInitExecutables = (input: {
   // skip if .agent directory does not exist
   if (!existsSync(agentDir)) return [];
 
-  // discover repo directories
-  const repoEntries = readdirSync(agentDir).filter((entry) =>
-    entry.startsWith('repo='),
-  );
+  // discover repo directories; a mod dir is no role, and a mod holds no inits
+  const repoEntries = getAllRepoDirsOfKind({
+    agentDir,
+    kinds: ['native', 'package'],
+  });
 
   const inits: RoleInitExecutable[] = [];
 

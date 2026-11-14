@@ -1,11 +1,13 @@
 import { ConstraintError } from 'helpful-errors';
 
-import type {
-  ResourceCurationResolved,
-  RoleBootSpec,
-  SubjectSectionResolved,
+import {
+  type ResourceCurationResolved,
+  type RoleBootSpec,
+  RoleBootSpecSimplified,
+  type SubjectSectionResolved,
 } from '@src/domain.objects/RoleBootSpec';
 import type { RoleBriefRef } from '@src/domain.operations/role/briefs/getRoleBriefRefs';
+import { getAllRoleBootSpecGlobs } from '@src/domain.operations/role/getAllRoleBootSpecGlobs';
 
 import { filterByGlob } from './filterBootResourcesByGlob';
 import { isAlwaysShed } from './isAlwaysShed';
@@ -191,19 +193,22 @@ const genSectionAccumulator = <T>(input: { getKey: (item: T) => string }) => {
  */
 const computeSimpleModePlan = async (input: {
   config: RoleBootSpec & { mode: 'simple' };
+  configMod: (RoleBootSpec & { mode: 'simple' }) | null;
   briefRefs: RoleBriefRef[];
   skillPaths: string[];
   cwd: string;
 }): Promise<BootPlan> => {
-  const briefsPlan = await computeCurationPlan({
+  const briefsPlan = await computeCurationPlanWithMod({
     curation: input.config.briefs,
+    curationMod: input.configMod?.briefs ?? null,
     items: input.briefRefs,
     getKey: getBriefKey,
     cwd: input.cwd,
   });
 
-  const skillsPlan = await computeCurationPlan({
+  const skillsPlan = await computeCurationPlanWithMod({
     curation: input.config.skills,
+    curationMod: input.configMod?.skills ?? null,
     items: input.skillPaths,
     getKey: getSkillKey,
     cwd: input.cwd,
@@ -217,6 +222,86 @@ const computeSimpleModePlan = async (input: {
 };
 
 /**
+ * .what = partitions one resource kind by a mod's curation first, then the role's
+ * .why = the mod's sections are read before the role's (F9): what the mod says or refs
+ *        is settled by the mod, and the role curates the rest as it does today
+ *
+ * .note = a mod's absent `say` claims naught — unlike a role's, where it means "say all".
+ *   a mod states only what it changes
+ * .note = each list keeps the universe order, so a promoted or demoted resource sits where
+ *   the published role would have put it, and a render stays byte-stable
+ */
+const computeCurationPlanWithMod = async <T>(input: {
+  curation: ResourceCurationResolved | null;
+  curationMod: ResourceCurationResolved | null;
+  items: T[];
+  getKey: (item: T) => string;
+  cwd: string;
+}): Promise<{ say: T[]; ref: T[] }> => {
+  // no mod curation: the role decides alone, exactly as today
+  if (!input.curationMod)
+    return computeCurationPlan({
+      curation: input.curation,
+      items: input.items,
+      getKey: input.getKey,
+      cwd: input.cwd,
+    });
+
+  // the mod claims first
+  const claimedMod = await collectSectionResources({
+    curation: input.curationMod,
+    items: input.items,
+    getKey: input.getKey,
+    cwd: input.cwd,
+  });
+  const keysSayMod = new Set(claimedMod.say.map(input.getKey));
+  const keysRefMod = new Set(claimedMod.ref.map(input.getKey));
+
+  // the role curates what the mod left
+  const planRole = await computeCurationPlan({
+    curation: input.curation,
+    items: input.items.filter(
+      (item) =>
+        !keysSayMod.has(input.getKey(item)) &&
+        !keysRefMod.has(input.getKey(item)),
+    ),
+    getKey: input.getKey,
+    cwd: input.cwd,
+  });
+  const keysSay = new Set([...keysSayMod, ...planRole.say.map(input.getKey)]);
+  const keysRef = new Set([...keysRefMod, ...planRole.ref.map(input.getKey)]);
+
+  return {
+    say: input.items.filter((item) => keysSay.has(input.getKey(item))),
+    ref: input.items.filter((item) => keysRef.has(input.getKey(item))),
+  };
+};
+
+/**
+ * .what = one section's claims, less each key a mod section already settled
+ * .why = the mod's sections are read before the role's (F9); a role section that says a brief
+ *        the mod refs must not render it a second time, as a say beside the mod's ref
+ *
+ * .note = a mod section's own claims pass through whole
+ */
+const asClaimsLessModKeys = <T>(input: {
+  claimed: { say: T[]; ref: T[] };
+  keysMod: ReadonlySet<string>;
+  getKey: (item: T) => string;
+  by: 'mod' | 'role';
+}): { say: T[]; ref: T[] } => {
+  // a mod's claims are kept whole
+  if (input.by === 'mod') return input.claimed;
+
+  // a role's claims skip each key a mod already settled
+  const isFree = (item: T): boolean => !input.keysMod.has(input.getKey(item));
+  return {
+    say: input.claimed.say.filter(isFree),
+    ref: input.claimed.ref.filter(isFree),
+  };
+};
+
+/**
  * .what = computes which resources to say vs ref for subject mode
  * .why = handles always + subject.* curation with overlap dedupe
  *
@@ -225,6 +310,7 @@ const computeSimpleModePlan = async (input: {
  */
 const computeSubjectModePlan = async (input: {
   config: RoleBootSpec & { mode: 'subject' };
+  configMod: (RoleBootSpec & { mode: 'subject' }) | null;
   briefRefs: RoleBriefRef[];
   skillPaths: string[];
   cwd: string;
@@ -233,9 +319,15 @@ const computeSubjectModePlan = async (input: {
   const briefs = genSectionAccumulator<RoleBriefRef>({ getKey: getBriefKey });
   const skills = genSectionAccumulator<string>({ getKey: getSkillKey });
 
+  // 🟡 .note = DELIBERATE MUTATION — the keys a mod section claimed, so the role's sections
+  //   cannot claim them again (F9: what the mod says or refs is settled by the mod)
+  const keysModBriefs = new Set<string>();
+  const keysModSkills = new Set<string>();
+
   // absorb one section's claims into both accumulators, say before ref
   const absorbSection = async (
     section: SubjectSectionResolved | null,
+    by: 'mod' | 'role',
   ): Promise<void> => {
     if (!section) return;
 
@@ -252,10 +344,31 @@ const computeSubjectModePlan = async (input: {
       cwd: input.cwd,
     });
 
-    briefs.addSay(briefsClaimed.say);
-    skills.addSay(skillsClaimed.say);
-    briefs.addRef(briefsClaimed.ref);
-    skills.addRef(skillsClaimed.ref);
+    // a mod's claims are recorded; a role's claims skip what a mod already settled
+    const briefsKept = asClaimsLessModKeys({
+      claimed: briefsClaimed,
+      keysMod: keysModBriefs,
+      getKey: getBriefKey,
+      by,
+    });
+    const skillsKept = asClaimsLessModKeys({
+      claimed: skillsClaimed,
+      keysMod: keysModSkills,
+      getKey: getSkillKey,
+      by,
+    });
+
+    briefs.addSay(briefsKept.say);
+    skills.addSay(skillsKept.say);
+    briefs.addRef(briefsKept.ref);
+    skills.addRef(skillsKept.ref);
+
+    // a mod's claims settle their keys for each role section after
+    if (by !== 'mod') return;
+    for (const item of [...briefsClaimed.say, ...briefsClaimed.ref])
+      keysModBriefs.add(getBriefKey(item));
+    for (const item of [...skillsClaimed.say, ...skillsClaimed.ref])
+      keysModSkills.add(getSkillKey(item));
   };
 
   // determine which subjects to process
@@ -278,13 +391,19 @@ const computeSubjectModePlan = async (input: {
   }
 
   // process always section first, so its claims say before any subject's; it is shed only
-  //   when a boot names its subjects and every one of them opts out
-  if (!isAlwaysShed({ config: input.config, subjects: input.subjects ?? null }))
-    await absorbSection(input.config.always);
+  //   when a boot names its subjects and every one of them opts out. a mod's section is
+  //   absorbed before its role's twin, so the mod's claim wins (F9)
+  if (
+    !isAlwaysShed({ config: input.config, subjects: input.subjects ?? null })
+  ) {
+    await absorbSection(input.configMod?.always ?? null, 'mod');
+    await absorbSection(input.config.always, 'role');
+  }
 
   // process each selected subject, in declaration order
   for (const slug of selectedSlugs) {
-    await absorbSection(input.config.subjects[slug] ?? null);
+    await absorbSection(input.configMod?.subjects[slug] ?? null, 'mod');
+    await absorbSection(input.config.subjects[slug] ?? null, 'role');
   }
 
   // compute also section (only when all subjects booted)
@@ -303,34 +422,6 @@ const computeSubjectModePlan = async (input: {
 };
 
 /**
- * .what = every `not` glob a spec declares for one resource kind, across every section
- * .why = `not` excludes from the WHOLE payload, so one subject's exclusion must not be
- *        undone by another subject's silence
- */
-const getAllExclusionGlobs = (input: {
-  config: RoleBootSpec;
-  kind: 'briefs' | 'skills';
-}): string[] =>
-  getAllSpecSections({ config: input.config }).flatMap(
-    (section) => section?.[input.kind]?.not ?? [],
-  );
-
-/**
- * .what = every section of a spec that may declare resources — the spec itself in simple mode,
- *         or `always` plus each subject in subject mode
- * .why = the two modes nest their `briefs` / `skills` keys at different depths, and a walk
- *        over "every section" should not restate that split at each call site
- */
-const getAllSpecSections = (input: {
-  config: RoleBootSpec;
-}): Array<Partial<
-  Record<'briefs' | 'skills', { not?: string[] } | null>
-> | null> =>
-  input.config.mode === 'simple'
-    ? [input.config]
-    : [input.config.always, ...Object.values(input.config.subjects)];
-
-/**
  * .what = drops every resource a `not` glob claims, before the say/ref partition
  * .why = an exclusion subtracts from the universe rather than sorts within it, so an
  *        excluded resource is unreachable by say, ref, and `<also>` alike — `<also>`
@@ -342,9 +433,18 @@ const getUniverseLessExclusions = async (input: {
   skillPaths: string[];
   cwd: string;
 }): Promise<{ briefRefs: RoleBriefRef[]; skillPaths: string[] }> => {
+  // `not` excludes from the WHOLE payload, so every section's `not` counts
   const globs = {
-    briefs: getAllExclusionGlobs({ config: input.config, kind: 'briefs' }),
-    skills: getAllExclusionGlobs({ config: input.config, kind: 'skills' }),
+    briefs: getAllRoleBootSpecGlobs({
+      spec: input.config,
+      kind: 'briefs',
+      key: 'not',
+    }),
+    skills: getAllRoleBootSpecGlobs({
+      spec: input.config,
+      kind: 'skills',
+      key: 'not',
+    }),
   };
 
   // the common case excludes naught, so it costs no glob expansion
@@ -384,13 +484,23 @@ const getUniverseLessExclusions = async (input: {
  */
 export const computeBootPlan = async (input: {
   config: RoleBootSpec | null;
+
+  /**
+   * a mod's sections, read before the role's (F9); null for an unmodded role
+   *
+   * .note = its mode matches the role's, by `assertRoleModModeMatchesRole`; a role with no
+   *   boot.yml says all, which is simple mode
+   */
+  configMod: RoleBootSpec | null;
   briefRefs: RoleBriefRef[];
   skillPaths: string[];
   cwd: string;
   subjects?: string[];
 }): Promise<BootPlan> => {
-  // no config = say all (backwards compat)
-  if (!input.config) {
+  const configMod = input.configMod;
+
+  // no config and no mod = say all, as a role with no boot.yml has always booted
+  if (!input.config && !configMod) {
     return {
       briefs: { say: input.briefRefs, ref: [] },
       skills: { say: input.skillPaths, ref: [] },
@@ -398,16 +508,29 @@ export const computeBootPlan = async (input: {
     };
   }
 
+  // a role with no boot.yml says all, which is a simple spec with no curation
+  const config: RoleBootSpec =
+    input.config ??
+    new RoleBootSpecSimplified({
+      mode: 'simple',
+      briefs: null,
+      skills: null,
+      budget: null,
+    });
+
+  // the role's exclusions; the mod's are the view's alone, since its view already omits each
+  //   path the mod nots, and a second pass here would drop a mod add the view keeps
   const universe = await getUniverseLessExclusions({
-    config: input.config,
+    config,
     briefRefs: input.briefRefs,
     skillPaths: input.skillPaths,
     cwd: input.cwd,
   });
 
-  if (input.config.mode === 'simple') {
+  if (config.mode === 'simple') {
     return computeSimpleModePlan({
-      config: input.config,
+      config,
+      configMod: configMod?.mode === 'simple' ? configMod : null,
       briefRefs: universe.briefRefs,
       skillPaths: universe.skillPaths,
       cwd: input.cwd,
@@ -416,7 +539,8 @@ export const computeBootPlan = async (input: {
 
   // subject mode
   return computeSubjectModePlan({
-    config: input.config,
+    config,
+    configMod: configMod?.mode === 'subject' ? configMod : null,
     briefRefs: universe.briefRefs,
     skillPaths: universe.skillPaths,
     cwd: input.cwd,

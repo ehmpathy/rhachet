@@ -35,3 +35,9 @@ low — no credential, no prod write. the failure is loud and names its own fix.
 
 ruled, taken (a) — director, 2026-11-04 15:45Z, on the commander's hand-off of the blueprint
 review: it meets F8 at both moments, keeps boot read-only, and a heal can be added later.
+
+## .the command the refusal names
+
+the fix line names `rhx init --hooks`, never a bare `rhx init`: a bare init only prints its usage
+and renders naught, so it would leave the view stale (the acceptance suite caught it). any
+`rhx init --roles …` re-renders too. the verdict holds as taken; only the spelled command is exact.

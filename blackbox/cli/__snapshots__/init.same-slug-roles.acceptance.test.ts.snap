@@ -1,0 +1,182 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhachet init — two repos that ship one role slug given: [case1] alpha and beta each ship role surfer when: [t0] init links both, each by its repo/role then: init stdout matches its snapshot 1`] = `
+"
+🔧 init 2 role(s)...
+
+📚 link role repo=alpha/role=surfer
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=alpha/readme.md
+   │  ├─ + .agent/repo=alpha/.gitignore
+   │  ├─ + .agent/repo=alpha/role=surfer/readme.md
+   │  ├─ + .agent/repo=alpha/role=surfer/boot.yml
+   │  ├─ + .agent/repo=alpha/role=surfer/briefs
+   │  └─ + .agent/repo=alpha/role=surfer/skills
+   └─ stats
+      ├─ 1 brief(s)
+      └─ 1 skill(s)
+
+📚 link role repo=beta/role=surfer
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ + .agent/repo=beta/readme.md
+   │  ├─ + .agent/repo=beta/.gitignore
+   │  ├─ + .agent/repo=beta/role=surfer/readme.md
+   │  ├─ + .agent/repo=beta/role=surfer/boot.yml
+   │  ├─ + .agent/repo=beta/role=surfer/briefs
+   │  └─ + .agent/repo=beta/role=surfer/skills
+   └─ stats
+      ├─ 1 brief(s)
+      └─ 1 skill(s)
+
+✨ 2 role(s) linked
+✨ 2 role(s) initialized
+
+🧠 brain://repo=ambient
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+   └─ boot.md
+      └─ created — 2 roles
+
+"
+`;
+
+exports[`rhachet init — two repos that ship one role slug given: [case1] alpha and beta each ship role surfer when: [t0] init links both, each by its repo/role then: the repo actor boot.md carries both roles; neither is dropped 1`] = `
+"<brief.say path="rhachet/intro">
+# rhachet
+
+you are enrolled via rhachet. your roles' briefs and skills follow.
+
+- \`rhx list\` — every skill your roles grant. check it before you improvise
+- \`rhx <skill> --help\` — how to call one
+- \`rhx init · roles · list · run · enroll · actor · clone · keyrack · ask · act · upgrade\` — the commands; \`rhx <command> --help\` for each
+
+entool: a tactic worth repeat becomes a skill — \`.agent/repo=.this/role=any/skills/<name>.sh\` — so the next clone runs it, never rediscovers it.
+
+</brief.say>
+
+<readme path=".agent/repo=alpha/role=surfer/readme.md">
+# surfer, of alpha
+
+</readme>
+
+<brief.say path=".agent/repo=alpha/role=surfer/briefs/rule.require.longboard.md">
+alpha: ride a longboard on small days
+
+</brief.say>
+
+<skill.say path=".agent/repo=alpha/role=surfer/skills/wax.board.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = wax the board, as alpha does
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<readme path=".agent/repo=beta/role=surfer/readme.md">
+# surfer, of beta
+
+</readme>
+
+<brief.say path=".agent/repo=beta/role=surfer/briefs/rule.require.shortboard.md">
+beta: ride a shortboard on big days
+
+</brief.say>
+
+<skill.say path=".agent/repo=beta/role=surfer/skills/wax.board.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = wax the board, as beta does
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+"
+`;
+
+exports[`rhachet init — two repos that ship one role slug given: [case1] alpha and beta each ship role surfer when: [t1] a skill both roles ship is run by bare name then: the refusal matches its snapshot 1`] = `
+{
+  "stderr": "
+✋ ConstraintError: multiple skills found for "wax.board":
+  - repo=alpha role=surfer
+  - repo=beta role=surfer
+
+use --repo and/or --role to disambiguate
+
+{
+  "input": {
+    "slugSkill": "wax.board"
+  },
+  "matches": [
+    {
+      "slug": "wax.board",
+      "path": "/TMP_REPO/.agent/repo=alpha/role=surfer/skills/wax.board.sh",
+      "slugRepo": "alpha",
+      "slugRole": "surfer"
+    },
+    {
+      "slug": "wax.board",
+      "path": "/TMP_REPO/.agent/repo=beta/role=surfer/skills/wax.board.sh",
+      "slugRepo": "beta",
+      "slugRole": "surfer"
+    }
+  ]
+}
+
+[args] run,--skill,wax.board
+
+",
+  "stdout": "",
+}
+`;
+
+exports[`rhachet init — two repos that ship one role slug given: [case1] alpha and beta each ship role surfer when: [t2] the skill is run with --repo then: the run stdout matches its snapshot 1`] = `
+"
+🪨 run solid skill repo=beta/role=surfer/skill=wax.board
+
+waxed by beta
+"
+`;
+
+exports[`rhachet init — two repos that ship one role slug given: [case1] alpha and beta each ship role surfer when: [t3] the sweep prices every role then: the sweep stdout matches its snapshot 1`] = `
+"🧢 2 boot specs — none declare a budget
+   ├─ 270 tokens (no budget)  .agent/repo=alpha/role=surfer/boot.yml (linked)
+   ├─ 270 tokens (no budget)  .agent/repo=beta/role=surfer/boot.yml (linked)
+   │
+   └─ swept
+      ├─ .agent/repo=*/role=*/boot.yml
+      ├─ .behavior/*/boot.yml
+      ├─ .route/*/boot.yml
+      └─ src/domain.roles/*/boot.yml
+
+   .note = a spec outside these paths is not swept. name it directly to cost it —
+           \`roles cost --what <path>\`.
+
+   .note = a \`(linked)\` spec is owned by another repo — not yours to trim. its budget is
+           that repo's to raise, so \`roles boot\` warns on it rather than halts. upgrade
+           the package, or raise it upstream. (2 of 2 here)
+
+"
+`;
+
+exports[`rhachet init — two repos that ship one role slug given: [case1] alpha and beta each ship role surfer when: [t4] \`rhx list\` is invoked then: the list stdout and stderr match their snapshot 1`] = `
+{
+  "stderr": "",
+  "stdout": "🪨 rhx list
+   ├─ 2 skills found
+   │
+   ├─ repo=alpha
+   │  └─ role=surfer
+   │     └─ wax.board
+   │
+   └─ repo=beta
+      └─ role=surfer
+         └─ wax.board
+",
+}
+`;

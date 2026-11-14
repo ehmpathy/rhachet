@@ -1,5 +1,7 @@
 import glob from 'fast-glob';
 
+import { isBootSpecPathOfRoleMod } from './isBootSpecPathOfRoleMod';
+
 /**
  * .what = the boot specs a repo can reach, by default
  * .why = the sweep is the REPO, never a role package's `src/domain.roles/` alone — the
@@ -60,8 +62,14 @@ export const getAllRepoBootSpecPaths = async (input: {
     followSymbolicLinks: true,
   });
 
+  // a mod's boot.yml is no role spec: it carries no budget, and its role's own spec caps the
+  //   modded payload, so the roster never lists it
+  const pathsOfRoles = paths.filter(
+    (path) => !isBootSpecPathOfRoleMod({ cwd: input.cwd, path }),
+  );
+
   // .note = sorted HERE rather than at the caller, so every consumer of this reach gets one
   //   deterministic order — a roster whose row order shifts between runs is a snapshot that
   //   flakes for no behavior change
-  return { paths: [...paths].sort(), globs };
+  return { paths: [...pathsOfRoles].sort(), globs };
 };

@@ -1,0 +1,111 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asRoleModTargetFromOf given: [case2] an of that names no role of this mod dir when: [t0] it is a non-string of then: a ConstraintError names the problem and the mod dir 1`] = `
+"✋ ConstraintError: the mod of role=mechanic is refused: its boot.yml declares no \`of:\`
+
+{
+  "mod": ".agent/repo=.mods/role=mechanic/",
+  "subject": "boot.yml",
+  "fix": "add \`of: ehmpathy/mechanic\` — the role this mod is over (and, optionally, \`@<version>\`)"
+}"
+`;
+
+exports[`asRoleModTargetFromOf given: [case2] an of that names no role of this mod dir when: [t0] it is a pin that is a range then: a ConstraintError names the problem and the mod dir 1`] = `
+"✋ ConstraintError: the mod of role=mechanic is refused: its \`of: ehmpathy/mechanic@^1.39.5\` pins \`^1.39.5\`, which is not an exact release
+
+{
+  "mod": ".agent/repo=.mods/role=mechanic/",
+  "subject": "boot.yml",
+  "fix": "pin the exact installed version, as \`@1.39.5\`, or drop the \`@\` to pin none"
+}"
+`;
+
+exports[`asRoleModTargetFromOf given: [case2] an of that names no role of this mod dir when: [t0] it is a pin that is a tag then: a ConstraintError names the problem and the mod dir 1`] = `
+"✋ ConstraintError: the mod of role=mechanic is refused: its \`of: ehmpathy/mechanic@latest\` pins \`latest\`, which is not an exact release
+
+{
+  "mod": ".agent/repo=.mods/role=mechanic/",
+  "subject": "boot.yml",
+  "fix": "pin the exact installed version, as \`@1.39.5\`, or drop the \`@\` to pin none"
+}"
+`;
+
+exports[`asRoleModTargetFromOf given: [case2] an of that names no role of this mod dir when: [t0] it is a pin with a v prefix then: a ConstraintError names the problem and the mod dir 1`] = `
+"✋ ConstraintError: the mod of role=mechanic is refused: its \`of: ehmpathy/mechanic@v1.39.5\` pins \`v1.39.5\`, which is not an exact release
+
+{
+  "mod": ".agent/repo=.mods/role=mechanic/",
+  "subject": "boot.yml",
+  "fix": "pin the exact installed version, as \`@1.39.5\`, or drop the \`@\` to pin none"
+}"
+`;
+
+exports[`asRoleModTargetFromOf given: [case2] an of that names no role of this mod dir when: [t0] it is an absent of then: a ConstraintError names the problem and the mod dir 1`] = `
+"✋ ConstraintError: the mod of role=mechanic is refused: its boot.yml declares no \`of:\`
+
+{
+  "mod": ".agent/repo=.mods/role=mechanic/",
+  "subject": "boot.yml",
+  "fix": "add \`of: ehmpathy/mechanic\` — the role this mod is over (and, optionally, \`@<version>\`)"
+}"
+`;
+
+exports[`asRoleModTargetFromOf given: [case2] an of that names no role of this mod dir when: [t0] it is an empty of then: a ConstraintError names the problem and the mod dir 1`] = `
+"✋ ConstraintError: the mod of role=mechanic is refused: its boot.yml declares no \`of:\`
+
+{
+  "mod": ".agent/repo=.mods/role=mechanic/",
+  "subject": "boot.yml",
+  "fix": "add \`of: ehmpathy/mechanic\` — the role this mod is over (and, optionally, \`@<version>\`)"
+}"
+`;
+
+exports[`asRoleModTargetFromOf given: [case2] an of that names no role of this mod dir when: [t0] it is an empty repo then: a ConstraintError names the problem and the mod dir 1`] = `
+"✋ ConstraintError: the mod of role=mechanic is refused: its \`of: /mechanic\` is not a role spec
+
+{
+  "mod": ".agent/repo=.mods/role=mechanic/",
+  "subject": "boot.yml",
+  "fix": "write \`of: <repo>/<role>\` or \`of: <repo>/<role>@<version>\`"
+}"
+`;
+
+exports[`asRoleModTargetFromOf given: [case2] an of that names no role of this mod dir when: [t0] it is an empty version then: a ConstraintError names the problem and the mod dir 1`] = `
+"✋ ConstraintError: the mod of role=mechanic is refused: its \`of: ehmpathy/mechanic@\` is not a role spec
+
+{
+  "mod": ".agent/repo=.mods/role=mechanic/",
+  "subject": "boot.yml",
+  "fix": "write \`of: <repo>/<role>\` or \`of: <repo>/<role>@<version>\`"
+}"
+`;
+
+exports[`asRoleModTargetFromOf given: [case2] an of that names no role of this mod dir when: [t0] it is another role slug then: a ConstraintError names the problem and the mod dir 1`] = `
+"✋ ConstraintError: the mod of role=mechanic is refused: its \`of: ehmpathy/driver\` names role=driver, but the mod dir is role=mechanic
+
+{
+  "mod": ".agent/repo=.mods/role=mechanic/",
+  "subject": "boot.yml",
+  "fix": "move the mod to .agent/repo=.mods/role=driver/, or set \`of:\` to a mechanic role"
+}"
+`;
+
+exports[`asRoleModTargetFromOf given: [case2] an of that names no role of this mod dir when: [t0] it is three path parts then: a ConstraintError names the problem and the mod dir 1`] = `
+"✋ ConstraintError: the mod of role=mechanic is refused: its \`of: a/b/mechanic\` is not a role spec
+
+{
+  "mod": ".agent/repo=.mods/role=mechanic/",
+  "subject": "boot.yml",
+  "fix": "write \`of: <repo>/<role>\` or \`of: <repo>/<role>@<version>\`"
+}"
+`;
+
+exports[`asRoleModTargetFromOf given: [case2] an of that names no role of this mod dir when: [t0] it is two versions then: a ConstraintError names the problem and the mod dir 1`] = `
+"✋ ConstraintError: the mod of role=mechanic is refused: its \`of: ehmpathy/mechanic@1@2\` is not a role spec
+
+{
+  "mod": ".agent/repo=.mods/role=mechanic/",
+  "subject": "boot.yml",
+  "fix": "write \`of: <repo>/<role>\` or \`of: <repo>/<role>@<version>\`"
+}"
+`;

@@ -36,7 +36,20 @@ reviewer checks a change against it.
 | 7 | [a brain dir holds one answer, rhachet's — no kept-aside copies](./inventory.of=requirements.case=7.no-kept-aside-one-answer.md) | proven |
 | 8 | [role inits meet the split layout: `settings.of.repo.json` always present, the layout before the inits](./inventory.of=requirements.case=8.role-inits-meet-the-split-layout.md) | proven |
 | 9 | 🔴 [a clone loads no hook from a role it is not enrolled in, from any settings layer](./inventory.of=requirements.case=9.clone-loads-only-its-roles-hooks.md) | proven |
-| 10 | [two repos that ship one role slug both boot — neither is dropped](./inventory.of=requirements.case=10.same-slug-roles-boot-apart.md) | owed |
+| 10 | [two repos that ship one role slug both boot — neither is dropped](./inventory.of=requirements.case=10.same-slug-roles-boot-apart.md) | proven |
+| 11 | [a mod shadows, adds, and nots the files of a role it consumes](./inventory.of=requirements.case=11.mod-shadows-adds-and-nots.md) | proven |
+| 12 | [a typo in a mod is refused, never read as an add or a quiet no-op](./inventory.of=requirements.case=12.mod-typo-is-refused-never-an-add.md) | proven |
+| 13 | [a clone of a modded role sees a notice, and a tag on each modded resource](./inventory.of=requirements.case=13.modded-role-boots-with-notice-and-tags.md) | proven |
+| 14 | [a pinned mod pesters at the upgrade and the boot once its role moves off the pin](./inventory.of=requirements.case=14.mod-version-pester-at-upgrade-and-boot.md) | proven 2026-11-09, as amended (F23 (b)) |
+| 15 | [a stale modded view fails the boot loud and names `rhx init --hooks`](./inventory.of=requirements.case=15.stale-modded-view-fails-the-boot.md) | proven 2026-11-09, as amended (F23 (b)) |
+| 16 | [a `not` of a skill a role hook invokes is refused at render](./inventory.of=requirements.case=16.mod-not-of-a-hook-skill-is-refused.md) | proven |
+| 17 | [a mod out of scope is refused — its files, its mode, and its `of:`](./inventory.of=requirements.case=17.mod-out-of-scope-is-refused.md) | proven |
+| 18 | [a refused mod fails only the actors that carry its role](./inventory.of=requirements.case=18.refused-mod-fails-only-its-actors.md) | proven |
+| 19 | [a `.md.min` rides with its `.md` in a mod](./inventory.of=requirements.case=19.mod-min-rides-with-its-md.md) | proven |
+| 20 | [`.agent/repo=.mods` is a reserved slug — no supplier, no role, no scan](./inventory.of=requirements.case=20.mods-dir-is-no-supplier.md) | proven |
+| 21 | [a deleted mod returns the role to its published layout](./inventory.of=requirements.case=21.deleted-mod-returns-the-published-role.md) | proven |
+| 22 | [`roles cost` marks a modded role, and a mod alone arms no stop hook](./inventory.of=requirements.case=22.modded-role-marked-no-stop-hook.md) | proven 2026-11-09, as amended (F23 (b)) |
+| 23 | [a shadow skill runs beside its published peers](./inventory.of=requirements.case=23.shadow-skill-finds-its-published-peer.md) | proven |
 
 ## .how to add an entry
 

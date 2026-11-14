@@ -4,6 +4,7 @@ import type { RoleRegistryManifest } from '@src/domain.objects/RoleRegistryManif
 import type { RoleSpecifier } from '@src/domain.objects/RoleSpecifier';
 import { execRoleInits } from '@src/domain.operations/invoke/init/execRoleInits';
 import { execRoleLink } from '@src/domain.operations/invoke/link/execRoleLink';
+import { withRoleViewLock } from '@src/domain.operations/role/withRoleViewLock';
 
 /**
  * .what = links + inits a set of already-found roles (the source of truth link loop)
@@ -27,9 +28,12 @@ export const getRolesLinkedFromFound = async (
   },
   context: ContextCli,
 ): Promise<{ repo: string; role: string }[]> => {
-  // link + init each role (sequential for deterministic, readable output)
+  // link + init each role (sequential for deterministic, readable output); the link holds the
+  //   role view lock, so it never lands within a modded view swap
   for (const one of input.found) {
-    execRoleLink({ role: one.role, repo: one.repo }, context);
+    await withRoleViewLock({ cwd: context.cwd }, async () =>
+      execRoleLink({ role: one.role, repo: one.repo }, context),
+    );
     await execRoleInits({ role: one.role, repo: one.repo });
   }
 

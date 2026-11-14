@@ -3,8 +3,8 @@ import { ConstraintError } from 'helpful-errors';
 
 import { type ContextCli, genContextCli } from '@src/domain.objects/ContextCli';
 import type { RoleDelta } from '@src/domain.objects/RoleDelta';
+import { asRoleSlugsOfRefs } from '@src/domain.operations/init/boots/asRoleSlugsOfRefs';
 import { setRepoActorBrainDirLayoutBeforeInits } from '@src/domain.operations/init/boots/setRepoActorBrainDirLayout';
-import { syncAndReportBrainDirBoots } from '@src/domain.operations/init/boots/syncAndReportBrainDirBoots';
 import { generateRhachetUseTs } from '@src/domain.operations/init/config/generateRhachetUseTs';
 import { syncHooksForLinkedRoles } from '@src/domain.operations/init/hooks/syncHooksForLinkedRoles';
 import { persistPrepareEntries } from '@src/domain.operations/init/prep/persistPrepareEntries';
@@ -12,11 +12,11 @@ import { setPrepareRhachetRolesDelta } from '@src/domain.operations/init/prep/se
 import { assertInitRoleFociDeclared } from '@src/domain.operations/init/roles/assertInitRoleFociDeclared';
 import { getRoleSlugsForFlags } from '@src/domain.operations/init/roles/getRoleSlugsForFlags';
 import { setIncrementalRoles } from '@src/domain.operations/init/roles/incremental/setIncrementalRoles';
-import { getAllLinkedRoleRefs } from '@src/domain.operations/init/roles/link/getAllLinkedRoleRefs';
 import { initRolesFromPackages } from '@src/domain.operations/init/roles/link/initRolesFromPackages';
 import { setInitRoleFoci } from '@src/domain.operations/init/roles/setInitRoleFoci';
 import { showInitUsageInstructions } from '@src/domain.operations/init/usage/showInitUsageInstructions';
 import { initKeyrackRepoManifest } from '@src/domain.operations/keyrack/initKeyrackRepoManifest';
+import { getAllLinkedRoleRefs } from '@src/domain.operations/role/getAllLinkedRoleRefs';
 import { getRoleDeltaMode } from '@src/domain.operations/roles/deltas/getRoleDeltaMode';
 import { getRoleDeltas } from '@src/domain.operations/roles/deltas/getRoleDeltas';
 import { getRoleDeltasOfKind } from '@src/domain.operations/roles/deltas/getRoleDeltasOfKind';
@@ -131,7 +131,7 @@ export const invokeInit = ({ program }: { program: Command }): void => {
         const rolesLinkedBefore =
           deltas === null
             ? []
-            : getAllLinkedRoleRefs({}, context).map((ref) => ref.role);
+            : asRoleSlugsOfRefs({ refs: getAllLinkedRoleRefs({}, context) });
 
         // an unreadable foci record halts here, before the first link this init writes
         if (deltas !== null)
@@ -248,18 +248,24 @@ export const invokeInit = ({ program }: { program: Command }): void => {
         }
 
         // flag: --roles or --hooks => re-render every brain dir boot, after the links land.
-        // it precedes the hook sync, so a repo never drops its boot hooks before boot.md exists
-        const boots =
-          deltas !== null || options.hooks !== undefined
-            ? await syncAndReportBrainDirBoots(
-                {
-                  repoPath: context.gitroot,
-                  env: process.env,
-                  symlinkPrior: layoutBeforeInits?.symlink ?? null,
-                },
-                context,
-              )
-            : { exitCode: 0 as const, repoActorRendered: true };
+        // it precedes the hook sync, so a repo never drops its boot hooks before boot.md exists.
+        //   the render graph loads here, at call time: `init --help` and a bare `init` never
+        //   reach it (rule.require.thinnest-import-path)
+        const boots = await (async () => {
+          if (deltas === null && options.hooks === undefined)
+            return { exitCode: 0 as const, repoActorRendered: true };
+          const { syncAndReportBrainDirBoots } = await import(
+            '../../domain.operations/init/boots/syncAndReportBrainDirBoots'
+          );
+          return syncAndReportBrainDirBoots(
+            {
+              repoPath: context.gitroot,
+              env: process.env,
+              symlinkPrior: layoutBeforeInits?.symlink ?? null,
+            },
+            context,
+          );
+        })();
 
         // flag: --hooks => apply hooks, only once the default boot.md rendered;
         // the iife yields a boolean so the error state stays an immutable const

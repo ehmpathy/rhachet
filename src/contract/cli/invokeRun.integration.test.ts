@@ -262,6 +262,21 @@ describe('invokeRun (integration)', () => {
       );
 
       then(
+        'run --skill deploy -r prep hands -r to the skill, never filters by role (F26)',
+        async () => {
+          await program.parseAsync(['run', '--skill', 'deploy', '-r', 'prep'], {
+            from: 'user',
+          });
+
+          expect(logSpy).toHaveBeenCalledWith(
+            expect.stringContaining(
+              'run solid skill repo=ehmpathy/role=mechanic/skill=deploy',
+            ),
+          );
+        },
+      );
+
+      then(
         'run --skill deploy --repo .this throws error (wrong repo)',
         async () => {
           const error = await getError(() =>

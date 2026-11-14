@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`getAllRoleViewSources given: [case1] a kind dir of file links, with no record when: [t0] its sources are read then: it is refused, never read as no sources 1`] = `
+"✋ ConstraintError: a modded view of the role has no record of its published sources
+
+{
+  "kindDir": "/TMP_ROLE_DIR/briefs",
+  "record": "/TMP_ROLE_DIR/.modded.json",
+  "fix": "remove /TMP_ROLE_DIR/briefs, then run rhx init --hooks to link the role again"
+}"
+`;

@@ -1,13 +1,14 @@
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { RoleDelta } from '@src/domain.objects/RoleDelta';
 import { getAllRolesAtFocusAlwaysShed } from '@src/domain.operations/boot/getAllRolesAtFocusAlwaysShed';
+import { getAllLinkedRoleRefs } from '@src/domain.operations/role/getAllLinkedRoleRefs';
 import { getRoleDeltasOfKind } from '@src/domain.operations/roles/deltas/getRoleDeltasOfKind';
 import { asRepoAmbientRoleFocusChanges } from '@src/domain.operations/roles/focus/ambient/asRepoAmbientRoleFocusChanges';
 import { setRepoAmbientRoleFoci } from '@src/domain.operations/roles/focus/ambient/setRepoAmbientRoleFoci';
 import { asRoleFocusReceiptLines } from '@src/domain.operations/roles/focus/asRoleFocusReceiptLines';
 import { asRoleRefsAtFocus } from '@src/domain.operations/roles/focus/asRoleRefsAtFocus';
 
-import { getAllLinkedRoleRefs } from './link/getAllLinkedRoleRefs';
+import { asRoleSlugsOfRefs } from '../boots/asRoleSlugsOfRefs';
 
 /**
  * .what = record an `rhx init --roles` delta's foci, and the receipt lines that name what changed
@@ -35,7 +36,7 @@ export const setInitRoleFoci = async (
   const lines = asRoleFocusReceiptLines({
     changes: asRepoAmbientRoleFocusChanges({
       rolesLinkedBefore: input.rolesLinkedBefore,
-      rolesLinkedAfter: refsLinkedAfter.map((ref) => ref.role),
+      rolesLinkedAfter: asRoleSlugsOfRefs({ refs: refsLinkedAfter }),
       fociPrior: recorded.fociPrior,
       foci: recorded.foci,
       additions: getRoleDeltasOfKind({

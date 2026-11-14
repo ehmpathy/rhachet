@@ -1,0 +1,6 @@
+of: test/surfer@0.9.0
+briefs:
+  say:
+    - briefs/rule.require.reef-etiquette.md
+  not:
+    - briefs/rule.forbid.wipeouts.md

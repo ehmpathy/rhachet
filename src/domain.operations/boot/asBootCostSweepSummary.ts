@@ -16,9 +16,15 @@ import type { BootSpecCost } from '@src/domain.operations/boot/getAllRepoBootSpe
 export const asBootCostSweepSummary = (input: {
   costs: BootSpecCost[];
   over: BootSpecCost[];
+  /** specs found at a swept path and withheld from the price — a stale or refused mod */
+  withheld: number;
 }): string => {
   const noun = `boot spec${input.costs.length === 1 ? '' : 's'}`;
   const budgeted = input.costs.filter((one) => one.budget !== null);
+
+  // a withheld spec was found, so the count leads as a PRICED count, never a found one
+  if (input.costs.length === 0 && input.withheld > 0)
+    return `🧢 0 boot specs priced — ${input.withheld} withheld by a mod (named below)`;
 
   // the empty roster heads with the same `🧢 N boot specs — …` shape as a full one, so a
   // reader scans one header form whatever the sweep found

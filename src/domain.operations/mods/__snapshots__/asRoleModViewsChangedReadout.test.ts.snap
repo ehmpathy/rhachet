@@ -1,0 +1,22 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asRoleModViewsChangedReadout given: [case2] a render that changed two views when: [t0] the readout is rendered then: it matches its snapshot 1`] = `
+"🧢 .agent/repo=.mods
+   ├─ rendered
+   │  ├─ role=lifeguard
+   │  └─ role=surfer
+   └─ a live clone keeps the boot it read at session start; re-enroll it to pick up the change"
+`;
+
+exports[`asRoleModViewsChangedReadout given: [case3] a mod refused before it found its role when: [t0] the readout is rendered then: it matches its snapshot 1`] = `
+"🧢 .agent/repo=.mods
+   └─ refused, with no linked role to carry it
+      └─ role=surfr — ✋ ConstraintError: the mod names no linked role"
+`;
+
+exports[`asRoleModViewsChangedReadout given: [case4] a render that returned a role to its published form when: [t0] the readout is rendered then: it matches its snapshot 1`] = `
+"🧢 .agent/repo=.mods
+   ├─ returned to published, its mod gone
+   │  └─ role=lifeguard
+   └─ a live clone keeps the boot it read at session start; re-enroll it to pick up the change"
+`;

@@ -1,0 +1,12 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asRoleModDriftReadout given: [case1] a pinned mod whose role moved when: [t0] the readout is rendered then: the readout matches its snapshot 1`] = `
+"   ├─ role    = ehmpathy/mechanic
+   ├─ mods    = 1.39.5   (declared in .agent/repo=.mods/role=mechanic/boot.yml)
+   ├─ now     = 1.40.0
+   ├─ review each mod against the new release
+   │  ├─ [~] shadow briefs/rule.require.surf-wax.md
+   │  ├─ [+] add briefs/rule.require.reef-etiquette.md
+   │  └─ [-] not skills/wax.board.sh
+   └─ then set \`of: ehmpathy/mechanic@1.40.0\` in the mod boot.yml"
+`;

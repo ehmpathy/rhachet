@@ -1,5 +1,7 @@
 import { given, then, when } from 'test-fns';
 
+import { genSampleRoleModPlan } from '@src/.test/assets/genSampleRoleModPlan';
+
 import { asRoleBootBody } from './asRoleBootBody';
 
 const roleDir = '/repo/.agent/repo=ehmpathy/role=surfer';
@@ -39,6 +41,7 @@ describe('asRoleBootBody', () => {
             { path: `${roleDir}/skills/paddle.sh`, content: '# paddle' },
           ],
           focus: null,
+          mod: null,
         });
 
         then(
@@ -104,6 +107,7 @@ describe('asRoleBootBody', () => {
         briefsSaid: [],
         skillsSaid: [],
         focus: null,
+        mod: null,
       });
 
       then('the body holds only the also section', () => {
@@ -141,6 +145,7 @@ describe('asRoleBootBody', () => {
         briefsSaid: [],
         skillsSaid: [],
         focus: null,
+        mod: null,
       });
 
       then('the body is empty and the census is zero', () => {
@@ -181,6 +186,7 @@ describe('asRoleBootBody', () => {
           elsewhere: input.elsewhere,
           alwaysShed: input.alwaysShed,
         },
+        mod: null,
       });
 
     when('[t0] the body is composed with always kept', () => {
@@ -235,4 +241,94 @@ describe('asRoleBootBody', () => {
       });
     });
   });
+
+  given(
+    '[case5] a modded role: a shadow, an add, a not, a dropped .md.min',
+    () => {
+      when('[t0] the body is composed', () => {
+        const result = asRoleBootBody({
+          slugRepo: 'ehmpathy',
+          slugRole: 'surfer',
+          roleDir,
+          bootPlan: {
+            briefs: {
+              say: [
+                {
+                  pathToOriginal: `${roleDir}/briefs/wave.md`,
+                  pathToMinified: null,
+                },
+                {
+                  pathToOriginal: `${roleDir}/briefs/reef.md`,
+                  pathToMinified: null,
+                },
+              ],
+              ref: [
+                {
+                  pathToOriginal: `${roleDir}/briefs/tide.md`,
+                  pathToMinified: null,
+                },
+              ],
+            },
+            skills: { say: [], ref: [`${roleDir}/skills/paddle.sh`] },
+            also: { briefs: [], skills: [] },
+          },
+          readme: null,
+          briefsSaid: [
+            { path: `${roleDir}/briefs/wave.md`, content: 'ride it, modded' },
+            { path: `${roleDir}/briefs/reef.md`, content: 'mind the reef' },
+          ],
+          skillsSaid: [],
+          focus: null,
+          mod: {
+            ofLabel: 'ehmpathy/surfer@1.2.3',
+            plan: genSampleRoleModPlan({
+              shadows: ['briefs/wave.md'],
+              adds: ['briefs/reef.md'],
+              nots: ['briefs/wipeout.md'],
+              minsDropped: ['briefs/wave.md.min'],
+            }),
+          },
+        });
+        const lines = result.body.split('\n');
+
+        then('the mod notice leads the body, before any resource', () => {
+          expect(lines[0]).toContain('ehmpathy/surfer@1.2.3');
+          expect(
+            lines.findIndex((line) => line.includes('<brief.say')),
+          ).toBeGreaterThan(0);
+        });
+
+        then('the notice says the shadow drops the published .md.min', () => {
+          expect(lines).toContain(
+            '[~] shadow briefs/wave.md drops the published briefs/wave.md.min',
+          );
+        });
+
+        then('the shadowed brief carries mod="shadow"', () => {
+          expect(lines).toContain(
+            '<brief.say path=".agent/repo=ehmpathy/role=surfer/briefs/wave.md" mod="shadow">',
+          );
+        });
+
+        then('the added brief carries mod="add"', () => {
+          expect(lines).toContain(
+            '<brief.say path=".agent/repo=ehmpathy/role=surfer/briefs/reef.md" mod="add">',
+          );
+        });
+
+        then('an untouched resource carries no mod attr', () => {
+          expect(lines).toContain(
+            '<brief.ref path=".agent/repo=ehmpathy/role=surfer/briefs/tide.md"/>',
+          );
+          expect(lines).toContain(
+            '<skill.ref path=".agent/repo=ehmpathy/role=surfer/skills/paddle.sh"/>',
+          );
+        });
+
+        then('the body matches its snapshot', () => {
+          expect(result.body).toMatchSnapshot();
+        });
+      });
+    },
+  );
 });

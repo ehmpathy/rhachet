@@ -1,0 +1,3 @@
+# keep node_modules & dist in git for test fixtures
+!node_modules/
+!dist/

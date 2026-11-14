@@ -184,6 +184,77 @@ describe('getOneRoleBootContent', () => {
     });
   });
 
+  given(
+    '[case7] a refused mod over one role of a slug three repos ship',
+    () => {
+      /**
+       * .what = write ehmpathy/mechanic, acme/mechanic and .this/mechanic, plus a mod whose
+       *         typo file its plan refuses
+       */
+      const genRepoSameSlug = (input: { slug: string; of: string }): string => {
+        const repoPath = genTempDir({ slug: input.slug });
+        for (const repo of ['ehmpathy', 'acme', '.this']) {
+          const roleDir = join(
+            repoPath,
+            '.agent',
+            `repo=${repo}`,
+            'role=mechanic',
+          );
+          mkdirSync(join(roleDir, 'briefs'), { recursive: true });
+          writeFileSync(
+            join(roleDir, 'briefs', 'rule.require.surf-wax.md'),
+            `${repo} brief body`,
+          );
+        }
+        const modDir = join(repoPath, '.agent', 'repo=.mods', 'role=mechanic');
+        mkdirSync(join(modDir, 'briefs'), { recursive: true });
+        writeFileSync(join(modDir, 'boot.yml'), `of: ${input.of}\n`);
+        writeFileSync(
+          join(modDir, 'briefs', 'rule.require.surf-wux.md'),
+          'typo body',
+        );
+        return repoPath;
+      };
+      const render = (input: { cwd: string; slugRepo: string }) =>
+        getOneRoleBootContent({
+          slugRepo: input.slugRepo,
+          slugRole: 'mechanic',
+          subjects: null,
+          cwd: input.cwd,
+        });
+
+      when('[t0] the mod pins ehmpathy/mechanic', () => {
+        then('acme/mechanic boots as published', async () => {
+          const cwd = genRepoSameSlug({
+            slug: 'getOneRoleBootContent-c7t0-acme',
+            of: 'ehmpathy/mechanic',
+          });
+          const { body } = await render({ cwd, slugRepo: 'acme' });
+          expect(body).toContain('acme brief body');
+        });
+
+        then('.this/mechanic boots as published', async () => {
+          const cwd = genRepoSameSlug({
+            slug: 'getOneRoleBootContent-c7t0-this',
+            of: 'ehmpathy/mechanic',
+          });
+          const { body } = await render({ cwd, slugRepo: '.this' });
+          expect(body).toContain('.this brief body');
+        });
+
+        then('ehmpathy/mechanic, the mod target, is refused', async () => {
+          const cwd = genRepoSameSlug({
+            slug: 'getOneRoleBootContent-c7t0-ehmpathy',
+            of: 'ehmpathy/mechanic',
+          });
+          const error = await getError(render({ cwd, slugRepo: 'ehmpathy' }));
+          expect(error).toBeInstanceOf(ConstraintError);
+          expect(error.message).toContain('no say or ref names it');
+        });
+      });
+    },
+  );
+
   given('[case5] a role not linked on disk', () => {
     when('[t0] rendered', () => {
       then('a ConstraintError names the role and the re-link', async () => {
