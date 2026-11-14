@@ -66,6 +66,34 @@ describe('asActorFormEnrollment', () => {
     });
   });
 
+  given('[case2b] `@scholar -architect`, a role subtraction', () => {
+    when('[t0] the enrollment is derived', () => {
+      const result = asActorFormEnrollment({
+        expanded: EXPANDED_SCHOLAR,
+        brainFlag: null,
+        spec: parseBrainCliEnrollmentSpec({ tokens: ['-architect'] }),
+        refsLinked: REFS_LINKED,
+      });
+
+      then('it lands in a derived actor over `@scholar`', () => {
+        expect(result.exid).toMatch(/^slug=scholar\._\.delta=[0-9a-f]{8}$/);
+      });
+      then('it removes the role from the actor roles', () => {
+        expect(result.roles).toEqual(['librarian']);
+        expect(result.rolesDelta).toEqual(['-architect']);
+      });
+      then('its delta hash differs from an addition over the same base', () => {
+        const added = asActorFormEnrollment({
+          expanded: EXPANDED_SCHOLAR,
+          brainFlag: null,
+          spec: parseBrainCliEnrollmentSpec({ tokens: ['+mechanic'] }),
+          refsLinked: REFS_LINKED,
+        });
+        expect(result.exid).not.toEqual(added.exid);
+      });
+    });
+  });
+
   given('[case3] `@scholar --brain claude`, a brain override', () => {
     when('[t0] the enrollment is derived', () => {
       const result = asActorFormEnrollment({

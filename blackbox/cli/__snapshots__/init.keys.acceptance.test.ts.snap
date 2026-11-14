@@ -21,7 +21,7 @@ exports[`rhachet init --keys given: [case1] repo with role keyrack and scoped pa
 ✨ 1 role(s) linked
 ✨ 1 role(s) initialized
 
-[2m💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them[0m
+💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
 
 🔑 keyrack init
    ├─ org: test-org
@@ -72,7 +72,7 @@ exports[`rhachet init --keys given: [case3] idempotent re-run when: [t0] init --
 ✨ 1 role(s) linked
 ✨ 1 role(s) initialized
 
-[2m💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them[0m
+💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
 
 🔑 keyrack init
    ├─ org: test-org
@@ -103,7 +103,7 @@ exports[`rhachet init --keys given: [case4] role lacks keyrack (skip, create man
 ✨ 1 role(s) linked
 ✨ 1 role(s) initialized
 
-[2m💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them[0m
+💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
 
 🔑 keyrack init
    ├─ org: test-org

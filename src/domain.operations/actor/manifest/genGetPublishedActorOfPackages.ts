@@ -10,7 +10,11 @@ import { getActorsPublishedOfPackage } from './getActorsPublishedOfPackage';
  * .why = `'@<repo>/<slug>'` expands from the installed package version, so a base that grows
  *        reaches every extension at the next prepare (A3)
  *
- * .note = each package's actors are read once, on the first lookup into it
+ * .note = each package's actors are read once, on the first lookup into it, and served from
+ *   memory after: one lookup answers from the files as they stood at that first read, never
+ *   re-read. so build one lookup per expansion (both callers do: `getOneActorExpandedOfRepo`,
+ *   `getActorsManifestLinkPlan`), and never hold one across a change to the installed
+ *   packages — a fresh read is a fresh lookup
  */
 export const genGetPublishedActorOfPackages = (input: {
   manifests: HasPackageRoot<RoleRegistryManifest>[];

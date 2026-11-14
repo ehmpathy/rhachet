@@ -137,10 +137,15 @@ enroll takes two forms, and its first token tells them apart (F10):
 | **inline form**, a delta | `rhx enroll claude -r -driver` | `actor.via.hash=genEnrollmentHashOfDelta({brain, base: 'ambient', delta})` |
 | **bare** | `rhx enroll` | the **repo actor** — `actor.via.slug=<x>` under `ambient: '@<x>'`, else `actor.via.repo=ambient` |
 
-- **the inline form never consults `actors.yml`** (F7): it stays hash-identified, so a declared slug
-  never captures it. the delta hash keeps one actor while the ambient set moves under it
+- **the inline form is never named by `actors.yml`** (F7): it stays hash-identified, so a declared
+  slug never captures it. the delta hash keeps one actor while the ambient set moves under it
   (`define.enrollment-identity-is-the-roleset-hash`), and a `--roles` equal to the ambient set collapses
   into the repo actor, never a hash twin of it
+- **its base is the repo actor, roles and brain**: a delta (or no `--roles`) applies over the repo
+  actor's roles, and with no brain named it boots the repo actor's brain. so under a manifest the base
+  is the `ambient:` actor's, and a brain is an input to the hash — a repo that adopts `actors.yml`
+  with an `ambient:` brain other than `claude` moves an inline delta actor to a new hash dir. a named
+  brain (`rhx enroll codex …`) always wins and reads no actor's brain
 - **the actor form reads only `actors.yml`**: a `slug:` entry, its roleset recorded as concrete roles
   or as one base `@<slug>` (local) / `@<repo>/<slug>` (published) with `+`/`-` deltas. a plain role
   list beside `@<slug>` is refused (it would replace the actor wholesale — that is the inline form),

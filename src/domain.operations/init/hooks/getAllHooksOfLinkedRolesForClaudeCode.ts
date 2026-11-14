@@ -10,19 +10,22 @@ import { getLinkedRolesWithHooks } from '@src/domain.operations/brains/getLinked
 import { syncAllRoleHooksIntoEachBrainRepl } from '@src/domain.operations/brains/syncAllRoleHooksIntoEachBrainRepl';
 import { withScratchDir } from '@src/utils/withScratchDir';
 
+import { join } from 'node:path';
 import { isBrainClaudeCode } from './isBrainClaudeCode';
 
 /**
  * .what = the claude hooks of every linked role, as the claude adapter writes them — rendered
- *         into an os temp dir that is removed before return, so the repo tree is never written
+ *         into a self-ignored scratch dir under `.agent/.cache`, removed before return, so the
+ *         render stays inside the repo and leaves no trace
  * .why = under `.agent/actors.yml` the repo actor is a declared actor, narrowed to its own roles
  *        like every other. its `settings.of.repo.json` then holds only its own roles' hooks, so a
  *        peer actor cannot narrow from it. each actor narrows from this union instead — the same
  *        set the hook sync computes, by the same adapter. it lives beside the hook sync, the one
  *        context that owns how a role's hooks render
  *
- * .note = a role whose discovery faults fails the union loud: a silent absence would hand an
- *   actor's clones a settings file short of that role's hooks, with no signal
+ * .note = a role whose discovery faults, or whose hooks fail to render, fails the union loud:
+ *   a silent absence would hand an actor's clones a settings file short of that role's hooks,
+ *   with no signal
  * .note = no claude adapter installed → no claude hooks, so the union is empty
  */
 export const getAllHooksOfLinkedRolesForClaudeCode = async (input: {
@@ -56,12 +59,25 @@ export const getAllHooksOfLinkedRolesForClaudeCode = async (input: {
 
   // render every role's hooks into a scratch dir, and read the union back
   return withScratchDir(
-    { prefix: 'rhachet-hooks-union-' },
+    {
+      within: join(input.repoPath, '.agent', '.cache', 'hooks-union'),
+      prefix: 'render-',
+    },
     async (scratchDir) => {
-      await syncAllRoleHooksIntoEachBrainRepl(
+      const synced = await syncAllRoleHooksIntoEachBrainRepl(
         { roles, brains: brainsClaude, configTargetDir: scratchDir },
         context,
       );
+
+      // a role whose hooks could not render fails the union loud, as a discovery fault does
+      if (synced.errors.length > 0)
+        throw new MalfunctionError('a linked role could not render its hooks', {
+          roles: synced.errors.map(
+            (one) => `${one.role.repo}/${one.role.slug} [${one.brain}]`,
+          ),
+          cause: synced.errors[0]?.error,
+          hint: 'run `rhx init --hooks` to see each fault, then repair or unlink the role',
+        });
       const settings = await readClaudeCodeSettings({ from: scratchDir });
       return settings.hooks ?? {};
     },
