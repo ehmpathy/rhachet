@@ -180,4 +180,63 @@ describe('setDeclaredActorsOndisk', () => {
       });
     },
   );
+
+  given(
+    '[case3] `ambient: @crew`, and no record of the repo actor on disk — a fresh clone before any enroll (F31)',
+    () => {
+      const scene = useBeforeAll(async () => {
+        const repoPath = genSampleRepoWithRoles({
+          slug: 'declared-actors-no-record',
+          roles: ROLES_FIXTURE,
+        });
+        writeFileSync(
+          join(repoPath, 'package.json'),
+          JSON.stringify({ name: 'declared-actors-no-record', private: true }),
+        );
+        writeFileSync(
+          join(repoPath, '.agent', 'actors.yml'),
+          [
+            "ambient: '@crew'",
+            'actor:',
+            '  - slug: crew',
+            '    brain: claude',
+            '    roles: [fixture/any, fixture/zeta]',
+            '',
+          ].join('\n'),
+        );
+        return { repoPath };
+      });
+
+      when('[t0] the declared actors sync over ambient [any, zeta]', () => {
+        const result = useBeforeAll(async () =>
+          setDeclaredActorsOndisk(
+            {
+              repoPath: scene.repoPath,
+              refsLinked: ROLES_FIXTURE,
+              rolesAmbient: ['any', 'zeta'],
+            },
+            new ContextCli({ cwd: scene.repoPath, gitroot: scene.repoPath }),
+          ),
+        );
+
+        then('no failure is collected, and naught is re-derived', () => {
+          expect(result).toEqual({ rederived: [], failures: [] });
+        });
+
+        then(
+          'the repo actor record is written, so the hook pass can read it',
+          () => {
+            expect(
+              [
+                ...getOneActorRoles({
+                  repoPath: scene.repoPath,
+                  exid: 'slug=crew',
+                }),
+              ].sort(),
+            ).toEqual(['any', 'zeta']);
+          },
+        );
+      });
+    },
+  );
 });

@@ -49,9 +49,7 @@ describe_pid() {
   echo "      │     cwd ${CWD_OF}"
 }
 
-echo "🐢 stub census"
-echo ""
-echo "🐚 test.stubs.count"
+echo "🧮 test.stubs.count"
 if [[ ${#PIDS[@]} -eq 0 ]]; then
   echo "   └─ 0 stubBrainCli.cjs processes alive"
   exit 0

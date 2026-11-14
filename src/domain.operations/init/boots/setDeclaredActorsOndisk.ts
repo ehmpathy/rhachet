@@ -32,6 +32,7 @@ import { isCodeDefectError } from '@src/utils/isCodeDefectError';
 
 import { join } from 'node:path';
 import { asRoleRefsForEnrolledSlugs } from './asRoleRefsForEnrolledSlugs';
+import { findsertRepoActorRecordOndisk } from './findsertRepoActorRecordOndisk';
 
 /**
  * .what = re-derive every declared actor on disk (`slug=<x>`, `slug=<x>._.delta=<h>`) from
@@ -67,13 +68,6 @@ export const setDeclaredActorsOndisk = async (
   const manifest = getActorsManifest({ repoPath: input.repoPath });
   if (!manifest) return { rederived: [], failures: [] };
 
-  // enumerate the declared actors; a failed read is one failure, never a throw
-  const enumeration = getAllDeclaredActorsOrFailure({
-    repoPath: input.repoPath,
-  });
-  if ('failure' in enumeration)
-    return { rederived: [], failures: [enumeration.failure] };
-
   // the repo actor's roles at their recorded focus, read once; a corrupt record is one failure
   const ambient = getRolesAmbientAtFocusOrFailure({
     repoPath: input.repoPath,
@@ -81,6 +75,20 @@ export const setDeclaredActorsOndisk = async (
   });
   if ('failure' in ambient)
     return { rederived: [], failures: [ambient.failure] };
+
+  // the repo actor's record, so `init --hooks` derives its hooks before any enroll (F31)
+  const recordFailure = await getRepoActorRecordFailureOrNull(
+    { repoPath: input.repoPath, rolesAmbient: ambient.rolesAmbient },
+    context,
+  );
+  if (recordFailure) return { rederived: [], failures: [recordFailure] };
+
+  // enumerate the declared actors; a failed read is one failure, never a throw
+  const enumeration = getAllDeclaredActorsOrFailure({
+    repoPath: input.repoPath,
+  });
+  if ('failure' in enumeration)
+    return { rederived: [], failures: [enumeration.failure] };
 
   // one outcome per actor: rewritten, failed, or left as it was
   const slugsDeclared = new Set(asSlugsOfActorsDeclared({ manifest }));
@@ -133,6 +141,36 @@ const getRolesAmbientAtFocusOrFailure = (input: {
                 },
               ),
       },
+    };
+  }
+};
+
+/**
+ * .what = findsert the repo actor's record, or the one failure that stopped the write
+ * .why = a failed write is a sync failure to report, never a throw
+ */
+const getRepoActorRecordFailureOrNull = async (
+  input: { repoPath: string; rolesAmbient: RoleSlug[] },
+  context: ContextCli,
+): Promise<BrainDirBootFailure | null> => {
+  try {
+    await findsertRepoActorRecordOndisk(input, context);
+    return null;
+  } catch (error) {
+    // an allowlist: a classed or fs fault is the sweep's row; a code defect surfaces loud
+    if (isCodeDefectError({ error })) throw error;
+    return {
+      scope: { kind: 'actors' },
+      cause:
+        error instanceof Error
+          ? error
+          : new MalfunctionError(
+              'repo actor record findsert threw a non-Error value',
+              {
+                reason: error,
+                hint: 'rerun `rhx init`; if it fails again, check .agent/actors.yml and that .agent/.actors/ is writable',
+              },
+            ),
     };
   }
 };

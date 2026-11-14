@@ -54,6 +54,27 @@ const asStderrWithPackageCarriageMasked = (input: { stderr: string }): string =>
 const getBootPath = (input: { dir: string; actorDirName: string }): string =>
   join(input.dir, '.agent', '.actors', input.actorDirName, 'brain', '.claude', 'boot.md');
 
+/**
+ * .what = declares the anthropic brain package in the fixture's package.json
+ * .why = `init --hooks` needs the brain's adapter, which the fixture's linked node_modules holds
+ *   but its package.json does not declare
+ */
+const setPackageBrainAnthropicDeclared = (input: { dir: string }): void => {
+  const packagePath = join(input.dir, 'package.json');
+  const packageJson = JSON.parse(readFileSync(packagePath, 'utf8'));
+  writeFileSync(
+    packagePath,
+    JSON.stringify(
+      {
+        ...packageJson,
+        dependencies: { ...packageJson.dependencies, 'rhachet-brains-anthropic': '*' },
+      },
+      null,
+      2,
+    ),
+  );
+};
+
 const ACTORS_YML_CREW = [
   "ambient: '@crew'",
   'actor:',
@@ -648,5 +669,58 @@ describe('rhx init under .agent/actors.yml (acceptance)', () => {
         });
       }),
     );
+  });
+
+  given('[case10] a manifest, linked, then `init --hooks` — the `prepare:rhachet` journey', () => {
+    const testDir = genTempDir({ slug: 'init-actors-yml-hooks' });
+    beforeAll(() => {
+      setupRoleFixtureRepo({ dir: testDir });
+      setPackageBrainAnthropicDeclared({ dir: testDir });
+      setActorsYml({ dir: testDir, lines: ACTORS_YML_CREW });
+      invokeRhachetCliBinary({ args: ['init'], cwd: testDir });
+    });
+
+    when('[t0] `init --hooks`, as `prepare:rhachet` runs it', () => {
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinary({ args: ['init', '--hooks'], cwd: testDir }),
+      );
+
+      then('it exits 0', () => {
+        expect(run.status).toEqual(0);
+      });
+      then('the per-actor apply tree names the repo actor by its exid', () => {
+        const block = asStdoutBlock({ stdout: run.stdout, header: '🧢' });
+        expect(block).toContain('apply hooks to enrolled actors');
+        expect(block).toContain('slug=crew');
+        expect(block).not.toContain('actor.via.slug=crew');
+      });
+      then('the hook frames hold their shape', () => {
+        expect(asStdoutBlock({ stdout: run.stdout, header: '🪝' })).toMatchSnapshot();
+        expect(asStdoutBlock({ stdout: run.stdout, header: '🧢' })).toMatchSnapshot();
+      });
+      then('the repo actor `settings.of.repo.json` carries the `@crew` roles hooks', () => {
+        const settings = JSON.parse(
+          readFileSync(
+            join(
+              testDir,
+              '.agent',
+              '.actors',
+              'actor.via.slug=crew',
+              'brain',
+              '.claude',
+              'settings.of.repo.json',
+            ),
+            'utf8',
+          ),
+        );
+        expect(Object.keys(settings.hooks ?? {}).length).toBeGreaterThan(0);
+        expect(JSON.stringify(settings.hooks)).not.toContain('librarian');
+      });
+      then('no `actor.via.repo=ambient` dir is written beside the manifest actor', () => {
+        expect(existsSync(join(testDir, '.agent', '.actors', 'actor.via.repo=ambient'))).toEqual(
+          false,
+        );
+      });
+    });
   });
 });

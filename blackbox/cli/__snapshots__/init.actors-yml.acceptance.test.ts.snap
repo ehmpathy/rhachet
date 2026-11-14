@@ -366,3 +366,10 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case9] two declar
    ├─ 2 actor(s), 2 role(s) declared
    └─ in sync, no role short"
 `;
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case10] a manifest, linked, then \`init --hooks\` — the \`prepare:rhachet\` journey when: [t0] \`init --hooks\`, as \`prepare:rhachet\` runs it then: the hook frames hold their shape 1`] = `"🪝 apply hooks to brains..."`;
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case10] a manifest, linked, then \`init --hooks\` — the \`prepare:rhachet\` journey when: [t0] \`init --hooks\`, as \`prepare:rhachet\` runs it then: the hook frames hold their shape 2`] = `
+"🧢 apply hooks to enrolled actors...
+   └─ slug=crew: +15"
+`;
