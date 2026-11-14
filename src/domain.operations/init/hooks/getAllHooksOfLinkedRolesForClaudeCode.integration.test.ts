@@ -12,7 +12,7 @@ import { genSampleFileTree } from '@src/.test/assets/genSampleFileTree';
 import { genBrainHooksAdapterForClaudeCode } from '@src/_topublish/rhachet-brains-anthropic/src/hooks/genBrainHooksAdapterForClaudeCode';
 import { REPO_THIS_BUDGET_HOOK_COMMAND } from '@src/domain.operations/brains/getAllRepoThisRolesWithHooks';
 
-import { existsSync, readdirSync } from 'node:fs';
+import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
@@ -37,6 +37,12 @@ const genRepo = (input: { slug: string; files: Record<string, string> }) => {
   return repoPath;
 };
 
+/**
+ * .what = the roles the actor under test holds — `any` for the `.this` budget gate, `phantom`
+ *   for the unreadable package of case4
+ */
+const ROLES_HELD = ['any', 'phantom'];
+
 const FILES_CLAUDE_SEEDED = { '.claude/settings.of.repo.json': '{}\n' };
 const FILES_THIS_BUDGETED = {
   '.agent/repo=.this/role=any/boot.yml':
@@ -59,7 +65,10 @@ describe('getAllHooksOfLinkedRolesForClaudeCode', () => {
         files: FILES_THIS_BUDGETED,
       });
       return {
-        hooks: await getAllHooksOfLinkedRolesForClaudeCode({ repoPath }),
+        hooks: await getAllHooksOfLinkedRolesForClaudeCode({
+          repoPath,
+          roles: ROLES_HELD,
+        }),
       };
     });
 
@@ -77,7 +86,10 @@ describe('getAllHooksOfLinkedRolesForClaudeCode', () => {
         files: FILES_CLAUDE_SEEDED,
       });
       return {
-        hooks: await getAllHooksOfLinkedRolesForClaudeCode({ repoPath }),
+        hooks: await getAllHooksOfLinkedRolesForClaudeCode({
+          repoPath,
+          roles: ROLES_HELD,
+        }),
       };
     });
 
@@ -97,7 +109,10 @@ describe('getAllHooksOfLinkedRolesForClaudeCode', () => {
           files: { ...FILES_CLAUDE_SEEDED, ...FILES_THIS_BUDGETED },
         });
         const entriesBefore = readdirSync(repoPath).sort();
-        const hooks = await getAllHooksOfLinkedRolesForClaudeCode({ repoPath });
+        const hooks = await getAllHooksOfLinkedRolesForClaudeCode({
+          repoPath,
+          roles: ROLES_HELD,
+        });
         const entriesAfter = readdirSync(repoPath).sort();
         return { repoPath, hooks, entriesBefore, entriesAfter };
       });
@@ -121,8 +136,10 @@ describe('getAllHooksOfLinkedRolesForClaudeCode', () => {
               ['settings.of.repo.json'],
             );
             expect(
-              existsSync(join(scene.repoPath, '.agent', '.cache')),
-            ).toEqual(false);
+              readdirSync(
+                join(scene.repoPath, '.agent', '.cache', 'hooks-union'),
+              ),
+            ).toEqual([]);
           },
         );
       });
@@ -142,7 +159,10 @@ describe('getAllHooksOfLinkedRolesForClaudeCode', () => {
         });
         return {
           error: await getError(
-            getAllHooksOfLinkedRolesForClaudeCode({ repoPath }),
+            getAllHooksOfLinkedRolesForClaudeCode({
+              repoPath,
+              roles: ROLES_HELD,
+            }),
           ),
         };
       });
@@ -154,6 +174,63 @@ describe('getAllHooksOfLinkedRolesForClaudeCode', () => {
             'a linked role could not be read for its hooks',
           );
           expect(scene.error.message).toContain('ghost/phantom');
+        });
+      });
+    },
+  );
+
+  given(
+    '[case5] claude detected, and an unreadable linked role the actor does not hold',
+    () => {
+      const scene = useBeforeAll(async () => {
+        const repoPath = genRepo({
+          slug: 'hooks-union-stale-link',
+          files: {
+            ...FILES_CLAUDE_SEEDED,
+            ...FILES_THIS_BUDGETED,
+            '.agent/repo=ghost/role=phantom/readme.md': '# phantom\n',
+          },
+        });
+        return {
+          hooks: await getAllHooksOfLinkedRolesForClaudeCode({
+            repoPath,
+            roles: ['any'],
+          }),
+        };
+      });
+
+      when('[t0] the union is computed for that actor', () => {
+        then(
+          'the stale link blocks no actor that never held it — its own hooks still render',
+          () => {
+            expect(JSON.stringify(scene.hooks)).toContain(
+              REPO_THIS_BUDGET_HOOK_COMMAND,
+            );
+          },
+        );
+      });
+    },
+  );
+
+  given(
+    '[case6] claude detected, and a hooked role the actor does not hold',
+    () => {
+      const scene = useBeforeAll(async () => {
+        const repoPath = genRepo({
+          slug: 'hooks-union-not-held',
+          files: { ...FILES_CLAUDE_SEEDED, ...FILES_THIS_BUDGETED },
+        });
+        return {
+          hooks: await getAllHooksOfLinkedRolesForClaudeCode({
+            repoPath,
+            roles: ['mechanic'],
+          }),
+        };
+      });
+
+      when('[t0] the union is computed for that actor', () => {
+        then('it is empty — only held roles render', () => {
+          expect(scene.hooks).toEqual({});
         });
       });
     },

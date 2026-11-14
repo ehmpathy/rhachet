@@ -25,4 +25,5 @@
 | F21 | six shape moves around the actor sweeps ride their own change; caught as a dream | clean | unruled — best guess taken | 80% |
 | F22 | the samecwd spawn floor and `test.acceptance.credfree` ride this change; the route asked for each | clean | unruled — best guess taken | 75% |
 | F23 | the actor form's success paths are proven at integration, refusals snapped; no spawn per form | clean | unruled — flagged for the wisher | 70% |
-| F24 | `rhx upgrade` leaves the manifest to `init`; an actor's brain is read per spawn, never recorded | clean | unruled — best guess taken | 70% |
+| F24 | `rhx upgrade` leaves the manifest to `init`; an actor's brain is read per spawn, never recorded | clean | unruled — best guess taken; i005 refuted the upgrade premise, so the sweeps now collect rather than throw | 60% |
+| F25 | a role focus (`role::subject`) in `actors.yml` is refused with a named hint, not supported | clean | unruled — **needs the wisher** to rule whether foci join `actors.yml` | 70% |

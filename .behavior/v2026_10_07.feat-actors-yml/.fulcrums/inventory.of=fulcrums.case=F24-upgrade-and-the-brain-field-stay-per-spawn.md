@@ -17,4 +17,9 @@
 - **confidence** — 70%; the `rhx upgrade` path is the weaker half, since it was not measured
 - **where** — raised by enroll-impl-behavior-intent nitpick.5 and enroll-impl-arch-defects
   nitpick.10 (i004)
+- **i005** — enroll-impl-behavior-intent blocker.1 refuted the upgrade premise: `rhx upgrade`
+  installs with `lifecycleHooks: 'skip'`, so `prepare:rhachet` never runs. the window is real.
+  so the boot sweep now collects a repo actor failure rather than throws (`syncBootsForBrainDirs`),
+  and an actor-form enroll no longer needs the repo actor to expand (`getRepoAmbientForEnroll`).
+  a grown base waits for the next `rhx init`, and every enroll still works meanwhile
 - **verdict** — unruled; best guess taken

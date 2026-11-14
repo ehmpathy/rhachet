@@ -79,17 +79,19 @@ const getActorDeclaredByRef = (input: {
     );
   }
 
-  // a qualified ref names a published actor of an installed package
+  // a qualified ref names a published actor of an installed package; the lookup itself refuses
+  //   a slug an installed package does not publish, so null here means the package is absent
   const published = input.getPublishedActor({
     repo: parts.repo,
     slug: parts.slug,
   });
   if (published) return { actor: published, scope: parts.repo };
   throw new ConstraintError(
-    `actors.yml names a published actor not found: ${input.ref}`,
+    `actors.yml names a published actor whose package is not installed: ${input.ref}`,
     {
       ref: input.ref,
-      hint: `install the role package that publishes it (rhachet-roles-${parts.repo}), or check the slug`,
+      package: `rhachet-roles-${parts.repo}`,
+      hint: `install rhachet-roles-${parts.repo}, or check the repo in '${input.ref}'`,
     },
   );
 };

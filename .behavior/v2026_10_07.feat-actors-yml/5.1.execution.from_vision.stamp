@@ -66,23 +66,21 @@
       │   │   ├─ 0 nitpicks ✓
       │   │   ├─ given: .behavior/v2026_10_07.feat-actors-yml/.reviews/peer/5.1.execution.from_vision._.review.i003.3d1215ed41ec1f9de5.r009._.given.by_peer.ergo-friction-hazards.md
       │   │   └─ taken: .behavior/v2026_10_07.feat-actors-yml/.reviews/peer/5.1.execution.from_vision._.review.i003.3d1215ed41ec1f9de5.r009._.taken.by_self.ergo-friction-hazards.md
-      │   ├─ r10: enroll-impl-behavior-intent (l3, 1/3)
-      │   │   ├─ rejected 376.4s
-      │   │   ├─ 5 blockers 🔴
-      │   │   ├─ 6 nitpicks 🟠
-      │   │   ├─ tallied by reviewer@openrouter/deepseek/flash
-      │   │   ├─ given: .behavior/v2026_10_07.feat-actors-yml/.reviews/peer/5.1.execution.from_vision._.review.i004.f3f462b62830b5a767.r010._.given.by_peer.enroll-impl-behavior-intent.md
-      │   │   └─ taken: .behavior/v2026_10_07.feat-actors-yml/.reviews/peer/5.1.execution.from_vision._.review.i004.f3f462b62830b5a767.r010._.taken.by_self.enroll-impl-behavior-intent.md
-      │   └─ r11: enroll-impl-arch-defects (l3, 1/3)
-      │       ├─ rejected 507.5s
-      │       ├─ 2 blockers 🔴
-      │       ├─ 11 nitpicks 🟠
-      │       ├─ tallied by reviewer@openrouter/deepseek/flash
-      │       ├─ given: .behavior/v2026_10_07.feat-actors-yml/.reviews/peer/5.1.execution.from_vision._.review.i004.f3f462b62830b5a767.r011._.given.by_peer.enroll-impl-arch-defects.md
-      │       └─ taken: .behavior/v2026_10_07.feat-actors-yml/.reviews/peer/5.1.execution.from_vision._.review.i004.f3f462b62830b5a767.r011._.taken.by_self.enroll-impl-arch-defects.md
+      │   ├─ r10: enroll-impl-behavior-intent (l3, 2/3)
+      │   │   ├─ rejected 807.7s
+      │   │   ├─ 4 blockers 🔴
+      │   │   ├─ 4 nitpicks 🟠
+      │   │   ├─ given: .behavior/v2026_10_07.feat-actors-yml/.reviews/peer/5.1.execution.from_vision._.review.i005.486d0fc618097b0771.r010._.given.by_peer.enroll-impl-behavior-intent.md
+      │   │   └─ taken: .behavior/v2026_10_07.feat-actors-yml/.reviews/peer/5.1.execution.from_vision._.review.i005.486d0fc618097b0771.r010._.taken.by_self.enroll-impl-behavior-intent.md
+      │   └─ r11: enroll-impl-arch-defects (l3, 2/3)
+      │       ├─ rejected 436.2s
+      │       ├─ 3 blockers 🔴
+      │       ├─ 9 nitpicks 🟠
+      │       ├─ given: .behavior/v2026_10_07.feat-actors-yml/.reviews/peer/5.1.execution.from_vision._.review.i005.486d0fc618097b0771.r011._.given.by_peer.enroll-impl-arch-defects.md
+      │       └─ taken: .behavior/v2026_10_07.feat-actors-yml/.reviews/peer/5.1.execution.from_vision._.review.i005.486d0fc618097b0771.r011._.taken.by_self.enroll-impl-arch-defects.md
       └─ judges
           └─ j1: $rhachet run --repo bhrain --skill route.stone.judge --mechanism reviewed? --stone $stone --route $route --allow-blockers 0 --allow-nitpicks 7
-              ├─ finished 2.3s ✗
+              ├─ finished 0.6s ✗
               └─ reason: blockers exceed threshold (7 > 0)
 
 🪷 the path continues
@@ -110,7 +108,7 @@
    │  │     └─ ✋ blocked by constraints
    │  │
    │  │  disputed: 0 blockers, 1 nitpicks excluded from the tally
-   │  │  residual: 7/0 blockers, 17/7 nitpicks
+   │  │  residual: 7/0 blockers, 13/7 nitpicks
    │  │
    │  └─
    └─ passage blocked

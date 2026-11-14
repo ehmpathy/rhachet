@@ -51,6 +51,7 @@ import { asEnrollRoleFocusChanges } from '@src/domain.operations/enroll/asEnroll
 import { assertBrainCliPassthroughLeavesSystemPromptOwned } from '@src/domain.operations/enroll/assertBrainCliPassthroughLeavesSystemPromptOwned';
 import { assertBrainCliVersionFloor } from '@src/domain.operations/enroll/assertBrainCliVersionFloor';
 import { assertCloneSettingsLayersHoldOnlyEnrolledRoles } from '@src/domain.operations/enroll/assertCloneSettingsLayersHoldOnlyEnrolledRoles';
+import { assertEnrollBareDeltasLinked } from '@src/domain.operations/enroll/assertEnrollBareDeltasLinked';
 import { computeBrainCliEnrollment } from '@src/domain.operations/enroll/computeBrainCliEnrollment';
 import { computeBrainCliInput } from '@src/domain.operations/enroll/computeBrainCliInput';
 import { genBrainCliConfigArtifact } from '@src/domain.operations/enroll/genBrainCliConfigArtifact';
@@ -289,6 +290,52 @@ const setCloneHostHandoffConsumedAfterDepthRead = (input: {
  * .why = this IS the invisible hot path — the human sees the brain open exactly as
  *   before, while a durable, addressable clone is left behind for crons/comms
  */
+/**
+ * .what = the repo actor, expanded, and its roles at their recorded foci — the ambient set
+ * .why = the inline form patches the ambient set, so a repo actor that cannot expand its roles
+ *   refuses it. the actor form never reads that set, so the same refusal there would block
+ *   `rhx clone @<slug>` on a role `@<slug>` never holds
+ * .note = only a ConstraintError is tolerated, and only for the actor form; a code defect throws
+ */
+const getRepoAmbientForEnroll = async (
+  input: {
+    repoPath: string;
+    refsLinked: ReturnType<typeof getAllLinkedRoleRefs>;
+    isActorForm: boolean;
+  },
+  context: ContextCli,
+): Promise<{
+  repoActorExpanded: Awaited<ReturnType<typeof getOneActorExpandedOfRepo>>;
+  rolesAmbient: RoleSlug[];
+}> => {
+  // the repo actor; under the actor form a refusal leaves it unread
+  const repoActorExpanded = await getOneActorExpandedOfRepo(
+    { actor: { ambient: true } },
+    context,
+  ).catch((error: unknown) => {
+    if (input.isActorForm && error instanceof ConstraintError) return null;
+    throw error;
+  });
+
+  // its roles at the foci `rhx init` recorded; the actor form tolerates an unlinked one
+  try {
+    const rolesAmbient = asRoleSlugsAmbientAtFocus({
+      rolesLinked: asRoleSlugsOfRefs({
+        refs: asRoleRefsOfActorExpanded({
+          refsLinked: input.refsLinked,
+          expanded: repoActorExpanded,
+        }),
+      }),
+      foci: getRepoAmbientRoleFoci({ repoPath: input.repoPath }),
+    });
+    return { repoActorExpanded, rolesAmbient };
+  } catch (error) {
+    if (input.isActorForm && error instanceof ConstraintError)
+      return { repoActorExpanded, rolesAmbient: [] };
+    throw error;
+  }
+};
+
 const performEnroll = async (input: {
   positionalBrain: BrainSlug | null;
   flagBrain: BrainSlug | null;
@@ -333,27 +380,22 @@ const performEnroll = async (input: {
   //   enroll inherits: a memoized prefetch of repo facts each downstream operation would
   //   otherwise look up itself, so it is threaded through as context, never as an input
   const contextCli = new ContextCli({ cwd: repoPath, gitroot: repoPath });
-  const repoActorExpanded = await getOneActorExpandedOfRepo(
-    { actor: { ambient: true } },
+
+  // the actor form: `@<slug>` names a declared actor, which supplies brain and roles (F10)
+  const actorFormSlug = asActorFormSlugOrNull({ token: input.positionalBrain });
+
+  // the ambient roles feed only the inline form; the actor form derives its exid and roles
+  //   from its own actor, so a repo actor with an unlinked role never refuses `@<slug>`
+  const { repoActorExpanded, rolesAmbient } = await getRepoAmbientForEnroll(
+    { repoPath, refsLinked, isActorForm: actorFormSlug !== null },
     contextCli,
   );
-  const rolesAmbient: RoleSlug[] = asRoleSlugsAmbientAtFocus({
-    rolesLinked: asRoleSlugsOfRefs({
-      refs: asRoleRefsOfActorExpanded({
-        refsLinked,
-        expanded: repoActorExpanded,
-      }),
-    }),
-    foci: getRepoAmbientRoleFoci({ repoPath }),
-  });
   const context: ContextOfRepoRoles = {
     repo: {
       ambient: { exid: getOneRepoActorExid({ repoPath }), roles: rolesAmbient },
     },
   };
 
-  // the actor form: `@<slug>` names a declared actor, which supplies brain and roles (F10)
-  const actorFormSlug = asActorFormSlugOrNull({ token: input.positionalBrain });
   const actorFormExpanded =
     actorFormSlug === null
       ? null
@@ -396,6 +438,7 @@ const performEnroll = async (input: {
     rolesLinked,
   });
   const passthrough = bare.passthrough;
+  assertEnrollBareDeltasLinked({ passthrough, rolesLinked });
   assertBrainCliPassthroughLeavesSystemPromptOwned({ passthrough });
 
   // the roleset: `--roles` and the bare deltas patch the default; none takes it whole

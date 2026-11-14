@@ -73,10 +73,27 @@ describe('genGetPublishedActorOfPackages', () => {
     });
 
     when('[t1] a slug the package does not publish is looked up', () => {
-      then('it resolves to null', () => {
-        expect(
-          getPublishedActor({ repo: 'ehmpathy', slug: 'nobody' }),
-        ).toBeNull();
+      then(
+        'it fails loud: names the package as installed, never "install it"',
+        async () => {
+          const error = await getError(() =>
+            getPublishedActor({ repo: 'ehmpathy', slug: 'nobody' }),
+          );
+          expect(error.message).toContain(
+            'rhachet-roles-ehmpathy is installed, and publishes no actor @ehmpathy/nobody',
+          );
+          expect(error.message).toContain('@ehmpathy/builder');
+          expect(error.message).not.toContain('install the role package');
+        },
+      );
+    });
+
+    when('[t1b] a typo of a published slug is looked up', () => {
+      then('it names the nearest published slug', async () => {
+        const error = await getError(() =>
+          getPublishedActor({ repo: 'ehmpathy', slug: 'buidler' }),
+        );
+        expect(error.message).toContain("did you mean '@ehmpathy/builder'?");
       });
     });
 

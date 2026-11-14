@@ -69,7 +69,10 @@ export const genBrainCliConfigArtifact = async (input: {
   //   (inventory.of=requirements.case=9). with no manifest the repo actor's file holds the
   //   whole union, as on main
   const hooksOfLinkedRoles = getActorsManifest({ repoPath })
-    ? await getAllHooksOfLinkedRolesForClaudeCode({ repoPath })
+    ? await getAllHooksOfLinkedRolesForClaudeCode({
+        repoPath,
+        roles: enrollment.roles,
+      })
     : null;
 
   // read the source and write the target as one critical section: the source mutex first,
