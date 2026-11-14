@@ -67,6 +67,25 @@ jest.mock(
   }),
 );
 
+/**
+ * .what = the manifest read and its link plan, real by default (no manifest at `/test`)
+ * .why = a case drives a manifest present, to clamp that upgrade re-links what it declares
+ */
+jest.mock('@src/domain.operations/actor/manifest/getActorsManifest', () => ({
+  ...jest.requireActual(
+    '@src/domain.operations/actor/manifest/getActorsManifest',
+  ),
+  getActorsManifest: jest.fn(),
+}));
+jest.mock(
+  '@src/domain.operations/actor/manifest/getActorsManifestLinkPlan',
+  () => ({
+    getActorsManifestLinkPlan: jest.fn(),
+  }),
+);
+
+import { getActorsManifest } from '@src/domain.operations/actor/manifest/getActorsManifest';
+import { getActorsManifestLinkPlan } from '@src/domain.operations/actor/manifest/getActorsManifestLinkPlan';
 import { syncAndReportBrainDirBoots } from '@src/domain.operations/init/boots/syncAndReportBrainDirBoots';
 import { syncHooksForLinkedRoles } from '@src/domain.operations/init/hooks/syncHooksForLinkedRoles';
 import { initRolesFromPackages } from '@src/domain.operations/init/roles/link/initRolesFromPackages';
@@ -203,6 +222,60 @@ describe('execUpgrade', () => {
     mockGetGlobalRhachetVersion.mockReturnValue('1.39.10');
     mockDetectInvocationMethod.mockReturnValue('global');
     mockExecNpmInstallGlobal.mockReturnValue({ upgraded: true });
+    // default: no manifest, so every extant case reads exactly as before
+    (getActorsManifest as jest.Mock).mockReturnValue(null);
+  });
+
+  given('[case1m] the repo declares .agent/actors.yml', () => {
+    beforeEach(() => {
+      mockResolveBrainsToPackages.mockResolvedValue([]);
+      (getActorsManifest as jest.Mock).mockReturnValue({
+        ambient: 'crew',
+        actor: [],
+      });
+      // the boot sync reads the manifest too; this case is about the link set alone
+      spySyncAndReportBrainDirBoots.mockResolvedValue({
+        exitCode: 0,
+        repoActorRendered: false,
+      } as any);
+      (getActorsManifestLinkPlan as jest.Mock).mockResolvedValue({
+        reportLines: ['🎭 actors.yml'],
+        roleSpecifiers: ['ehmpathy/mechanic', 'bhuild/behaver'],
+      });
+    });
+
+    when('[t0] execUpgrade re-inits the roles', () => {
+      then('it links the manifest roles beside the linked roles', async () => {
+        await execUpgrade({ roleSpecs: ['*'] }, context);
+        expect(mockInitRolesFromPackages).toHaveBeenCalledWith(
+          { specifiers: ['ehmpathy/mechanic', 'bhuild/behaver'] },
+          context,
+        );
+      });
+
+      then('it prints the manifest report', async () => {
+        const { logs } = await runUpgradeCaptured({ roleSpecs: ['*'] });
+        expect(logs).toContain('🎭 actors.yml');
+      });
+    });
+
+    when('[t1] no role is linked yet', () => {
+      beforeEach(() => {
+        mockExpandRoleSupplierSlugs.mockResolvedValue({
+          packages: ['rhachet-roles-ehmpathy'],
+          linkedRoles: [],
+          slugs: ['ehmpathy/*'] as any,
+        });
+      });
+
+      then('it still links what the manifest declares', async () => {
+        await execUpgrade({ roleSpecs: ['*'] }, context);
+        expect(mockInitRolesFromPackages).toHaveBeenCalledWith(
+          { specifiers: ['ehmpathy/mechanic', 'bhuild/behaver'] },
+          context,
+        );
+      });
+    });
   });
 
   given('no flags provided', () => {

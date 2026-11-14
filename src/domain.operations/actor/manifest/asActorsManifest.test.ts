@@ -75,6 +75,15 @@ const CASES_REFUSED = [
       "names a role focus 'ehmpathy/mechanic::flow', which actors.yml does not support yet",
   },
   {
+    description: 'an unknown top-level key is refused, never dropped',
+    parsed: {
+      ambient: '@solo',
+      actor: [{ slug: 'solo', brain: 'claude', roles: ['ehmpathy/mechanic'] }],
+      ambeint: '@solo',
+    },
+    message: 'actors.yml has an unknown top-level key',
+  },
+  {
     description: 'no `ambient:` key, even with a sole actor (S9)',
     parsed: {
       actor: [

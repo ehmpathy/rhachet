@@ -94,8 +94,8 @@ describe('asActorFormEnrollment', () => {
     });
   });
 
-  given('[case3] `@scholar --brain claude`, a brain override', () => {
-    when('[t0] the enrollment is derived', () => {
+  given('[case3] `@scholar --brain <brain>`, a brain flag', () => {
+    when('[t0] the flag names another slug for the same cli (`claude`)', () => {
       const result = asActorFormEnrollment({
         expanded: EXPANDED_SCHOLAR,
         brainFlag: 'claude',
@@ -103,16 +103,23 @@ describe('asActorFormEnrollment', () => {
         refsLinked: REFS_LINKED,
       });
 
-      then('it lands in a derived actor, apart from the role-delta one', () => {
-        const withDelta = asActorFormEnrollment({
-          expanded: EXPANDED_SCHOLAR,
-          brainFlag: null,
-          spec: parseBrainCliEnrollmentSpec({ tokens: ['+mechanic'] }),
-          refsLinked: REFS_LINKED,
-        });
-        expect(result.exid).toMatch(/^slug=scholar\._\.delta=[0-9a-f]{8}$/);
-        expect(result.exid).not.toEqual(withDelta.exid);
+      then('it is no override — the slug actor, never a delta twin', () => {
+        expect(result.exid).toEqual('slug=scholar');
         expect(result.brain).toEqual('claude');
+      });
+    });
+
+    when('[tx] the flag names an unsupported brain', () => {
+      then('it is refused before any exid is minted', async () => {
+        const error = await getError(async () =>
+          asActorFormEnrollment({
+            expanded: EXPANDED_SCHOLAR,
+            brainFlag: 'codex',
+            spec: SPEC_NONE,
+            refsLinked: REFS_LINKED,
+          }),
+        );
+        expect(error).toBeInstanceOf(Error);
       });
     });
 

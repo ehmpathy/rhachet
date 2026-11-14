@@ -16,4 +16,4 @@
 - **rework** — clean — new acceptance cases, no change to code
 - **confidence** — 70%; the wisher may want the success stdout on review, and that is a real ask
 - **where** — raised by enroll-impl-behavior-intent nitpick.2, .3, .4 (i004)
-- **verdict** — unruled; best guess taken, flagged for the wisher
+- **verdict** — ruled 2026-11-14 by the director: take the guess. the success paths stay proven at integration, the refusals snapped

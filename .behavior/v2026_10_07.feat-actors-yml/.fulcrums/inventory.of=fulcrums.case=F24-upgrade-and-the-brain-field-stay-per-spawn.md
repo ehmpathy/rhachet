@@ -23,3 +23,4 @@
   and an actor-form enroll no longer needs the repo actor to expand (`getRepoAmbientForEnroll`).
   a grown base waits for the next `rhx init`, and every enroll still works meanwhile
 - **verdict** — unruled; best guess taken
+- **i006 amend** — the upgrade half is reversed on r10 blocker.2: `execUpgrade` now reads `actors.yml` and re-links the plan's role specifiers beside the linked roles, so a grown published base lands at `rhx upgrade` with no extra `rhx init` (`execUpgrade.test.ts` `[case1m]`). the brain half stands: read per spawn, never recorded

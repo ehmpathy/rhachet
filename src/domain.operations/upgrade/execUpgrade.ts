@@ -6,6 +6,7 @@ import type { RoleSupplierSlug } from '@src/domain.objects/RoleSupplierSlug';
 import { setRepoActorBrainDirLayoutBeforeInits } from '@src/domain.operations/init/boots/setRepoActorBrainDirLayout';
 import { syncAndReportBrainDirBoots } from '@src/domain.operations/init/boots/syncAndReportBrainDirBoots';
 import { syncHooksForLinkedRoles } from '@src/domain.operations/init/hooks/syncHooksForLinkedRoles';
+import { getAllLinkedRoleRefs } from '@src/domain.operations/init/roles/link/getAllLinkedRoleRefs';
 import { initRolesFromPackages } from '@src/domain.operations/init/roles/link/initRolesFromPackages';
 import { asThrownValueText } from '@src/utils/asThrownValueText';
 
@@ -344,11 +345,36 @@ export const execUpgrade = async (
     hookErrors: { source: string; error: Error }[];
   }> => {
     if (!whichTargets.includes('local')) return { exitCode: 0, hookErrors: [] };
-    if (roleExpanded.linkedRoles.length === 0)
-      return { exitCode: 0, hookErrors: [] };
-    const specifiers = buildRoleSpecifiers({
-      linkedRoles: roleExpanded.linkedRoles,
-    });
+
+    // manifest => plan the link of every declared actor's roles, from the packages as they
+    //   stand after the install, so a published base that grew reaches this repo now (A3)
+    const { getActorsManifest } = await import(
+      '@src/domain.operations/actor/manifest/getActorsManifest'
+    );
+    const actorsManifest = getActorsManifest({ repoPath: context.gitroot });
+    const manifestLinkPlan = actorsManifest
+      ? await (
+          await import(
+            '@src/domain.operations/actor/manifest/getActorsManifestLinkPlan'
+          )
+        ).getActorsManifestLinkPlan(
+          {
+            manifest: actorsManifest,
+            refsLinked: getAllLinkedRoleRefs({}, context),
+          },
+          context,
+        )
+      : null;
+    manifestLinkPlan?.reportLines.forEach((line) => console.log(line));
+
+    // the roles to re-init: every linked role, plus each role the manifest declares
+    const specifiers = [
+      ...new Set([
+        ...buildRoleSpecifiers({ linkedRoles: roleExpanded.linkedRoles }),
+        ...(manifestLinkPlan?.roleSpecifiers ?? []),
+      ]),
+    ];
+    if (specifiers.length === 0) return { exitCode: 0, hookErrors: [] };
 
     // put the repo actor's brain dir in the split layout BEFORE the role inits, so an init
     //   that writes through `<repo>/.claude` meets the layout it lives in

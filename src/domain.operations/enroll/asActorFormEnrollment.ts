@@ -7,6 +7,7 @@ import type { RoleSlug } from '@src/domain.objects/RoleSlug';
 import { asActorRolesDelta } from '@src/domain.operations/actor/enrolled/asActorRolesDelta';
 import { genEnrollmentHashOfActorDelta } from '@src/domain.operations/actor/enrolled/genEnrollmentHashOfActorDelta';
 import type { ActorExpanded } from '@src/domain.operations/actor/manifest/getActorExpanded';
+import { getSupportedBrainCommand } from '@src/domain.operations/brain/getSupportedBrainCommand';
 import { asRoleSlugsOfRefs } from '@src/domain.operations/init/boots/asRoleSlugsOfRefs';
 import { isRoleSpecifierMatch } from '@src/domain.operations/roles/isRoleSpecifierMatch';
 
@@ -66,7 +67,11 @@ export const asActorFormEnrollment = (input: {
   const rolesDelta = asActorRolesDelta({ spec: input.spec });
 
   // no override → the slug actor; any override → the derived actor over it
-  const isBrainOverride = brain !== expanded.brain;
+  //   a brain override is a different COMMAND, never a different slug text: `claude` and
+  //   `anthropic/claude/code` run one cli, so neither mints a delta twin of the other
+  const isBrainOverride =
+    getSupportedBrainCommand({ brain }).command !==
+    getSupportedBrainCommand({ brain: expanded.brain }).command;
   const exid =
     rolesDelta === null && !isBrainOverride
       ? `slug=${expanded.slug}`

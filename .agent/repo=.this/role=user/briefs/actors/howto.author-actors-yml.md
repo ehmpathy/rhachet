@@ -88,6 +88,10 @@ in the same shape, with no `ambient:` (the repo actor is the consumer's choice).
 introspect` inlines them into `rhachet.repo.yml` as `actors:`, and a consumer adopts one as
 `'@<repo>/<slug>'`.
 
+a bare role slug in a published actor means the package's **own** role: introspect qualifies it to
+`<repo>/<role>` before it checks and emits it, so a typo fails at introspect, never in a consumer's
+`init`. a role of another package must be written qualified (`bhuild/behaver`).
+
 ## see also
 
 - [`rule.prefer.name-actors-after-roles.md`](./rule.prefer.name-actors-after-roles.md) — name actors after their composite role, not a person

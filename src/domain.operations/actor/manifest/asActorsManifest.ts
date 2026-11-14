@@ -8,6 +8,11 @@ import { asSlugsDuplicated } from './asSlugsDuplicated';
 import { isPlainObject } from './isPlainObject';
 
 /**
+ * .what = the top-level keys a consumer `actors.yml` may hold
+ */
+const ACTORS_MANIFEST_KEYS: string[] = ['ambient', 'actor'];
+
+/**
  * .what = cast a parsed `.agent/actors.yml` into an ActorsManifest, or fail fast with the fix
  * .why = every reader (init, enroll, clone) validates the same way before any write (case=7)
  *
@@ -23,6 +28,18 @@ export const asActorsManifest = (input: {
     throw new ConstraintError('actors.yml is not a map', {
       path: input.path,
       hint: "declare `ambient: '@<slug>'` and an `actor:` list",
+    });
+
+  // no top-level key but `ambient` and `actor`, as no per-actor key but its own: a typo'd
+  //   key would otherwise be dropped, and the declaration it carried lost in silence
+  const keysUnknown = Object.keys(input.parsed).filter(
+    (key) => !ACTORS_MANIFEST_KEYS.includes(key),
+  );
+  if (keysUnknown.length)
+    throw new ConstraintError('actors.yml has an unknown top-level key', {
+      path: input.path,
+      keys: keysUnknown,
+      hint: 'the top level holds `ambient:` and `actor:` alone — rename or drop the rest',
     });
 
   // the actor list is present and every entry is valid
