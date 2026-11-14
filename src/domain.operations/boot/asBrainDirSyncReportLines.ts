@@ -44,8 +44,9 @@ export const asBrainDirSyncReportLines = (input: {
   render: BrainDirBootRender;
   symlink: BrainDirSyncSymlink | null;
   repoActorBrainDirRel: string;
+  isManifestRepo: boolean;
 }): string[] => {
-  const { render, symlink, repoActorBrainDirRel } = input;
+  const { render, symlink, repoActorBrainDirRel, isManifestRepo } = input;
 
   const groups: ReportGroup[] = [];
 
@@ -83,14 +84,25 @@ export const asBrainDirSyncReportLines = (input: {
       rows: [`.claude → ${repoActorBrainDirRel}`],
     });
 
-  // the corpus. `created` and `upgraded` are different facts to a human: one says a
+  // the corpus. `created` and `changed` are different facts to a human: one says a
   //   brain dir is new, the other says a live one just changed under its clones
+  //   .note = `changed — now N`, never `upgraded — N`: a change may add roles or remove them, and
+  //     N is the total the corpus holds now, not the count that moved
+  //   .note = a live corpus whose last role left reads `emptied`, never `changed — now 0 roles`
+  //   .note = with no manifest the row keeps main's words, `upgraded — N`, so an absent
+  //     actors.yml keeps today's output byte for byte (case=5)
   const roleWord = render.stats.roles === 1 ? 'role' : 'roles';
+  const isEmptied = !render.bootMdCreated && render.stats.roles === 0;
+  const corpusRow = (() => {
+    if (render.bootMdCreated)
+      return `created — ${render.stats.roles} ${roleWord}`;
+    if (!isManifestRepo) return `upgraded — ${render.stats.roles} ${roleWord}`;
+    if (isEmptied) return 'emptied — 0 roles';
+    return `changed — now ${render.stats.roles} ${roleWord}`;
+  })();
   groups.push({
     label: BRAIN_DIR_BOOT_FILENAMES.bootMd,
-    rows: [
-      `${render.bootMdCreated ? 'created' : 'upgraded'} — ${render.stats.roles} ${roleWord}`,
-    ],
+    rows: [corpusRow],
   });
 
   // a reset is never silent (S11): the human's hand edits were dropped, and they learn
@@ -102,9 +114,13 @@ export const asBrainDirSyncReportLines = (input: {
     });
 
   // a corpus that re-rendered identical bytes, with no migration and no link change, is no news.
-  //   a corpus whose bytes changed is news: its clones boot a new roleset
+  //   under `.agent/actors.yml`, a corpus whose bytes changed is news: a manifest edit just moved
+  //   the roleset every clone of this actor boots. with no manifest the report stays as it was,
+  //   news only on a created corpus, so an absent actors.yml keeps today's output (the wish)
   const isBootOnly = groups.length === 1;
-  if (isBootOnly && !render.bootMdChanged) return [];
+  const isNewsOfCorpus =
+    render.bootMdCreated || (isManifestRepo && render.bootMdChanged);
+  if (isBootOnly && !isNewsOfCorpus) return [];
 
   return [
     `🧠 ${asBrainDirBootScopeLabel({ scope: render.scope })}`,

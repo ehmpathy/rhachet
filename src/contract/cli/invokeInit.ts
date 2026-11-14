@@ -273,16 +273,6 @@ export const invokeInit = ({ program }: { program: Command }): void => {
           context,
         );
 
-        // no manifest + --roles => one hint, after the link trees and the prepare replay, that
-        // names the manifest (case=5)
-        //   .note = after the replay, since its block closes on a blank line of its own; before
-        //     it, the two blank lines stacked
-        //   .note = plain text, no ansi: the same bytes reach a pipe, a pty, and every snapshot
-        if (!actorsManifest && deltas !== null)
-          console.log(
-            '💡 declare these roles by name in .agent/actors.yml, and `rhx init` reads them\n',
-          );
-
         // flag: --keys => init keyrack manifest (after roles); plain slugs only.
         //   under a manifest, the slugs are the declared union's
         const roleSlugsForKeys = manifestLinkPlan
@@ -390,6 +380,22 @@ export const invokeInit = ({ program }: { program: Command }): void => {
 
         // exit by the brain dir sync's own rule: 2 for a human fix, 1 for a malfunction
         if (boots.exitCode !== 0) process.exit(boots.exitCode);
+
+        // no manifest + --roles => one hint that names the manifest, LAST, once every block of
+        //   the init has reported and only on a run that succeeded (case=5)
+        //   .note = last, so the advisory never splits the report of what the init did
+        //   .note = plain text, no ansi: the same bytes reach a pipe, a pty, and every snapshot
+        //   .note = the `💡 tip` emoji-header treestruct, the repo's standard for an advisory
+        //     (asCloneListView); the link is a url, since a consumer repo holds no rhachet briefs
+        if (!actorsManifest && deltas !== null)
+          console.log(
+            [
+              '💡 tip',
+              '   ├─ declare these roles in .agent/actors.yml, and `rhx init` reads them',
+              '   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md',
+              '',
+            ].join('\n'),
+          );
 
         // no flags => show usage instructions
         const hasAnyFlag =

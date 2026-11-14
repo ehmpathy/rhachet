@@ -21,8 +21,6 @@ exports[`rhachet init --keys given: [case1] repo with role keyrack and scoped pa
 ✨ 1 role(s) linked
 ✨ 1 role(s) initialized
 
-💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
-
 🔑 keyrack init
    ├─ org: test-org
    ├─ extends:
@@ -34,6 +32,10 @@ exports[`rhachet init --keys given: [case1] repo with role keyrack and scoped pa
    │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
       └─ created — 1 role
+
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
 
 "
 `;
@@ -72,13 +74,15 @@ exports[`rhachet init --keys given: [case3] idempotent re-run when: [t0] init --
 ✨ 1 role(s) linked
 ✨ 1 role(s) initialized
 
-💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
-
 🔑 keyrack init
    ├─ org: test-org
    ├─ extends:
    │  └─ .agent/repo=test-repo/role=tester/keyrack.yml
    └─ found .agent/keyrack.yml (no changes)
+
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
 
 "
 `;
@@ -103,8 +107,6 @@ exports[`rhachet init --keys given: [case4] role lacks keyrack (skip, create man
 ✨ 1 role(s) linked
 ✨ 1 role(s) initialized
 
-💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
-
 🔑 keyrack init
    ├─ org: test-org
    └─ created .agent/keyrack.yml
@@ -114,6 +116,10 @@ exports[`rhachet init --keys given: [case4] role lacks keyrack (skip, create man
    │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
       └─ created — 1 role
+
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
 
 "
 `;

@@ -804,6 +804,71 @@ describe('rhx clone @<slug> under .agent/actors.yml (integration)', () => {
     });
   });
 
+  given('[case5b] a peer whose brain differs from the repo actor brain', () => {
+    const dir = genTempDir({ slug: 'enroll-actors-yml-peer-brain' });
+    afterAll(() => endClonesBakedIn({ repoDir: dir, env: null }));
+    const scene = useBeforeAll(async () => {
+      setupRoleFixtureRepo({ dir });
+      setActorsYml({
+        dir,
+        lines: [
+          "ambient: '@crew'",
+          'actor:',
+          '  - slug: crew',
+          '    brain: claude',
+          '    roles: [ehmpathy/mechanic]',
+          '  - slug: peer',
+          '    brain: codex',
+          '    roles: [ehmpathy/mechanic]',
+          '  - slug: heir',
+          "    roles: ['@peer']",
+          '',
+        ],
+      });
+      const init = invokeRhachetCliBinary({ args: ['init'], cwd: dir });
+      if (init.status !== 0)
+        throw new MalfunctionError('fixture init failed', {
+          stderr: init.stderr,
+          hint: 'the fixture setup broke, not the case under test; read the stderr above, then rebuild (`npm run build`) if dist/ is stale',
+        });
+      return { path: setupRichStubBrainPath({ dir }) };
+    });
+
+    // .note = `codex` has no supplier in this repo, so the brain a peer spawns on is observable:
+    //   the peer's own brain is refused by name, where the repo actor's (`claude`) would boot
+    when('[t0] `clone @peer`', () => {
+      const run = useThen('exits 2', () =>
+        invokeRhachetCliBinary({
+          args: ['clone', '@peer'],
+          cwd: dir,
+          env: { PATH: scene.path },
+          logOnError: false,
+        }),
+      );
+
+      then('it spawns on the peer brain, never the repo actor brain', () => {
+        expect(run.status).toEqual(2);
+        expect(run.stderr).toContain("brain 'codex' not supported");
+      });
+    });
+
+    when('[t1] `clone @heir`, a peer that extends `@peer` and names no brain', () => {
+      const run = useThen('exits 2', () =>
+        invokeRhachetCliBinary({
+          args: ['clone', '@heir'],
+          cwd: dir,
+          env: { PATH: scene.path },
+          logOnError: false,
+        }),
+      );
+
+      then('it inherits the base brain through the `@peer` ref', () => {
+        expect(run.status).toEqual(2);
+        expect(run.stderr).toContain("brain 'codex' not supported");
+      });
+    });
+  });
+
   given('[case6] an actor that names the documented repl slug `anthropic/claude/code`', () => {
     const dir = genTempDir({ slug: 'enroll-actors-yml-repl-slug' });
     afterAll(() => endClonesBakedIn({ repoDir: dir, env: null }));

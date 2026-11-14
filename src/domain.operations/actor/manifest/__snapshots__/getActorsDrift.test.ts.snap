@@ -4,28 +4,29 @@ exports[`asActorsDriftReportLines given: [case1] drift both ways, with a caution
 "🎭 actors.yml
    ├─ repo actor = @builder
    ├─ 2 actor(s), 6 role(s) declared
-   ├─ short → restored
-   │  └─ bhrain/learner ↺ linked, via @ehmpathy/builder
+   ├─ declared, unlinked → to link
+   │  └─ bhrain/learner, via @ehmpathy/builder
    ├─ extra → kept, undeclared
    │  └─ ghlitch/observer
    │     ├─ to keep it, declare \`ghlitch/observer\` in .agent/actors.yml
-   │     └─ to drop it, unlink .agent/repo=ghlitch/role=observer
+   │     └─ to drop it, rm .agent/repo=ghlitch/role=observer
    └─ cautions
-      └─ @builder removes -driver, which @ehmpathy/builder does not hold"
+      └─ @builder removes -driver, which @ehmpathy/builder does not hold
+         └─ to quiet it, drop that \`-role\` from .agent/actors.yml"
 `;
 
 exports[`asActorsDriftReportLines given: [case2] no drift when: [t0] the report is rendered then: it matches the snapshot 1`] = `
 "🎭 actors.yml
    ├─ repo actor = @scholar
    ├─ 1 actor(s), 3 role(s) declared
-   └─ in sync, no role short"
+   └─ in sync, every declared role linked"
 `;
 
 exports[`asActorsDriftReportLines given: [case3] a native \`.this\` role no actor declares when: [t0] the report is rendered then: it matches the snapshot 1`] = `
 "🎭 actors.yml
    ├─ repo actor = @builder
    ├─ 1 actor(s), 1 role(s) declared
-   ├─ in sync, no role short
+   ├─ in sync, every declared role linked
    └─ native → not booted, undeclared
       └─ .this/any
          └─ to boot it, declare \`.this/any\` under @builder in .agent/actors.yml"
@@ -35,7 +36,7 @@ exports[`asActorsDriftReportLines given: [case4] actor dirs whose base slug left
 "🎭 actors.yml
    ├─ repo actor = @builder
    ├─ 1 actor(s), 2 role(s) declared
-   ├─ in sync, no role short
+   ├─ in sync, every declared role linked
    └─ actor dirs → kept, slug undeclared
       ├─ actor.via.slug=scholar
       │  ├─ to keep it, re-declare \`@scholar\` in .agent/actors.yml

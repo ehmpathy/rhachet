@@ -309,4 +309,89 @@ describe('actors.yml, published by a role package and adopted by a repo (journey
       });
     });
   });
+
+  given('[case4] a package whose published actors yml names an `ambient:` key', () => {
+    const pkgAmbientDir = join(root, 'pkg-ambient');
+    beforeAll(() => {
+      setSurfschoolPackage({
+        dir: pkgAmbientDir,
+        actorsLines: [
+          "ambient: '@instructor'",
+          'actor:',
+          '  - slug: instructor',
+          '    brain: claude',
+          '    roles: [coach]',
+        ],
+      });
+    });
+
+    when('[t0] `repo introspect` in the package', () => {
+      const run = useThen('exits 2', () =>
+        invokeRhachetCliBinary({ args: ['repo', 'introspect'], cwd: pkgAmbientDir, logOnError: false }),
+      );
+
+      then('it is refused, and names the `ambient:` key', () => {
+        expect(run.status).toEqual(2);
+        expect(run.stderr).toContain('ambient');
+      });
+      then('the refusal holds its shape', () => {
+        expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+      });
+      then('rhachet.repo.yml is never written — the refusal precedes the write', () => {
+        expect(existsSync(join(pkgAmbientDir, 'rhachet.repo.yml'))).toEqual(false);
+      });
+    });
+  });
+
+  given('[case5] a package whose published actors yml is unsound, at the command', () => {
+    const CASES_PUBLISH_REFUSED = [
+      {
+        description: 'a yaml syntax fault',
+        slug: 'pkg-yaml',
+        actorsLines: ['actor: [', '  - slug: : :'],
+      },
+      {
+        description: 'a role the package does not hold',
+        slug: 'pkg-typo',
+        actorsLines: ['actor:', '  - slug: instructor', '    brain: claude', '    roles: [coahc]'],
+      },
+      {
+        description: 'two actors that extend each other',
+        slug: 'pkg-cycle',
+        actorsLines: [
+          'actor:',
+          '  - slug: ebb',
+          '    brain: claude',
+          "    roles: ['@flow']",
+          '  - slug: flow',
+          "    roles: ['@ebb']",
+        ],
+      },
+    ];
+
+    CASES_PUBLISH_REFUSED.map((thisCase) =>
+      when(`[t0] \`repo introspect\` over ${thisCase.description}`, () => {
+        const pkgDir = join(root, thisCase.slug);
+        const run = useThen('exits 2', () => {
+          setSurfschoolPackage({ dir: pkgDir, actorsLines: thisCase.actorsLines });
+          return invokeRhachetCliBinary({
+            args: ['repo', 'introspect'],
+            cwd: pkgDir,
+            logOnError: false,
+          });
+        });
+
+        then('it is refused as a constraint, exit 2', () => {
+          expect(run.status).toEqual(2);
+          expect(run.stderr).toContain('ConstraintError');
+        });
+        then('the refusal holds its shape', () => {
+          expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+        });
+        then('rhachet.repo.yml is never written — the refusal precedes the write', () => {
+          expect(existsSync(join(pkgDir, 'rhachet.repo.yml'))).toEqual(false);
+        });
+      }),
+    );
+  });
 });

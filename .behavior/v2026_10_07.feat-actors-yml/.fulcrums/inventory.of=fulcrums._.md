@@ -33,3 +33,4 @@
 | F29 | `rhachet init --mode plan` stays cut: the vision scoped it a *could*, cut if it costs more than a flag | clean | unruled — best guess taken | 80% |
 | F30 | the stub census and the parent-loss clamp read `/proc`, as the foreman ordered | clean | unruled — disputed on the 5.3 i003 repo-rules blocker.1 | 80% |
 | F31 | under a manifest, `init` writes the repo actor's `actor.json`, so `init --hooks` derives its hooks before any enroll | clean | unruled — best guess taken | 80% |
+| F32 | a repo's `actors.yml` lists its actors under `actor:`, singular, beside the `actors:` a published `rhachet.repo.yml` carries | dirty | unruled — disputed on the 5.3 i004 snapshot-blemishes nitpick.10 | 60% |

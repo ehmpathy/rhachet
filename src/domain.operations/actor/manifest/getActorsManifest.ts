@@ -37,23 +37,25 @@ export const getActorsManifest = (input: {
   const content = readFileSync(path, 'utf8');
 
   // parse the yaml; a bare `@` value names the quote fix
+  //   .note = the parser's message rides once, as `excerpt`, one array item per line: the
+  //     metadata renders as json, where a single string would flatten the caret that points at
+  //     the fault into `\n` escapes. an `error` or `cause` key beside it would say it twice
   const parsed = ((): unknown => {
     try {
       return parseYaml(content);
     } catch (error) {
       if (!(error instanceof Error)) throw error;
+      const excerpt = error.message.split('\n').filter((line) => line.length);
       if (isErrorOfBareAtValue({ error }))
         throw new ConstraintError('actors.yml has an unquoted `@` value', {
           path,
-          error: error.message,
           hint: "quote each value that opens with `@` — yaml reserves it: `ambient: '@builder'`, `- '@ehmpathy/builder'`",
-          cause: error,
+          excerpt,
         });
       throw new ConstraintError('actors.yml has invalid yaml', {
         path,
-        error: error.message,
         hint: 'fix the yaml at the line the error names',
-        cause: error,
+        excerpt,
       });
     }
   })();

@@ -30,6 +30,22 @@ const asStdoutBlock = (input: { stdout: string; header: string }): string => {
 };
 
 /**
+ * .what = slice a run of blocks out of `init` stdout, from the block that opens on `from` through
+ *         the end of the block that opens on `through`
+ * .why = a segment like the hook sync spans several blocks (`🔭` → `🪝` → `✨ hooks` → `🧢`); one
+ *        block alone can be a header with no outcome under it
+ * .note = an absent header yields the whole stdout, so the snapshot shows what was printed instead
+ */
+const asStdoutSegment = (input: { stdout: string; from: string; through: string }): string => {
+  const lines = input.stdout.split('\n');
+  const start = lines.findIndex((line) => line.startsWith(input.from));
+  const last = lines.findIndex((line, index) => index > start && line.startsWith(input.through));
+  if (start === -1 || last === -1) return input.stdout;
+  const end = lines.findIndex((line, index) => index > last && line === '');
+  return lines.slice(start, end === -1 ? undefined : end).join('\n');
+};
+
+/**
  * .what = slice the `🎭 actors.yml` report block out of `init` stdout
  */
 const asActorsReportBlock = (input: { stdout: string }): string =>
@@ -45,7 +61,8 @@ const asStderrWithPackageCarriageMasked = (input: { stderr: string }): string =>
   if (!input.stderr.includes('"package": "rhachet-roles-')) return input.stderr;
   return input.stderr
     .replace(/(rhachet-roles-[a-z0-9-]+)@\d+\.\d+\.\d+[^\s",']*/g, '$1@$VERSION')
-    .replace(/"roles": \[[^\]]*\]/g, '"roles": [$ROLES_CARRIED]');
+    .replace(/"roles": \[[^\]]*\]/g, '"roles": ["$ROLES_CARRIED"]');
+  // .note = the placeholder is a quoted element, so the frame stays valid json for a reader
 };
 
 /**
@@ -108,15 +125,18 @@ describe('rhx init under .agent/actors.yml (acceptance)', () => {
         expect(getOneIsRoleLinked({ dir: testDir, role: 'behaver' })).toEqual(true);
         expect(getOneIsRoleLinked({ dir: testDir, role: 'librarian' })).toEqual(true);
       });
-      then('the report names the repo actor and the restored roles', () => {
+      then('the report names the repo actor and the declared roles it linked', () => {
         const block = asActorsReportBlock({ stdout: run.stdout });
         expect(block).toContain('repo actor = @crew');
         expect(block).toContain('2 actor(s), 3 role(s) declared');
-        expect(block).toContain('short → restored');
-        expect(block).toContain('bhrain/librarian ↺ linked');
+        expect(block).toContain('declared, unlinked → to link');
+        expect(block).toContain('bhrain/librarian');
       });
       then('the report block holds its shape', () => {
         expect(asActorsReportBlock({ stdout: run.stdout })).toMatchSnapshot();
+      });
+      then('the whole init frame holds its shape — block order and blank lines included', () => {
+        expect(asSnapshotSafe(run.stdout)).toMatchSnapshot();
       });
       then('the brain dir header names the repo actor, `brain://slug=crew`', () => {
         const block = asStdoutBlock({ stdout: run.stdout, header: '🧠 brain://' });
@@ -149,7 +169,10 @@ describe('rhx init under .agent/actors.yml (acceptance)', () => {
 
       then('the report says the set is in sync', () => {
         expect(run.status).toEqual(0);
-        expect(asActorsReportBlock({ stdout: run.stdout })).toContain('in sync, no role short');
+        expect(asActorsReportBlock({ stdout: run.stdout })).toContain('in sync, every declared role linked');
+      });
+      then('the whole no-change frame holds its shape — the common `pnpm prepare` replay', () => {
+        expect(asSnapshotSafe(run.stdout)).toMatchSnapshot();
       });
     });
   });
@@ -233,7 +256,7 @@ describe('rhx init under .agent/actors.yml (acceptance)', () => {
         const block = asActorsReportBlock({ stdout: run.stdout });
         expect(block).toContain('extra → kept, undeclared');
         expect(block).toContain('ehmpathy/architect');
-        expect(block).toContain('to drop it, unlink .agent/repo=ehmpathy/role=architect');
+        expect(block).toContain('to drop it, rm .agent/repo=ehmpathy/role=architect');
       });
       then('the report block holds its shape', () => {
         expect(asActorsReportBlock({ stdout: run.stdout })).toMatchSnapshot();
@@ -552,7 +575,7 @@ describe('rhx init under .agent/actors.yml (acceptance)', () => {
       then('the repo actor brain block names the upgrade — never a silent re-render', () => {
         const block = asStdoutBlock({ stdout: run.stdout, header: '🧠 brain://slug=crew' });
         expect(block.startsWith('🧠 brain://slug=crew')).toEqual(true);
-        expect(block).toContain('upgraded — 1 role');
+        expect(block).toContain('changed — now 1 role');
         expect(asSnapshotSafe(block)).toMatchSnapshot();
       });
     });
@@ -629,6 +652,19 @@ describe('rhx init under .agent/actors.yml (acceptance)', () => {
       lines: ["ambient: '@a'", 'actor:', '  - slug: a', '    brain: claude', "    roles: ['ehmpathy/mechanic::flow']", ''],
       message: "names a role focus 'ehmpathy/mechanic::flow', which actors.yml does not support yet",
     },
+    {
+      description: 'a typo in `ambient:`',
+      lines: ["ambient: '@crw'", 'actor:', '  - slug: crew', '    brain: claude', '    roles: [ehmpathy/mechanic]', ''],
+      message: "did you mean '@crew'?",
+    },
+    {
+      // .note = the fixture's installed role package publishes no actors at its pinned version, so
+      //   this frame is the upgrade branch of row 50; the nearest-slug branch is proven against a
+      //   package that publishes (genGetPublishedActorOfPackages.integration [t1b])
+      description: 'a published actor slug the installed package does not publish',
+      lines: ["ambient: '@crew'", 'actor:', '  - slug: crew', "    roles: ['@ehmpathy/buidler']", ''],
+      message: 'rhachet-roles-ehmpathy is installed, and publishes no actor @ehmpathy/buidler',
+    },
   ];
 
   given('[case8] a manifest with an authored mistake', () => {
@@ -694,9 +730,42 @@ describe('rhx init under .agent/actors.yml (acceptance)', () => {
         expect(block).toContain('slug=crew');
         expect(block).not.toContain('actor.via.slug=crew');
       });
-      then('the hook frames hold their shape', () => {
-        expect(asStdoutBlock({ stdout: run.stdout, header: '🪝' })).toMatchSnapshot();
-        expect(asStdoutBlock({ stdout: run.stdout, header: '🧢' })).toMatchSnapshot();
+      then('the actor row adds exactly the hooks `settings.of.repo.json` now holds', () => {
+        // the count belongs to the installed role packages, so it is derived from the file the
+        //   init wrote rather than pinned. a `+0`, or a count that disagrees with the file, fails
+        const settings = JSON.parse(
+          readFileSync(
+            join(
+              testDir,
+              '.agent',
+              '.actors',
+              'actor.via.slug=crew',
+              'brain',
+              '.claude',
+              'settings.of.repo.json',
+            ),
+            'utf8',
+          ),
+        ) as { hooks?: Record<string, Array<{ hooks?: unknown[] }>> };
+        const hooksHeld = Object.values(settings.hooks ?? {}).reduce(
+          (sum, entries) =>
+            sum + entries.reduce((sumInner, entry) => sumInner + (entry.hooks?.length ?? 0), 0),
+          0,
+        );
+        const block = asStdoutBlock({ stdout: run.stdout, header: '🧢' });
+        const addedMatch = block.match(/slug=crew: \+(\d+)/);
+        expect(hooksHeld).toBeGreaterThan(0);
+        expect(Number(addedMatch?.[1])).toEqual(hooksHeld);
+      });
+      then('the hook sync segment holds its shape, `🔭` through `🧢`', () => {
+        // .note = the count is asserted against the file in the then above; here it is masked, so a
+        //   routine bump of a role package does not turn this snapshot red
+        expect(
+          asStdoutSegment({ stdout: run.stdout, from: '🔭', through: '🧢' }).replace(
+            /(slug=crew: )\+\d+/g,
+            '$1+<N>',
+          ),
+        ).toMatchSnapshot();
       });
       then('the repo actor `settings.of.repo.json` carries the `@crew` roles hooks', () => {
         const settings = JSON.parse(
@@ -720,6 +789,47 @@ describe('rhx init under .agent/actors.yml (acceptance)', () => {
         expect(existsSync(join(testDir, '.agent', '.actors', 'actor.via.repo=ambient'))).toEqual(
           false,
         );
+      });
+    });
+  });
+
+  given('[case11] an extension that removes a role its base never held', () => {
+    const testDir = genTempDir({ slug: 'init-actors-yml-cautions' });
+    beforeAll(() => {
+      setupRoleFixtureRepo({ dir: testDir });
+      setActorsYml({
+        dir: testDir,
+        lines: [
+          "ambient: '@crew'",
+          'actor:',
+          '  - slug: crew',
+          '    brain: claude',
+          '    roles: [ehmpathy/mechanic, bhuild/behaver]',
+          '  - slug: reader',
+          '    roles:',
+          "      - '@crew'",
+          '      - -librarian',
+          '',
+        ],
+      });
+    });
+
+    when('[t0] `init`', () => {
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinary({ args: ['init'], cwd: testDir }),
+      );
+
+      then('it exits 0 — the intent holds, so it warns and never refuses', () => {
+        expect(run.status).toEqual(0);
+      });
+      then('the report names the caution and the fix to quiet it', () => {
+        const block = asActorsReportBlock({ stdout: run.stdout });
+        expect(block).toContain('cautions');
+        expect(block).toContain('@reader removes -librarian, which @crew does not hold');
+        expect(block).toContain('to quiet it, drop that `-role` from .agent/actors.yml');
+      });
+      then('the report block holds its shape', () => {
+        expect(asActorsReportBlock({ stdout: run.stdout })).toMatchSnapshot();
       });
     });
   });

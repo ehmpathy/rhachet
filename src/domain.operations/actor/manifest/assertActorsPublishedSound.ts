@@ -1,6 +1,7 @@
 import { ConstraintError } from 'helpful-errors';
 
 import type { ActorDeclared } from '@src/domain.objects/ActorDeclared';
+import { getAllNamesWithinEditDistance } from '@src/utils/getAllNamesWithinEditDistance';
 
 /**
  * .what = the slug of the peer a base ref names within this same package, or null where the
@@ -56,15 +57,23 @@ export const assertActorsPublishedSound = (input: {
       const slug = asRoleSlugLocal({ entry, repo: input.repo });
       return slug !== null && !input.roles.includes(slug);
     });
-    if (roleUnknown)
-      throw new ConstraintError(
-        `published actor @${input.repo}/${actor.slug} names a role this package does not declare: '${roleUnknown}'`,
-        {
-          path: input.path,
-          roles: input.roles,
-          hint: 'check the role slug for a typo, or add the role to getRoleRegistry',
-        },
-      );
+    if (!roleUnknown) continue;
+    const roleNearest =
+      getAllNamesWithinEditDistance({
+        names: input.roles,
+        nameTyped:
+          asRoleSlugLocal({ entry: roleUnknown, repo: input.repo }) ?? '',
+      })[0] ?? null;
+    throw new ConstraintError(
+      `published actor @${input.repo}/${actor.slug} names a role this package does not declare: '${roleUnknown}'`,
+      {
+        path: input.path,
+        roles: input.roles,
+        hint: roleNearest
+          ? `did you mean '${input.repo}/${roleNearest}'? else add the role to getRoleRegistry`
+          : 'check the role slug for a typo, or add the role to getRoleRegistry',
+      },
+    );
   }
 
   // each local base names a declared peer, and no local chain loops

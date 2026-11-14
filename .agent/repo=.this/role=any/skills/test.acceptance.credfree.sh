@@ -16,8 +16,8 @@
 # options:
 #   --scope    jest path regex for the suites to run (required)
 #              🟡 it matches the ABSOLUTE path, worktree dir included: in
-#              `…feat-actors-yml/`, `--scope 'actors-yml'` runs EVERY suite.
-#              anchor it on the file name: 'actors-yml\.acceptance'.
+#              a worktree `…feat-keyrack/`, `--scope 'keyrack'` runs EVERY suite.
+#              anchor it on the file name: 'keyrack\.acceptance'.
 #              a scope that matches the repo root is refused, exit 2
 #   --resnap   write snapshots (default: verify only, under --ci)
 #
@@ -48,7 +48,14 @@ while [[ $# -gt 0 ]]; do
     *) echo "✋ ConstraintError: unknown option: $1" >&2; exit 2 ;;
   esac
 done
-[[ -n "$SCOPE" ]] || { echo "✋ ConstraintError: --scope is required" >&2; exit 2; }
+[[ -n "$SCOPE" ]] || {
+  {
+    echo "✋ ConstraintError: --scope is required"
+    echo "   ├─ e.g. rhx test.acceptance.credfree --scope 'init\\.focus\\.acceptance'"
+    echo "   └─ see rhx test.acceptance.credfree --help"
+  } >&2
+  exit 2
+}
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"

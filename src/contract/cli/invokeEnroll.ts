@@ -983,7 +983,12 @@ export const invokeEnroll = ({ program }: { program: Command }): void => {
     .description('enroll a brain cli as a managed, addressable clone')
     .addHelpText(
       'after',
-      '\nactor form:\n  rhx enroll @<slug>   spawn a clone of an actor declared in .agent/actors.yml (≡ rhx clone @<slug>)',
+      [
+        '',
+        'actor form:',
+        '  rhx enroll @<slug>   spawn a clone of an actor declared in .agent/actors.yml',
+        '                       (≡ rhx clone @<slug>)',
+      ].join('\n'),
     )
     .option('--brain <brain>', 'the brain to enroll (alias of the positional)')
     .option(

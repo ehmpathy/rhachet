@@ -23,6 +23,14 @@ export const asActorsManifest = (input: {
   parsed: unknown;
   path: string;
 }): ActorsManifest => {
+  // the file declares aught — an empty or comment-only file parses to null, and is named as
+  //   what the human did (an empty file), never as the parser's view of it
+  if (input.parsed === null || input.parsed === undefined)
+    throw new ConstraintError('actors.yml is empty', {
+      path: input.path,
+      hint: "declare `ambient: '@<slug>'` and an `actor:` list, or delete the file to use `rhx init --roles`",
+    });
+
   // the file is a map
   if (!isPlainObject(input.parsed))
     throw new ConstraintError('actors.yml is not a map', {
@@ -82,7 +90,6 @@ export const asActorsManifest = (input: {
       {
         path: input.path,
         found: ambient,
-        actors: slugs.map((slug) => `@${slug}`),
         hint: `set \`ambient:\` — ${asActorRefNearbyHint({ ref: ambient, slugs })}`,
       },
     );

@@ -128,7 +128,7 @@ describe('getActorsPublishedOfRegistry', () => {
 
     when('[t0] its published actors are read', () => {
       then(
-        'it fails fast as invalid yaml, with the parse fault as cause',
+        'it fails fast as invalid yaml, with the parse fault once, as excerpt lines',
         async () => {
           const error = await getError(() =>
             getActorsPublishedOfRegistry({
@@ -139,7 +139,8 @@ describe('getActorsPublishedOfRegistry', () => {
           expect(error.message).toContain(
             'published actors yml has invalid yaml',
           );
-          expect(error).toMatchObject({ cause: expect.any(Error) });
+          expect(error.message).toContain('"excerpt": [');
+          expect(error.message).not.toContain('"cause"');
         },
       );
     });

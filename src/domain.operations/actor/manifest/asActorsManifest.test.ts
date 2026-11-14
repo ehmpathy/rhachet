@@ -181,6 +181,32 @@ const CASES_REFUSED = [
     message: "actors.yml actor[0] has an unknown key: 'brian'",
   },
   {
+    description:
+      'an unknown key a transposition from a valid one, named in the hint',
+    parsed: {
+      ambient: '@a',
+      actor: [{ slug: 'a', brian: 'claude', roles: ['ehmpathy/mechanic'] }],
+    },
+    message:
+      'did you mean `brain`? an actor takes only `slug`, `brain`, `roles`',
+  },
+  {
+    description:
+      'an unknown key near no valid one, with the full key list only',
+    parsed: {
+      ambient: '@a',
+      actor: [
+        {
+          slug: 'a',
+          brain: 'claude',
+          model: 'x',
+          roles: ['ehmpathy/mechanic'],
+        },
+      ],
+    },
+    message: '"hint": "an actor takes only `slug`, `brain`, `roles`"',
+  },
+  {
     description: 'an empty brain beside a base',
     parsed: {
       ambient: '@a',
@@ -229,6 +255,11 @@ const CASES_REFUSED = [
     description: 'not a map',
     parsed: ['@a'],
     message: 'actors.yml is not a map',
+  },
+  {
+    description: 'an empty or comment-only file',
+    parsed: null,
+    message: 'actors.yml is empty',
   },
 ];
 

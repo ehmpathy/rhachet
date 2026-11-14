@@ -61,6 +61,30 @@ describe('asActorOndiskExidFromDirName', () => {
         ).toBeNull();
       });
     });
+    when(
+      '[t2] it is a stray `actor.via.` dir no namespace rhachet mints',
+      () => {
+        then(
+          'null — an unknown via, an empty slug, or a mid-word token is never an actor',
+          () => {
+            expect(
+              asActorOndiskExidFromDirName({
+                dirName: 'actor.via.custom=crew',
+              }),
+            ).toBeNull();
+            expect(
+              asActorOndiskExidFromDirName({ dirName: 'actor.via.slug=' }),
+            ).toBeNull();
+            expect(
+              asActorOndiskExidFromDirName({ dirName: 'actor.via.slugs=crew' }),
+            ).toBeNull();
+            expect(
+              asActorOndiskExidFromDirName({ dirName: 'xactor.via.slug=crew' }),
+            ).toBeNull();
+          },
+        );
+      },
+    );
   });
 
   given('[case4] a declared actor dir name, from .agent/actors.yml', () => {

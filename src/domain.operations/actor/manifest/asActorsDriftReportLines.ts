@@ -23,7 +23,7 @@ const asRoleLinkPath = (input: { role: string }): string => {
 /**
  * .what = the stdout lines of a manifest-driven init's actors report
  * .why = every manifest-driven init prints declared vs linked first, so drift is never silent:
- *        short → restored, extra → kept and named, with the one-line fix either way (F4)
+ *        declared, unlinked → to link; extra → kept and named, with the one-line fix either way (F4)
  *
  * .note = a treestruct with no `:` separators (`rule.forbid.colons-in-stdout`)
  */
@@ -42,18 +42,22 @@ export const asActorsDriftReportLines = (input: {
     [`${input.countActors} actor(s), ${input.countRoles} role(s) declared`],
   ];
 
-  // short → restored, each with its declared source
+  // declared, unlinked → to link, each with its declared source
+  //   .note = "declared, unlinked" over the bare "short": a fresh install shows every role here,
+  //     and "restored" implied the role had been linked before
+  //   .note = "to link", never "linked": this report prints BEFORE the link runs, so a link that
+  //     then fails must not have been announced as done. the `📚 link role` block reports the act
   const rowShort = input.drift.short.length
     ? [
-        'short → restored',
+        'declared, unlinked → to link',
         ...input.drift.short.flatMap((one, index) =>
           asTreeBranch({
-            lines: [`${one.role} ↺ linked${one.via ? `, via ${one.via}` : ''}`],
+            lines: [`${one.role}${one.via ? `, via ${one.via}` : ''}`],
             isLast: index === input.drift.short.length - 1,
           }),
         ),
       ]
-    : ['in sync, no role short'];
+    : ['in sync, every declared role linked'];
 
   // extra → kept, each with both fixes
   const rowExtra = input.drift.extra.length
@@ -64,7 +68,7 @@ export const asActorsDriftReportLines = (input: {
             lines: [
               role,
               `├─ to keep it, declare \`${role}\` in .agent/actors.yml`,
-              `└─ to drop it, unlink ${asRoleLinkPath({ role })}`,
+              `└─ to drop it, rm ${asRoleLinkPath({ role })}`,
             ],
             isLast: index === input.drift.extra.length - 1,
           }),
@@ -112,7 +116,10 @@ export const asActorsDriftReportLines = (input: {
         'cautions',
         ...input.warnings.flatMap((note, index) =>
           asTreeBranch({
-            lines: [note],
+            lines: [
+              note,
+              '└─ to quiet it, drop that `-role` from .agent/actors.yml',
+            ],
             isLast: index === input.warnings.length - 1,
           }),
         ),

@@ -12,10 +12,171 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case1] a manifest
 "🎭 actors.yml
    ├─ repo actor = @crew
    ├─ 2 actor(s), 3 role(s) declared
-   └─ short → restored
-      ├─ ehmpathy/mechanic ↺ linked
-      ├─ bhuild/behaver ↺ linked
-      └─ bhrain/librarian ↺ linked"
+   └─ declared, unlinked → to link
+      ├─ ehmpathy/mechanic
+      ├─ bhuild/behaver
+      └─ bhrain/librarian"
+`;
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case1] a manifest with a repo actor and a peer extension when: [t0] \`init\` with no --roles then: the whole init frame holds its shape — block order and blank lines included 1`] = `
+"
+🎭 actors.yml
+   ├─ repo actor = @crew
+   ├─ 2 actor(s), 3 role(s) declared
+   └─ declared, unlinked → to link
+      ├─ ehmpathy/mechanic
+      ├─ bhuild/behaver
+      └─ bhrain/librarian
+
+🔧 init 3 role(s)...
+
+📚 link role repo=ehmpathy/role=mechanic
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=ehmpathy/readme.md
+   │  ├─ + .agent/repo=ehmpathy/.gitignore
+   │  ├─ + .agent/repo=ehmpathy/role=mechanic/readme.md
+   │  ├─ + .agent/repo=ehmpathy/role=mechanic/boot.yml
+   │  ├─ + .agent/repo=ehmpathy/role=mechanic/keyrack.yml
+   │  ├─ + .agent/repo=ehmpathy/role=mechanic/briefs
+   │  ├─ + .agent/repo=ehmpathy/role=mechanic/skills
+   │  └─ + .agent/repo=ehmpathy/role=mechanic/inits
+   └─ stats
+      ├─ 273 brief(s)
+      ├─ 91 skill(s)
+      └─ 51 init(s)
+
+💪 init role repo=ehmpathy/role=mechanic
+   └─ ../../../../../PATH_STRIPPED
+      ├─
+      │
+      │ 🔧 init claude config for mechanic role...
+      │
+      │ 🔐 mechanic permissions configured successfully!
+      │    .claude/settings.of.repo.json
+      │    .claude/settings.of.repo.$STAMP.bak.json
+      │
+      │ ✨ permissions applied:
+      │    • allow: replaced entirely
+      │    • deny: extended (no duplicates)
+      │    • ask: extended (no duplicates)
+      │
+      │ 👌 claude config ready
+      │
+      └─
+
+📚 link role repo=bhuild/role=behaver
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ + .agent/repo=bhuild/readme.md
+   │  ├─ + .agent/repo=bhuild/.gitignore
+   │  ├─ + .agent/repo=bhuild/role=behaver/readme.md
+   │  ├─ + .agent/repo=bhuild/role=behaver/boot.yml
+   │  ├─ + .agent/repo=bhuild/role=behaver/briefs
+   │  ├─ + .agent/repo=bhuild/role=behaver/skills
+   │  └─ + .agent/repo=bhuild/role=behaver/inits
+   └─ stats
+      ├─ 46 brief(s)
+      ├─ 9 skill(s)
+      └─ 4 init(s)
+
+📚 link role repo=bhrain/role=librarian
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ + .agent/repo=bhrain/readme.md
+   │  ├─ + .agent/repo=bhrain/.gitignore
+   │  ├─ + .agent/repo=bhrain/role=librarian/readme.md
+   │  ├─ + .agent/repo=bhrain/role=librarian/boot.yml
+   │  └─ + .agent/repo=bhrain/role=librarian/briefs
+   └─ stats
+      └─ 20 brief(s)
+
+✨ 3 role(s) linked
+✨ 3 role(s) initialized
+
+🧠 brain://slug=crew
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.slug=crew/brain/.claude
+   └─ boot.md
+      └─ created — 2 roles
+
+"
+`;
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case1] a manifest with a repo actor and a peer extension when: [t1] \`init\` again, no change then: the whole no-change frame holds its shape — the common \`pnpm prepare\` replay 1`] = `
+"
+🎭 actors.yml
+   ├─ repo actor = @crew
+   ├─ 2 actor(s), 3 role(s) declared
+   └─ in sync, every declared role linked
+
+🔧 init 3 role(s)...
+
+📚 link role repo=ehmpathy/role=mechanic
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=ehmpathy/readme.md (updated)
+   │  ├─ ✓ .agent/repo=ehmpathy/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=ehmpathy/role=mechanic/readme.md (updated)
+   │  ├─ ↻ .agent/repo=ehmpathy/role=mechanic/boot.yml (updated)
+   │  ├─ ↻ .agent/repo=ehmpathy/role=mechanic/keyrack.yml (updated)
+   │  ├─ ↻ .agent/repo=ehmpathy/role=mechanic/briefs (updated)
+   │  ├─ ↻ .agent/repo=ehmpathy/role=mechanic/skills (updated)
+   │  └─ ↻ .agent/repo=ehmpathy/role=mechanic/inits (updated)
+   └─ stats
+      ├─ 273 brief(s)
+      ├─ 91 skill(s)
+      └─ 51 init(s)
+
+💪 init role repo=ehmpathy/role=mechanic
+   └─ ../../../../../PATH_STRIPPED
+      ├─
+      │
+      │ 🔧 init claude config for mechanic role...
+      │
+      │ 👌 mechanic permissions already configured
+      │    .claude/settings.of.repo.json
+      │
+      │ 👌 claude config ready
+      │
+      └─
+
+📚 link role repo=bhuild/role=behaver
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=bhuild/readme.md (updated)
+   │  ├─ ✓ .agent/repo=bhuild/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=bhuild/role=behaver/readme.md (updated)
+   │  ├─ ↻ .agent/repo=bhuild/role=behaver/boot.yml (updated)
+   │  ├─ ↻ .agent/repo=bhuild/role=behaver/briefs (updated)
+   │  ├─ ↻ .agent/repo=bhuild/role=behaver/skills (updated)
+   │  └─ ↻ .agent/repo=bhuild/role=behaver/inits (updated)
+   └─ stats
+      ├─ 46 brief(s)
+      ├─ 9 skill(s)
+      └─ 4 init(s)
+
+📚 link role repo=bhrain/role=librarian
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=bhrain/readme.md (updated)
+   │  ├─ ✓ .agent/repo=bhrain/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=bhrain/role=librarian/readme.md (updated)
+   │  ├─ ↻ .agent/repo=bhrain/role=librarian/boot.yml (updated)
+   │  └─ ↻ .agent/repo=bhrain/role=librarian/briefs (updated)
+   └─ stats
+      └─ 20 brief(s)
+
+✨ 3 role(s) linked
+✨ 3 role(s) initialized
+
+"
 `;
 
 exports[`rhx init under .agent/actors.yml (acceptance) given: [case2] a role linked by hand, then a manifest that omits it when: [t0] \`init\` with no --roles then: the carry is named in the brain dir report 1`] = `
@@ -32,11 +193,11 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case2] a role lin
 "🎭 actors.yml
    ├─ repo actor = @solo
    ├─ 1 actor(s), 1 role(s) declared
-   ├─ in sync, no role short
+   ├─ in sync, every declared role linked
    └─ extra → kept, undeclared
       └─ ehmpathy/architect
          ├─ to keep it, declare \`ehmpathy/architect\` in .agent/actors.yml
-         └─ to drop it, unlink .agent/repo=ehmpathy/role=architect"
+         └─ to drop it, rm .agent/repo=ehmpathy/role=architect"
 `;
 
 exports[`rhx init under .agent/actors.yml (acceptance) given: [case3] \`--roles\` beside a manifest when: [t0] \`init --roles mechanic\` then: the refusal holds its shape 1`] = `
@@ -106,8 +267,8 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case5] a native \
 "🎭 actors.yml
    ├─ repo actor = @solo
    ├─ 1 actor(s), 1 role(s) declared
-   ├─ short → restored
-   │  └─ ehmpathy/mechanic ↺ linked
+   ├─ declared, unlinked → to link
+   │  └─ ehmpathy/mechanic
    └─ native → not booted, undeclared
       └─ .this/tuner
          └─ to boot it, declare \`.this/tuner\` under @solo in .agent/actors.yml"
@@ -125,11 +286,11 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case7] a declared
 "🎭 actors.yml
    ├─ repo actor = @crew
    ├─ 1 actor(s), 2 role(s) declared
-   ├─ in sync, no role short
+   ├─ in sync, every declared role linked
    ├─ extra → kept, undeclared
    │  └─ bhrain/librarian
    │     ├─ to keep it, declare \`bhrain/librarian\` in .agent/actors.yml
-   │     └─ to drop it, unlink .agent/repo=bhrain/role=librarian
+   │     └─ to drop it, rm .agent/repo=bhrain/role=librarian
    └─ actor dirs → kept, slug undeclared
       └─ actor.via.slug=reader
          ├─ to keep it, re-declare \`@reader\` in .agent/actors.yml
@@ -143,11 +304,11 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case8] a manifest
 {
   "hint": "quote each value that opens with \`@\` — yaml reserves it: \`ambient: '@builder'\`, \`- '@ehmpathy/builder'\`",
   "path": "/TMP_TEST_DIR/.agent/actors.yml",
-  "error": "Plain value cannot start with reserved character @ at line 1, column 10:\\n\\nambient: @crew\\n         ^\\n",
-  "cause": {
-    "class": "YAMLParseError",
-    "message": "Plain value cannot start with reserved character @ at line 1, column 10:\\n\\nambient: @crew\\n         ^\\n"
-  }
+  "excerpt": [
+    "Plain value cannot start with reserved character @ at line 1, column 10:",
+    "ambient: @crew",
+    "         ^"
+  ]
 }
 
 [args] init
@@ -162,11 +323,12 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case8] a manifest
 {
   "hint": "fix the yaml at the line the error names",
   "path": "/TMP_TEST_DIR/.agent/actors.yml",
-  "error": "Sequence item without - indicator at line 4, column 1:\\n\\n  - slug: crew\\n   brain: [claude\\n^\\n",
-  "cause": {
-    "class": "YAMLParseError",
-    "message": "Sequence item without - indicator at line 4, column 1:\\n\\n  - slug: crew\\n   brain: [claude\\n^\\n"
-  }
+  "excerpt": [
+    "Sequence item without - indicator at line 4, column 1:",
+    "  - slug: crew",
+    "   brain: [claude",
+    "^"
+  ]
 }
 
 [args] init
@@ -292,10 +454,10 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case8] a manifest
 ✋ ConstraintError: actors.yml declares role 'ehmpathy/mechnaic', which rhachet-roles-ehmpathy@$VERSION does not carry
 
 {
-  "hint": "check the slug for a typo against \`roles\`, the ones this version carries. else that version dropped or renamed it: rename it in .agent/actors.yml, drop it, or pin a version of rhachet-roles-ehmpathy that carries it",
+  "hint": "did you mean 'ehmpathy/mechanic'? else that version dropped or renamed it: rename it in .agent/actors.yml, drop it, or pin a version of rhachet-roles-ehmpathy that carries it",
   "role": "ehmpathy/mechnaic",
   "package": "rhachet-roles-ehmpathy@$VERSION",
-  "roles": [$ROLES_CARRIED]
+  "roles": ["$ROLES_CARRIED"]
 }
 
 [args] init
@@ -308,7 +470,7 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case8] a manifest
 ✋ ConstraintError: actors.yml actor[0] has an unknown key: 'brian'
 
 {
-  "hint": "an actor takes only \`slug\`, \`brain\`, \`roles\`",
+  "hint": "did you mean \`brain\`? an actor takes only \`slug\`, \`brain\`, \`roles\`",
   "path": "/TMP_TEST_DIR/.agent/actors.yml"
 }
 
@@ -328,8 +490,7 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case8] a manifest
     "ehmpathy",
     "bhuild",
     "bhrain"
-  ],
-  "packagesUnread": []
+  ]
 }
 
 [args] init
@@ -354,22 +515,70 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case8] a manifest
 "
 `;
 
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case8] a manifest with an authored mistake when: [t13] a typo in \`ambient:\`, then \`init\` then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: actors.yml \`ambient:\` names an actor not declared
+
+{
+  "hint": "set \`ambient:\` — did you mean '@crew'? declared: '@crew'",
+  "path": "/TMP_TEST_DIR/.agent/actors.yml",
+  "found": "@crw"
+}
+
+[args] init
+
+"
+`;
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case8] a manifest with an authored mistake when: [t14] a published actor slug the installed package does not publish, then \`init\` then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: rhachet-roles-ehmpathy is installed, and publishes no actor @ehmpathy/buidler
+
+{
+  "hint": "rhachet-roles-ehmpathy publishes no actors at this version — upgrade it, or list its roles in .agent/actors.yml",
+  "actor": "@ehmpathy/buidler"
+}
+
+[args] init
+
+"
+`;
+
 exports[`rhx init under .agent/actors.yml (acceptance) given: [case9] two declared actors, then a manifest that swaps their roles (the sync invariant) when: [t0] the manifest swaps the roles of @crew and @peer, then \`init\` then: the repo actor brain block names the upgrade — never a silent re-render 1`] = `
 "🧠 brain://slug=crew
    └─ boot.md
-      └─ upgraded — 1 role"
+      └─ changed — now 1 role"
 `;
 
 exports[`rhx init under .agent/actors.yml (acceptance) given: [case9] two declared actors, then a manifest that swaps their roles (the sync invariant) when: [t0] the manifest swaps the roles of @crew and @peer, then \`init\` then: the report block holds its shape 1`] = `
 "🎭 actors.yml
    ├─ repo actor = @crew
    ├─ 2 actor(s), 2 role(s) declared
-   └─ in sync, no role short"
+   └─ in sync, every declared role linked"
 `;
 
-exports[`rhx init under .agent/actors.yml (acceptance) given: [case10] a manifest, linked, then \`init --hooks\` — the \`prepare:rhachet\` journey when: [t0] \`init --hooks\`, as \`prepare:rhachet\` runs it then: the hook frames hold their shape 1`] = `"🪝 apply hooks to brains..."`;
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case10] a manifest, linked, then \`init --hooks\` — the \`prepare:rhachet\` journey when: [t0] \`init --hooks\`, as \`prepare:rhachet\` runs it then: the hook sync segment holds its shape, \`🔭\` through \`🧢\` 1`] = `
+"🔭 search for linked roles with hooks...
+   ├─ bhuild/behaver
+   └─ ehmpathy/mechanic
 
-exports[`rhx init under .agent/actors.yml (acceptance) given: [case10] a manifest, linked, then \`init --hooks\` — the \`prepare:rhachet\` journey when: [t0] \`init --hooks\`, as \`prepare:rhachet\` runs it then: the hook frames hold their shape 2`] = `
-"🧢 apply hooks to enrolled actors...
-   └─ slug=crew: +15"
+🪝 apply hooks to brains...
+
+✨ hooks
+   └─ no changes needed
+
+🧢 apply hooks to enrolled actors...
+   └─ slug=crew: +<N>"
+`;
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case11] an extension that removes a role its base never held when: [t0] \`init\` then: the report block holds its shape 1`] = `
+"🎭 actors.yml
+   ├─ repo actor = @crew
+   ├─ 2 actor(s), 2 role(s) declared
+   ├─ declared, unlinked → to link
+   │  ├─ ehmpathy/mechanic
+   │  └─ bhuild/behaver
+   └─ cautions
+      └─ @reader removes -librarian, which @crew does not hold
+         └─ to quiet it, drop that \`-role\` from .agent/actors.yml"
 `;

@@ -5,6 +5,7 @@ import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { RoleLinkRef } from '@src/domain.objects/RoleLinkRef';
 import { getAllActorExidsOndisk } from '@src/domain.operations/actor/enrolled/getAllActorExidsOndisk';
 import { getRoleRegistriesByConfigImplicit } from '@src/domain.operations/config/getRoleRegistriesByConfigImplicit';
+import { getAllNamesWithinEditDistance } from '@src/utils/getAllNamesWithinEditDistance';
 
 import { asActorExidsUndeclared } from './asActorExidsUndeclared';
 import { asActorsDriftReportLines } from './asActorsDriftReportLines';
@@ -56,6 +57,12 @@ export const getActorsManifestLinkPlan = async (
   const packageOfRole = roleUncarried
     ? getRolePackageOfRepo({ specifier: roleUncarried, manifests })
     : null;
+  const roleNearest = roleUncarried
+    ? (getAllNamesWithinEditDistance({
+        names: packageOfRole?.roles ?? [],
+        nameTyped: roleUncarried,
+      })[0] ?? null)
+    : null;
   if (roleUncarried && packageOfRole)
     throw new ConstraintError(
       `actors.yml declares role '${roleUncarried}', which ${packageOfRole.name}@${packageOfRole.version} does not carry`,
@@ -63,7 +70,9 @@ export const getActorsManifestLinkPlan = async (
         role: roleUncarried,
         package: `${packageOfRole.name}@${packageOfRole.version}`,
         roles: packageOfRole.roles,
-        hint: `check the slug for a typo against \`roles\`, the ones this version carries. else that version dropped or renamed it: rename it in .agent/actors.yml, drop it, or pin a version of ${packageOfRole.name} that carries it`,
+        hint: roleNearest
+          ? `did you mean '${roleNearest}'? else that version dropped or renamed it: rename it in .agent/actors.yml, drop it, or pin a version of ${packageOfRole.name} that carries it`
+          : `check the slug for a typo against \`roles\`, the ones this version carries. else that version dropped or renamed it: rename it in .agent/actors.yml, drop it, or pin a version of ${packageOfRole.name} that carries it`,
       },
     );
 
@@ -84,7 +93,9 @@ export const getActorsManifestLinkPlan = async (
         role: roleUncarried,
         ...(viaOfUncarried ? { via: viaOfUncarried } : {}),
         packages: manifests.map((one) => one.slug),
-        packagesUnread: errors.map((one) => one.packageName),
+        ...(errors.length
+          ? { packagesUnread: errors.map((one) => one.packageName) }
+          : {}),
         hint: packageOfUncarried
           ? `install ${packageOfUncarried}${viaOfUncarried ? `, which ${viaOfUncarried} needs` : ''}, or check the role slug for a typo`
           : 'check the role slug for a typo, or install the role package that carries it',

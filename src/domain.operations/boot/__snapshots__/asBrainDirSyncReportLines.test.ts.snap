@@ -25,11 +25,11 @@ exports[`asBrainDirSyncReportLines given: [case2] a link this run created, with 
 ]
 `;
 
-exports[`asBrainDirSyncReportLines given: [case3b] a link already in place, and a corpus whose bytes changed when: [t0] the lines are rendered then: it names the upgrade — a live brain dir changed under its clones 1`] = `
+exports[`asBrainDirSyncReportLines given: [case3b] a link already in place, and a corpus whose bytes changed when: [t0] the lines are rendered, in a repo with actors.yml then: it names the upgrade — a live brain dir changed under its clones 1`] = `
 [
   "🧠 brain://repo=ambient",
   "   └─ boot.md",
-  "      └─ upgraded — 2 roles",
+  "      └─ changed — now 2 roles",
 ]
 `;
 
@@ -72,6 +72,6 @@ exports[`asBrainDirSyncReportLines given: [case6] a change of repo actor that ca
   "   ├─ linked",
   "   │  └─ .claude → .agent/.actors/actor.via.slug=crew/brain/.claude",
   "   └─ boot.md",
-  "      └─ upgraded — 2 roles",
+  "      └─ changed — now 2 roles",
 ]
 `;

@@ -97,8 +97,8 @@ exports[`rhachet upgrade given: [case12.4] --roles ehmpathy/mechanic under a dec
 "🎭 actors.yml
    ├─ repo actor = @crew
    ├─ 1 actor(s), 2 role(s) declared
-   └─ short → restored
-      └─ ehmpathy/architect ↺ linked"
+   └─ declared, unlinked → to link
+      └─ ehmpathy/architect"
 `;
 
 exports[`rhachet upgrade given: [case12] --roles ehmpathy/mechanic with linked role when: [t1] rhachet upgrade --roles ehmpathy/mechanic then: stdout.summary matches snapshot 1`] = `

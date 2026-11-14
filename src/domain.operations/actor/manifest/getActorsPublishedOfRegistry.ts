@@ -37,6 +37,9 @@ export const getActorsPublishedOfRegistry = (input: {
   const content = readFileSync(path, 'utf8');
 
   // parse and validate in the consumer shape, with no `ambient:` (F9)
+  //   .note = the parser's message rides once, as `excerpt` lines, as `getActorsManifest` does:
+  //     a json render would flatten its caret into `\n` escapes, and an `error` or `cause` key
+  //     beside it would say it twice
   const parsed = ((): unknown => {
     try {
       return parseYaml(content);
@@ -44,9 +47,8 @@ export const getActorsPublishedOfRegistry = (input: {
       if (!(error instanceof Error)) throw error;
       throw new ConstraintError('published actors yml has invalid yaml', {
         path,
-        error: error.message,
         hint: 'fix the yaml at the line the error names; quote each value that opens with `@`',
-        cause: error,
+        excerpt: error.message.split('\n').filter((line) => line.length),
       });
     }
   })();

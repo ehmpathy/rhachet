@@ -3,6 +3,7 @@ import { ConstraintError } from 'helpful-errors';
 import { ActorDeclared } from '@src/domain.objects/ActorDeclared';
 import type { BrainSlug } from '@src/domain.objects/BrainSlug';
 import { isSafeCloneSlug } from '@src/domain.operations/clone/isSafeCloneSlug';
+import { calcEditDistance } from '@src/utils/calcEditDistance';
 
 import { isPlainObject } from './isPlainObject';
 
@@ -10,6 +11,24 @@ import { isPlainObject } from './isPlainObject';
  * .what = the keys an actor entry may carry
  */
 const ACTOR_ENTRY_KEYS = ['slug', 'brain', 'roles'];
+
+/**
+ * .what = the hint for an unknown actor key: the nearest valid key, then the full list
+ * .why = a typo like `brian:` reads at once as a typo when the refusal names `brain`, as the
+ *        actor ref and role delta refusals already do
+ *
+ * .note = 2 edits allowed, past the shared `getAllNamesWithinEditDistance` rule (1 edit for a
+ *   5-letter name): a transposition like `brian` costs 2, and the three keys sit 4+ edits from
+ *   each other, so a 2-edit match names exactly one of them
+ */
+const asActorEntryKeyHint = (input: { keyUnknown: string }): string => {
+  const list = ACTOR_ENTRY_KEYS.map((key) => `\`${key}\``).join(', ');
+  const nearest = ACTOR_ENTRY_KEYS.find(
+    (key) => calcEditDistance({ from: input.keyUnknown, into: key }) <= 2,
+  );
+  if (!nearest) return `an actor takes only ${list}`;
+  return `did you mean \`${nearest}\`? an actor takes only ${list}`;
+};
 
 /**
  * .what = the kind of one role entry in an actor's `roles`
@@ -55,7 +74,7 @@ export const asActorDeclared = (input: {
       `actors.yml actor[${input.index}] has an unknown key: '${keyUnknown}'`,
       {
         path: input.path,
-        hint: `an actor takes only ${ACTOR_ENTRY_KEYS.map((key) => `\`${key}\``).join(', ')}`,
+        hint: asActorEntryKeyHint({ keyUnknown }),
       },
     );
   const { slug, brain, roles } = input.entry;

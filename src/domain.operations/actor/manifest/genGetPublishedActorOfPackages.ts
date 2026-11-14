@@ -72,7 +72,9 @@ export const genGetPublishedActorOfPackages = (input: {
       `rhachet-roles-${repo} is installed, and publishes no actor @${repo}/${slug}`,
       {
         actor: `@${repo}/${slug}`,
-        published: slugsPublished.map((one) => `@${repo}/${one}`),
+        ...(slugsPublished.length
+          ? { published: slugsPublished.map((one) => `@${repo}/${one}`) }
+          : {}),
         hint:
           slugsPublished.length > 0
             ? `${asActorRefNearbyHint({ ref: `@${slug}`, slugs: slugsPublished }).replace(/'@/g, `'@${repo}/`)} — or upgrade rhachet-roles-${repo}, if a newer version publishes it`

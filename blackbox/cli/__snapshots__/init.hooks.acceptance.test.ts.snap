@@ -35,8 +35,6 @@ exports[`rhachet init --hooks given: [case8] a role that declares a role boot ho
 ✨ 1 role(s) linked
 ✨ 1 role(s) initialized
 
-💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
-
 🧠 brain://repo=ambient
    ├─ moved
    │  ├─ .claude/settings.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json
@@ -55,6 +53,10 @@ exports[`rhachet init --hooks given: [case8] a role that declares a role boot ho
 ✨ hooks
    ├─ 1 created
    └─ 1 deleted
+
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
 
 "
 `;

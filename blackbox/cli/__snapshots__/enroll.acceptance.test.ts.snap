@@ -57,7 +57,8 @@ Options:
   --output <mode>     output mode: tree (default) or json (default: "tree")
 
 actor form:
-  rhx enroll @<slug>   spawn a clone of an actor declared in .agent/actors.yml (≡ rhx clone @<slug>)
+  rhx enroll @<slug>   spawn a clone of an actor declared in .agent/actors.yml
+                       (≡ rhx clone @<slug>)
 "
 `;
 

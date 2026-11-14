@@ -25,7 +25,12 @@ export const invokeClone = ({ program }: { program: Command }): void => {
     .description('reach an enrolled clone: list, say, get, whoami, prune')
     .addHelpText(
       'after',
-      '\nactor form:\n  rhx clone @<slug>   spawn a clone of an actor declared in .agent/actors.yml (≡ rhx enroll @<slug>)',
+      [
+        '',
+        'actor form:',
+        '  rhx clone @<slug>   spawn a clone of an actor declared in .agent/actors.yml',
+        '                      (≡ rhx enroll @<slug>)',
+      ].join('\n'),
     );
 
   invokeCloneList({ clone });
@@ -39,12 +44,14 @@ export const invokeClone = ({ program }: { program: Command }): void => {
   // .note = commander emits this before its unknown-option check, so `--roles` never masks it
   clone.on('command:*', (operands: string[]) => {
     const operand = operands[0] ?? '';
+    const { hint, roads } = asCloneVerbAbsentHint({
+      operand,
+      verbs: asCommandVerbNames({ command: clone }),
+    });
     throw new ConstraintError(`rhx clone has no verb '${operand}'`, {
       operand,
-      hint: asCloneVerbAbsentHint({
-        operand,
-        verbs: asCommandVerbNames({ command: clone }),
-      }),
+      hint,
+      roads,
     });
   });
 };

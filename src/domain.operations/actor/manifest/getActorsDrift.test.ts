@@ -94,12 +94,10 @@ describe('asActorsDriftReportLines', () => {
       then('it names the repo actor, each drift row and both fixes', () => {
         const text = lines.join('\n');
         expect(text).toContain('repo actor = @builder');
-        expect(text).toContain(
-          'bhrain/learner ↺ linked, via @ehmpathy/builder',
-        );
+        expect(text).toContain('bhrain/learner, via @ehmpathy/builder');
         expect(text).toContain('extra → kept, undeclared');
         expect(text).toContain(
-          'to drop it, unlink .agent/repo=ghlitch/role=observer',
+          'to drop it, rm .agent/repo=ghlitch/role=observer',
         );
       });
       then('it matches the snapshot', () => {
@@ -120,7 +118,9 @@ describe('asActorsDriftReportLines', () => {
       });
 
       then('it says the set is in sync', () => {
-        expect(lines.join('\n')).toContain('in sync, no role short');
+        expect(lines.join('\n')).toContain(
+          'in sync, every declared role linked',
+        );
       });
       then('it matches the snapshot', () => {
         expect(lines.join('\n')).toMatchSnapshot();

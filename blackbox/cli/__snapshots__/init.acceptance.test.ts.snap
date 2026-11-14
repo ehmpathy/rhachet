@@ -22,13 +22,15 @@ exports[`rhachet init given: [case4] repo with rhachet-roles packages installed 
 ✨ 1 role(s) linked
 ✨ 1 role(s) initialized
 
-💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
-
 🧠 brain://repo=ambient
    ├─ linked
    │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
       └─ created — 1 role
+
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
 
 "
 `;

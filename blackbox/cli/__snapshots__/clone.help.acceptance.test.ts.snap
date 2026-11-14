@@ -46,7 +46,8 @@ Commands:
   help [command]           display help for command
 
 actor form:
-  rhx clone @<slug>   spawn a clone of an actor declared in .agent/actors.yml (≡ rhx enroll @<slug>)
+  rhx clone @<slug>   spawn a clone of an actor declared in .agent/actors.yml
+                      (≡ rhx enroll @<slug>)
 "
 `;
 
@@ -142,11 +143,54 @@ exports[`rhx actor/clone --help (acceptance) given: [case1] a repo where the com
 ✋ ConstraintError: rhx clone has no verb 'claude'
 
 {
-  "hint": "clone reaches a clone (list · say · get · whoami · prune) or spawns one from a declared actor (rhx clone @<slug>, declared in .agent/actors.yml). for a one-off composition, use the inline form: rhx enroll <brain> --roles <roles>",
-  "operand": "claude"
+  "hint": "name a clone verb, a declared actor, or compose a one-off via enroll",
+  "operand": "claude",
+  "roads": [
+    "reach a clone: rhx clone list | say | get | whoami | prune",
+    "spawn from a declared actor: rhx clone @<slug> (declared in .agent/actors.yml)",
+    "compose a one-off: rhx enroll <brain> --roles <roles>"
+  ]
 }
 
 [args] clone,claude,--roles,mechanic
+
+"
+`;
+
+exports[`rhx actor/clone --help (acceptance) given: [case1] a repo where the commands are registered when: [t9] clone @:scout (a clone address, typed with no verb) then: the refusal is locked (visual spot-check) 1`] = `
+"
+✋ ConstraintError: rhx clone has no verb '@:scout'
+
+{
+  "hint": "to reach @:scout, name a verb first: rhx clone get @:scout",
+  "operand": "@:scout",
+  "roads": [
+    "reach a clone: rhx clone list | say | get | whoami | prune",
+    "spawn from a declared actor: rhx clone @<slug> (declared in .agent/actors.yml)",
+    "compose a one-off: rhx enroll <brain> --roles <roles>"
+  ]
+}
+
+[args] clone,@:scout
+
+"
+`;
+
+exports[`rhx actor/clone --help (acceptance) given: [case1] a repo where the commands are registered when: [t10] clone lst (a near verb, mistyped) then: the refusal is locked (visual spot-check) 1`] = `
+"
+✋ ConstraintError: rhx clone has no verb 'lst'
+
+{
+  "hint": "did you mean 'rhx clone list'?",
+  "operand": "lst",
+  "roads": [
+    "reach a clone: rhx clone list | say | get | whoami | prune",
+    "spawn from a declared actor: rhx clone @<slug> (declared in .agent/actors.yml)",
+    "compose a one-off: rhx enroll <brain> --roles <roles>"
+  ]
+}
+
+[args] clone,lst
 
 "
 `;

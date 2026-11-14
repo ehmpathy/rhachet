@@ -65,6 +65,19 @@ const CASES_REFUSED = [
       }),
     ],
     message: "names a role this package does not declare: 'ehmpathy/mechnaic'",
+    hint: "did you mean 'ehmpathy/mechanic'?",
+  },
+  {
+    description: 'a role this package does not declare, near none it does',
+    actors: [
+      genActor({
+        slug: 'builder',
+        brain: 'anthropic/claude/code',
+        roles: ['ehmpathy/surfcoach'],
+      }),
+    ],
+    message: "names a role this package does not declare: 'ehmpathy/surfcoach'",
+    hint: 'check the role slug for a typo',
   },
   {
     description: 'a local base not declared',
@@ -76,6 +89,7 @@ const CASES_REFUSED = [
       }),
     ],
     message: 'extends a peer not declared: @biulder',
+    hint: 'declare the base in this package',
   },
   {
     description: 'a cycle of local bases',
@@ -84,6 +98,7 @@ const CASES_REFUSED = [
       genActor({ slug: 'b', brain: null, roles: ['@ehmpathy/a'] }),
     ],
     message: 'extension cycle',
+    hint: 'break the cycle',
   },
 ];
 
@@ -118,6 +133,7 @@ describe('assertActorsPublishedSound', () => {
             }),
           );
           expect(error.message).toContain(thisCase.message);
+          expect(error.message).toContain(thisCase.hint);
         });
       }),
     );
