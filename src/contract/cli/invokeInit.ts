@@ -266,10 +266,11 @@ export const invokeInit = ({ program }: { program: Command }): void => {
           lines.forEach((line) => console.log(line));
         }
 
-        // no manifest + --roles => one dim hint, after the link trees, that names the manifest (case=5)
+        // no manifest + --roles => one hint, after the link trees, that names the manifest (case=5)
+        //   .note = plain text, no ansi: the same bytes reach a pipe, a pty, and every snapshot
         if (!actorsManifest && deltas !== null)
           console.log(
-            '\x1b[2m💡 declare these roles by name in .agent/actors.yml, and `rhx init` reads them\x1b[0m\n',
+            '💡 declare these roles by name in .agent/actors.yml, and `rhx init` reads them\n',
           );
 
         // an incremental delta reaches the `prepare:rhachet` replay, so the next install

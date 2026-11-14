@@ -2,6 +2,7 @@ import { ConstraintError } from 'helpful-errors';
 
 import { ActorDeclared } from '@src/domain.objects/ActorDeclared';
 import type { BrainSlug } from '@src/domain.objects/BrainSlug';
+import { isSafeCloneSlug } from '@src/domain.operations/clone/isSafeCloneSlug';
 
 import { isPlainObject } from './isPlainObject';
 
@@ -46,6 +47,17 @@ export const asActorDeclared = (input: {
       path: input.path,
       hint: 'add `slug: <name>` — the actor is addressed as `@<slug>`',
     });
+
+  // the slug names a dir (`actor.via.slug=<slug>`), so it keeps the clone slug charset —
+  //   a `/` or a lead `.` would mint a dir the actor reads can never find
+  if (!isSafeCloneSlug({ slug }))
+    throw new ConstraintError(
+      `actors.yml actor[${input.index}] has a slug that cannot name a dir: '${slug}'`,
+      {
+        path: input.path,
+        hint: 'use lowercase letters, digits, and `-` `.` `_`, led by a letter or digit (at most 64 chars)',
+      },
+    );
 
   // the brain, where stated, is a slug
   if (brain !== undefined && brain !== null && typeof brain !== 'string')

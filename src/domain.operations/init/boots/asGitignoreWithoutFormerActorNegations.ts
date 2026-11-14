@@ -15,8 +15,13 @@ export const asGitignoreWithoutFormerActorNegations = (input: {
     .join('\n');
 
 /**
- * .what = whether a `.gitignore` line re-includes an actor dir — a repo actor negation
- *         some release or some `ambient:` wrote
+ * .what = whether a `.gitignore` line re-includes a dir that a repo actor could have held —
+ *         a negation some release or some `ambient:` wrote
+ *
+ * .note = only the two repo actor identities match: `repo=<x>` and a plain `slug=<x>`. a hash
+ *   actor (`hash=`) or a derived one (`slug=<x>._.delta=`) is never a repo actor, so a
+ *   negation of one is a human's, and it is kept byte for byte
  */
 const isActorDirNegation = (input: { line: string }): boolean =>
-  /^!\.agent\/\.actors\/actor\.via\.[^/]+\/$/.test(input.line);
+  /^!\.agent\/\.actors\/actor\.via\.(repo|slug)=[^/]+\/$/.test(input.line) &&
+  !input.line.includes('._.delta=');

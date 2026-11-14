@@ -71,3 +71,18 @@ exports[`rhx clone @<slug> under .agent/actors.yml (integration) given: [case3] 
 
 "
 `;
+
+exports[`rhx clone @<slug> under .agent/actors.yml (integration) given: [case4] a manifest that declares a role init has not linked yet when: [t0] \`clone @scholar\` (one declared role is not linked) then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: @scholar declares role 'ehmpathy/architect', which is not linked
+
+{
+  "hint": "run \`rhx init\` — it links the roles every declared actor names",
+  "actor": "@scholar",
+  "role": "ehmpathy/architect"
+}
+
+[args] enroll,@scholar
+
+"
+`;

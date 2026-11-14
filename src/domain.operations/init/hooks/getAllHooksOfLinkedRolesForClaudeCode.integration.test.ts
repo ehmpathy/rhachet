@@ -114,7 +114,7 @@ describe('getAllHooksOfLinkedRolesForClaudeCode', () => {
         );
 
         then(
-          'no file lands in the repo — the render happens outside it',
+          'no file remains in the repo — the in-repo scratch dir is removed before return',
           () => {
             expect(scene.entriesAfter).toEqual(scene.entriesBefore);
             expect(readdirSync(join(scene.repoPath, '.claude')).sort()).toEqual(

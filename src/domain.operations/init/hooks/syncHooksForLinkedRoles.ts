@@ -245,10 +245,11 @@ export const syncHooksForLinkedRoles = async (
   //   hooks in `~/.claude/settings.json` (inventory.of=requirements.case=9)
   //
   // 🟡 .note = the repo actor is included: this pass is init's one writer of its
-  //   `claudeMdExcludes` (enroll writes them only at spawn). its hooks come back unchanged,
-  //   since `genBrainCliConfigArtifact` never narrows the source
-  //   the actors and their settings are read from the git root, as the gate above reads the
-  //   manifest — a subdir run must derive the same actors a root run does
+  //   `claudeMdExcludes` (enroll writes them only at spawn). with no manifest its hooks come
+  //   back unchanged; under `.agent/actors.yml` it narrows from the linked roles' union like
+  //   every other actor, and only its authorless hooks merge back
+  // 🟡 .note = the actors and their settings are read from the git root, as the gate above
+  //   reads the manifest — a subdir run must derive the same actors a root run does
   const actorsEnrolled = getAllActorsOndisk({ repoPath: context.gitroot });
   if (actorsEnrolled.length > 0) {
     // derive each actor's settings, one at a time and in order; a fault is collected, so one

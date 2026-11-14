@@ -20,3 +20,5 @@
 | F16 | init composes enroll's actor derivation (`asActorFormEnrollment`), never a copy | clean | unruled — best guess taken | 80% |
 | F17 | the repo actor exid is read from `actors.yml` per op, not once per run | clean | unruled — best guess taken | 75% |
 | F18 | an actor names at most one `@ref` base; the vision's two-base row awaits the wisher | clean | unruled — best guess taken | 70% |
+| F19 | the collect-or-throw catch stays per sweep here; the shared helper is its own change | dirty | unruled — deferred, caught as a dream | 80% |
+| F20 | a brain override beside `@<slug>` is `--brain`, not a positional token | clean | unruled — **needs the wisher** to amend the edge row or rule positional | 70% |

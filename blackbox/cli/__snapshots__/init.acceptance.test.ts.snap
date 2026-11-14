@@ -22,7 +22,7 @@ exports[`rhachet init given: [case4] repo with rhachet-roles packages installed 
 ✨ 1 role(s) linked
 ✨ 1 role(s) initialized
 
-[2m💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them[0m
+💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
 
 🧠 brain://repo=ambient
    ├─ linked

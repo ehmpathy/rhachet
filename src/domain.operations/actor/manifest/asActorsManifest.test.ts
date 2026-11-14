@@ -152,6 +152,24 @@ const CASES_REFUSED = [
     message: 'actors.yml declares a slug more than once',
   },
   {
+    description: 'a slug with a path separator',
+    parsed: {
+      ambient: '@a',
+      actor: [{ slug: 'a/b', brain: 'claude', roles: ['ehmpathy/mechanic'] }],
+    },
+    message: "actors.yml actor[0] has a slug that cannot name a dir: 'a/b'",
+  },
+  {
+    description: 'a slug with a lead dot',
+    parsed: {
+      ambient: '@a',
+      actor: [
+        { slug: '.hidden', brain: 'claude', roles: ['ehmpathy/mechanic'] },
+      ],
+    },
+    message: "actors.yml actor[0] has a slug that cannot name a dir: '.hidden'",
+  },
+  {
     description: 'no actor list',
     parsed: { ambient: '@a' },
     message: 'actors.yml declares no actor',

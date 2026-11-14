@@ -132,6 +132,43 @@ describe('rhx clone @<slug> under .agent/actors.yml (integration)', () => {
       });
     });
 
+    when('[t1b] `clone @solo --as @:sentry` (a named clone, findsert)', () => {
+      const pair = useThen('both runs exit 0', () => ({
+        statuses: [1, 2].map(
+          () =>
+            invokeRhachetCliBinary({
+              args: ['clone', '@solo', '--as', '@:sentry'],
+              cwd: dir,
+              env: { PATH: scene.path },
+              logOnError: false,
+            }).status,
+        ),
+      }));
+
+      then('the named clone lands under `actor.via.slug=solo`, once', () => {
+        expect(pair.statuses).toEqual([0, 0]);
+        const clonesDir = join(
+          dir,
+          '.agent',
+          '.actors',
+          'actor.via.slug=solo',
+          'clones',
+        );
+        // every serial named `sentry` — an unnamed `@solo` clone may sit beside it
+        const sentries = readdirSync(clonesDir)
+          .filter((name) => name.startsWith('serial='))
+          .filter(
+            (name) =>
+              (
+                JSON.parse(
+                  readFileSync(join(clonesDir, name, 'identity.json'), 'utf-8'),
+                ) as { slug: string | null }
+              ).slug === 'sentry',
+          );
+        expect(sentries).toHaveLength(1);
+      });
+    });
+
     when('[t2] `clone @solo --roles architect` (a plain role list)', () => {
       const run = useThen('exits 2', () =>
         invokeRhachetCliBinary({
@@ -236,6 +273,30 @@ describe('rhx clone @<slug> under .agent/actors.yml (integration)', () => {
             name.startsWith('actor.via.hash='),
           ),
         ).toHaveLength(1);
+      });
+    });
+
+    // .note = the linked union (mechanic, ergonomist, architect) exceeds `@crew`'s roles
+    //   (mechanic, ergonomist), so the two candidate bases yield different rolesets
+    when('[t6b] `enroll claude --roles -ergonomist` (the inline form, a subtraction)', () => {
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--roles', '-ergonomist'],
+          cwd: dir,
+          env: { PATH: scene.path },
+          logOnError: false,
+        }),
+      );
+
+      then('its base is the repo actor roles, never every linked role', () => {
+        expect(run.status).toEqual(0);
+        const rolesets = getAllActorDirNames({ dir })
+          .filter((name) => name.startsWith('actor.via.hash='))
+          .map((actorDirName) =>
+            [...getActorRolesRecorded({ dir, actorDirName })].sort(),
+          );
+        expect(rolesets).toContainEqual(['mechanic']);
+        expect(rolesets).not.toContainEqual(['architect', 'mechanic']);
       });
     });
 
@@ -491,6 +552,139 @@ describe('rhx clone @<slug> under .agent/actors.yml (integration)', () => {
         expect(
           getAllActorDirNames({ dir }).some((name) => name.includes('scholar')),
         ).toEqual(false);
+      });
+    });
+  });
+
+  given('[case4] a manifest that declares a role init has not linked yet', () => {
+    const dir = genTempDir({ slug: 'enroll-actors-yml-unlinked' });
+    const scene = useBeforeAll(async () => {
+      setupRoleFixtureRepo({ dir });
+      setActorsYml({
+        dir,
+        lines: [
+          "ambient: '@lone'",
+          'actor:',
+          '  - slug: lone',
+          '    brain: claude',
+          '    roles: [ehmpathy/mechanic]',
+          '',
+        ],
+      });
+      const init = invokeRhachetCliBinary({ args: ['init'], cwd: dir });
+      if (init.status !== 0)
+        throw new MalfunctionError('fixture init failed', {
+          stderr: init.stderr,
+          hint: 'the fixture setup broke, not the case under test; read the stderr above, then rebuild (`npm run build`) if dist/ is stale',
+        });
+
+      // the human adds a role to the manifest, and clones before a re-init links it
+      setActorsYml({
+        dir,
+        lines: [
+          "ambient: '@lone'",
+          'actor:',
+          '  - slug: lone',
+          '    brain: claude',
+          '    roles: [ehmpathy/mechanic]',
+          '  - slug: scholar',
+          '    brain: claude',
+          '    roles: [ehmpathy/mechanic, ehmpathy/architect]',
+          '',
+        ],
+      });
+      return { path: setupRichStubBrainPath({ dir }) };
+    });
+
+    when('[t0] `clone @scholar` (one declared role is not linked)', () => {
+      const run = useThen('exits 2', () =>
+        invokeRhachetCliBinary({
+          args: ['clone', '@scholar'],
+          cwd: dir,
+          env: { PATH: scene.path },
+          logOnError: false,
+        }),
+      );
+
+      then('it is refused, names the absent role, and names the fix', () => {
+        expect(run.status).toEqual(2);
+        expect(run.stderr).toContain(
+          "@scholar declares role 'ehmpathy/architect', which is not linked",
+        );
+        expect(run.stderr).toContain('run `rhx init`');
+      });
+      then('the refusal holds its shape', () => {
+        expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+      });
+      then('no actor dir is minted for it', () => {
+        expect(
+          getAllActorDirNames({ dir }).some((name) => name.includes('scholar')),
+        ).toEqual(false);
+      });
+    });
+  });
+
+  given('[case5] a repo actor whose declared brain is not the default', () => {
+    const dir = genTempDir({ slug: 'enroll-actors-yml-brain' });
+    const scene = useBeforeAll(async () => {
+      setupRoleFixtureRepo({ dir });
+      setActorsYml({
+        dir,
+        lines: [
+          "ambient: '@crew'",
+          'actor:',
+          '  - slug: crew',
+          '    brain: codex',
+          '    roles: [ehmpathy/mechanic]',
+          '',
+        ],
+      });
+      const init = invokeRhachetCliBinary({ args: ['init'], cwd: dir });
+      if (init.status !== 0)
+        throw new MalfunctionError('fixture init failed', {
+          stderr: init.stderr,
+          hint: 'the fixture setup broke, not the case under test; read the stderr above, then rebuild (`npm run build`) if dist/ is stale',
+        });
+      return { path: setupRichStubBrainPath({ dir }) };
+    });
+
+    // .note = `codex` has no supplier in this repo, so the brain enroll picks is observable:
+    //   the repo actor's brain is refused by name, where the default (`claude`) would boot
+    when('[t0] a bare `enroll` (no brain, no roles)', () => {
+      const run = useThen('exits 2', () =>
+        invokeRhachetCliBinary({
+          args: ['enroll'],
+          cwd: dir,
+          env: { PATH: scene.path },
+          logOnError: false,
+        }),
+      );
+
+      then('it reaches for the repo actor brain, never the default', () => {
+        expect(run.status).toEqual(2);
+        expect(run.stderr).toContain("brain 'codex' not supported");
+      });
+      then('no clone is spawned under the default brain', () => {
+        expect(
+          existsSync(
+            join(dir, '.agent', '.actors', 'actor.via.slug=crew', 'clones'),
+          ),
+        ).toEqual(false);
+      });
+    });
+
+    when('[t1] `enroll claude` (an explicit brain beside the repo actor)', () => {
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinary({
+          args: ['enroll', 'claude'],
+          cwd: dir,
+          env: { PATH: scene.path },
+          logOnError: false,
+        }),
+      );
+
+      then('the explicit brain wins over the repo actor brain', () => {
+        expect(run.status).toEqual(0);
       });
     });
   });
