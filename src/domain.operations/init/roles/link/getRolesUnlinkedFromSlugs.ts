@@ -1,9 +1,10 @@
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { RoleSpecifier } from '@src/domain.objects/RoleSpecifier';
 import { execRolesUnlink } from '@src/domain.operations/invoke/link/execRolesUnlink';
-import { discoverLinkedRoles } from '@src/domain.operations/upgrade/discoverLinkedRoles';
+import { discoverLinkedRoles } from '@src/domain.operations/role/discoverLinkedRoles';
+import { getNativeRoleSlugs } from '@src/domain.operations/role/getNativeRoleSlugs';
+import { withRoleViewLock } from '@src/domain.operations/role/withRoleViewLock';
 
-import { getNativeRoleSlugs } from './getNativeRoleSlugs';
 import { getRemovalTargets } from './getRemovalTargets';
 
 /**
@@ -17,11 +18,13 @@ import { getRemovalTargets } from './getRemovalTargets';
  *   and native roles); a slug not linked yields no target, a silent no-op
  * .note = execRolesUnlink is idempotent — an already-absent target drops out, so
  *   the returned set reports only the real removals
+ * .note = the unlink holds the role view lock, as the link and the modded view sync do, so a
+ *   removal never lands within a view swap of another `rhx` process
  */
-export const getRolesUnlinkedFromSlugs = (
+export const getRolesUnlinkedFromSlugs = async (
   input: { slugs: RoleSpecifier[] },
   context: ContextCli,
-): { repo: string; role: string }[] => {
+): Promise<{ repo: string; role: string }[]> => {
   // no slugs → empty set
   if (input.slugs.length === 0) return [];
 
@@ -32,6 +35,8 @@ export const getRolesUnlinkedFromSlugs = (
     nativeRoles: getNativeRoleSlugs({}, context),
   });
 
-  // unlink each target; execRolesUnlink returns only those actually present
-  return execRolesUnlink({ targets }, context);
+  // unlink each target under the role view lock; execRolesUnlink returns only those present
+  return withRoleViewLock({ cwd: context.cwd }, async () =>
+    execRolesUnlink({ targets }, context),
+  );
 };

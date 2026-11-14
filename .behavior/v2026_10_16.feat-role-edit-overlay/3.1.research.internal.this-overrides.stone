@@ -1,0 +1,18 @@
+measure the repos that F11 a1 changes: those that rely on a .agent/repo=.this/role=<r> to override a same-slug package role.
+
+.why = F11 a1 (a .this role boots beside the package role, never in its place) changes what those repos boot. the director ruled it is owed a measure here and a test in the blueprint, and it ships only on the commander release review (F11 .verdict).
+
+---
+
+1. census every repo you can reach (rhx git.repo.get repos --repos <org>/*, for each org this host holds), on its default branch:
+   - each .agent/repo=.this/role=<r> dir
+   - whether <r> is also a role of a package the repo links (its rhachet.repo.yml or package.json roles)
+2. per match, record the repo, the role, the package, and which files the .this copy holds vs the package role (whole copy, partial, disjoint)
+3. state the count, and what each match boots before a1 and after a1
+4. note any repo you could not reach, by name. an unreached repo is a gap, never a zero
+
+measure, do not estimate. cite each figure by the command that produced it.
+
+---
+
+emit into .behavior/v2026_10_16.feat-role-edit-overlay/3.1.research.internal.this-overrides.yield.md

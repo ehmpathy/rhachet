@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path';
 import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
 import { envIsolated } from '@/blackbox/.test/infra/envIsolated';
+import { genKeyrackRuntimeDir } from '@/blackbox/.test/infra/genKeyrackRuntimeDir';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import { asSnapshotSafe } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';
@@ -79,7 +80,7 @@ try {
       env: {
         ...process.env,
         HOME: testDir,
-        XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+        XDG_RUNTIME_DIR: genKeyrackRuntimeDir({ dir: testDir }),
       },
     });
 

@@ -51,6 +51,40 @@ describe('computeBrainCliEnrollment', () => {
     });
   });
 
+  given('[case2.1] absolute mode with a repo/role pin', () => {
+    when('[t0] spec names ehmpathy/mechanic', () => {
+      then('the pin is kept as the enrolled token', () => {
+        const spec = new BrainCliEnrollmentSpec({
+          mode: 'absolute',
+          deltas: [
+            new RoleDelta({ kind: 'absolute', role: 'ehmpathy/mechanic' }),
+          ],
+        });
+        const result = computeBrainCliEnrollment({
+          brain,
+          spec,
+          rolesAmbient,
+          rolesLinked,
+        });
+        expect(result.roles).toEqual(['ehmpathy/mechanic']);
+      });
+    });
+
+    when('[t1] spec pins a slug no repo links', () => {
+      then('it is refused, and names the slug', async () => {
+        const spec = new BrainCliEnrollmentSpec({
+          mode: 'absolute',
+          deltas: [new RoleDelta({ kind: 'absolute', role: 'acme/surfer' })],
+        });
+        const error = await getError(async () =>
+          computeBrainCliEnrollment({ brain, spec, rolesAmbient, rolesLinked }),
+        );
+        expect(error).toBeInstanceOf(ConstraintError);
+        expect(error.message).toContain("role 'surfer' not found");
+      });
+    });
+  });
+
   given('[case3] incremental mode with append', () => {
     when('[t0] spec appends architect to defaults', () => {
       then('returns defaults plus architect', () => {

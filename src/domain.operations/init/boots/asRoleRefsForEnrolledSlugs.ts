@@ -3,7 +3,6 @@ import { ConstraintError } from 'helpful-errors';
 import type { RoleLinkRef } from '@src/domain.objects/RoleLinkRef';
 import type { RoleLinkRefAtFocus } from '@src/domain.objects/RoleLinkRefAtFocus';
 import { asRoleRefsInEnrollmentOrder } from '@src/domain.operations/boot/asRoleRefsInEnrollmentOrder';
-import { asRoleRefsFirstSeenPerRole } from '@src/domain.operations/init/roles/link/asRoleRefsFirstSeenPerRole';
 import { asRoleFocusMap } from '@src/domain.operations/roles/focus/asRoleFocusMap';
 import { asRoleRefsAtFoci } from '@src/domain.operations/roles/focus/asRoleRefsAtFoci';
 import { getAllRolesUnlinked } from '@src/domain.operations/roles/focus/getAllRolesUnlinked';
@@ -22,11 +21,10 @@ export const asRoleRefsForEnrolledSlugs = (input: {
   slugs: string[];
   refsLinked: RoleLinkRef[];
 }): RoleLinkRefAtFocus[] => {
-  const refsOnePerRole = asRoleRefsFirstSeenPerRole({ refs: input.refsLinked });
   const foci = asRoleFocusMap({ tokens: input.slugs });
 
   // every enrolled role must still be linked
-  const slugsUnlinked = getAllRolesUnlinked({ refs: refsOnePerRole, foci });
+  const slugsUnlinked = getAllRolesUnlinked({ refs: input.refsLinked, foci });
   if (slugsUnlinked.length > 0)
     throw new ConstraintError(
       `actor ${input.actorExid} enrolled a role no longer linked: ${slugsUnlinked.join(', ')}`,
@@ -37,8 +35,9 @@ export const asRoleRefsForEnrolledSlugs = (input: {
       },
     );
 
-  // each enrolled ref, with the subjects its focus names
+  // each enrolled ref, with the subjects its focus names; a bare slug carries every repo's
+  //   role of that slug, a `repo/role` slug pins one (F11)
   return asRoleRefsInEnrollmentOrder({
-    refs: asRoleRefsAtFoci({ refs: refsOnePerRole, foci }),
+    refs: asRoleRefsAtFoci({ refs: input.refsLinked, foci }),
   });
 };

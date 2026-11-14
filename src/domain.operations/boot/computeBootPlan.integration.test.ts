@@ -67,6 +67,7 @@ describe('computeBootPlan', () => {
     when('[t0] config is null', () => {
       then('all briefs and skills are said', async () => {
         const result = await computeBootPlan({
+          configMod: null,
           config: null,
           briefRefs: getBriefRefs(),
           skillPaths: getSkillPaths(),
@@ -92,6 +93,7 @@ describe('computeBootPlan', () => {
         });
 
         const result = await computeBootPlan({
+          configMod: null,
           config,
           briefRefs: getBriefRefs(),
           skillPaths: getSkillPaths(),
@@ -115,6 +117,7 @@ describe('computeBootPlan', () => {
         });
 
         const result = await computeBootPlan({
+          configMod: null,
           config,
           briefRefs: getBriefRefs(),
           skillPaths: getSkillPaths(),
@@ -136,6 +139,7 @@ describe('computeBootPlan', () => {
         });
 
         const result = await computeBootPlan({
+          configMod: null,
           config,
           briefRefs: getBriefRefs(),
           skillPaths: getSkillPaths(),
@@ -161,6 +165,7 @@ describe('computeBootPlan', () => {
         });
 
         const result = await computeBootPlan({
+          configMod: null,
           config,
           briefRefs: getBriefRefs(),
           skillPaths: getSkillPaths(),
@@ -188,6 +193,7 @@ describe('computeBootPlan', () => {
         });
 
         const result = await computeBootPlan({
+          configMod: null,
           config,
           briefRefs: getBriefRefs(),
           skillPaths: getSkillPaths(),
@@ -212,6 +218,7 @@ describe('computeBootPlan', () => {
         });
 
         const result = await computeBootPlan({
+          configMod: null,
           config,
           briefRefs: getBriefRefs(),
           skillPaths: getSkillPaths(),
@@ -233,6 +240,7 @@ describe('computeBootPlan', () => {
         });
 
         const result = await computeBootPlan({
+          configMod: null,
           config,
           briefRefs: getBriefRefs(),
           skillPaths: getSkillPaths(),
@@ -256,6 +264,7 @@ describe('computeBootPlan', () => {
         });
 
         const result = await computeBootPlan({
+          configMod: null,
           config,
           briefRefs: getBriefRefs(),
           skillPaths: getSkillPaths(),
@@ -284,6 +293,7 @@ describe('computeBootPlan', () => {
         });
 
         const result = await computeBootPlan({
+          configMod: null,
           config,
           briefRefs: getBriefRefs(),
           skillPaths: getSkillPaths(),
@@ -314,6 +324,7 @@ describe('computeBootPlan', () => {
         });
 
         const result = await computeBootPlan({
+          configMod: null,
           config,
           briefRefs: getBriefRefs(),
           skillPaths: getSkillPaths(),
@@ -346,6 +357,7 @@ describe('computeBootPlan', () => {
         });
 
         const result = await computeBootPlan({
+          configMod: null,
           config,
           briefRefs: getBriefRefs(),
           skillPaths: getSkillPaths(),
@@ -375,6 +387,7 @@ describe('computeBootPlan', () => {
         });
 
         const result = await computeBootPlan({
+          configMod: null,
           config,
           briefRefs: getBriefRefs(),
           skillPaths: getSkillPaths(),
@@ -405,6 +418,7 @@ describe('computeBootPlan', () => {
         });
 
         const result = await computeBootPlan({
+          configMod: null,
           config,
           briefRefs: getBriefRefs(),
           skillPaths: getSkillPaths(),
@@ -441,6 +455,7 @@ describe('computeBootPlan', () => {
         });
 
         const result = await computeBootPlan({
+          configMod: null,
           config,
           briefRefs: getBriefRefs(),
           skillPaths: getSkillPaths(),
@@ -483,6 +498,7 @@ describe('computeBootPlan', () => {
         });
 
         const result = await computeBootPlan({
+          configMod: null,
           config,
           briefRefs: getBriefRefs(),
           skillPaths: getSkillPaths(),
@@ -526,6 +542,7 @@ describe('computeBootPlan', () => {
         });
 
         const result = await computeBootPlan({
+          configMod: null,
           config,
           briefRefs: getBriefRefs(),
           skillPaths: getSkillPaths(),
@@ -562,6 +579,7 @@ describe('computeBootPlan', () => {
         });
 
         const result = await computeBootPlan({
+          configMod: null,
           config,
           briefRefs: getBriefRefs(),
           skillPaths: getSkillPaths(),
@@ -594,6 +612,7 @@ describe('computeBootPlan', () => {
       then('throws error', async () => {
         await expect(
           computeBootPlan({
+            configMod: null,
             config,
             briefRefs: getBriefRefs(),
             skillPaths: getSkillPaths(),
@@ -606,6 +625,7 @@ describe('computeBootPlan', () => {
       then('the refusal names the fix, with the legal subjects', async () => {
         const error = await getError(
           computeBootPlan({
+            configMod: null,
             config,
             briefRefs: getBriefRefs(),
             skillPaths: getSkillPaths(),
@@ -630,6 +650,7 @@ describe('computeBootPlan', () => {
         });
 
         const result = await computeBootPlan({
+          configMod: null,
           config,
           briefRefs: getBriefRefs(),
           skillPaths: getSkillPaths(),
@@ -659,6 +680,7 @@ describe('computeBootPlan', () => {
         });
 
         const result = await computeBootPlan({
+          configMod: null,
           config,
           briefRefs: getBriefRefs(),
           skillPaths: getSkillPaths(),
@@ -682,6 +704,7 @@ describe('computeBootPlan', () => {
         });
 
         const result = await computeBootPlan({
+          configMod: null,
           config,
           briefRefs: getBriefRefs(),
           skillPaths: getSkillPaths(),
@@ -722,6 +745,7 @@ describe('computeBootPlan', () => {
             });
 
             const result = await computeBootPlan({
+              configMod: null,
               config,
               briefRefs: getBriefRefs(),
               skillPaths: getSkillPaths(),
@@ -767,6 +791,7 @@ describe('computeBootPlan', () => {
     when('[t0] the lean subject alone is booted', () => {
       then('always is shed: only the subject is said', async () => {
         const result = await computeBootPlan({
+          configMod: null,
           config,
           briefRefs: getBriefRefs(),
           skillPaths: getSkillPaths(),
@@ -785,6 +810,7 @@ describe('computeBootPlan', () => {
         'always is kept, since one selected subject relies on it',
         async () => {
           const result = await computeBootPlan({
+            configMod: null,
             config,
             briefRefs: getBriefRefs(),
             skillPaths: getSkillPaths(),
@@ -803,6 +829,7 @@ describe('computeBootPlan', () => {
         'the plan is identical, in declaration order, not typed order',
         async () => {
           const planTyped = await computeBootPlan({
+            configMod: null,
             config,
             briefRefs: getBriefRefs(),
             skillPaths: getSkillPaths(),
@@ -810,6 +837,7 @@ describe('computeBootPlan', () => {
             subjects: ['test', 'lean'],
           });
           const planDeclared = await computeBootPlan({
+            configMod: null,
             config,
             briefRefs: getBriefRefs(),
             skillPaths: getSkillPaths(),
@@ -826,6 +854,7 @@ describe('computeBootPlan', () => {
     when('[t3] every subject is booted', () => {
       then('always is kept', async () => {
         const result = await computeBootPlan({
+          configMod: null,
           config,
           briefRefs: getBriefRefs(),
           skillPaths: getSkillPaths(),
@@ -835,5 +864,186 @@ describe('computeBootPlan', () => {
         expect(pathsSaid.join()).toContain('core.md');
       });
     });
+  });
+
+  given('[case18] a mod read before its role (F9)', () => {
+    const asNames = (refs: RoleBriefRef[]) =>
+      refs.map((r) => r.pathToOriginal.slice(tempDir.length + 1));
+
+    when('[t0] the mod says a brief the role refs', () => {
+      then('the mod wins: the brief is said, in universe order', async () => {
+        const result = await computeBootPlan({
+          config: new RoleBootSpecSimplified({
+            mode: 'simple',
+            budget: null,
+            briefs: { say: ['briefs/core.md'], ref: [], not: [] },
+            skills: null,
+          }),
+          configMod: new RoleBootSpecSimplified({
+            mode: 'simple',
+            budget: null,
+            briefs: { say: ['briefs/glossary.md'], ref: [], not: [] },
+            skills: null,
+          }),
+          briefRefs: getBriefRefs(),
+          skillPaths: getSkillPaths(),
+          cwd: tempDir,
+        });
+        expect(asNames(result.briefs.say)).toEqual([
+          'briefs/core.md',
+          'briefs/glossary.md',
+        ]);
+        expect(asNames(result.briefs.ref)).toEqual([
+          'briefs/practices/rule1.md',
+          'briefs/practices/rule2.md',
+        ]);
+      });
+    });
+
+    when('[t1] the mod refs a brief the role says', () => {
+      then('the mod wins: the brief is demoted to a ref', async () => {
+        const result = await computeBootPlan({
+          config: new RoleBootSpecSimplified({
+            mode: 'simple',
+            budget: null,
+            briefs: { say: ['briefs/**/*.md'], ref: [], not: [] },
+            skills: null,
+          }),
+          configMod: new RoleBootSpecSimplified({
+            mode: 'simple',
+            budget: null,
+            briefs: { say: null, ref: ['briefs/practices/rule2.md'], not: [] },
+            skills: null,
+          }),
+          briefRefs: getBriefRefs(),
+          skillPaths: getSkillPaths(),
+          cwd: tempDir,
+        });
+        expect(asNames(result.briefs.ref)).toEqual([
+          'briefs/practices/rule2.md',
+        ]);
+        expect(asNames(result.briefs.say)).not.toContain(
+          'briefs/practices/rule2.md',
+        );
+      });
+    });
+
+    when(
+      '[t2] the role has no boot.yml, and the mod nots a glob its own add matches',
+      () => {
+        then(
+          'the add still boots: the mod not is the view alone, never applied twice',
+          async () => {
+            const result = await computeBootPlan({
+              config: null,
+              configMod: new RoleBootSpecSimplified({
+                mode: 'simple',
+                budget: null,
+                briefs: {
+                  say: ['briefs/practices/rule2.md'],
+                  ref: [],
+                  not: ['briefs/practices/rule*.md'],
+                },
+                skills: null,
+              }),
+              briefRefs: getBriefRefs(),
+              skillPaths: getSkillPaths(),
+              cwd: tempDir,
+            });
+            expect(asNames(result.briefs.say)).toContain(
+              'briefs/practices/rule2.md',
+            );
+            expect(result.skills.say).toHaveLength(2);
+          },
+        );
+      },
+    );
+
+    when('[t3] a subject role, and a mod that says into one subject', () => {
+      then('the mod claim holds for that subject boot', async () => {
+        const result = await computeBootPlan({
+          config: new RoleBootSpecSubjected({
+            mode: 'subject',
+            budget: null,
+            always: {
+              briefs: { say: ['briefs/core.md'], ref: [], not: [] },
+              skills: null,
+              inherit: { always: true },
+            },
+            subjects: {
+              flow: {
+                briefs: { say: [], ref: ['briefs/practices/*.md'], not: [] },
+                skills: null,
+                inherit: { always: true },
+              },
+            },
+          }),
+          configMod: new RoleBootSpecSubjected({
+            mode: 'subject',
+            budget: null,
+            always: null,
+            subjects: {
+              flow: {
+                briefs: {
+                  say: ['briefs/practices/rule1.md'],
+                  ref: [],
+                  not: [],
+                },
+                skills: null,
+                inherit: { always: true },
+              },
+            },
+          }),
+          briefRefs: getBriefRefs(),
+          skillPaths: getSkillPaths(),
+          cwd: tempDir,
+          subjects: ['flow'],
+        });
+        expect(asNames(result.briefs.say)).toContain(
+          'briefs/practices/rule1.md',
+        );
+        expect(asNames(result.briefs.ref)).toEqual([
+          'briefs/practices/rule2.md',
+        ]);
+      });
+    });
+
+    when(
+      '[t4] a subject role that says a brief, and a mod that refs it',
+      () => {
+        then(
+          'the brief is a ref alone: the role does not say it again',
+          async () => {
+            const result = await computeBootPlan({
+              config: new RoleBootSpecSubjected({
+                mode: 'subject',
+                budget: null,
+                always: {
+                  briefs: { say: ['briefs/core.md'], ref: [], not: [] },
+                  skills: null,
+                  inherit: { always: true },
+                },
+                subjects: {},
+              }),
+              configMod: new RoleBootSpecSubjected({
+                mode: 'subject',
+                budget: null,
+                always: {
+                  briefs: { say: [], ref: ['briefs/core.md'], not: [] },
+                  skills: null,
+                  inherit: { always: true },
+                },
+                subjects: {},
+              }),
+              briefRefs: getBriefRefs(),
+              skillPaths: getSkillPaths(),
+              cwd: tempDir,
+            });
+            expect(asNames(result.briefs.say)).not.toContain('briefs/core.md');
+            expect(asNames(result.briefs.ref)).toEqual(['briefs/core.md']);
+          },
+        );
+      },
+    );
   });
 });

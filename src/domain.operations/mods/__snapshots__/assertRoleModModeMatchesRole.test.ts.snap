@@ -1,0 +1,12 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`assertRoleModModeMatchesRole given: [case3] a subject mod that names a subject the role lacks when: [t0] checked then: it is refused, and names the role subjects 1`] = `
+"✋ ConstraintError: the mod of role=mechanic is refused: its boot.yml names a subject the role does not declare (reef)
+
+{
+  "mod": ".agent/repo=.mods/role=mechanic/",
+  "subject": "boot.yml",
+  "did you mean": "flow",
+  "fix": "name one of the role subjects, or put the resources under \`always:\`"
+}"
+`;

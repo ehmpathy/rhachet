@@ -10,12 +10,20 @@ import { asBootCostSweepSummary } from '@src/domain.operations/boot/asBootCostSw
 const TEST_CASES = [
   {
     description: 'an empty roster says none were found, in the summary shape',
-    given: { costs: [], over: [] },
+    given: { costs: [], over: [], withheld: 0 },
     expect: { output: '🧢 0 boot specs — none found at the paths swept' },
   },
   {
+    description:
+      'an empty roster whose specs a mod withheld names them withheld, never absent',
+    given: { costs: [], over: [], withheld: 1 },
+    expect: {
+      output: '🧢 0 boot specs priced — 1 withheld by a mod (named below)',
+    },
+  },
+  {
     description: 'a roster with no cap says none declare a budget',
-    given: { costs: [asCost({ tokens: 668 })], over: [] },
+    given: { costs: [asCost({ tokens: 668 })], over: [], withheld: 0 },
     expect: { output: '🧢 1 boot spec — none declare a budget' },
   },
   {
@@ -26,6 +34,7 @@ const TEST_CASES = [
         asCost({ tokens: 42, budget: null }),
       ],
       over: [],
+      withheld: 0,
     },
     expect: { output: '🧢 2 boot specs — 1 budgeted, all within budget' },
   },
@@ -34,6 +43,7 @@ const TEST_CASES = [
     given: {
       costs: [asCost({ tokens: 9_000, budget: 5_000 })],
       over: [asCost({ tokens: 9_000, budget: 5_000 })],
+      withheld: 0,
     },
     expect: { output: '🧢 1 boot spec — 1 budgeted, 1 over budget' },
   },

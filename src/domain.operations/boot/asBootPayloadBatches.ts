@@ -1,8 +1,11 @@
+import type { RoleModPlan } from '@src/domain.objects/RoleModPlan';
 import { asBootRefBlock } from '@src/domain.operations/boot/asBootRefBlock';
 import type { BootBatch } from '@src/domain.operations/boot/BootBatch';
 import type { BootSource } from '@src/domain.operations/boot/BootSource';
 import type { BootPlan } from '@src/domain.operations/boot/computeBootPlan';
 import type { BootSayResource } from '@src/domain.operations/boot/getAllBootSayResources';
+import { asRoleModAttr } from '@src/domain.operations/mods/asRoleModAttr';
+import { asRoleModNoticeLines } from '@src/domain.operations/mods/asRoleModNoticeLines';
 
 import { relative } from 'node:path';
 
@@ -17,6 +20,32 @@ const asBootResourceLabel = (input: {
 }): string => `${input.label.prefix}${relative(input.label.base, input.path)}`;
 
 /**
+ * .what = the mod a payload's role boots under, with the role dir its plan is keyed from
+ * .why = each modded resource is tagged, and the role opens with a notice (usecase 4)
+ */
+type BootPayloadMod = {
+  ofLabel: string;
+  plan: RoleModPlan;
+  roleDir: string;
+} | null;
+
+/**
+ * .what = the ` mod="shadow"` or ` mod="add"` mark of one resource, or '' for the role's own
+ * .why = one mark for a say tag and a ref row alike, so the two never disagree
+ */
+const asBootModAttr = (input: {
+  mod: BootPayloadMod;
+  path: string;
+}): string => {
+  if (!input.mod) return '';
+  return asRoleModAttr({
+    plan: input.mod.plan,
+    roleDir: input.mod.roleDir,
+    path: input.path,
+  });
+};
+
+/**
  * .what = every say block of one kind, in order — the tag pair around each resource's content
  * .why = a readme, a say brief, and a say skill render in ONE shape and differ only in their tag
  */
@@ -24,6 +53,7 @@ const asBootSayBatches = (input: {
   resources: BootSayResource[];
   kind: BootSayResource['tag'];
   label: BootSource['label'];
+  mod: BootPayloadMod;
 }): BootBatch[] =>
   input.resources
     .filter((resource) => resource.tag === input.kind)
@@ -36,13 +66,25 @@ const asBootSayBatches = (input: {
         slug,
         kind: 'say' as const,
         lines: [
-          `<${resource.tag} path="${slug}">`,
+          `<${resource.tag} path="${slug}"${asBootModAttr({ mod: input.mod, path: resource.pathToLabel })}>`,
           resource.content,
           `</${resource.tag}>`,
           '',
         ],
       };
     });
+
+/**
+ * .what = one ref row: the resource's label, and its mod mark where it has one
+ * .why = a ref row is a bare path under a hoisted base, so the mark rides at the row's end,
+ *        where it leaves the shared base untouched
+ */
+const asBootRefRow = (input: {
+  label: BootSource['label'];
+  mod: BootPayloadMod;
+  path: string;
+}): string =>
+  `${asBootResourceLabel({ label: input.label, path: input.path })}${asBootModAttr({ mod: input.mod, path: input.path })}`;
 
 /**
  * .what = a ref roster as one batch, or none where the roster is empty
@@ -64,19 +106,24 @@ const asBootRefBatches = (input: {
 const asBootAlsoBatches = (input: {
   also: BootPlan['also'];
   label: BootSource['label'];
+  mod: BootPayloadMod;
 }): BootBatch[] => {
   const linesInner = [
     ...asBootRefBlock({
       tag: 'briefs.ref',
       paths: input.also.briefs.map((ref) =>
-        asBootResourceLabel({ label: input.label, path: ref.pathToOriginal }),
+        asBootRefRow({
+          label: input.label,
+          mod: input.mod,
+          path: ref.pathToOriginal,
+        }),
       ),
       indent: '  ',
     }),
     ...asBootRefBlock({
       tag: 'skills.ref',
       paths: input.also.skills.map((path) =>
-        asBootResourceLabel({ label: input.label, path }),
+        asBootRefRow({ label: input.label, mod: input.mod, path }),
       ),
       indent: '  ',
     }),
@@ -102,33 +149,57 @@ export const asBootPayloadBatches = (input: {
   resourcesSay: BootSayResource[];
   bootPlan: BootPlan;
   label: BootSource['label'];
+  mod: BootPayloadMod;
 }): BootBatch[] => [
+  ...(input.mod
+    ? [
+        {
+          slug: 'mod',
+          kind: 'say' as const,
+          lines: asRoleModNoticeLines({
+            of: input.mod.ofLabel,
+            plan: input.mod.plan,
+          }),
+        },
+      ]
+    : []),
   ...asBootSayBatches({
     resources: input.resourcesSay,
     kind: 'readme',
     label: input.label,
+    mod: input.mod,
   }),
   ...asBootSayBatches({
     resources: input.resourcesSay,
     kind: 'brief.say',
     label: input.label,
+    mod: input.mod,
   }),
   ...asBootRefBatches({
     tag: 'briefs.ref',
     paths: input.bootPlan.briefs.ref.map((ref) =>
-      asBootResourceLabel({ label: input.label, path: ref.pathToOriginal }),
+      asBootRefRow({
+        label: input.label,
+        mod: input.mod,
+        path: ref.pathToOriginal,
+      }),
     ),
   }),
   ...asBootSayBatches({
     resources: input.resourcesSay,
     kind: 'skill.say',
     label: input.label,
+    mod: input.mod,
   }),
   ...asBootRefBatches({
     tag: 'skills.ref',
     paths: input.bootPlan.skills.ref.map((path) =>
-      asBootResourceLabel({ label: input.label, path }),
+      asBootRefRow({ label: input.label, mod: input.mod, path }),
     ),
   }),
-  ...asBootAlsoBatches({ also: input.bootPlan.also, label: input.label }),
+  ...asBootAlsoBatches({
+    also: input.bootPlan.also,
+    label: input.label,
+    mod: input.mod,
+  }),
 ];

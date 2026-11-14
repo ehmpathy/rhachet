@@ -3,6 +3,7 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
+import { genKeyrackRuntimeDir } from '@/blackbox/.test/infra/genKeyrackRuntimeDir';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import {
   asSnapshotSafe,
@@ -238,7 +239,7 @@ env.test:
           cwd: repo.path,
           env: {
             HOME: repo.path,
-            XDG_RUNTIME_DIR: join(repo.path, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: genKeyrackRuntimeDir({ dir: repo.path }),
             // no env var = key is absent (not locked, since no vault set)
           },
           logOnError: false,
@@ -285,7 +286,7 @@ env.test:
           cwd: repo.path,
           env: {
             HOME: repo.path,
-            XDG_RUNTIME_DIR: join(repo.path, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: genKeyrackRuntimeDir({ dir: repo.path }),
           },
           logOnError: false,
         }),

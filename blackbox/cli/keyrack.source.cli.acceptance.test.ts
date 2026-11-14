@@ -3,6 +3,7 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
+import { genKeyrackRuntimeDir } from '@/blackbox/.test/infra/genKeyrackRuntimeDir';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import {
   asSnapshotSafe,
@@ -175,7 +176,7 @@ env.test:
           cwd: repo.path,
           env: {
             HOME: repo.path,
-            XDG_RUNTIME_DIR: join(repo.path, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: genKeyrackRuntimeDir({ dir: repo.path }),
             [envKeyGranted]: envValue,
             // envKeyAbsent not set
           },
@@ -204,7 +205,7 @@ env.test:
           cwd: repo.path,
           env: {
             HOME: repo.path,
-            XDG_RUNTIME_DIR: join(repo.path, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: genKeyrackRuntimeDir({ dir: repo.path }),
             [envKeyGranted]: envValue,
           },
           logOnError: false,
@@ -228,7 +229,7 @@ env.test:
           cwd: repo.path,
           env: {
             HOME: repo.path,
-            XDG_RUNTIME_DIR: join(repo.path, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: genKeyrackRuntimeDir({ dir: repo.path }),
             [envKeyGranted]: envValue,
           },
           logOnError: false,
@@ -278,7 +279,7 @@ env.test:
           cwd: repo.path,
           env: {
             HOME: repo.path,
-            XDG_RUNTIME_DIR: join(repo.path, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: genKeyrackRuntimeDir({ dir: repo.path }),
             [envKeyGranted]: envValue,
           },
         }),
@@ -314,7 +315,7 @@ env.test:
           cwd: repo.path,
           env: {
             HOME: repo.path,
-            XDG_RUNTIME_DIR: join(repo.path, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: genKeyrackRuntimeDir({ dir: repo.path }),
             [envKeyGranted]: envValue,
           },
         });
@@ -384,7 +385,7 @@ env.test:
           cwd: repo.path,
           env: {
             HOME: repo.path,
-            XDG_RUNTIME_DIR: join(repo.path, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: genKeyrackRuntimeDir({ dir: repo.path }),
             // no env vars set
           },
         }),
@@ -419,7 +420,7 @@ env.test:
           cwd: repo.path,
           env: {
             HOME: repo.path,
-            XDG_RUNTIME_DIR: join(repo.path, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: genKeyrackRuntimeDir({ dir: repo.path }),
           },
         });
 

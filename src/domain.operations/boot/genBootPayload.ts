@@ -14,6 +14,9 @@ import { getAllBriefCandidateFiles } from '@src/domain.operations/boot/getAllBri
 import { getAllDeclaredSubjectSlugs } from '@src/domain.operations/boot/getAllDeclaredSubjectSlugs';
 import { getAllFilesOncePerRealPath } from '@src/domain.operations/boot/getAllFilesOncePerRealPath';
 import { getOneBootConfigForSource } from '@src/domain.operations/boot/getOneBootConfigForSource';
+import { asRoleDirCoordinates } from '@src/domain.operations/mods/asRoleDirCoordinates';
+import { getOneRoleModForRoleDir } from '@src/domain.operations/mods/getOneRoleModForRoleDir';
+import { withRoleModReadConfirmed } from '@src/domain.operations/mods/withRoleModReadConfirmed';
 import { assertZeroOrphanMinifiedBriefs } from '@src/domain.operations/role/briefs/assertZeroOrphanMinifiedBriefs';
 import {
   BOOT_WALK_DIRS_SKIPPED,
@@ -21,6 +24,8 @@ import {
 } from '@src/domain.operations/role/briefs/constants';
 import { getRoleBriefRefs } from '@src/domain.operations/role/briefs/getRoleBriefRefs';
 import { getAllFilesFromDir } from '@src/infra/filesystem/getAllFilesFromDir';
+
+import { sep } from 'node:path';
 
 /**
  * .what = the payload one boot WOULD emit, assembled to a buffer and not emitted
@@ -152,12 +157,14 @@ const getOneReadmeFromFiles = (input: {
 /**
  * .what = the walked files that sit under the source's skills dir
  * .why = names the skill set, so the orchestrator reads as named steps
+ * .note = the prefix ends at a separator, so a peer dir that shares the name (a render's
+ *   `skills.next.<…>` leftover) is never taken for the skills dir
  */
 const getAllSkillFilesFromFiles = (input: {
   allFiles: string[];
   dirSkills: string;
 }): string[] =>
-  input.allFiles.filter((file) => file.startsWith(input.dirSkills));
+  input.allFiles.filter((file) => file.startsWith(`${input.dirSkills}${sep}`));
 
 /**
  * .what = assembles a boot's payload from its source, without emit
@@ -174,6 +181,16 @@ export const genBootPayload = async (input: {
   subjects: string[] | null;
 }): Promise<BootPayload | null> => {
   const { source, subjects } = input;
+
+  // a modded role boots its view only once that view is proven fresh (F8, F14), and the proof
+  //   precedes the walk, so no file read before it can come from a view mid-render. a read that
+  //   refuses is confirmed under the role view lock, so a render mid-swap never fails it
+  const mod = await withRoleModReadConfirmed(
+    {
+      cwd: asRoleDirCoordinates({ roleDir: source.rootDir })?.cwd ?? null,
+    },
+    () => getOneRoleModForRoleDir({ roleDir: source.rootDir }),
+  );
 
   // recursively read all files, then filter to readme, briefs, and skills
   //
@@ -236,6 +253,7 @@ export const genBootPayload = async (input: {
   // compute which resources to say vs ref
   const bootPlan = await computeBootPlan({
     config: bootConfig,
+    configMod: mod?.spec.sections ?? null,
     briefRefs,
     skillPaths: skillFiles,
     cwd: source.rootDir,
@@ -291,6 +309,7 @@ export const genBootPayload = async (input: {
     resourcesSay,
     bootPlan,
     label: source.label,
+    mod,
   });
 
   // 🔴 DERIVED, never assembled beside the batches

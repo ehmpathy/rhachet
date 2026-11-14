@@ -1,7 +1,6 @@
 import type { BootBudget } from '@src/domain.objects/RoleBootSpec';
-
-import { parseRoleBootYaml } from './parseRoleBootYaml';
-import { readOneBootSpecFile } from './readOneBootSpecFile';
+import { parseRoleBootYaml } from '@src/domain.operations/role/parseRoleBootYaml';
+import { readOneBootSpecFile } from '@src/domain.operations/role/readOneBootSpecFile';
 
 /**
  * .what = the budget one spec declares, read straight off disk — or null where it declares none

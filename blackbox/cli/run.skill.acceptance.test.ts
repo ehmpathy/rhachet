@@ -92,6 +92,27 @@ describe('rhachet run', () => {
         expect(result.stdout).toMatchSnapshot();
       });
     });
+
+    when('[t5] run --skill echo-args -r y (a short flag after the skill, F26)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['run', '--skill', 'echo-args', '-r', 'y'],
+          cwd: repo.path,
+        }),
+      );
+
+      then('exits with status 0: the -r is never read as --repo', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('the -r reaches the skill', () => {
+        expect(result.stdout).toMatch(/args:.*-r y/);
+      });
+
+      then('stdout matches its snapshot', () => {
+        expect(result.stdout).toMatchSnapshot();
+      });
+    });
   });
 
   given('[case2] repo with registry', () => {

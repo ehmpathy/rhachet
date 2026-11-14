@@ -98,6 +98,25 @@ export const ROLES_BOOT_COMMAND_WAXER =
  *     (a role boot hook beside an adhoc hook) and role lifeguard (linked only at [t1.3])
  *   - a `.claude/settings.of.repo.json` with the prior role boot hook of waxer and a human hook
  */
+/**
+ * .what = a brain package, `rhachet-brains-surfshop`, that re-exports this repo's built
+ *   claude-code hooks adapter, into a fixture's node_modules
+ * .why = `rhx init --hooks` syncs hooks only for a brain it finds; a fixture with no brain
+ *   package would sync naught
+ * .note = the caller declares it in the fixture's package.json
+ */
+export const setupBrainHooksAdapterPackage = (input: { dir: string }): void => {
+  const brainsDir = join(input.dir, 'node_modules', 'rhachet-brains-surfshop');
+  writeFileDeep({
+    path: join(brainsDir, 'package.json'),
+    content: `${JSON.stringify({ name: 'rhachet-brains-surfshop', version: '1.0.0', main: 'dist/index.js' }, null, 2)}\n`,
+  });
+  writeFileDeep({
+    path: join(brainsDir, 'dist', 'index.js'),
+    content: `module.exports = require(${JSON.stringify(ADAPTER_BUILT_PATH)});\n`,
+  });
+};
+
 export const setupBrainDirBootFixtureRepo = (input: {
   dir: string;
   nonce: string;
@@ -219,15 +238,7 @@ module.exports = { getRoleRegistry };
 
   // the claude-code hooks adapter: this repo's own built one, so hooks land in the shape a
   //   real claude reads. a toy adapter would pass the sync and fail the brain
-  const brainsDir = join(input.dir, 'node_modules', 'rhachet-brains-surfshop');
-  writeFileDeep({
-    path: join(brainsDir, 'package.json'),
-    content: `${JSON.stringify({ name: 'rhachet-brains-surfshop', version: '1.0.0', main: 'dist/index.js' }, null, 2)}\n`,
-  });
-  writeFileDeep({
-    path: join(brainsDir, 'dist', 'index.js'),
-    content: `module.exports = require(${JSON.stringify(ADAPTER_BUILT_PATH)});\n`,
-  });
+  setupBrainHooksAdapterPackage({ dir: input.dir });
 
   // settings.of.repo.json as a prior rhachet left it: waxer's role boot hook, and a human's hook.
   //   it is the repo's own file, so the migration moves it whole; a real settings.json would

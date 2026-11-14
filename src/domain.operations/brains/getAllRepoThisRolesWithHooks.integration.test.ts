@@ -203,4 +203,59 @@ describe('getAllRepoThisRolesWithHooks', () => {
       );
     });
   });
+
+  given('[case8] a role mod, and no budgeted .this role', () => {
+    const scene = useBeforeAll(async () => {
+      const repo = genRepoWithRoleBoots({
+        slug: 'repo-this-hooks-mods',
+        roles: { any: BOOT_YML_UNBUDGETED },
+      });
+      genSampleFileTree({
+        dir: join(repo, '.agent', 'repo=.mods', 'role=surfer'),
+        files: { 'boot.yml': 'of: test/surfer@1.0.0\n' },
+      });
+      genSampleFileTree({
+        dir: join(repo, '.agent', 'repo=.mods', 'role=mechanic'),
+        files: { 'boot.yml': 'of: ehmpathy/mechanic@1.0.0\n' },
+      });
+      return { result: getAllRepoThisRolesWithHooks({ gitroot: repo }) };
+    });
+
+    when('[t0] the roles are read', () => {
+      then(
+        'a mod arms no hook; the boot and the upgrade name its drift',
+        () => {
+          expect(scene.result.errors).toEqual([]);
+          expect(scene.result.roles).toEqual([]);
+        },
+      );
+    });
+  });
+
+  given('[case9] a role mod beside a budgeted .this role', () => {
+    const scene = useBeforeAll(async () => {
+      const repo = genRepoWithRoleBoots({
+        slug: 'repo-this-hooks-mods-budgeted',
+        roles: { tuner: BOOT_YML_BUDGETED },
+      });
+      genSampleFileTree({
+        dir: join(repo, '.agent', 'repo=.mods', 'role=surfer'),
+        files: { 'boot.yml': 'of: test/surfer@1.0.0\n' },
+      });
+      return { result: getAllRepoThisRolesWithHooks({ gitroot: repo }) };
+    });
+
+    when('[t0] the roles are read', () => {
+      then('only the budget carrier is armed; the mod adds none', () => {
+        expect(
+          scene.result.roles.map((role) => [role.repo, role.slug]),
+        ).toEqual([['.this', 'tuner']]);
+        expect(scene.result.roles[0]?.hooks?.onBrain).toEqual({
+          onStop: [
+            { command: REPO_THIS_BUDGET_HOOK_COMMAND, timeout: 'PT60S' },
+          ],
+        });
+      });
+    });
+  });
 });

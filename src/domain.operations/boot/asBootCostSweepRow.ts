@@ -1,6 +1,8 @@
+import type { RoleModPlan } from '@src/domain.objects/RoleModPlan';
 import { calcBudgetPercentUsed } from '@src/domain.operations/boot/calcBudgetPercentUsed';
 import type { BootSpecCost } from '@src/domain.operations/boot/getAllRepoBootSpecCosts';
 import { isBootSpecOverBudget } from '@src/domain.operations/boot/isBootSpecOverBudget';
+import { asRoleModCostTag } from '@src/domain.operations/mods/asRoleModCostTag';
 import { formatTokens } from '@src/utils/formatTokens';
 
 import { relative } from 'node:path';
@@ -35,10 +37,31 @@ export const asBootCostSweepRow = (input: {
   one: BootSpecCost;
   cwd: string;
   widthTokens: number;
+
+  /**
+   * the plan of the mod this spec's role boots under; null for an unmodded role
+   *
+   * .note = a modded row is marked `[~] modded`, so a reader sees which roles differ from
+   *   their published form, and by how much (usecase 4)
+   * .note = `'stale'` = a modded view that lags its mod; `'refused'` = a mod the last render
+   *   refused. the report marks each rather than refuses, since a sweep a human typed answers
+   *   and never gates, and each names its own fix
+   */
+  plan: RoleModPlan | 'stale' | 'refused' | null;
 }): string => {
   const { one } = input;
   const elbow = '├─';
   const pathShown = relative(input.cwd, one.pathToSpec);
+
+  // a modded role's mark trails the row, after every other tag, so the columns before it hold
+  const tagMod = ((): string => {
+    if (input.plan === null) return '';
+    if (input.plan === 'stale')
+      return '  [~] modded, view not current (rhx init --hooks)';
+    if (input.plan === 'refused')
+      return '  [~] modded, refused (rhx roles boot names why)';
+    return `  ${asRoleModCostTag({ plan: input.plan })}`;
+  })();
 
   // .note = the first count is right-aligned across the roster, as it already is in the
   //   `where the tokens go` column (`asBootCostReadout`) and the `in scope` block
@@ -57,7 +80,7 @@ export const asBootCostSweepRow = (input: {
   // a spec with no declared cap has a cost and no headroom to report. the column says so
   // rather than renders a blank a reader must interpret
   if (one.budget === null)
-    return `   ${elbow} ${tokensShown} tokens (no budget)  ${pathShown}${tagOwner}`;
+    return `   ${elbow} ${tokensShown} tokens (no budget)  ${pathShown}${tagOwner}${tagMod}`;
 
   const percentUsed = calcBudgetPercentUsed({
     payload: { tokens: one.tokens },
@@ -68,5 +91,5 @@ export const asBootCostSweepRow = (input: {
   // which — so a reader who scans the list never has to re-derive the arithmetic
   const marker = isBootSpecOverBudget({ one }) ? ' 🟡' : '';
 
-  return `   ${elbow} ${tokensShown} / ${formatTokens({ tokens: one.budget })} tokens (${percentUsed}%)  ${pathShown}${tagOwner}${marker}`;
+  return `   ${elbow} ${tokensShown} / ${formatTokens({ tokens: one.budget })} tokens (${percentUsed}%)  ${pathShown}${tagOwner}${marker}${tagMod}`;
 };

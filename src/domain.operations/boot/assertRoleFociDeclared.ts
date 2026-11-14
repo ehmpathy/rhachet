@@ -1,8 +1,8 @@
 import type { RoleLinkRefAtFocus } from '@src/domain.objects/RoleLinkRefAtFocus';
+import { getOneRoleBootSpecFromRef } from '@src/domain.operations/role/getOneRoleBootSpecFromRef';
 import { isRoleSpecifierMatch } from '@src/domain.operations/roles/isRoleSpecifierMatch';
 
 import { assertRoleFocusDeclared } from './assertRoleFocusDeclared';
-import { getOneRoleBootSpecFromRef } from './getOneRoleBootSpecFromRef';
 
 /**
  * .what = refuses any focus a linked role does not declare, before any write

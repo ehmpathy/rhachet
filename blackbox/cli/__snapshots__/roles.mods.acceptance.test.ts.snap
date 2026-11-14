@@ -1,0 +1,1705 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case1] a repo that mods a linked package role when: [t0.1] init renders again, with no mod change then: the render stdout matches its snapshot 1`] = `
+"🔭 search for linked roles with hooks...
+
+🫧 no roles with hooks found
+
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case1] a repo that mods a linked package role when: [t0] init links the role, then renders the modded view then: init stdout matches its snapshot 1`] = `
+"
+🔧 init 1 role(s)...
+
+📚 link role repo=test/role=surfer
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=test/readme.md
+   │  ├─ + .agent/repo=test/.gitignore
+   │  ├─ + .agent/repo=test/role=surfer/readme.md
+   │  ├─ + .agent/repo=test/role=surfer/boot.yml
+   │  ├─ + .agent/repo=test/role=surfer/briefs
+   │  └─ + .agent/repo=test/role=surfer/skills
+   └─ stats
+      ├─ 4 brief(s)
+      └─ 2 skill(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+🧢 .agent/repo=.mods
+   ├─ rendered
+   │  └─ role=surfer
+   └─ a live clone keeps the boot it read at session start; re-enroll it to pick up the change
+
+🧠 brain://repo=ambient
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+   └─ boot.md
+      └─ created — 1 role
+
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case1] a repo that mods a linked package role when: [t0] init links the role, then renders the modded view then: the boot.md a clone reads matches its snapshot 1`] = `
+"<brief.say path="rhachet/intro">
+# rhachet
+
+you are enrolled via rhachet. your roles' briefs and skills follow.
+
+- \`rhx list\` — every skill your roles grant. check it before you improvise
+- \`rhx <skill> --help\` — how to call one
+- \`rhx init · roles · list · run · enroll · actor · clone · keyrack · ask · act · upgrade\` — the commands; \`rhx <command> --help\` for each
+
+entool: a tactic worth repeat becomes a skill — \`.agent/repo=.this/role=any/skills/<name>.sh\` — so the next clone runs it, never rediscovers it.
+
+</brief.say>
+
+<mod of="test/surfer@0.9.0 (installed 1.0.0)">
+role test/surfer@0.9.0 (installed 1.0.0) is modded in this repo — 1 shadow, 1 add, 1 not
+[-] not briefs/rule.forbid.wipeouts.md
+[~] shadow briefs/rule.require.surf-wax.md drops the published briefs/rule.require.surf-wax.md.min
+</mod>
+
+<readme path=".agent/repo=test/role=surfer/readme.md">
+# surfer
+
+a test role, as published
+
+</readme>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/howto.paddle-out.md">
+published: paddle out past the break
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.require.reef-etiquette.md" mod="add">
+modded: mind the reef, yield to the inside surfer
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.require.surf-wax.md" mod="shadow">
+modded: wax the board, then wax the rails
+
+</brief.say>
+
+<skill.say path=".agent/repo=test/role=surfer/skills/wax.board.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = wax the board
+#
+# .note = sources its peer by its own dir, so a mod that shadows the
+#         peer alone is what this skill reads
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<skill.say path=".agent/repo=test/role=surfer/skills/wax.lib.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = the word a waxed board says; sourced by wax.board.sh
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case1] a repo that mods a linked package role when: [t1] the role is booted then: the boot matches its snapshot 1`] = `
+"<stats>
+quant
+  ├── files = 6
+  │   ├── briefs = 3
+  │   └── skills = 2
+  ├── chars = 791
+  └── tokens ≈ 198 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+<mod of="test/surfer@0.9.0 (installed 1.0.0)">
+role test/surfer@0.9.0 (installed 1.0.0) is modded in this repo — 1 shadow, 1 add, 1 not
+[-] not briefs/rule.forbid.wipeouts.md
+[~] shadow briefs/rule.require.surf-wax.md drops the published briefs/rule.require.surf-wax.md.min
+</mod>
+
+<readme path=".agent/repo=test/role=surfer/readme.md">
+# surfer
+
+a test role, as published
+
+</readme>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/howto.paddle-out.md">
+published: paddle out past the break
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.require.reef-etiquette.md" mod="add">
+modded: mind the reef, yield to the inside surfer
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.require.surf-wax.md" mod="shadow">
+modded: wax the board, then wax the rails
+
+</brief.say>
+
+<skill.say path=".agent/repo=test/role=surfer/skills/wax.board.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = wax the board
+#
+# .note = sources its peer by its own dir, so a mod that shadows the
+#         peer alone is what this skill reads
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<skill.say path=".agent/repo=test/role=surfer/skills/wax.lib.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = the word a waxed board says; sourced by wax.board.sh
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<stats>
+quant
+  ├── files = 6
+  │   ├── briefs = 3
+  │   └── skills = 2
+  ├── chars = 791
+  └── tokens ≈ 198 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case1] a repo that mods a linked package role when: [t2] the sweep prices every role then: the sweep stdout matches its snapshot 1`] = `
+"🧢 1 boot spec — none declare a budget
+   ├─ 559 tokens (no budget)  .agent/repo=test/role=surfer/boot.yml (linked)  [~] modded · 1 shadow · 1 add · 1 not
+   │
+   └─ swept
+      ├─ .agent/repo=*/role=*/boot.yml
+      ├─ .behavior/*/boot.yml
+      ├─ .route/*/boot.yml
+      └─ src/domain.roles/*/boot.yml
+
+   .note = a spec outside these paths is not swept. name it directly to cost it —
+           \`roles cost --what <path>\`.
+
+   .note = a \`(linked)\` spec is owned by another repo — not yours to trim. its budget is
+           that repo's to raise, so \`roles boot\` warns on it rather than halts. upgrade
+           the package, or raise it upstream. (1 of 1 here)
+   .note = a \`(linked)\` spec marked \`[~] modded\` carries your mod's shadows and adds,
+           and those are yours to trim in .agent/repo=.mods/. a shadow with no \`.md.min\`
+           beside it boots at full size. (1 of 1 linked here)
+
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case1] a repo that mods a linked package role when: [t3] a session stops, with the mod pinned to 0.9.0 and 1.0.0 installed then: the stop output matches its snapshot 1`] = `
+{
+  "stderr": "",
+  "stdout": "",
+}
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case1] a repo that mods a linked package role when: [t4] the pin is moved to the installed version, rendered, and booted then: the boot stdout matches its snapshot 1`] = `
+"<stats>
+quant
+  ├── files = 6
+  │   ├── briefs = 3
+  │   └── skills = 2
+  ├── chars = 791
+  └── tokens ≈ 198 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+<mod of="test/surfer@1.0.0">
+role test/surfer@1.0.0 is modded in this repo — 1 shadow, 1 add, 1 not
+[-] not briefs/rule.forbid.wipeouts.md
+[~] shadow briefs/rule.require.surf-wax.md drops the published briefs/rule.require.surf-wax.md.min
+</mod>
+
+<readme path=".agent/repo=test/role=surfer/readme.md">
+# surfer
+
+a test role, as published
+
+</readme>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/howto.paddle-out.md">
+published: paddle out past the break
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.require.reef-etiquette.md" mod="add">
+modded: mind the reef, yield to the inside surfer
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.require.surf-wax.md" mod="shadow">
+modded: wax the board, then wax the rails
+
+</brief.say>
+
+<skill.say path=".agent/repo=test/role=surfer/skills/wax.board.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = wax the board
+#
+# .note = sources its peer by its own dir, so a mod that shadows the
+#         peer alone is what this skill reads
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<skill.say path=".agent/repo=test/role=surfer/skills/wax.lib.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = the word a waxed board says; sourced by wax.board.sh
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<stats>
+quant
+  ├── files = 6
+  │   ├── briefs = 3
+  │   └── skills = 2
+  ├── chars = 791
+  └── tokens ≈ 198 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case2] a mod edited after the last render when: [t0.1] the sweep prices every role before a render then: the sweep stdout matches its snapshot 1`] = `
+"🧢 0 boot specs priced — 1 withheld by a mod (named below)
+   │
+   └─ swept
+      ├─ .agent/repo=*/role=*/boot.yml
+      ├─ .behavior/*/boot.yml
+      ├─ .route/*/boot.yml
+      └─ src/domain.roles/*/boot.yml
+
+   .note = a spec outside these paths is not swept. name it directly to cost it —
+           \`roles cost --what <path>\`.
+
+🧢 .agent/repo=.mods
+   └─ [~] modded, view not current (rhx init --hooks)
+      └─ test/surfer
+
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case2] a mod edited after the last render when: [t0.2] a session stops before a render then: the stop stdout and stderr match their snapshot 1`] = `
+{
+  "stderr": "",
+  "stdout": "",
+}
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case2] a mod edited after the last render when: [t0] the role is booted before a render then: the stale view stderr matches its snapshot 1`] = `
+"
+✋ RoleModViewStaleError: the modded view of role=surfer is stale: the mod or its published role changed after the last render
+
+{
+  "role": "test/surfer",
+  "paths": "briefs/howto.paddle-out.md",
+  "fix": "run rhx init --hooks, which re-renders every boot and the view from the mod"
+}
+
+[args] roles,boot,--repo,test,--role,surfer
+
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case2] a mod edited after the last render when: [t1] init renders again, then the role is booted then: the boot stdout matches its snapshot 1`] = `
+"<stats>
+quant
+  ├── files = 6
+  │   ├── briefs = 3
+  │   └── skills = 2
+  ├── chars = 789
+  └── tokens ≈ 198 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+<mod of="test/surfer@0.9.0 (installed 1.0.0)">
+role test/surfer@0.9.0 (installed 1.0.0) is modded in this repo — 2 shadow, 1 add, 1 not
+[-] not briefs/rule.forbid.wipeouts.md
+[~] shadow briefs/rule.require.surf-wax.md drops the published briefs/rule.require.surf-wax.md.min
+</mod>
+
+<readme path=".agent/repo=test/role=surfer/readme.md">
+# surfer
+
+a test role, as published
+
+</readme>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/howto.paddle-out.md" mod="shadow">
+modded: paddle out, then duck dive
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.require.reef-etiquette.md" mod="add">
+modded: mind the reef, yield to the inside surfer
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.require.surf-wax.md" mod="shadow">
+modded: wax the board, then wax the rails
+
+</brief.say>
+
+<skill.say path=".agent/repo=test/role=surfer/skills/wax.board.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = wax the board
+#
+# .note = sources its peer by its own dir, so a mod that shadows the
+#         peer alone is what this skill reads
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<skill.say path=".agent/repo=test/role=surfer/skills/wax.lib.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = the word a waxed board says; sourced by wax.board.sh
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<stats>
+quant
+  ├── files = 6
+  │   ├── briefs = 3
+  │   └── skills = 2
+  ├── chars = 789
+  └── tokens ≈ 198 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case3] a mod deleted when: [t0.0] the render after the delete then: the render stdout and stderr match their snapshot 1`] = `
+{
+  "stderr": "",
+  "stdout": "🧢 .agent/repo=.mods
+   ├─ returned to published, its mod gone
+   │  └─ role=surfer
+   └─ a live clone keeps the boot it read at session start; re-enroll it to pick up the change
+
+🔭 search for linked roles with hooks...
+
+🫧 no roles with hooks found
+
+",
+}
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case3] a mod deleted when: [t0] the role is booted after a render then: the boot stdout matches its snapshot 1`] = `
+"<stats>
+quant
+  ├── files = 6
+  │   ├── briefs = 3
+  │   └── skills = 2
+  ├── chars = 784
+  └── tokens ≈ 196 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+<readme path=".agent/repo=test/role=surfer/readme.md">
+# surfer
+
+a test role, as published
+
+</readme>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/howto.paddle-out.md">
+published: paddle out past the break
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.forbid.wipeouts.md">
+published: a wipeout is forbidden
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.require.surf-wax.md.min">
+published (min): wax the board before each session
+
+</brief.say>
+
+<skill.say path=".agent/repo=test/role=surfer/skills/wax.board.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = wax the board
+#
+# .note = sources its peer by its own dir, so a mod that shadows the
+#         peer alone is what this skill reads
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<skill.say path=".agent/repo=test/role=surfer/skills/wax.lib.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = the word a waxed board says; sourced by wax.board.sh
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<stats>
+quant
+  ├── files = 6
+  │   ├── briefs = 3
+  │   └── skills = 2
+  ├── chars = 784
+  └── tokens ≈ 196 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case4.0.1] a mod that shadows a skill, and the shadow sources its published peer when: [t0] the skill is run then: the run stdout matches its snapshot 1`] = `
+"
+🪨 run solid skill repo=test/role=surfer/skill=wax.board
+
+modded, then waxed
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case4.1] a mod that shadows only the peer a published skill sources when: [t0] the published skill is run then: the run stdout matches its snapshot 1`] = `
+"
+🪨 run solid skill repo=test/role=surfer/skill=wax.board
+
+waxed, by the modded lib
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case4] a mod that shadows a skill when: [t0] the skill is run then: the run stdout matches its snapshot 1`] = `
+"
+🪨 run solid skill repo=test/role=surfer/skill=wax.board
+
+waxed, modded
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case5] a mod file at a typo of a held path, beside a role no mod names when: [t0] init renders every actor then: init stdout and stderr match their snapshot 1`] = `
+{
+  "stderr": "✗ brain://repo=ambient/boot.md not written
+   ├─ ✋ ConstraintError: the mod of role=surfer is refused: it holds briefs/rule.require.surf-wux.md, a path the role does not hold, and no say or ref names it
+   ├─ mod = .agent/repo=.mods/role=surfer/
+   ├─ subject = briefs/rule.require.surf-wux.md
+   ├─ did you mean = briefs/rule.require.surf-wax.md
+   └─ fix = to shadow, move it to the held path; to add, say it in the mod boot.yml (briefs.say: [briefs/rule.require.surf-wux.md])
+",
+  "stdout": "
+🔧 init 2 role(s)...
+
+📚 link role repo=test/role=surfer
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=test/readme.md
+   │  ├─ + .agent/repo=test/.gitignore
+   │  ├─ + .agent/repo=test/role=surfer/readme.md
+   │  ├─ + .agent/repo=test/role=surfer/boot.yml
+   │  ├─ + .agent/repo=test/role=surfer/briefs
+   │  └─ + .agent/repo=test/role=surfer/skills
+   └─ stats
+      ├─ 4 brief(s)
+      └─ 2 skill(s)
+
+📚 link role repo=test/role=lifeguard
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=test/readme.md (updated)
+   │  ├─ ✓ .agent/repo=test/.gitignore (unchanged)
+   │  ├─ + .agent/repo=test/role=lifeguard/readme.md
+   │  ├─ + .agent/repo=test/role=lifeguard/boot.yml
+   │  ├─ + .agent/repo=test/role=lifeguard/briefs
+   │  └─ + .agent/repo=test/role=lifeguard/skills
+   └─ stats
+      ├─ 1 brief(s)
+      └─ 1 skill(s)
+
+✨ 2 role(s) linked
+✨ 2 role(s) initialized
+
+",
+}
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case5] a mod file at a typo of a held path, beside a role no mod names when: [t1] the role no mod names is booted then: the boot stdout and stderr match their snapshot 1`] = `
+{
+  "stderr": "",
+  "stdout": "<stats>
+quant
+  ├── files = 3
+  │   ├── briefs = 1
+  │   └── skills = 1
+  ├── chars = 424
+  └── tokens ≈ 106 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+<readme path=".agent/repo=test/role=lifeguard/readme.md">
+# lifeguard
+
+test role no mod names; it shows a refused mod of another role leaves this one's actors whole
+
+</readme>
+
+<brief.say path=".agent/repo=test/role=lifeguard/briefs/rule.require.whistle.md">
+# rule.require.whistle
+
+blow the whistle before a swimmer passes the flags
+
+</brief.say>
+
+<skill.say path=".agent/repo=test/role=lifeguard/skills/flags.raise.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = raise the swim flags
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<stats>
+quant
+  ├── files = 3
+  │   ├── briefs = 1
+  │   └── skills = 1
+  ├── chars = 424
+  └── tokens ≈ 106 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+",
+}
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case5] a mod file at a typo of a held path, beside a role no mod names when: [t2] the modded role is booted then: the refusal stderr matches its snapshot 1`] = `
+"
+✋ ConstraintError: the mod of role=surfer is refused: it holds briefs/rule.require.surf-wux.md, a path the role does not hold, and no say or ref names it
+
+{
+  "mod": ".agent/repo=.mods/role=surfer/",
+  "subject": "briefs/rule.require.surf-wux.md",
+  "did you mean": "briefs/rule.require.surf-wax.md",
+  "fix": "to shadow, move it to the held path; to add, say it in the mod boot.yml (briefs.say: [briefs/rule.require.surf-wux.md])"
+}
+
+[args] roles,boot,--repo,test,--role,surfer
+
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case6.1] a release removes the path a mod nots when: [t0] a session stops then: the stop stdout and stderr match their snapshot 1`] = `
+{
+  "stderr": "",
+  "stdout": "",
+}
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case6.1] a release removes the path a mod nots when: [t1] the role is booted then: the refusal stdout and stderr match their snapshot 1`] = `
+{
+  "stderr": "
+✋ ConstraintError: the mod of role=surfer is refused: its not \`briefs/rule.forbid.wipeouts.md\` matches no briefs file the role holds
+
+{
+  "mod": ".agent/repo=.mods/role=surfer/",
+  "subject": "briefs/rule.forbid.wipeouts.md",
+  "fix": "point the not at a held path, or delete the line"
+}
+
+[args] roles,boot,--repo,test,--role,surfer
+
+",
+  "stdout": "",
+}
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case6] a release removes the path a mod shadows when: [t0] a session stops then: the stop stdout and stderr match their snapshot 1`] = `
+{
+  "stderr": "",
+  "stdout": "",
+}
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case6] a release removes the path a mod shadows when: [t1] the role is booted then: the refusal stdout and stderr match their snapshot 1`] = `
+{
+  "stderr": "
+✋ ConstraintError: the mod of role=surfer is refused: it holds briefs/rule.require.surf-wax.md, a path the role does not hold, and no say or ref names it
+
+{
+  "mod": ".agent/repo=.mods/role=surfer/",
+  "subject": "briefs/rule.require.surf-wax.md",
+  "fix": "to shadow, move it to the held path; to add, say it in the mod boot.yml (briefs.say: [briefs/rule.require.surf-wax.md])"
+}
+
+[args] roles,boot,--repo,test,--role,surfer
+
+",
+  "stdout": "",
+}
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case7] the content of an extant shadow is edited after the render when: [t0] the role is booted, with no render then: the boot stdout matches its snapshot 1`] = `
+"<stats>
+quant
+  ├── files = 6
+  │   ├── briefs = 3
+  │   └── skills = 2
+  ├── chars = 802
+  └── tokens ≈ 201 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+<mod of="test/surfer@0.9.0 (installed 1.0.0)">
+role test/surfer@0.9.0 (installed 1.0.0) is modded in this repo — 1 shadow, 1 add, 1 not
+[-] not briefs/rule.forbid.wipeouts.md
+[~] shadow briefs/rule.require.surf-wax.md drops the published briefs/rule.require.surf-wax.md.min
+</mod>
+
+<readme path=".agent/repo=test/role=surfer/readme.md">
+# surfer
+
+a test role, as published
+
+</readme>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/howto.paddle-out.md">
+published: paddle out past the break
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.require.reef-etiquette.md" mod="add">
+modded: mind the reef, yield to the inside surfer
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.require.surf-wax.md" mod="shadow">
+modded twice: wax the board, the rails, and the fins
+
+</brief.say>
+
+<skill.say path=".agent/repo=test/role=surfer/skills/wax.board.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = wax the board
+#
+# .note = sources its peer by its own dir, so a mod that shadows the
+#         peer alone is what this skill reads
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<skill.say path=".agent/repo=test/role=surfer/skills/wax.lib.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = the word a waxed board says; sourced by wax.board.sh
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<stats>
+quant
+  ├── files = 6
+  │   ├── briefs = 3
+  │   └── skills = 2
+  ├── chars = 802
+  └── tokens ≈ 201 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case8] a not whose path is a typo when: [t0] init renders the view then: init stdout and stderr match their snapshot 1`] = `
+{
+  "stderr": "✗ brain://repo=ambient/boot.md not written
+   ├─ ✋ ConstraintError: the mod of role=surfer is refused: its not \`briefs/rule.forbid.wipeoutz.md\` matches no briefs file the role holds
+   ├─ mod = .agent/repo=.mods/role=surfer/
+   ├─ subject = briefs/rule.forbid.wipeoutz.md
+   ├─ did you mean = briefs/rule.forbid.wipeouts.md
+   └─ fix = point the not at a held path, or delete the line
+",
+  "stdout": "
+🔧 init 1 role(s)...
+
+📚 link role repo=test/role=surfer
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=test/readme.md
+   │  ├─ + .agent/repo=test/.gitignore
+   │  ├─ + .agent/repo=test/role=surfer/readme.md
+   │  ├─ + .agent/repo=test/role=surfer/boot.yml
+   │  ├─ + .agent/repo=test/role=surfer/briefs
+   │  └─ + .agent/repo=test/role=surfer/skills
+   └─ stats
+      ├─ 4 brief(s)
+      └─ 2 skill(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+",
+}
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case8] a not whose path is a typo when: [t0] init renders the view then: the boot names the not and the held path it missed 1`] = `
+"
+✋ ConstraintError: the mod of role=surfer is refused: its not \`briefs/rule.forbid.wipeoutz.md\` matches no briefs file the role holds
+
+{
+  "mod": ".agent/repo=.mods/role=surfer/",
+  "subject": "briefs/rule.forbid.wipeoutz.md",
+  "did you mean": "briefs/rule.forbid.wipeouts.md",
+  "fix": "point the not at a held path, or delete the line"
+}
+
+[args] roles,boot,--repo,test,--role,surfer
+
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case8] a not whose path is a typo when: [t1] the typo is fixed, and init renders again then: the boot stdout matches its snapshot 1`] = `
+"<stats>
+quant
+  ├── files = 6
+  │   ├── briefs = 3
+  │   └── skills = 2
+  ├── chars = 791
+  └── tokens ≈ 198 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+<mod of="test/surfer@0.9.0 (installed 1.0.0)">
+role test/surfer@0.9.0 (installed 1.0.0) is modded in this repo — 1 shadow, 1 add, 1 not
+[-] not briefs/rule.forbid.wipeouts.md
+[~] shadow briefs/rule.require.surf-wax.md drops the published briefs/rule.require.surf-wax.md.min
+</mod>
+
+<readme path=".agent/repo=test/role=surfer/readme.md">
+# surfer
+
+a test role, as published
+
+</readme>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/howto.paddle-out.md">
+published: paddle out past the break
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.require.reef-etiquette.md" mod="add">
+modded: mind the reef, yield to the inside surfer
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.require.surf-wax.md" mod="shadow">
+modded: wax the board, then wax the rails
+
+</brief.say>
+
+<skill.say path=".agent/repo=test/role=surfer/skills/wax.board.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = wax the board
+#
+# .note = sources its peer by its own dir, so a mod that shadows the
+#         peer alone is what this skill reads
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<skill.say path=".agent/repo=test/role=surfer/skills/wax.lib.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = the word a waxed board says; sourced by wax.board.sh
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<stats>
+quant
+  ├── files = 6
+  │   ├── briefs = 3
+  │   └── skills = 2
+  ├── chars = 791
+  └── tokens ≈ 198 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case9.1] a mod that ships a .md.min with no .md anywhere when: [t0] the role is booted then: the refusal stderr matches its snapshot 1`] = `
+"
+✋ ConstraintError: the mod of role=surfer is refused: it holds briefs/rule.require.tide-charts.md.min, a minified brief with no .md beside it
+
+{
+  "mod": ".agent/repo=.mods/role=surfer/",
+  "subject": "briefs/rule.require.tide-charts.md.min",
+  "fix": "add briefs/rule.require.tide-charts.md beside it, or remove the orphan"
+}
+
+[args] roles,boot,--repo,test,--role,surfer
+
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case9.2] a mod whose say glob adds three briefs when: [t0] the role is booted then: the boot stdout matches its snapshot 1`] = `
+"<stats>
+quant
+  ├── files = 8
+  │   ├── briefs = 5
+  │   └── skills = 2
+  ├── chars = 847
+  └── tokens ≈ 212 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+<mod of="test/surfer@0.9.0 (installed 1.0.0)">
+role test/surfer@0.9.0 (installed 1.0.0) is modded in this repo — 1 shadow, 3 add, 1 not
+[-] not briefs/rule.forbid.wipeouts.md
+[~] shadow briefs/rule.require.surf-wax.md drops the published briefs/rule.require.surf-wax.md.min
+</mod>
+
+<readme path=".agent/repo=test/role=surfer/readme.md">
+# surfer
+
+a test role, as published
+
+</readme>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/howto.paddle-out.md">
+published: paddle out past the break
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.require.reef-breaks.md" mod="add">
+modded: mind the reef-breaks
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.require.reef-cuts.md" mod="add">
+modded: mind the reef-cuts
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.require.reef-etiquette.md" mod="add">
+modded: mind the reef, yield to the inside surfer
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.require.surf-wax.md" mod="shadow">
+modded: wax the board, then wax the rails
+
+</brief.say>
+
+<skill.say path=".agent/repo=test/role=surfer/skills/wax.board.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = wax the board
+#
+# .note = sources its peer by its own dir, so a mod that shadows the
+#         peer alone is what this skill reads
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<skill.say path=".agent/repo=test/role=surfer/skills/wax.lib.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = the word a waxed board says; sourced by wax.board.sh
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<stats>
+quant
+  ├── files = 8
+  │   ├── briefs = 5
+  │   └── skills = 2
+  ├── chars = 847
+  └── tokens ≈ 212 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case9] a mod that ships its own .md.min beside a shadow when: [t0] the role is booted then: the boot stdout matches its snapshot 1`] = `
+"<stats>
+quant
+  ├── files = 6
+  │   ├── briefs = 3
+  │   └── skills = 2
+  ├── chars = 783
+  └── tokens ≈ 196 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+<mod of="test/surfer@0.9.0 (installed 1.0.0)">
+role test/surfer@0.9.0 (installed 1.0.0) is modded in this repo — 2 shadow, 1 add, 1 not
+[-] not briefs/rule.forbid.wipeouts.md
+</mod>
+
+<readme path=".agent/repo=test/role=surfer/readme.md">
+# surfer
+
+a test role, as published
+
+</readme>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/howto.paddle-out.md">
+published: paddle out past the break
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.require.reef-etiquette.md" mod="add">
+modded: mind the reef, yield to the inside surfer
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.require.surf-wax.md.min" mod="shadow">
+modded (min): wax board and rails
+
+</brief.say>
+
+<skill.say path=".agent/repo=test/role=surfer/skills/wax.board.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = wax the board
+#
+# .note = sources its peer by its own dir, so a mod that shadows the
+#         peer alone is what this skill reads
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<skill.say path=".agent/repo=test/role=surfer/skills/wax.lib.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = the word a waxed board says; sourced by wax.board.sh
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<stats>
+quant
+  ├── files = 6
+  │   ├── briefs = 3
+  │   └── skills = 2
+  ├── chars = 783
+  └── tokens ≈ 196 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case10] a modded role beside a role no mod names, in one sweep when: [t0] the sweep prices every role then: the sweep stdout matches its snapshot 1`] = `
+"🧢 2 boot specs — none declare a budget
+   ├─ 293 tokens (no budget)  .agent/repo=test/role=lifeguard/boot.yml (linked)
+   ├─ 559 tokens (no budget)  .agent/repo=test/role=surfer/boot.yml (linked)  [~] modded · 1 shadow · 1 add · 1 not
+   │
+   └─ swept
+      ├─ .agent/repo=*/role=*/boot.yml
+      ├─ .behavior/*/boot.yml
+      ├─ .route/*/boot.yml
+      └─ src/domain.roles/*/boot.yml
+
+   .note = a spec outside these paths is not swept. name it directly to cost it —
+           \`roles cost --what <path>\`.
+
+   .note = a \`(linked)\` spec is owned by another repo — not yours to trim. its budget is
+           that repo's to raise, so \`roles boot\` warns on it rather than halts. upgrade
+           the package, or raise it upstream. (2 of 2 here)
+   .note = a \`(linked)\` spec marked \`[~] modded\` carries your mod's shadows and adds,
+           and those are yours to trim in .agent/repo=.mods/. a shadow with no \`.md.min\`
+           beside it boots at full size. (1 of 2 linked here)
+
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.1] a mod that declares a budget when: [t0] init renders the view, then the role is booted then: init stdout and stderr match their snapshot 1`] = `
+{
+  "stderr": "✗ brain://repo=ambient/boot.md not written
+   ├─ ✋ ConstraintError: the mod of role=surfer is refused: its boot.yml declares a \`budget:\`
+   ├─ mod = .agent/repo=.mods/role=surfer/
+   ├─ subject = boot.yml
+   └─ fix = delete the \`budget:\` key — the role's own budget caps the modded payload
+",
+  "stdout": "
+🔧 init 1 role(s)...
+
+📚 link role repo=test/role=surfer
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=test/readme.md
+   │  ├─ + .agent/repo=test/.gitignore
+   │  ├─ + .agent/repo=test/role=surfer/readme.md
+   │  ├─ + .agent/repo=test/role=surfer/boot.yml
+   │  ├─ + .agent/repo=test/role=surfer/briefs
+   │  └─ + .agent/repo=test/role=surfer/skills
+   └─ stats
+      ├─ 4 brief(s)
+      └─ 2 skill(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+",
+}
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.1] a mod that declares a budget when: [t0] init renders the view, then the role is booted then: the boot stderr matches its snapshot 1`] = `
+"
+✋ ConstraintError: the mod of role=surfer is refused: its boot.yml declares a \`budget:\`
+
+{
+  "mod": ".agent/repo=.mods/role=surfer/",
+  "subject": "boot.yml",
+  "fix": "delete the \`budget:\` key — the role's own budget caps the modded payload"
+}
+
+[args] roles,boot,--repo,test,--role,surfer
+
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.1] a mod that declares a budget when: [t0] init renders the view, then the role is booted then: the sweep reports the refused mod, never refuses: exit 0 1`] = `
+"🧢 0 boot specs priced — 1 withheld by a mod (named below)
+   │
+   └─ swept
+      ├─ .agent/repo=*/role=*/boot.yml
+      ├─ .behavior/*/boot.yml
+      ├─ .route/*/boot.yml
+      └─ src/domain.roles/*/boot.yml
+
+   .note = a spec outside these paths is not swept. name it directly to cost it —
+           \`roles cost --what <path>\`.
+
+🧢 .agent/repo=.mods
+   └─ [~] modded, refused (rhx roles boot names why)
+      └─ test/surfer
+
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.2] a mod whose of names no role spec when: [t0] init renders the view, then the role is booted then: init stdout and stderr match their snapshot 1`] = `
+{
+  "stderr": "✗ brain://repo=ambient/boot.md not written
+   ├─ ✋ ConstraintError: the mod of role=surfer is refused: its \`of: test/surfer/extra\` is not a role spec
+   ├─ mod = .agent/repo=.mods/role=surfer/
+   ├─ subject = boot.yml
+   └─ fix = write \`of: <repo>/<role>\` or \`of: <repo>/<role>@<version>\`
+",
+  "stdout": "
+🔧 init 1 role(s)...
+
+📚 link role repo=test/role=surfer
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=test/readme.md
+   │  ├─ + .agent/repo=test/.gitignore
+   │  ├─ + .agent/repo=test/role=surfer/readme.md
+   │  ├─ + .agent/repo=test/role=surfer/boot.yml
+   │  ├─ + .agent/repo=test/role=surfer/briefs
+   │  └─ + .agent/repo=test/role=surfer/skills
+   └─ stats
+      ├─ 4 brief(s)
+      └─ 2 skill(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+",
+}
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.2] a mod whose of names no role spec when: [t0] init renders the view, then the role is booted then: the boot stderr matches its snapshot 1`] = `
+"
+✋ ConstraintError: the mod of role=surfer is refused: its \`of: test/surfer/extra\` is not a role spec
+
+{
+  "mod": ".agent/repo=.mods/role=surfer/",
+  "subject": "boot.yml",
+  "fix": "write \`of: <repo>/<role>\` or \`of: <repo>/<role>@<version>\`"
+}
+
+[args] roles,boot,--repo,test,--role,surfer
+
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.2] a mod whose of names no role spec when: [t0] init renders the view, then the role is booted then: the sweep reports the refused mod, never refuses: exit 0 1`] = `
+"🧢 0 boot specs priced — 1 withheld by a mod (named below)
+   │
+   └─ swept
+      ├─ .agent/repo=*/role=*/boot.yml
+      ├─ .behavior/*/boot.yml
+      ├─ .route/*/boot.yml
+      └─ src/domain.roles/*/boot.yml
+
+   .note = a spec outside these paths is not swept. name it directly to cost it —
+           \`roles cost --what <path>\`.
+
+🧢 .agent/repo=.mods
+   └─ [~] modded, refused (rhx roles boot names why)
+      └─ test/surfer
+
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.3] a mod in subject mode, of a role in simple mode when: [t0] init renders the view, then the role is booted then: init stdout and stderr match their snapshot 1`] = `
+{
+  "stderr": "✗ brain://repo=ambient/boot.md not written
+   ├─ ✋ ConstraintError: the mod of role=surfer is refused: its boot.yml is in subject mode, but the role's is in simple mode
+   ├─ mod = .agent/repo=.mods/role=surfer/
+   ├─ subject = boot.yml
+   └─ fix = write the mod with top-level \`briefs:\` / \`skills:\`, as the role does
+",
+  "stdout": "
+🔧 init 1 role(s)...
+
+📚 link role repo=test/role=surfer
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=test/readme.md
+   │  ├─ + .agent/repo=test/.gitignore
+   │  ├─ + .agent/repo=test/role=surfer/readme.md
+   │  ├─ + .agent/repo=test/role=surfer/boot.yml
+   │  ├─ + .agent/repo=test/role=surfer/briefs
+   │  └─ + .agent/repo=test/role=surfer/skills
+   └─ stats
+      ├─ 4 brief(s)
+      └─ 2 skill(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+",
+}
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.3] a mod in subject mode, of a role in simple mode when: [t0] init renders the view, then the role is booted then: the boot stderr matches its snapshot 1`] = `
+"
+✋ ConstraintError: the mod of role=surfer is refused: its boot.yml is in subject mode, but the role's is in simple mode
+
+{
+  "mod": ".agent/repo=.mods/role=surfer/",
+  "subject": "boot.yml",
+  "fix": "write the mod with top-level \`briefs:\` / \`skills:\`, as the role does"
+}
+
+[args] roles,boot,--repo,test,--role,surfer
+
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.3] a mod in subject mode, of a role in simple mode when: [t0] init renders the view, then the role is booted then: the sweep reports the refused mod, never refuses: exit 0 1`] = `
+"🧢 0 boot specs priced — 1 withheld by a mod (named below)
+   │
+   └─ swept
+      ├─ .agent/repo=*/role=*/boot.yml
+      ├─ .behavior/*/boot.yml
+      ├─ .route/*/boot.yml
+      └─ src/domain.roles/*/boot.yml
+
+   .note = a spec outside these paths is not swept. name it directly to cost it —
+           \`roles cost --what <path>\`.
+
+🧢 .agent/repo=.mods
+   └─ [~] modded, refused (rhx roles boot names why)
+      └─ test/surfer
+
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.4] a mod that holds a readme when: [t0] init renders the view, then the sweep runs and the role is booted then: init stdout and stderr match their snapshot 1`] = `
+{
+  "stderr": "✗ brain://repo=ambient/boot.md not written
+   ├─ ✋ ConstraintError: the mod of role=surfer is refused: it holds readme.md, a kind a mod cannot change
+   ├─ mod = .agent/repo=.mods/role=surfer/
+   ├─ subject = readme.md
+   └─ fix = a mod holds only briefs/ and skills/ files; for a readme, an init, or a keyrack.yml, use a .this role or an upstream pr
+",
+  "stdout": "
+🔧 init 1 role(s)...
+
+📚 link role repo=test/role=surfer
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=test/readme.md
+   │  ├─ + .agent/repo=test/.gitignore
+   │  ├─ + .agent/repo=test/role=surfer/readme.md
+   │  ├─ + .agent/repo=test/role=surfer/boot.yml
+   │  ├─ + .agent/repo=test/role=surfer/briefs
+   │  └─ + .agent/repo=test/role=surfer/skills
+   └─ stats
+      ├─ 4 brief(s)
+      └─ 2 skill(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+",
+}
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.4] a mod that holds a readme when: [t0] init renders the view, then the sweep runs and the role is booted then: the boot stdout and stderr match their snapshot 1`] = `
+{
+  "stderr": "
+✋ ConstraintError: the mod of role=surfer is refused: it holds readme.md, a kind a mod cannot change
+
+{
+  "mod": ".agent/repo=.mods/role=surfer/",
+  "subject": "readme.md",
+  "fix": "a mod holds only briefs/ and skills/ files; for a readme, an init, or a keyrack.yml, use a .this role or an upstream pr"
+}
+
+[args] roles,boot,--repo,test,--role,surfer
+
+",
+  "stdout": "",
+}
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.4] a mod that holds a readme when: [t0] init renders the view, then the sweep runs and the role is booted then: the sweep stdout and stderr match their snapshot 1`] = `
+{
+  "stderr": "
+🟡 a boot spec could not be read — it is absent from the roster below
+   ├─ spec  = .agent/repo=test/role=surfer/boot.yml
+   ├─ fault = ✋ ConstraintError: the mod of role=surfer is refused: it holds readme.md, a kind a mod cannot change
+   └─ hint: repair the spec, or report it upstream where it is a linked role
+
+",
+  "stdout": "🧢 0 boot specs priced — 1 withheld by a mod (named below)
+   │
+   └─ swept
+      ├─ .agent/repo=*/role=*/boot.yml
+      ├─ .behavior/*/boot.yml
+      ├─ .route/*/boot.yml
+      └─ src/domain.roles/*/boot.yml
+
+   .note = a spec outside these paths is not swept. name it directly to cost it —
+           \`roles cost --what <path>\`.
+
+🧢 .agent/repo=.mods
+   └─ [~] modded, refused (rhx roles boot names why)
+      └─ test/surfer
+
+",
+}
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.5] a mod that holds an init when: [t0] init renders the view, then the sweep runs and the role is booted then: init stdout and stderr match their snapshot 1`] = `
+{
+  "stderr": "✗ brain://repo=ambient/boot.md not written
+   ├─ ✋ ConstraintError: the mod of role=surfer is refused: it holds inits/claude.hooks.sh, a kind a mod cannot change
+   ├─ mod = .agent/repo=.mods/role=surfer/
+   ├─ subject = inits/claude.hooks.sh
+   └─ fix = a mod holds only briefs/ and skills/ files; for a readme, an init, or a keyrack.yml, use a .this role or an upstream pr
+",
+  "stdout": "
+🔧 init 1 role(s)...
+
+📚 link role repo=test/role=surfer
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=test/readme.md
+   │  ├─ + .agent/repo=test/.gitignore
+   │  ├─ + .agent/repo=test/role=surfer/readme.md
+   │  ├─ + .agent/repo=test/role=surfer/boot.yml
+   │  ├─ + .agent/repo=test/role=surfer/briefs
+   │  └─ + .agent/repo=test/role=surfer/skills
+   └─ stats
+      ├─ 4 brief(s)
+      └─ 2 skill(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+",
+}
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.5] a mod that holds an init when: [t0] init renders the view, then the sweep runs and the role is booted then: the boot stdout and stderr match their snapshot 1`] = `
+{
+  "stderr": "
+✋ ConstraintError: the mod of role=surfer is refused: it holds inits/claude.hooks.sh, a kind a mod cannot change
+
+{
+  "mod": ".agent/repo=.mods/role=surfer/",
+  "subject": "inits/claude.hooks.sh",
+  "fix": "a mod holds only briefs/ and skills/ files; for a readme, an init, or a keyrack.yml, use a .this role or an upstream pr"
+}
+
+[args] roles,boot,--repo,test,--role,surfer
+
+",
+  "stdout": "",
+}
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.5] a mod that holds an init when: [t0] init renders the view, then the sweep runs and the role is booted then: the sweep stdout and stderr match their snapshot 1`] = `
+{
+  "stderr": "
+🟡 a boot spec could not be read — it is absent from the roster below
+   ├─ spec  = .agent/repo=test/role=surfer/boot.yml
+   ├─ fault = ✋ ConstraintError: the mod of role=surfer is refused: it holds inits/claude.hooks.sh, a kind a mod cannot change
+   └─ hint: repair the spec, or report it upstream where it is a linked role
+
+",
+  "stdout": "🧢 0 boot specs priced — 1 withheld by a mod (named below)
+   │
+   └─ swept
+      ├─ .agent/repo=*/role=*/boot.yml
+      ├─ .behavior/*/boot.yml
+      ├─ .route/*/boot.yml
+      └─ src/domain.roles/*/boot.yml
+
+   .note = a spec outside these paths is not swept. name it directly to cost it —
+           \`roles cost --what <path>\`.
+
+🧢 .agent/repo=.mods
+   └─ [~] modded, refused (rhx roles boot names why)
+      └─ test/surfer
+
+",
+}
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.6] a mod that holds a keyrack manifest when: [t0] init renders the view, then the sweep runs and the role is booted then: init stdout and stderr match their snapshot 1`] = `
+{
+  "stderr": "✗ brain://repo=ambient/boot.md not written
+   ├─ ✋ ConstraintError: the mod of role=surfer is refused: it holds keyrack.yml, a kind a mod cannot change
+   ├─ mod = .agent/repo=.mods/role=surfer/
+   ├─ subject = keyrack.yml
+   └─ fix = a mod holds only briefs/ and skills/ files; for a readme, an init, or a keyrack.yml, use a .this role or an upstream pr
+",
+  "stdout": "
+🔧 init 1 role(s)...
+
+📚 link role repo=test/role=surfer
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=test/readme.md
+   │  ├─ + .agent/repo=test/.gitignore
+   │  ├─ + .agent/repo=test/role=surfer/readme.md
+   │  ├─ + .agent/repo=test/role=surfer/boot.yml
+   │  ├─ + .agent/repo=test/role=surfer/briefs
+   │  └─ + .agent/repo=test/role=surfer/skills
+   └─ stats
+      ├─ 4 brief(s)
+      └─ 2 skill(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+",
+}
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.6] a mod that holds a keyrack manifest when: [t0] init renders the view, then the sweep runs and the role is booted then: the boot stdout and stderr match their snapshot 1`] = `
+{
+  "stderr": "
+✋ ConstraintError: the mod of role=surfer is refused: it holds keyrack.yml, a kind a mod cannot change
+
+{
+  "mod": ".agent/repo=.mods/role=surfer/",
+  "subject": "keyrack.yml",
+  "fix": "a mod holds only briefs/ and skills/ files; for a readme, an init, or a keyrack.yml, use a .this role or an upstream pr"
+}
+
+[args] roles,boot,--repo,test,--role,surfer
+
+",
+  "stdout": "",
+}
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.6] a mod that holds a keyrack manifest when: [t0] init renders the view, then the sweep runs and the role is booted then: the sweep stdout and stderr match their snapshot 1`] = `
+{
+  "stderr": "
+🟡 a boot spec could not be read — it is absent from the roster below
+   ├─ spec  = .agent/repo=test/role=surfer/boot.yml
+   ├─ fault = ✋ ConstraintError: the mod of role=surfer is refused: it holds keyrack.yml, a kind a mod cannot change
+   └─ hint: repair the spec, or report it upstream where it is a linked role
+
+",
+  "stdout": "🧢 0 boot specs priced — 1 withheld by a mod (named below)
+   │
+   └─ swept
+      ├─ .agent/repo=*/role=*/boot.yml
+      ├─ .behavior/*/boot.yml
+      ├─ .route/*/boot.yml
+      └─ src/domain.roles/*/boot.yml
+
+   .note = a spec outside these paths is not swept. name it directly to cost it —
+           \`roles cost --what <path>\`.
+
+🧢 .agent/repo=.mods
+   └─ [~] modded, refused (rhx roles boot names why)
+      └─ test/surfer
+
+",
+}
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.7] a published role whose own boot.yml declares \`of:\` (usecase 11) when: [t0] the role is booted then: the boot stdout and stderr match their snapshot 1`] = `
+{
+  "stderr": "
+✋ ConstraintError: boot.yml declares \`of:\`, which belongs only in a mod boot.yml
+
+{
+  "hint": "to mod a role, put this spec at .agent/repo=.mods/role=<role>/boot.yml; in a role of its own, delete the \`of:\` key",
+  "path": "/TMP_REPO/.agent/repo=test/role=surfer/boot.yml"
+}
+
+[args] roles,boot,--repo,test,--role,surfer
+
+",
+  "stdout": "",
+}
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case12] a mod that adds a brief when: [t0] the mod is deleted and the sweep prices the role again then: the sweep stdout and stderr match their snapshot 1`] = `
+{
+  "stderr": "",
+  "stdout": "🧢 1 boot spec — none declare a budget
+   ├─ 440 tokens (no budget)  .agent/repo=test/role=surfer/boot.yml (linked)
+   │
+   └─ swept
+      ├─ .agent/repo=*/role=*/boot.yml
+      ├─ .behavior/*/boot.yml
+      ├─ .route/*/boot.yml
+      └─ src/domain.roles/*/boot.yml
+
+   .note = a spec outside these paths is not swept. name it directly to cost it —
+           \`roles cost --what <path>\`.
+
+   .note = a \`(linked)\` spec is owned by another repo — not yours to trim. its budget is
+           that repo's to raise, so \`roles boot\` warns on it rather than halts. upgrade
+           the package, or raise it upstream. (1 of 1 here)
+
+",
+}
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case13.1] \`rhx list\` over a role whose mod shadows one skill and nots another when: [t0] \`rhx list\` is invoked then: the list stdout and stderr match their snapshot 1`] = `
+{
+  "stderr": "",
+  "stdout": "🪨 rhx list
+   ├─ 1 skill found
+   │
+   └─ repo=test
+      └─ role=surfer
+         └─ wax.board
+",
+}
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case13] a mod that nots a skill when: [t0] the not-ed skill is run by name then: the not-found stderr matches its snapshot 1`] = `
+"
+✋ ConstraintError: no skill "wax.board" found — a mod in this repo nots it
+
+  - .agent/repo=.mods/role=surfer/boot.yml nots skills/wax.board.sh (of test/surfer)
+
+fix: drop the path from the mod's \`not:\` to run the published skill, or ship a skill of that path in the mod dir to shadow it
+
+{
+  "input": {
+    "slugSkill": "wax.board"
+  },
+  "nots": [
+    {
+      "role": "surfer",
+      "target": {
+        "repo": "test",
+        "role": "surfer"
+      },
+      "path": "skills/wax.board.sh",
+      "modSpecPath": ".agent/repo=.mods/role=surfer/boot.yml"
+    }
+  ]
+}
+
+[args] run,--skill,wax.board
+
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case14] a mod that nots a skill its role hook invokes (usecase 9) when: [t0] init renders the view then: init stdout and stderr match their snapshot 1`] = `
+{
+  "stderr": "✗ brain://repo=ambient/boot.md not written
+   ├─ ✋ ConstraintError: the mod of role=lifeguard is refused: its not of skills/flags.raise.sh removes a skill one of the role's hooks invokes
+   ├─ mod = .agent/repo=.mods/role=lifeguard/
+   ├─ subject = rhx flags.raise
+   ├─ fix = shadow skills/flags.raise.sh rather than not it, so the hook still finds it
+   └─ then = run rhx init --hooks once the cause is fixed; it re-renders the view
+",
+  "stdout": "
+🔧 init 2 role(s)...
+
+📚 link role repo=test/role=surfer
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=test/readme.md
+   │  ├─ + .agent/repo=test/.gitignore
+   │  ├─ + .agent/repo=test/role=surfer/readme.md
+   │  ├─ + .agent/repo=test/role=surfer/boot.yml
+   │  ├─ + .agent/repo=test/role=surfer/briefs
+   │  └─ + .agent/repo=test/role=surfer/skills
+   └─ stats
+      ├─ 4 brief(s)
+      └─ 2 skill(s)
+
+📚 link role repo=test/role=lifeguard
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=test/readme.md (updated)
+   │  ├─ ✓ .agent/repo=test/.gitignore (unchanged)
+   │  ├─ + .agent/repo=test/role=lifeguard/readme.md
+   │  ├─ + .agent/repo=test/role=lifeguard/boot.yml
+   │  ├─ + .agent/repo=test/role=lifeguard/briefs
+   │  └─ + .agent/repo=test/role=lifeguard/skills
+   └─ stats
+      ├─ 1 brief(s)
+      └─ 1 skill(s)
+
+✨ 2 role(s) linked
+✨ 2 role(s) initialized
+
+",
+}
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case14] a mod that nots a skill its role hook invokes (usecase 9) when: [t0] init renders the view then: the boot of lifeguard names the hook and the shadow fix 1`] = `
+"
+✋ ConstraintError: the mod of role=lifeguard is refused: its not of skills/flags.raise.sh removes a skill one of the role's hooks invokes
+
+{
+  "mod": ".agent/repo=.mods/role=lifeguard/",
+  "subject": "rhx flags.raise",
+  "fix": "shadow skills/flags.raise.sh rather than not it, so the hook still finds it",
+  "then": "run rhx init --hooks once the cause is fixed; it re-renders the view"
+}
+
+[args] roles,boot,--repo,test,--role,lifeguard
+
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case15] a mod whose of names no version, of a role that moved (usecase 5) when: [t0] a session stops, with 1.0.0 installed then: the stop stdout and stderr match their snapshot 1`] = `
+{
+  "stderr": "",
+  "stdout": "",
+}
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case15] a mod whose of names no version, of a role that moved (usecase 5) when: [t1] the not is retyped to a path the role does not hold then: the refusal stdout and stderr match their snapshot 1`] = `
+{
+  "stderr": "
+✋ ConstraintError: the mod of role=surfer is refused: it holds briefs/rule.require.reef-etiquette.md, a path the role does not hold, and no say or ref names it
+
+{
+  "mod": ".agent/repo=.mods/role=surfer/",
+  "subject": "briefs/rule.require.reef-etiquette.md",
+  "fix": "to shadow, move it to the held path; to add, say it in the mod boot.yml (briefs.say: [briefs/rule.require.reef-etiquette.md])"
+}
+
+[args] roles,boot,--repo,test,--role,surfer
+
+",
+  "stdout": "",
+}
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case16] a stray entry under .agent/repo=.mods, beside a sound mod when: [t0] the sweep prices every role then: the report stdout matches its snapshot 1`] = `
+"🧢 1 boot spec — none declare a budget
+   ├─ 559 tokens (no budget)  .agent/repo=test/role=surfer/boot.yml (linked)  [~] modded · 1 shadow · 1 add · 1 not
+   │
+   └─ swept
+      ├─ .agent/repo=*/role=*/boot.yml
+      ├─ .behavior/*/boot.yml
+      ├─ .route/*/boot.yml
+      └─ src/domain.roles/*/boot.yml
+
+   .note = a spec outside these paths is not swept. name it directly to cost it —
+           \`roles cost --what <path>\`.
+
+   .note = a \`(linked)\` spec is owned by another repo — not yours to trim. its budget is
+           that repo's to raise, so \`roles boot\` warns on it rather than halts. upgrade
+           the package, or raise it upstream. (1 of 1 here)
+   .note = a \`(linked)\` spec marked \`[~] modded\` carries your mod's shadows and adds,
+           and those are yours to trim in .agent/repo=.mods/. a shadow with no \`.md.min\`
+           beside it boots at full size. (1 of 1 linked here)
+
+🧢 .agent/repo=.mods
+   └─ an entry that names no role (rename it to role=<slug>, or move it out)
+      └─ readme.md
+
+"
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case16] a stray entry under .agent/repo=.mods, beside a sound mod when: [t1] a session stops then: the stop stdout and stderr match their snapshot 1`] = `
+{
+  "stderr": "",
+  "stdout": "",
+}
+`;
+
+exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case17] a mod of a role whose package ships no boot.yml when: [t0] the sweep prices every role then: the report stdout matches its snapshot 1`] = `
+"🧢 1 boot spec — none declare a budget
+   ├─ 559 tokens (no budget)  .agent/repo=test/role=surfer/boot.yml (linked)  [~] modded · 1 shadow · 1 add · 1 not
+   │
+   └─ swept
+      ├─ .agent/repo=*/role=*/boot.yml
+      ├─ .behavior/*/boot.yml
+      ├─ .route/*/boot.yml
+      └─ src/domain.roles/*/boot.yml
+
+   .note = a spec outside these paths is not swept. name it directly to cost it —
+           \`roles cost --what <path>\`.
+
+   .note = a \`(linked)\` spec is owned by another repo — not yours to trim. its budget is
+           that repo's to raise, so \`roles boot\` warns on it rather than halts. upgrade
+           the package, or raise it upstream. (1 of 1 here)
+   .note = a \`(linked)\` spec marked \`[~] modded\` carries your mod's shadows and adds,
+           and those are yours to trim in .agent/repo=.mods/. a shadow with no \`.md.min\`
+           beside it boots at full size. (1 of 1 linked here)
+
+🧢 .agent/repo=.mods
+   └─ [~] modded, with no boot.yml to cost (rhx roles boot shows what its mod does)
+      └─ test/lifeguard
+
+"
+`;

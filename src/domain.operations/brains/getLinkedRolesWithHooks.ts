@@ -4,7 +4,9 @@ import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { HasRepo } from '@src/domain.objects/HasRepo';
 import type { Role } from '@src/domain.objects/Role';
 import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
+import { toRolePackageFromRepo } from '@src/domain.objects/RoleSupplierSlug';
 import { isRolesBootCommand } from '@src/domain.operations/boot/isRolesBootCommand';
+import { getAllRepoDirsOfKind } from '@src/domain.operations/role/getAllRepoDirsOfKind';
 import { importPackageExports } from '@src/infra/importEsmSafe/importPackageExports';
 
 import { existsSync, readdirSync } from 'node:fs';
@@ -61,11 +63,9 @@ export const getLinkedRolesWithHooks = async (
     return { roles: [], errors: [] };
   }
 
-  // scan for repo=* directories (skip repo=.this)
+  // scan for repo=* directories of role packages (skip repo=.this and repo=.mods)
   // sorted: the roster is a function of the SET of dirs, never of readdir order
-  const repoDirs = readdirSync(agentDir)
-    .filter((name) => name.startsWith('repo=') && name !== 'repo=.this')
-    .sort();
+  const repoDirs = getAllRepoDirsOfKind({ agentDir, kinds: ['package'] });
 
   // 🟡 .note = DELIBERATE MUTATION — `roles` and `errors` grow by `push` across the async
   //   per-repo walk. each import may land a role or an error, never both, so two accumulators
@@ -87,7 +87,7 @@ export const getLinkedRolesWithHooks = async (
       .filter((name) => name.startsWith('role='))
       .sort();
 
-    const packageName = `rhachet-roles-${repoSlug}`;
+    const packageName = toRolePackageFromRepo(repoSlug);
 
     // record a failure for EVERY linked role in this repo, tagged by the phase that faulted
     // (load vs use) so the caller can point at the true layer — the same phase-accuracy the

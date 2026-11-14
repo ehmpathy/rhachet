@@ -1,6 +1,6 @@
-import { computeBootMode } from '@src/domain.operations/boot/computeBootMode';
-import { parseBootYamlRaw } from '@src/domain.operations/boot/parseBootYamlRaw';
-import { readOneBootSpecFile } from '@src/domain.operations/boot/readOneBootSpecFile';
+import { computeBootMode } from '@src/domain.operations/role/computeBootMode';
+import { parseBootYamlRaw } from '@src/domain.operations/role/parseBootYamlRaw';
+import { readOneBootSpecFile } from '@src/domain.operations/role/readOneBootSpecFile';
 
 import { existsSync, renameSync, writeFileSync } from 'node:fs';
 

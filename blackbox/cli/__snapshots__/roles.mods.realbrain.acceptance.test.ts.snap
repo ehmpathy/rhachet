@@ -1,0 +1,53 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`roles mods reach a real brain (acceptance, real haiku) given: [case1] a repo whose surfer mod shadows one brief, adds one, and nots one when: [t0] init links the surfer, and a bare claude -p is asked for its sentinels then: init output matches its snapshot 1`] = `
+{
+  "stderr": "",
+  "stdout": "
+🔧 init 1 role(s)...
+
+📚 link role repo=test/role=surfer
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=test/readme.md
+   │  ├─ + .agent/repo=test/.gitignore
+   │  ├─ + .agent/repo=test/role=surfer/readme.md
+   │  ├─ + .agent/repo=test/role=surfer/boot.yml
+   │  ├─ + .agent/repo=test/role=surfer/briefs
+   │  └─ + .agent/repo=test/role=surfer/skills
+   └─ stats
+      ├─ 4 brief(s)
+      └─ 2 skill(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+🧢 .agent/repo=.mods
+   ├─ rendered
+   │  └─ role=surfer
+   └─ a live clone keeps the boot it read at session start; re-enroll it to pick up the change
+
+🧠 brain://repo=ambient
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+   └─ boot.md
+      └─ created — 1 role
+
+",
+}
+`;
+
+exports[`roles mods reach a real brain (acceptance, real haiku) given: [case1] a repo whose surfer mod shadows one brief, adds one, and nots one when: [t0] init links the surfer, and a bare claude -p is asked for its sentinels then: the json envelope shape is locked, its live values masked 1`] = `
+{
+  "is_error": false,
+  "result": "__STRING__",
+  "subtype": "success",
+  "type": "result",
+  "usage": {
+    "cache_creation_input_tokens": "__NUMBER__",
+    "cache_read_input_tokens": "__NUMBER__",
+    "input_tokens": "__NUMBER__",
+  },
+}
+`;
