@@ -364,10 +364,12 @@ const performEnroll = async (input: {
     contextCli,
   );
   const rolesAmbient: RoleSlug[] = asRoleSlugsAmbientAtFocus({
-    rolesLinked: asRoleRefsOfActorExpanded({
-      refsLinked,
-      expanded: repoActorExpanded,
-    }).map((ref) => ref.role),
+    rolesLinked: asRoleSlugsOfRefs({
+      refs: asRoleRefsOfActorExpanded({
+        refsLinked,
+        expanded: repoActorExpanded,
+      }),
+    }),
     foci: getRepoAmbientRoleFoci({ repoPath }),
   });
   const context: ContextOfRepoRoles = {
@@ -386,10 +388,10 @@ const performEnroll = async (input: {
           contextCli,
         )) ??
         ConstraintError.throw(
-          `@${actorFormSlug} names a declared actor, but this repo has no .agent/actors.yml`,
+          `@${actorFormSlug} is not reachable — this repo has no .agent/actors.yml to declare it`,
           {
             actor: `@${actorFormSlug}`,
-            hint: 'declare the actor in .agent/actors.yml (see howto.author-actors-yml), or use the inline form: rhx enroll <brain> --roles <roles>',
+            hint: `declare @${actorFormSlug} in .agent/actors.yml (see howto.author-actors-yml), or use the inline form: rhx enroll <brain> --roles <roles>`,
           },
         ));
 
@@ -470,8 +472,10 @@ const performEnroll = async (input: {
 
   // a delta enrollment is keyed by its delta, so it stays one actor while the ambient
   //   set moves under it (`inventory.of=requirements.case=2`); the actor form lands in its
-  //   declared actor
-  const rolesDelta = actorForm === null ? asActorRolesDelta({ spec }) : null;
+  //   declared actor, and a derived one records its delta over its base, so `rhx init`
+  //   re-derives it as the base's declared roles move (`setDeclaredActorsOndisk`)
+  const rolesDelta =
+    actorForm === null ? asActorRolesDelta({ spec }) : actorForm.rolesDelta;
   const exidDeclared = actorForm?.exid ?? null;
 
   // the `--as` handle (optional) — validated to the safe clone-slug charset
@@ -911,6 +915,10 @@ export const invokeEnroll = ({ program }: { program: Command }): void => {
   program
     .command('enroll [brain]')
     .description('enroll a brain cli as a managed, addressable clone')
+    .addHelpText(
+      'after',
+      '\nactor form:\n  rhx enroll @<slug>   spawn a clone of an actor declared in .agent/actors.yml (≡ rhx clone @<slug>)',
+    )
     .option('--brain <brain>', 'the brain to enroll (alias of the positional)')
     .option(
       '-r, --roles <spec>',
@@ -976,7 +984,8 @@ export const invokeEnroll = ({ program }: { program: Command }): void => {
         const helpFirst =
           tailAfterEnroll[0] === '--help' || tailAfterEnroll[0] === '-h';
         if (helpFirst && opts.brain === undefined) {
-          process.stdout.write(command.helpInformation());
+          // outputHelp, not helpInformation: only it emits the addHelpText footnote
+          command.outputHelp();
           return;
         }
 

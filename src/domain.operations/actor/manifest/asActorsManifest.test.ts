@@ -78,6 +78,17 @@ const CASES_REFUSED = [
     message: 'actors.yml `ambient:` names an actor not declared',
   },
   {
+    description: 'a typo in `ambient:` names the actor meant',
+    parsed: {
+      ambient: '@scholr',
+      actor: [
+        { slug: 'scholar', brain: 'claude', roles: ['bhrain/librarian'] },
+        { slug: 'builder', brain: 'claude', roles: ['ehmpathy/mechanic'] },
+      ],
+    },
+    message: "did you mean '@scholar'?",
+  },
+  {
     description: '`ambient:` without the `@` sigil',
     parsed: {
       ambient: 'scholar',

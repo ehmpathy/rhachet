@@ -7,6 +7,7 @@ import { setFileAtomic } from '@src/infra/setFileAtomic';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { asActorsGitignoreContent } from './asActorsGitignoreContent';
+import { asGitignoreWithoutFormerActorNegations } from './asGitignoreWithoutFormerActorNegations';
 
 /**
  * .what = make the repo `.gitignore` spare the repo actor dir (D10)
@@ -36,17 +37,8 @@ export const genRepoActorGitignoreExclusion = async (input: {
 };
 
 /**
- * .what = whether a `.gitignore` line re-includes an actor dir — a repo actor negation
- *         some release or some `ambient:` wrote
- */
-const isActorDirNegation = (input: { line: string }): boolean =>
-  /^!\.agent\/\.actors\/actor\.via\.[^/]+\/$/.test(input.line);
-
-/**
  * .what = the findsert itself, once the repo `.gitignore` mutex is held
- * .note = a negation for any other actor dir is dropped: under a manifest the repo actor is
- *         the `ambient:` actor, so a former repo actor dir (`repo=ambient`, or a prior
- *         `ambient:` slug) is ignored again, as the legacy `.default` dir is
+ * .note = a negation for any other actor dir is dropped (`asGitignoreWithoutFormerActorNegations`)
  */
 const genRepoActorGitignoreExclusionWithinLock = (input: {
   path: string;
@@ -60,10 +52,10 @@ const genRepoActorGitignoreExclusionWithinLock = (input: {
   const contentRewritten =
     contentBefore === null
       ? null
-      : asActorsGitignoreContent({ content: contentBefore })
-          .split('\n')
-          .filter((line) => line === negation || !isActorDirNegation({ line }))
-          .join('\n');
+      : asGitignoreWithoutFormerActorNegations({
+          content: asActorsGitignoreContent({ content: contentBefore }),
+          negation,
+        });
 
   // findsert the negation after it; the whole edit lands in one write
   const contentAfter = asTextWithLinesConverged({

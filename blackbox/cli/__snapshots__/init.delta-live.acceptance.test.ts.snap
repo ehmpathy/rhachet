@@ -6,5 +6,7 @@ exports[`init role delta → a delta actor with a live clone (acceptance) given:
    │  └─ - bhrain/driver
    └─ untouched (2)
 
+💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
+
 "
 `;

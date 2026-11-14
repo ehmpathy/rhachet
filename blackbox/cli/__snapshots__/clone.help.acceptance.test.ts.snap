@@ -44,6 +44,9 @@ Commands:
   prune [options] [actor]  reap dead clones (all, or scoped to one actor by
                            @<exid-prefix>, e.g. @repo=ambient or @hash=9c1e)
   help [command]           display help for command
+
+actor form:
+  rhx clone @<slug>   spawn a clone of an actor declared in .agent/actors.yml (≡ rhx enroll @<slug>)
 "
 `;
 

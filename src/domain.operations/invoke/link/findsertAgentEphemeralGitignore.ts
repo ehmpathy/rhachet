@@ -2,7 +2,6 @@ import { asActorOndiskDirName } from '@src/domain.operations/actor/enrolled/asAc
 import { REPO_ACTOR_DIR_NAME } from '@src/domain.operations/actor/enrolled/constants';
 import { getOneRepoActorExid } from '@src/domain.operations/actor/enrolled/getOneRepoActorExid';
 
-import { dirname } from 'node:path';
 import { findsertDirGitignore } from './findsertDirGitignore';
 import type { LinkResult } from './findsertFile';
 
@@ -54,13 +53,14 @@ const asActorsGitignoreContentSelf = (input: {
  *
  * .note = `.actors` spares its repo actor dir from both the ignore and the
  *   create-time untrack; every other dir ignores all it holds
- * .note = the `.actors` dir is always `<repo>/.agent/.actors`, so the repo — and from it the
- *   repo actor (`getOneRepoActorExid`) — is two levels up
+ * .note = `.actors` takes the repo path from its caller, so the spared repo actor dir is never
+ *   derived from the shape of a path string
  */
-export const findsertAgentEphemeralGitignore = (input: {
-  dir: string;
-  kind: 'actors' | 'cache';
-}): LinkResult => {
+export const findsertAgentEphemeralGitignore = (
+  input:
+    | { dir: string; kind: 'cache' }
+    | { dir: string; kind: 'actors'; repoPath: string },
+): LinkResult => {
   // a cache dir ignores all it holds
   if (input.kind === 'cache')
     return findsertDirGitignore({
@@ -69,9 +69,9 @@ export const findsertAgentEphemeralGitignore = (input: {
       spare: [],
     });
 
-  // the actors dir spares the repo actor dir
+  // the actors dir spares the repo actor dir, named by the repo the caller holds
   const repoActorDirName = asActorOndiskDirName({
-    exid: getOneRepoActorExid({ repoPath: dirname(dirname(input.dir)) }),
+    exid: getOneRepoActorExid({ repoPath: input.repoPath }),
   });
   return findsertDirGitignore({
     dir: input.dir,

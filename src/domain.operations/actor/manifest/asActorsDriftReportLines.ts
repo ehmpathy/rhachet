@@ -1,3 +1,5 @@
+import { asSlugBaseOfActorExid } from '@src/domain.operations/actor/enrolled/asSlugBaseOfActorExid';
+
 import type { ActorsDrift } from './getActorsDrift';
 
 /**
@@ -31,6 +33,8 @@ export const asActorsDriftReportLines = (input: {
   countRoles: number;
   drift: ActorsDrift;
   warnings: string[];
+  /** the exids of declared-form actor dirs whose base slug the manifest no longer declares */
+  actorsUndeclared: string[];
 }): string[] => {
   // the summary rows
   const rowsSummary = [
@@ -68,6 +72,40 @@ export const asActorsDriftReportLines = (input: {
       ]
     : null;
 
+  // native → not booted, each with the one fix: declare it under the ambient actor
+  const rowNative = input.drift.nativeUndeclared.length
+    ? [
+        'native → not booted, undeclared',
+        ...input.drift.nativeUndeclared.flatMap((role, index) =>
+          asTreeBranch({
+            lines: [
+              role,
+              `└─ to boot it, declare \`${role}\` under ${input.ambient} in .agent/actors.yml`,
+            ],
+            isLast: index === input.drift.nativeUndeclared.length - 1,
+          }),
+        ),
+      ]
+    : null;
+
+  // actor dirs → kept, where a base slug left the manifest; its clones may still live there,
+  //   so init never deletes it, and names both fixes (F15)
+  const rowActorsUndeclared = input.actorsUndeclared.length
+    ? [
+        'actor dirs → kept, slug undeclared',
+        ...input.actorsUndeclared.flatMap((exid, index) =>
+          asTreeBranch({
+            lines: [
+              `actor.via.${exid}`,
+              `├─ to keep it, re-declare \`@${asSlugBaseOfActorExid({ exid })}\` in .agent/actors.yml`,
+              '└─ to reap its dead clones, rhx clone prune',
+            ],
+            isLast: index === input.actorsUndeclared.length - 1,
+          }),
+        ),
+      ]
+    : null;
+
   // the cautions, where a `-role` named a role its base lacks
   const rowCautions = input.warnings.length
     ? [
@@ -82,9 +120,14 @@ export const asActorsDriftReportLines = (input: {
     : null;
 
   // compose the tree
-  const rows = [...rowsSummary, rowShort, rowExtra, rowCautions].filter(
-    (row): row is string[] => row !== null,
-  );
+  const rows = [
+    ...rowsSummary,
+    rowShort,
+    rowExtra,
+    rowNative,
+    rowActorsUndeclared,
+    rowCautions,
+  ].filter((row): row is string[] => row !== null);
   return [
     '🎭 actors.yml',
     ...rows.flatMap((row, index) =>

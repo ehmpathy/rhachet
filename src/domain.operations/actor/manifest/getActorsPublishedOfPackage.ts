@@ -21,15 +21,19 @@ export const getActorsPublishedOfPackage = (input: {
   // read the manifest; a package with no manifest publishes no actors
   const path = join(input.packageRoot, 'rhachet.repo.yml');
   if (!existsSync(path)) return [];
+
+  // read outside the parse guard, so a read fault is never labelled bad yaml
+  const content = readFileSync(path, 'utf8');
   const parsed = ((): unknown => {
     try {
-      return parseYaml(readFileSync(path, 'utf8'));
+      return parseYaml(content);
     } catch (error) {
       if (!(error instanceof Error)) throw error;
       throw new ConstraintError('rhachet.repo.yml has invalid yaml', {
         path,
         error: error.message,
         hint: 'rerun `npx rhachet repo introspect` in the role package, then republish',
+        cause: error,
       });
     }
   })();

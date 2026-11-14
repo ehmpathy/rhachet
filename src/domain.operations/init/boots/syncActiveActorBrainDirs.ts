@@ -2,6 +2,7 @@ import { MalfunctionError } from 'helpful-errors';
 
 import type { ActorOndisk } from '@src/domain.objects/ActorOndisk';
 import type { RoleLinkRef } from '@src/domain.objects/RoleLinkRef';
+import { asActorsExceptRepoActor } from '@src/domain.operations/actor/enrolled/asActorsExceptRepoActor';
 import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
 import { getAllActorsOndisk } from '@src/domain.operations/actor/enrolled/getAllActorsOndisk';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
@@ -61,7 +62,7 @@ const getAllActorsOrFailure = (input: {
   try {
     const actors = getAllActorsOndisk({ repoPath: input.repoPath });
     const exidRepoActor = getOneRepoActorExid({ repoPath: input.repoPath });
-    return { actors: actors.filter((actor) => actor.exid !== exidRepoActor) };
+    return { actors: asActorsExceptRepoActor({ actors, exidRepoActor }) };
   } catch (error) {
     return {
       failure: {

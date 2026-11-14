@@ -3,7 +3,9 @@ import { ConstraintError } from 'helpful-errors';
 import type { ActorDeclared } from '@src/domain.objects/ActorDeclared';
 import type { ActorsManifest } from '@src/domain.objects/ActorsManifest';
 import type { BrainSlug } from '@src/domain.objects/BrainSlug';
-import { isRoleSpecifierMatch } from '@src/domain.operations/roles/isRoleSpecifierMatch';
+
+import { asActorRefNearbyHint } from './asActorRefNearbyHint';
+import { asActorRolesWithDeltas } from './asActorRolesWithDeltas';
 
 /**
  * .what = an actor expanded to concrete roles, with the source of each role named
@@ -72,7 +74,7 @@ const getActorDeclaredByRef = (input: {
       {
         ref: input.ref,
         actors: input.manifest.actor.map((one) => `@${one.slug}`),
-        hint: `use one of ${input.manifest.actor.map((one) => `'@${one.slug}'`).join(', ')}, or a published actor as '@<repo>/<slug>'`,
+        hint: `${asActorRefNearbyHint({ ref: input.ref, slugs: input.manifest.actor.map((one) => one.slug) })}, or a published actor as '@<repo>/<slug>'`,
       },
     );
   }
@@ -149,34 +151,11 @@ export const getActorExpanded = (
     { ref: head, scope, trail: [...input.trail, refCanonical] },
     context,
   );
-  const additions = rest
-    .filter((one) => one.startsWith('+'))
-    .map((one) => one.slice(1));
-  const subtractions = rest
-    .filter((one) => one.startsWith('-'))
-    .map((one) => one.slice(1));
-  const rolesKept = base.roles.filter(
-    (role) =>
-      !subtractions.some((minus) =>
-        isRoleSpecifierMatch({ left: role, right: minus }),
-      ),
-  );
-  const rolesAdded = additions.filter(
-    (plus) =>
-      !rolesKept.some((role) =>
-        isRoleSpecifierMatch({ left: role, right: plus }),
-      ),
-  );
-  const warnings = subtractions
-    .filter(
-      (minus) =>
-        !base.roles.some((role) =>
-          isRoleSpecifierMatch({ left: role, right: minus }),
-        ),
-    )
-    .map(
-      (minus) => `${input.ref} removes -${minus}, which ${head} does not hold`,
-    );
+  const { rolesKept, rolesAdded, warnings } = asActorRolesWithDeltas({
+    ref: input.ref,
+    base: { ref: head, roles: base.roles },
+    deltas: rest,
+  });
 
   // the brain propagates up from the base; a local brain overrides it
   return {

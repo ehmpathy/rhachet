@@ -64,6 +64,7 @@ describe('findsertAgentEphemeralGitignore', () => {
           const result = findsertAgentEphemeralGitignore({
             dir: ephemeralDir,
             kind: 'actors',
+            repoPath: testDir,
           });
 
           expect(result.status).toEqual('created');
@@ -99,6 +100,7 @@ describe('findsertAgentEphemeralGitignore', () => {
         const result = findsertAgentEphemeralGitignore({
           dir: ephemeralDir,
           kind: 'actors',
+          repoPath: testDir,
         });
 
         expect(result.status).toEqual('unchanged');
@@ -123,6 +125,7 @@ describe('findsertAgentEphemeralGitignore', () => {
           const result = findsertAgentEphemeralGitignore({
             dir: ephemeralDir,
             kind: 'actors',
+            repoPath: testDir,
           });
 
           expect(result.status).toEqual('updated');
@@ -195,6 +198,7 @@ describe('findsertAgentEphemeralGitignore', () => {
           findsertAgentEphemeralGitignore({
             dir: scene.actorsDir,
             kind: 'actors',
+            repoPath: scene.repo,
           });
         } finally {
           process.chdir(cwdBefore);
@@ -342,7 +346,11 @@ describe('findsertAgentEphemeralGitignore', () => {
           'utf8',
         );
         const actorsDir = join(repo, '.agent', '.actors');
-        findsertAgentEphemeralGitignore({ dir: actorsDir, kind: 'actors' });
+        findsertAgentEphemeralGitignore({
+          dir: actorsDir,
+          kind: 'actors',
+          repoPath: repo,
+        });
         return { repo, actorsDir };
       });
 

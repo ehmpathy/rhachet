@@ -15,6 +15,9 @@
 #
 # options:
 #   --scope    jest path regex for the suites to run (required)
+#              🟡 it matches the ABSOLUTE path, worktree dir included: in
+#              `…feat-actors-yml/`, `--scope 'actors-yml'` runs EVERY suite.
+#              anchor it on the file name: 'actors-yml\.acceptance'
 #   --resnap   write snapshots (default: verify only, under --ci)
 #
 # guarantee:

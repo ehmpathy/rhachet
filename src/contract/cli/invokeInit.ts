@@ -106,6 +106,16 @@ export const invokeInit = ({ program }: { program: Command }): void => {
             },
           );
 
+        // refuse: `--prep` writes a `--roles` replay, and a manifest is already the replay
+        if (actorsManifest && options.prep)
+          throw new ConstraintError(
+            '--prep is refused beside .agent/actors.yml',
+            {
+              prep: options.prep,
+              hint: 'the manifest is the replay: set `prepare:rhachet` to `rhx init` with no flags, and declare the roles in .agent/actors.yml',
+            },
+          );
+
         // validate: --prep requires --roles
         if (options.prep && (!rolesDecoded || rolesDecoded.length === 0)) {
           throw new ConstraintError('--prep requires --roles', {
@@ -161,6 +171,22 @@ export const invokeInit = ({ program }: { program: Command }): void => {
         if (deltas !== null)
           await assertInitRoleFociDeclared({ deltas }, context);
 
+        // manifest => plan the link of every declared actor's roles. the plan only reads, and
+        //   runs before the first write, so a manifest that cannot expand halts on a clean tree
+        const manifestLinkPlan = actorsManifest
+          ? await (
+              await import(
+                '@src/domain.operations/actor/manifest/getActorsManifestLinkPlan'
+              )
+            ).getActorsManifestLinkPlan(
+              {
+                manifest: actorsManifest,
+                refsLinked: getAllLinkedRoleRefs({}, context),
+              },
+              context,
+            )
+          : null;
+
         // flag: --roles => put the repo actor's brain dir in the split layout BEFORE the role
         //   inits, so an init that writes through `<repo>/.claude` meets the layout it lives in
         //   (inventory.of=requirements.case=8). bare `rhx init` and `--hooks` run no inits
@@ -171,20 +197,24 @@ export const invokeInit = ({ program }: { program: Command }): void => {
               })
             : null;
 
-        // manifest => link the union of every declared actor's roles, after its drift report (F6)
-        const manifestInit = actorsManifest
-          ? await (
-              await import(
-                '@src/domain.operations/actor/manifest/initRolesFromActorsManifest'
-              )
-            ).initRolesFromActorsManifest({ manifest: actorsManifest }, context)
-          : null;
+        // manifest => print the drift report before any link, so a change is never silent (F6)
+        if (manifestLinkPlan) {
+          console.log('');
+          manifestLinkPlan.reportLines.forEach((line) => console.log(line));
+        }
 
         // flag: --roles => init roles from packages (absolute or incremental).
         // absolute mode may accumulate errors; incremental fails fast (throws).
         // the iife yields a boolean so the error state stays an immutable const
         const rolesInitHasErrors = await (async (): Promise<boolean> => {
-          if (manifestInit) return manifestInit.result.errors.length > 0;
+          // manifest: link the declared union; extant links stay (F4)
+          if (manifestLinkPlan) {
+            const result = await initRolesFromPackages(
+              { specifiers: manifestLinkPlan.roleSpecifiers },
+              context,
+            );
+            return result.errors.length > 0;
+          }
           if (!deltasUnfocused) return false;
 
           const mode = getRoleDeltaMode({ deltas: deltasUnfocused });
@@ -251,10 +281,14 @@ export const invokeInit = ({ program }: { program: Command }): void => {
 
         // flag: --keys => init keyrack manifest (after roles); plain slugs only.
         //   under a manifest, the slugs are the declared union's
-        const roleSlugsForKeys = manifestInit
-          ? manifestInit.roleSpecifiers.map(
-              (specifier) => specifier.split('/').pop() ?? specifier,
-            )
+        const roleSlugsForKeys = manifestLinkPlan
+          ? (
+              await import(
+                '@src/domain.operations/actor/manifest/asRoleSlugsOfSpecifiers'
+              )
+            ).asRoleSlugsOfSpecifiers({
+              specifiers: manifestLinkPlan.roleSpecifiers,
+            })
           : roleSlugsUnfocused;
         if (options.keys && roleSlugsForKeys.length > 0) {
           const result = await initKeyrackRepoManifest(

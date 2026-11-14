@@ -31,16 +31,20 @@ export const getActorsPublishedOfRegistry = (input: {
       },
     );
 
+  // read outside the parse guard, so a read fault is never labelled bad yaml
+  const content = readFileSync(path, 'utf8');
+
   // parse and validate in the consumer shape, with no `ambient:` (F9)
   const parsed = ((): unknown => {
     try {
-      return parseYaml(readFileSync(path, 'utf8'));
+      return parseYaml(content);
     } catch (error) {
       if (!(error instanceof Error)) throw error;
       throw new ConstraintError('published actors yml has invalid yaml', {
         path,
         error: error.message,
         hint: 'fix the yaml at the line the error names; quote each value that opens with `@`',
+        cause: error,
       });
     }
   })();

@@ -3,12 +3,9 @@ import { ConstraintError } from 'helpful-errors';
 import { ActorsManifest } from '@src/domain.objects/ActorsManifest';
 
 import { asActorDeclared } from './asActorDeclared';
-
-/**
- * .what = whether a value is a plain object (not null, not an array)
- */
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
+import { asActorRefNearbyHint } from './asActorRefNearbyHint';
+import { asSlugsDuplicated } from './asSlugsDuplicated';
+import { isPlainObject } from './isPlainObject';
 
 /**
  * .what = cast a parsed `.agent/actors.yml` into an ActorsManifest, or fail fast with the fix
@@ -41,9 +38,7 @@ export const asActorsManifest = (input: {
 
   // each slug is declared once
   const slugs = actors.map((one) => one.slug);
-  const slugsTwice = slugs.filter(
-    (slug, index) => slugs.indexOf(slug) !== index,
-  );
+  const slugsTwice = asSlugsDuplicated({ slugs });
   if (slugsTwice.length)
     throw new ConstraintError('actors.yml declares a slug more than once', {
       path: input.path,
@@ -71,7 +66,7 @@ export const asActorsManifest = (input: {
         path: input.path,
         found: ambient,
         actors: slugs.map((slug) => `@${slug}`),
-        hint: `set \`ambient:\` to one of ${slugs.map((slug) => `'@${slug}'`).join(', ')}`,
+        hint: `set \`ambient:\` — ${asActorRefNearbyHint({ ref: ambient, slugs })}`,
       },
     );
 

@@ -52,6 +52,11 @@ is a recipe, and each clone gets its own name via `--as`. see
 - links the **union** of every declared actor's roles, so every actor finds its roles linked
 - prints the drift between declared and linked: **short** roles are restored; **extra** roles are kept
   and named, with the fix either way — never silently removed
+- names each **native** role (`.agent/repo=.this/role=<x>`, with a `boot.yml`) that no actor declares —
+  no clone boots it, and init adds none by itself. to boot one, declare `.this/<x>` in an actor's
+  roles; under the `ambient:` actor, every bare enroll boots it
+- re-derives every declared actor on disk from the file as it reads now, so an edit to an actor's
+  roles reaches its settings and `boot.md` at the next `rhx init`, not merely at its next clone
 - refuses `--roles` beside the manifest (two sources of truth): edit `actors.yml` instead
 - fails fast before any write on an invalid manifest — no `ambient:`, an unknown base, a cycle, a mix of
   roles and deltas, or an actor that reaches no brain

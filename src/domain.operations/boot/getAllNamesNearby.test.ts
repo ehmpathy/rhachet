@@ -1,4 +1,6 @@
-import { calcEditDistance, getAllNamesNearby } from './getAllNamesNearby';
+import { calcEditDistance } from '@src/utils/calcEditDistance';
+
+import { getAllNamesNearby } from './getAllNamesNearby';
 
 /**
  * .what = pins the edit distance the near-match offer is scored by

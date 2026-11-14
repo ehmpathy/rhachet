@@ -1,6 +1,6 @@
 import type { ActorsManifest } from '@src/domain.objects/ActorsManifest';
-import { isRoleSpecifierMatch } from '@src/domain.operations/roles/isRoleSpecifierMatch';
 
+import { asRolesFirstDeclared } from './asRolesFirstDeclared';
 import { type GetPublishedActor, getActorExpanded } from './getActorExpanded';
 
 /**
@@ -28,19 +28,14 @@ export const getActorsRoleUnion = (
   );
 
   // union the roles, first source wins
-  const roles = expansions
-    .flatMap((expanded) =>
+  const roles = asRolesFirstDeclared({
+    entries: expansions.flatMap((expanded) =>
       expanded.roles.map((role) => ({
         role,
         via: expanded.rolesVia[role] ?? null,
       })),
-    )
-    .filter(
-      (one, index, all) =>
-        all.findIndex((other) =>
-          isRoleSpecifierMatch({ left: other.role, right: one.role }),
-        ) === index,
-    );
+    ),
+  });
 
   return {
     roles,
