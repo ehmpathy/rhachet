@@ -373,7 +373,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case18] \`--help\` do
                        behaver), or +role to add / -role to remove
                        incrementally; role::<subject> boots one subject of the
                        role, with all its hooks (mechanic::flow); list subjects
-                       via npx rhachet roles cost --all"
+                       via npx rhachet roles cost --all. refused beside
+                       .agent/actors.yml, which declares the roles instead"
 `;
 
 exports[`rhx init --roles incremental (acceptance) given: [case19] bare add sigil with no role (e9) when: [t0] \`init --roles +\` then: is rejected as empty specifier after "+" 1`] = `

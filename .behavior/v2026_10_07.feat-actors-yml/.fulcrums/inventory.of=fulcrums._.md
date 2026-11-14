@@ -22,3 +22,7 @@
 | F18 | an actor names at most one `@ref` base; the vision's two-base row awaits the wisher | clean | unruled — best guess taken | 70% |
 | F19 | the collect-or-throw catch stays per sweep here; the shared helper is its own change | dirty | unruled — deferred, caught as a dream | 80% |
 | F20 | a brain override beside `@<slug>` is `--brain`, not a positional token | clean | unruled — **needs the wisher** to amend the edge row or rule positional | 70% |
+| F21 | six shape moves around the actor sweeps ride their own change; caught as a dream | clean | unruled — best guess taken | 80% |
+| F22 | the samecwd spawn floor and `test.acceptance.credfree` ride this change; the route asked for each | clean | unruled — best guess taken | 75% |
+| F23 | the actor form's success paths are proven at integration, refusals snapped; no spawn per form | clean | unruled — flagged for the wisher | 70% |
+| F24 | `rhx upgrade` leaves the manifest to `init`; an actor's brain is read per spawn, never recorded | clean | unruled — best guess taken | 70% |

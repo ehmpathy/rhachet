@@ -132,11 +132,16 @@ export const getActorExpanded = (
   // no base → the roles are concrete and the brain is the actor's own
   const [head, ...rest] = actor.roles;
   if (!head?.startsWith('@')) {
+    // the validator refuses this for a parsed actor; this guards an ActorDeclared built in code,
+    //   and speaks the validator's words so both read as one refusal
     if (!actor.brain)
-      throw new ConstraintError(`actor ${input.ref} reaches no brain`, {
-        ref: input.ref,
-        hint: 'add `brain: <slug>` to the actor',
-      });
+      throw new ConstraintError(
+        `actors.yml actor ${input.ref} reaches no brain`,
+        {
+          ref: input.ref,
+          hint: 'add `brain: <slug>` — only an actor that extends a base may omit it',
+        },
+      );
     return {
       slug: actor.slug,
       brain: actor.brain,
