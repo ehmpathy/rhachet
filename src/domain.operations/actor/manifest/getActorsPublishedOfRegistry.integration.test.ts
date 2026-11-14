@@ -87,6 +87,16 @@ describe('getActorsPublishedOfRegistry', () => {
           'surfschool/lifeguard',
         ]);
       });
+
+      then('a bare delta is qualified to the package repo', () => {
+        const actors = getActorsPublishedOfRegistry({
+          registry: genRegistry({ actorsUri: scene.uri }),
+        });
+        expect(actors[1]?.roles).toEqual([
+          '@instructor',
+          '-surfschool/lifeguard',
+        ]);
+      });
     });
   });
 
@@ -183,6 +193,18 @@ describe('getActorsPublishedOfRegistry', () => {
             '  - slug: instructor',
             '    brain: claude',
             '    roles: [surfschool/coahc]',
+          ],
+          message:
+            "names a role this package does not declare: 'surfschool/coahc'",
+        },
+        {
+          slug: 'typo-role-bare',
+          description: 'a bare role the package does not declare',
+          lines: [
+            'actor:',
+            '  - slug: instructor',
+            '    brain: claude',
+            '    roles: [coahc]',
           ],
           message:
             "names a role this package does not declare: 'surfschool/coahc'",

@@ -5,6 +5,7 @@ import type { ActorDeclared } from '@src/domain.objects/ActorDeclared';
 import type { HasPackageRoot } from '@src/domain.operations/config/ContextConfigOfUsage';
 
 import { asActorRefNearbyHint } from './asActorRefNearbyHint';
+import { asActorsQualifiedToRepo } from './asActorsQualifiedToRepo';
 import type { GetPublishedActor } from './getActorExpanded';
 import { getActorsPublishedOfPackage } from './getActorsPublishedOfPackage';
 
@@ -52,10 +53,15 @@ export const genGetPublishedActorOfPackages = (input: {
     // not installed → no actor
     if (!manifest) return null;
 
-    // read its published actors once, then look the slug up
+    // read its published actors once, each bare role qualified to its repo, then look the slug up
     const actors =
       actorsByRepo.get(repo) ??
-      getActorsPublishedOfPackage({ packageRoot: manifest.packageRoot });
+      asActorsQualifiedToRepo({
+        actors: getActorsPublishedOfPackage({
+          packageRoot: manifest.packageRoot,
+        }),
+        repo,
+      });
     actorsByRepo.set(repo, actors);
     const found = actors.find((one) => one.slug === slug);
     if (found) return found;

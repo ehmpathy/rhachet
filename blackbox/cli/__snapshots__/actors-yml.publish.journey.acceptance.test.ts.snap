@@ -1,0 +1,24 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`actors.yml, published by a role package and adopted by a repo (journey) given: [case1] the package introspects, the consumer adopts and extends its actor when: [t1] the consumer writes actors.yml, then \`init\` then: the report block holds its shape 1`] = `
+"🎭 actors.yml
+   ├─ repo actor = @crew
+   ├─ 1 actor(s), 2 role(s) declared
+   └─ short → restored
+      ├─ surfschool/coach ↺ linked, via @surfschool/instructor
+      └─ surfschool/scholar ↺ linked"
+`;
+
+exports[`actors.yml, published by a role package and adopted by a repo (journey) given: [case2] an empty, comment-only actors.yml when: [t0] \`init\` then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: actors.yml is not a map
+
+{
+  "hint": "declare \`ambient: '@<slug>'\` and an \`actor:\` list",
+  "path": "/TMP_TEST_DIR/repo/.agent/actors.yml"
+}
+
+[args] init
+
+"
+`;

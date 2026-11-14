@@ -6,6 +6,7 @@ import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
 
 import { existsSync, readFileSync } from 'node:fs';
 import { asActorsPublished } from './asActorsPublished';
+import { asActorsQualifiedToRepo } from './asActorsQualifiedToRepo';
 import { assertActorsPublishedSound } from './assertActorsPublishedSound';
 
 /**
@@ -49,7 +50,12 @@ export const getActorsPublishedOfRegistry = (input: {
       });
     }
   })();
-  const actors = asActorsPublished({ parsed, path });
+  // each bare role means this package's own role, so it is qualified before the check and the
+  //   emit: a typo is then caught here, and a consumer never matches it against another package
+  const actors = asActorsQualifiedToRepo({
+    actors: asActorsPublished({ parsed, path }),
+    repo: input.registry.slug,
+  });
 
   // the set is sound in what the package alone can settle (local bases, cycles, own roles)
   assertActorsPublishedSound({

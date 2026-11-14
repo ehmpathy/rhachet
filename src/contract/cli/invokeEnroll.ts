@@ -336,6 +336,12 @@ const getRepoAmbientForEnroll = async (
   }
 };
 
+/**
+ * .what = derive one enrollment from argv — the actor form (`@<slug>`), the bare form, or the
+ *         inline form — then render its actor dir and spawn the brain-cli clone
+ * .why = one path for every enroll form, so each lands in the namespace its form decides (F7)
+ *        and every form meets the same validation before any write
+ */
 const performEnroll = async (input: {
   positionalBrain: BrainSlug | null;
   flagBrain: BrainSlug | null;

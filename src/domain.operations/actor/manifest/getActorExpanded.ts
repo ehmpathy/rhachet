@@ -30,7 +30,9 @@ export interface ActorExpanded {
 
 /**
  * .what = the lookup for a published actor (`@<repo>/<slug>`) from installed role packages
- * .note = injected, so the expander stays pure; returns null where the package or actor is absent
+ * .note = injected, so the expander stays pure; returns null only where no package for the
+ *   repo is installed. an installed package that publishes no such slug, or cannot be read,
+ *   throws with its own fault (`genGetPublishedActorOfPackages`)
  */
 export type GetPublishedActor = (input: {
   repo: string;
