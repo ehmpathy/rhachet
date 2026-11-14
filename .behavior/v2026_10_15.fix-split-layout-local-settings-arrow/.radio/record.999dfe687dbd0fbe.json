@@ -13,7 +13,7 @@
   "auth": "as-human",
   "idem": "findsert",
   "heldSeq": 8,
-  "recordStatus": "QUEUED",
-  "reason": "radio.uses:blocked — global",
-  "deliveredExid": null
+  "recordStatus": "DELIVERED",
+  "reason": null,
+  "deliveredExid": "1247"
 }
