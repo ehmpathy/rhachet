@@ -1,11 +1,7 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`invokeInit (integration) given: [case2] init against the brain dirs when: [t0] <repo>/.claude is a real dir with a COMMITTED hand AGENTS.md then: it migrates the dir: boot files drop, the rest move, and the link lands 1`] = `
-"💡 tip
-   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
-   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
-
-🧠 brain://repo=ambient
+"🧠 brain://repo=ambient
    ├─ moved
    │  └─ .claude/settings.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json
    ├─ dropped
@@ -13,7 +9,11 @@ exports[`invokeInit (integration) given: [case2] init against the brain dirs whe
    ├─ linked
    │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
-      └─ created — 1 role"
+      └─ created — 1 role
+
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md"
 `;
 
 exports[`invokeInit (integration) given: [case2] init against the brain dirs when: [t0b] <repo>/.claude holds an UNTRACKED hand AGENTS.md then: it refuses with exit 2 and the hand file survives 1`] = `
