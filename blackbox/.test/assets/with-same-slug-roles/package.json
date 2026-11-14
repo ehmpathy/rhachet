@@ -1,0 +1,9 @@
+{
+  "name": "test-with-same-slug-roles",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "rhachet-roles-alpha": "file:./node_modules/rhachet-roles-alpha",
+    "rhachet-roles-beta": "file:./node_modules/rhachet-roles-beta"
+  }
+}

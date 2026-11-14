@@ -2,13 +2,13 @@ import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { RoleBootSpec } from '@src/domain.objects/RoleBootSpec';
 import type { RoleDelta } from '@src/domain.objects/RoleDelta';
 import { assertRoleFocusDeclared } from '@src/domain.operations/boot/assertRoleFocusDeclared';
-import { getOneRoleBootSpecFromRef } from '@src/domain.operations/boot/getOneRoleBootSpecFromRef';
-import { parseRoleBootYaml } from '@src/domain.operations/boot/parseRoleBootYaml';
-import { readOneBootSpecFile } from '@src/domain.operations/boot/readOneBootSpecFile';
+import { getAllLinkedRoleRefs } from '@src/domain.operations/role/getAllLinkedRoleRefs';
+import { getOneRoleBootSpecFromRef } from '@src/domain.operations/role/getOneRoleBootSpecFromRef';
+import { parseRoleBootYaml } from '@src/domain.operations/role/parseRoleBootYaml';
+import { readOneBootSpecFile } from '@src/domain.operations/role/readOneBootSpecFile';
 import { getAllRoleFociOfDeltas } from '@src/domain.operations/roles/focus/getAllRoleFociOfDeltas';
 import { isRoleLinkRefOfRole } from '@src/domain.operations/roles/isRoleLinkRefOfRole';
 
-import { getAllLinkedRoleRefs } from './link/getAllLinkedRoleRefs';
 import { getRolesFoundFromSlugs } from './link/getRolesFoundFromSlugs';
 
 /**
@@ -33,18 +33,28 @@ export const assertInitRoleFociDeclared = async (
   // read each focused role's spec, from its link if held, else from its package manifest
   const refsLinked = getAllLinkedRoleRefs({}, context);
   for (const entry of focused) {
-    const refLinked = refsLinked.find((ref) =>
+    // a bare slug that two repos share names both roles, so the focus must hold on each
+    const refsOfRole = refsLinked.filter((ref) =>
       isRoleLinkRefOfRole({ ref, role: entry.role }),
     );
-    const config = refLinked
-      ? getOneRoleBootSpecFromRef({ ref: refLinked, repoPath: context.gitroot })
-      : await getOneRoleBootSpecFromPackage({ specifier: entry.role }, context);
-    assertRoleFocusDeclared({
-      slugRole: entry.role,
-      subjects: entry.subjects,
-      config,
-      focusFrom: 'typed.init',
-    });
+    const configs =
+      refsOfRole.length > 0
+        ? refsOfRole.map((ref) =>
+            getOneRoleBootSpecFromRef({ ref, repoPath: context.gitroot }),
+          )
+        : [
+            await getOneRoleBootSpecFromPackage(
+              { specifier: entry.role },
+              context,
+            ),
+          ];
+    for (const config of configs)
+      assertRoleFocusDeclared({
+        slugRole: entry.role,
+        subjects: entry.subjects,
+        config,
+        focusFrom: 'typed.init',
+      });
   }
 };
 

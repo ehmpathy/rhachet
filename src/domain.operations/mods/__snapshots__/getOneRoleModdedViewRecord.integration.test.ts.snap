@@ -1,0 +1,51 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`getOneRoleModdedViewRecord given: [case4] a record whose refusal is ill-shaped when: [t0] the refusal is a bare string then: the read fails loud as a corrupt record, with a fix, never a raw TypeError 1`] = `
+"💥 MalfunctionError: the modded view record is unreadable
+
+{
+  "path": "/TMP_ROLE_DIR/.modded.json",
+  "problem": "its shape is not { sources: { briefs, skills }, paths, hookBasis: null | { version }, refusal: null | { message, metadata, paths } }",
+  "fix": "delete /TMP_ROLE_DIR/.modded.json, then run rhx init --roles +ehmpathy/mechanic to re-link the role"
+}"
+`;
+
+exports[`getOneRoleModdedViewRecord given: [case4] a record whose refusal is ill-shaped when: [t0] the refusal is a number then: the read fails loud as a corrupt record, with a fix, never a raw TypeError 1`] = `
+"💥 MalfunctionError: the modded view record is unreadable
+
+{
+  "path": "/TMP_ROLE_DIR/.modded.json",
+  "problem": "its shape is not { sources: { briefs, skills }, paths, hookBasis: null | { version }, refusal: null | { message, metadata, paths } }",
+  "fix": "delete /TMP_ROLE_DIR/.modded.json, then run rhx init --roles +ehmpathy/mechanic to re-link the role"
+}"
+`;
+
+exports[`getOneRoleModdedViewRecord given: [case4] a record whose refusal is ill-shaped when: [t0] the refusal is an object whose metadata is an array then: the read fails loud as a corrupt record, with a fix, never a raw TypeError 1`] = `
+"💥 MalfunctionError: the modded view record is unreadable
+
+{
+  "path": "/TMP_ROLE_DIR/.modded.json",
+  "problem": "its shape is not { sources: { briefs, skills }, paths, hookBasis: null | { version }, refusal: null | { message, metadata, paths } }",
+  "fix": "delete /TMP_ROLE_DIR/.modded.json, then run rhx init --roles +ehmpathy/mechanic to re-link the role"
+}"
+`;
+
+exports[`getOneRoleModdedViewRecord given: [case4] a record whose refusal is ill-shaped when: [t0] the refusal is an object whose paths is no array then: the read fails loud as a corrupt record, with a fix, never a raw TypeError 1`] = `
+"💥 MalfunctionError: the modded view record is unreadable
+
+{
+  "path": "/TMP_ROLE_DIR/.modded.json",
+  "problem": "its shape is not { sources: { briefs, skills }, paths, hookBasis: null | { version }, refusal: null | { message, metadata, paths } }",
+  "fix": "delete /TMP_ROLE_DIR/.modded.json, then run rhx init --roles +ehmpathy/mechanic to re-link the role"
+}"
+`;
+
+exports[`getOneRoleModdedViewRecord given: [case4] a record whose refusal is ill-shaped when: [t0] the refusal is an object with no message then: the read fails loud as a corrupt record, with a fix, never a raw TypeError 1`] = `
+"💥 MalfunctionError: the modded view record is unreadable
+
+{
+  "path": "/TMP_ROLE_DIR/.modded.json",
+  "problem": "its shape is not { sources: { briefs, skills }, paths, hookBasis: null | { version }, refusal: null | { message, metadata, paths } }",
+  "fix": "delete /TMP_ROLE_DIR/.modded.json, then run rhx init --roles +ehmpathy/mechanic to re-link the role"
+}"
+`;

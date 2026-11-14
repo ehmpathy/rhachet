@@ -21,24 +21,29 @@ describe('asRoleRefsForEnrolledSlugs', () => {
         refsLinked: REFS_LINKED,
       });
 
-      then('the refs come back in enrollment order', () => {
-        expect(refs.map((ref) => ref.role)).toEqual(
-          asRoleSlugsInEnrollmentOrder({ slugs: ['mechanic', 'driver'] }),
+      then('the refs come back in enrollment order, the full sequence', () => {
+        // each slug in enrollment order expands to its refs in repo order
+        const refsExpected = asRoleSlugsInEnrollmentOrder({
+          slugs: ['mechanic', 'driver'],
+        }).flatMap((slug) =>
+          REFS_LINKED.filter((ref) => ref.role === slug).map(
+            (ref) => `${ref.repo}/${ref.role}`,
+          ),
+        );
+        expect(refsExpected).toHaveLength(3);
+        expect(refs.map((ref) => `${ref.repo}/${ref.role}`)).toEqual(
+          refsExpected,
         );
       });
 
-      then('a slug linked from two repos maps to the first seen ref', () => {
-        expect(refs).toContainEqual({
-          repo: 'bhrain',
-          role: 'driver',
-          subjects: null,
-        });
-        expect(refs).not.toContainEqual({
-          repo: 'zeta',
-          role: 'driver',
-          subjects: null,
-        });
-      });
+      then(
+        'a slug linked from two repos maps to both refs, in repo order (F11)',
+        () => {
+          expect(
+            refs.filter((ref) => ref.role === 'driver').map((ref) => ref.repo),
+          ).toEqual(['bhrain', 'zeta']);
+        },
+      );
 
       then('an unenrolled linked role is left out', () => {
         expect(refs.map((ref) => ref.role)).not.toContain('any');

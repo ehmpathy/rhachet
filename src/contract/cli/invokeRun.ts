@@ -12,6 +12,7 @@ import {
 import { findUniqueInitExecutable } from '@src/domain.operations/invoke/findUniqueInitExecutable';
 import { findUniqueSkillExecutable } from '@src/domain.operations/invoke/findUniqueSkillExecutable';
 
+import { asRunTargetFromArgs } from './asRunTargetFromArgs';
 import { invokeRunList } from './invokeRunList';
 
 /**
@@ -20,6 +21,22 @@ import { invokeRunList } from './invokeRunList';
  */
 const getRawArgsAfterRun = (): string[] => {
   const argv = process.argv;
+  const runIdx = argv.indexOf('run');
+  if (runIdx === -1) return [];
+  return argv.slice(runIdx + 1);
+};
+
+/**
+ * .what = extracts the args after 'run' from the argv commander parsed
+ * .why = the parse may be fed an argv other than process.argv (`parseAsync(args, { from })`),
+ *        so the target is read from what commander was handed
+ *
+ * .note = commander keeps the parsed argv on `rawArgs`, which its typings omit
+ *   (commander@14). the cast reads that one field; remove it once the typings declare it
+ */
+const getRawArgsAfterRunOf = (input: { program: Command }): string[] => {
+  const argv = (input.program as Command & { rawArgs?: string[] }).rawArgs;
+  if (!argv || argv.length === 0) return getRawArgsAfterRun();
   const runIdx = argv.indexOf('run');
   if (runIdx === -1) return [];
   return argv.slice(runIdx + 1);
@@ -130,7 +147,7 @@ export const invokeRun = ({ program }: { program: Command }): void => {
     .allowUnknownOption(true)
     .allowExcessArguments(true) // positional args pass through to skills
     .action(
-      (opts: {
+      (optsParsed: {
         skill?: string;
         init?: string;
         repo?: string;
@@ -138,6 +155,18 @@ export const invokeRun = ({ program }: { program: Command }): void => {
         attempts?: string;
         help?: boolean;
       }) => {
+        // the target and its filters come from the args, so a short flag after the skill
+        //   name reaches the skill rather than run (`rhx rmsafe -r <dir>`)
+        const target = asRunTargetFromArgs({
+          args: getRawArgsAfterRunOf({ program }),
+        });
+        const opts = {
+          ...optsParsed,
+          skill: target.skill ?? undefined,
+          init: target.init ?? undefined,
+          repo: target.repo ?? undefined,
+          role: target.role ?? undefined,
+        };
         // handle help request (only if no skill/init specified — otherwise --help passes through to the skill)
         if (opts.help && !opts.skill && !opts.init) return emitHelpOutput();
 

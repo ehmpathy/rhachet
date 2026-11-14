@@ -6,4 +6,5 @@
 - **confidence**: 75% — the upgrade notice at exit 0 is my call, not the wisher's
 - **risk**: low — the wrong gate is a moved exit code; no render or upgrade is held
 - **where**: `1.vision.yield.md` `### the version pester`; case 5
-- **verdict**: —
+- **verdict**: superseded by F23 (b), the director, 2026-11-09 (seed S9). the stop carries no pester;
+  the drift pester lives with `roles boot` and `rhx upgrade`

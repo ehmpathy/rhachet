@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`parseRoleModBootYaml given: [case3] a mod that declares a key its role owns when: [t1] it declares an inherit in a subject section then: it is refused, and names the section 1`] = `
+"✋ ConstraintError: the mod of role=mechanic is refused: its boot.yml declares \`inherit:\`, which a mod cannot set
+
+{
+  "mod": ".agent/repo=.mods/role=mechanic/",
+  "subject": "subject.flow",
+  "fix": "delete the \`inherit:\` key — the role's own spec owns what its subjects inherit"
+}"
+`;

@@ -1,0 +1,370 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case1] a mod whose of names its linked role when: [t0] a clone is enrolled with the modded role then: the actor boot.md matches its snapshot 1`] = `
+"<brief.say path="rhachet/intro">
+# rhachet
+
+you are enrolled via rhachet. your roles' briefs and skills follow.
+
+- \`rhx list\` — every skill your roles grant. check it before you improvise
+- \`rhx <skill> --help\` — how to call one
+- \`rhx init · roles · list · run · enroll · actor · clone · keyrack · ask · act · upgrade\` — the commands; \`rhx <command> --help\` for each
+
+entool: a tactic worth repeat becomes a skill — \`.agent/repo=.this/role=any/skills/<name>.sh\` — so the next clone runs it, never rediscovers it.
+
+</brief.say>
+
+<mod of="test/surfer@0.9.0 (installed 1.0.0)">
+role test/surfer@0.9.0 (installed 1.0.0) is modded in this repo — 1 shadow, 1 add, 1 not
+[-] not briefs/rule.forbid.wipeouts.md
+[~] shadow briefs/rule.require.surf-wax.md drops the published briefs/rule.require.surf-wax.md.min
+</mod>
+
+<readme path=".agent/repo=test/role=surfer/readme.md">
+# surfer
+
+a test role, as published
+
+</readme>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/howto.paddle-out.md">
+published: paddle out past the break
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.require.reef-etiquette.md" mod="add">
+modded: mind the reef, yield to the inside surfer
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.require.surf-wax.md" mod="shadow">
+modded: wax the board, then wax the rails
+
+</brief.say>
+
+<skill.say path=".agent/repo=test/role=surfer/skills/wax.board.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = wax the board
+#
+# .note = sources its peer by its own dir, so a mod that shadows the
+#         peer alone is what this skill reads
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<skill.say path=".agent/repo=test/role=surfer/skills/wax.lib.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = the word a waxed board says; sourced by wax.board.sh
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+"
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case1] a mod whose of names its linked role when: [t0] a clone is enrolled with the modded role then: the enroll output matches its snapshot 1`] = `
+{
+  "stderr": "ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+",
+  "stdout": "",
+}
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case2] a mod with no of when: [t0] a clone is enrolled with the modded role then: the refusal stderr matches its snapshot 1`] = `
+"
+✋ ConstraintError: the mod of role=surfer is refused: its boot.yml declares no \`of:\`
+
+{
+  "mod": ".agent/repo=.mods/role=surfer/",
+  "subject": "boot.yml",
+  "fix": "add \`of: test/surfer\` — the role this mod is over (and, optionally, \`@<version>\`)"
+}
+
+[args] enroll,claude,--roles,surfer
+
+"
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case2] a mod with no of when: [t1] a clone is enrolled without the modded role (usecase 12) then: the actor boot.md matches its snapshot 1`] = `
+"<brief.say path="rhachet/intro">
+# rhachet
+
+you are enrolled via rhachet. your roles' briefs and skills follow.
+
+- \`rhx list\` — every skill your roles grant. check it before you improvise
+- \`rhx <skill> --help\` — how to call one
+- \`rhx init · roles · list · run · enroll · actor · clone · keyrack · ask · act · upgrade\` — the commands; \`rhx <command> --help\` for each
+
+entool: a tactic worth repeat becomes a skill — \`.agent/repo=.this/role=any/skills/<name>.sh\` — so the next clone runs it, never rediscovers it.
+
+</brief.say>
+
+<readme path=".agent/repo=test/role=lifeguard/readme.md">
+# lifeguard
+
+test role no mod names; it shows a refused mod of another role leaves this one's actors whole
+
+</readme>
+
+<brief.say path=".agent/repo=test/role=lifeguard/briefs/rule.require.whistle.md">
+# rule.require.whistle
+
+blow the whistle before a swimmer passes the flags
+
+</brief.say>
+
+<skill.say path=".agent/repo=test/role=lifeguard/skills/flags.raise.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = raise the swim flags
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+"
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case2] a mod with no of when: [t1] a clone is enrolled without the modded role (usecase 12) then: the enroll output matches its snapshot 1`] = `
+{
+  "stderr": "ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+",
+  "stdout": "",
+}
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case3] a mod whose of names no linked role when: [t0] a clone is enrolled with the role then: the refusal stderr matches its snapshot 1`] = `
+"
+✋ ConstraintError: the mod of role=surfer is refused: its \`of: ghost/surfer\` names a role that is not linked
+
+{
+  "mod": ".agent/repo=.mods/role=surfer/",
+  "subject": "boot.yml",
+  "did you mean": "test/surfer",
+  "fix": "link it first (rhx init --roles ghost/surfer), or point \`of:\` at a linked role"
+}
+
+[args] enroll,claude,--roles,surfer
+
+"
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case4] a mod of a .this role (F18) when: [t0] a clone is enrolled with the .this role then: the refusal stderr matches its snapshot 1`] = `
+"
+✋ ConstraintError: the mod of role=surfer is refused: its \`of: .this/surfer\` names a role this repo owns
+
+{
+  "mod": ".agent/repo=.mods/role=surfer/",
+  "subject": "boot.yml",
+  "fix": "edit .agent/repo=.this/role=surfer/ in place, and delete the mod"
+}
+
+[args] enroll,claude,--roles,surfer
+
+"
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case5] two linked roles of one slug, a mod whose bare of names both when: [t0] a clone is enrolled with both then: the refusal stderr matches its snapshot 1`] = `
+"
+✋ ConstraintError: the mod of role=surfer is refused: its \`of: surfer\` matches 2 linked roles
+
+{
+  "mod": ".agent/repo=.mods/role=surfer/",
+  "subject": "boot.yml",
+  "did you mean": "alpha/surfer, beta/surfer",
+  "fix": "pin one: \`of: alpha/surfer\`"
+}
+
+[args] enroll,claude,--roles,alpha/surfer,beta/surfer
+
+"
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case5] two linked roles of one slug, a mod whose bare of names both when: [t1] the of pins one of the two, and a clone is enrolled with both then: the actor boot.md matches its snapshot 1`] = `
+"<brief.say path="rhachet/intro">
+# rhachet
+
+you are enrolled via rhachet. your roles' briefs and skills follow.
+
+- \`rhx list\` — every skill your roles grant. check it before you improvise
+- \`rhx <skill> --help\` — how to call one
+- \`rhx init · roles · list · run · enroll · actor · clone · keyrack · ask · act · upgrade\` — the commands; \`rhx <command> --help\` for each
+
+entool: a tactic worth repeat becomes a skill — \`.agent/repo=.this/role=any/skills/<name>.sh\` — so the next clone runs it, never rediscovers it.
+
+</brief.say>
+
+<readme path=".agent/repo=alpha/role=surfer/readme.md">
+# surfer, of alpha
+
+</readme>
+
+<brief.say path=".agent/repo=alpha/role=surfer/briefs/rule.require.longboard.md">
+alpha: ride a longboard on small days
+
+</brief.say>
+
+<skill.say path=".agent/repo=alpha/role=surfer/skills/wax.board.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = wax the board, as alpha does
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<mod of="beta/surfer">
+role beta/surfer is modded in this repo — 0 shadow, 1 add, 0 not
+</mod>
+
+<readme path=".agent/repo=beta/role=surfer/readme.md">
+# surfer, of beta
+
+</readme>
+
+<brief.say path=".agent/repo=beta/role=surfer/briefs/rule.require.reef-etiquette.md" mod="add">
+modded: mind the reef
+
+</brief.say>
+
+<brief.say path=".agent/repo=beta/role=surfer/briefs/rule.require.shortboard.md">
+beta: ride a shortboard on big days
+
+</brief.say>
+
+<skill.say path=".agent/repo=beta/role=surfer/skills/wax.board.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = wax the board, as beta does
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+"
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case5] two linked roles of one slug, a mod whose bare of names both when: [t1] the of pins one of the two, and a clone is enrolled with both then: the enroll output matches its snapshot 1`] = `
+{
+  "stderr": "ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+",
+  "stdout": "",
+}
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case6] a mod deleted, then a clone re-enrolled (usecase 7) when: [t0] a clone is enrolled with the role then: the actor boot.md matches its snapshot 1`] = `
+"<brief.say path="rhachet/intro">
+# rhachet
+
+you are enrolled via rhachet. your roles' briefs and skills follow.
+
+- \`rhx list\` — every skill your roles grant. check it before you improvise
+- \`rhx <skill> --help\` — how to call one
+- \`rhx init · roles · list · run · enroll · actor · clone · keyrack · ask · act · upgrade\` — the commands; \`rhx <command> --help\` for each
+
+entool: a tactic worth repeat becomes a skill — \`.agent/repo=.this/role=any/skills/<name>.sh\` — so the next clone runs it, never rediscovers it.
+
+</brief.say>
+
+<readme path=".agent/repo=test/role=surfer/readme.md">
+# surfer
+
+a test role, as published
+
+</readme>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/howto.paddle-out.md">
+published: paddle out past the break
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.forbid.wipeouts.md">
+published: a wipeout is forbidden
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.require.surf-wax.md.min">
+published (min): wax the board before each session
+
+</brief.say>
+
+<skill.say path=".agent/repo=test/role=surfer/skills/wax.board.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = wax the board
+#
+# .note = sources its peer by its own dir, so a mod that shadows the
+#         peer alone is what this skill reads
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<skill.say path=".agent/repo=test/role=surfer/skills/wax.lib.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = the word a waxed board says; sourced by wax.board.sh
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+"
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case6] a mod deleted, then a clone re-enrolled (usecase 7) when: [t0] a clone is enrolled with the role then: the enroll output matches its snapshot 1`] = `
+{
+  "stderr": "🧢 .agent/repo=.mods
+   ├─ returned to published, its mod gone
+   │  └─ role=surfer
+   └─ a live clone keeps the boot it read at session start; re-enroll it to pick up the change
+
+ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+",
+  "stdout": "",
+}
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case7] a stray entry under .agent/repo=.mods (usecase 12) when: [t0] a clone is enrolled with no modded role then: the enroll stderr matches its snapshot 1`] = `
+"🧢 .agent/repo=.mods
+   └─ refused, with no linked role to carry it
+      └─ .agent/repo=.mods/readme.md — ✋ ConstraintError: a mods dir holds an entry that names no role
+         └─ fix = rename .agent/repo=.mods/readme.md to .agent/repo=.mods/role=<slug>, or move it out of .agent/repo=.mods/
+
+ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+"
+`;

@@ -4,7 +4,7 @@ import { getError, given, then, useThen, when } from 'test-fns';
 import { setMockLinkedRole } from '@src/.test/assets/setMockLinkedRole';
 import { genTestTempDir } from '@src/.test/infra';
 import { ContextCli } from '@src/domain.objects/ContextCli';
-import { discoverLinkedRoles } from '@src/domain.operations/upgrade/discoverLinkedRoles';
+import { discoverLinkedRoles } from '@src/domain.operations/role/discoverLinkedRoles';
 
 import { existsSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -266,7 +266,7 @@ describe('setIncrementalRoles (integration) — remove-side set-math', () => {
         'the tree reports subtractions + untouched count deterministically',
         async () => {
           // spy (not mock) on console.log; read jest's own call log (no local mutation)
-          const spy = jest.spyOn(console, 'log').mockImplementation(() => {});
+          const spy = jest.spyOn(console, 'log');
           await setIncrementalRoles(
             { additions: [], subtractions: ['reviewer'] },
             context,
@@ -335,7 +335,7 @@ describe('setIncrementalRoles (integration) — remove-side set-math', () => {
         then(
           'the tree lists both removed and the untouched remainder',
           async () => {
-            const spy = jest.spyOn(console, 'log').mockImplementation(() => {});
+            const spy = jest.spyOn(console, 'log');
             await setIncrementalRoles(
               { additions: [], subtractions: ['mechanic', 'reviewer'] },
               context,
@@ -389,7 +389,7 @@ describe('setIncrementalRoles (integration) — remove-side set-math', () => {
         then(
           'the tree shows the removal and an untouched count of zero',
           async () => {
-            const spy = jest.spyOn(console, 'log').mockImplementation(() => {});
+            const spy = jest.spyOn(console, 'log');
             await setIncrementalRoles(
               { additions: [], subtractions: ['mechanic'] },
               context,

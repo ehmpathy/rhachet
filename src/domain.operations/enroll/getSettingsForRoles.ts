@@ -1,7 +1,6 @@
 import type { ClaudeCodeSettings } from '@src/domain.operations/brains/claudeCodeSettings';
-import { asRoleFocusParts } from '@src/domain.operations/roles/focus/asRoleFocusParts';
 
-import { asRoleSlugOfHookAuthor } from './asRoleSlugOfHookAuthor';
+import { isHookAuthorOfEnrolledRoles } from './isHookAuthorOfEnrolledRoles';
 
 /**
  * .what = returns a settings object whose hooks are narrowed to only those
@@ -22,15 +21,10 @@ export const getSettingsForRoles = (input: {
 
   if (!settings.hooks) return settings;
 
-  // author format is `repo=X/role=Y`, so match on the whole `role=Y` segment.
-  //   🔴 a segment, never a substring: `role=architect` is a prefix of `role=architect-ops`,
-  //   so a substring match would hand an `architect` actor the hooks of `architect-ops` —
-  //   the cross-role leak this narrow exists to prevent
-  //   🔴 a focus is stripped first: hooks follow the role, never the subject, so
-  //   `mechanic::flow` keeps every mechanic hook (an unstripped token would drop them all)
-  const rolesEnrolled = new Set(
-    roles.map((token) => asRoleFocusParts({ token }).role),
-  );
+  // author format is `repo=X/role=Y`; `isHookAuthorOfEnrolledRoles` matches whole segments
+  //   (`architect` never takes `architect-ops`'s hooks), strips a focus (`mechanic::flow`
+  //   keeps every mechanic hook), and honors a pinned `repo/role` token (`ehmpathy/mechanic`
+  //   keeps ehmpathy's mechanic hooks, and never acme's)
 
   // narrow each hook event category to entries with at least one role-authored hook
   const hooksFiltered: ClaudeCodeSettings['hooks'] = {};
@@ -46,8 +40,7 @@ export const getSettingsForRoles = (input: {
           // read it directly — no cast; the guard narrows it to string below
           const author = hook.author;
           if (!author) return false;
-          const roleOfAuthor = asRoleSlugOfHookAuthor({ author });
-          return roleOfAuthor !== null && rolesEnrolled.has(roleOfAuthor);
+          return isHookAuthorOfEnrolledRoles({ author, roles }) === true;
         });
 
         // drop the entry entirely when no inner hook survived

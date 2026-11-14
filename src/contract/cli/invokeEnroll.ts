@@ -55,9 +55,12 @@ import { isBrainCliPrintMode } from '@src/domain.operations/enroll/isBrainCliPri
 import { isEnrollBareRoleDelta } from '@src/domain.operations/enroll/isEnrollBareRoleDelta';
 import { parseBrainCliEnrollmentSpec } from '@src/domain.operations/enroll/parseBrainCliEnrollmentSpec';
 import { asRoleRefsForEnrolledSlugs } from '@src/domain.operations/init/boots/asRoleRefsForEnrolledSlugs';
+import { asRoleSlugsOfRefs } from '@src/domain.operations/init/boots/asRoleSlugsOfRefs';
 import { setRepoActorDirFromLegacy } from '@src/domain.operations/init/boots/setRepoActorDirFromLegacy';
 import { setRepoBrainDirSymlink } from '@src/domain.operations/init/boots/setRepoBrainDirSymlink';
-import { getAllLinkedRoleRefs } from '@src/domain.operations/init/roles/link/getAllLinkedRoleRefs';
+import { asRoleModViewsChangedReadout } from '@src/domain.operations/mods/asRoleModViewsChangedReadout';
+import { syncRoleModdedViews } from '@src/domain.operations/mods/syncRoleModdedViews';
+import { getAllLinkedRoleRefs } from '@src/domain.operations/role/getAllLinkedRoleRefs';
 import { getDecodedRoleDeltaToken } from '@src/domain.operations/roles/deltas/getDecodedRoleDeltaToken';
 import { getRoleDeltaTokens } from '@src/domain.operations/roles/deltas/getRoleDeltaTokens';
 import { asRoleSlugsAmbientAtFocus } from '@src/domain.operations/roles/focus/ambient/asRoleSlugsAmbientAtFocus';
@@ -296,12 +299,36 @@ const performEnroll = async (input: {
       hint: 'run `rhachet roles link` first to initialize',
     });
 
+  // each modded view is put in step with its mod before the render reads it; a refused mod
+  //   is raised again by the render of the actor that carries its role (F13, usecase 12)
+  const contextRepo = new ContextCli({ cwd: repoPath, gitroot: repoPath });
+  const {
+    changed: modsChanged,
+    reverted: modsReverted,
+    unplaced: modsUnplaced,
+  } = await syncRoleModdedViews({}, contextRepo);
+
+  // this clone reads the new view; every other live clone keeps its prior boot (usecase 8).
+  //   a mod no linked role carries is named, since no boot raises it (usecase 6). on stderr,
+  //   so a json stdout stays one document. a detached host replays this enroll and its caller
+  //   forwards the host's stderr, so only the caller prints, or each line would show twice
+  const isReplayedByHost =
+    process.env[CLONE_ENV_KEYS.hostDetached] !== undefined;
+  const linesMods = isReplayedByHost
+    ? []
+    : asRoleModViewsChangedReadout({
+        roles: modsChanged,
+        reverted: modsReverted,
+        unplaced: modsUnplaced,
+      });
+  // a blank line closes the block, so the next tree on stderr does not run into it
+  if (linesMods.length > 0) console.error(`${linesMods.join('\n')}\n`);
+
   // fail loud if roles were never linked — the brain would open role-less
-  const refsLinked = getAllLinkedRoleRefs(
-    {},
-    new ContextCli({ cwd: repoPath, gitroot: repoPath }),
-  );
-  const rolesLinked: RoleSlug[] = refsLinked.map((ref) => ref.role);
+  const refsLinked = getAllLinkedRoleRefs({}, contextRepo);
+
+  // a bare slug carries every repo's role of that slug (F11), so each slug is named once
+  const rolesLinked: RoleSlug[] = asRoleSlugsOfRefs({ refs: refsLinked });
   if (rolesLinked.length === 0)
     throw new ConstraintError('no roles found in .agent/', {
       gitroot: repoPath,

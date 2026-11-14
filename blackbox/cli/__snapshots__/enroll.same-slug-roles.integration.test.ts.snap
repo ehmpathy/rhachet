@@ -1,0 +1,305 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx enroll — two repos that ship one role slug given: [case1] alpha and beta each ship role surfer, both linked when: [t0] a clone is enrolled with the bare slug \`--roles surfer\` then: the actor boot.md matches its snapshot 1`] = `
+"<brief.say path="rhachet/intro">
+# rhachet
+
+you are enrolled via rhachet. your roles' briefs and skills follow.
+
+- \`rhx list\` — every skill your roles grant. check it before you improvise
+- \`rhx <skill> --help\` — how to call one
+- \`rhx init · roles · list · run · enroll · actor · clone · keyrack · ask · act · upgrade\` — the commands; \`rhx <command> --help\` for each
+
+entool: a tactic worth repeat becomes a skill — \`.agent/repo=.this/role=any/skills/<name>.sh\` — so the next clone runs it, never rediscovers it.
+
+</brief.say>
+
+<readme path=".agent/repo=alpha/role=surfer/readme.md">
+# surfer, of alpha
+
+</readme>
+
+<brief.say path=".agent/repo=alpha/role=surfer/briefs/rule.require.longboard.md">
+alpha: ride a longboard on small days
+
+</brief.say>
+
+<skill.say path=".agent/repo=alpha/role=surfer/skills/wax.board.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = wax the board, as alpha does
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<readme path=".agent/repo=beta/role=surfer/readme.md">
+# surfer, of beta
+
+</readme>
+
+<brief.say path=".agent/repo=beta/role=surfer/briefs/rule.require.shortboard.md">
+beta: ride a shortboard on big days
+
+</brief.say>
+
+<skill.say path=".agent/repo=beta/role=surfer/skills/wax.board.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = wax the board, as beta does
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+"
+`;
+
+exports[`rhx enroll — two repos that ship one role slug given: [case1] alpha and beta each ship role surfer, both linked when: [t0] a clone is enrolled with the bare slug \`--roles surfer\` then: the enroll output matches its snapshot 1`] = `
+{
+  "stderr": "ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+",
+  "stdout": "",
+}
+`;
+
+exports[`rhx enroll — two repos that ship one role slug given: [case1] alpha and beta each ship role surfer, both linked when: [t1] the same bare slug is enrolled again then: the enroll output matches its snapshot 1`] = `
+{
+  "stderr": "ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+",
+  "stdout": "",
+}
+`;
+
+exports[`rhx enroll — two repos that ship one role slug given: [case1] alpha and beta each ship role surfer, both linked when: [t2] a clone is enrolled with a repo/role pin \`--roles alpha/surfer\` then: the enroll output matches its snapshot 1`] = `
+{
+  "stderr": "ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+",
+  "stdout": "",
+}
+`;
+
+exports[`rhx enroll — two repos that ship one role slug given: [case1] alpha and beta each ship role surfer, both linked when: [t3] the bare slug is booted on the cli then: the refusal output matches its snapshot 1`] = `
+{
+  "stderr": "
+✋ ConstraintError: multiple repos have role "surfer":
+  - alpha
+  - beta
+
+use --repo to disambiguate
+
+{
+  "input": {
+    "slugRole": "surfer"
+  },
+  "matches": [
+    {
+      "roleDir": "/TMP_REPO/.agent/repo=alpha/role=surfer",
+      "slugRepo": "alpha",
+      "slugRole": "surfer"
+    },
+    {
+      "roleDir": "/TMP_REPO/.agent/repo=beta/role=surfer",
+      "slugRepo": "beta",
+      "slugRole": "surfer"
+    }
+  ]
+}
+
+[args] roles,boot,--role,surfer
+
+",
+  "stdout": "",
+}
+`;
+
+exports[`rhx enroll — two repos that ship one role slug given: [case2] a bare-slug actor enrolled while one repo ships the slug when: [t0] a second repo that ships the slug is linked, and the bare slug re-enrolled then: the same actor now boots both repos of the slug 1`] = `
+"<brief.say path="rhachet/intro">
+# rhachet
+
+you are enrolled via rhachet. your roles' briefs and skills follow.
+
+- \`rhx list\` — every skill your roles grant. check it before you improvise
+- \`rhx <skill> --help\` — how to call one
+- \`rhx init · roles · list · run · enroll · actor · clone · keyrack · ask · act · upgrade\` — the commands; \`rhx <command> --help\` for each
+
+entool: a tactic worth repeat becomes a skill — \`.agent/repo=.this/role=any/skills/<name>.sh\` — so the next clone runs it, never rediscovers it.
+
+</brief.say>
+
+<readme path=".agent/repo=alpha/role=surfer/readme.md">
+# surfer, of alpha
+
+</readme>
+
+<brief.say path=".agent/repo=alpha/role=surfer/briefs/rule.require.longboard.md">
+alpha: ride a longboard on small days
+
+</brief.say>
+
+<skill.say path=".agent/repo=alpha/role=surfer/skills/wax.board.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = wax the board, as alpha does
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<readme path=".agent/repo=beta/role=surfer/readme.md">
+# surfer, of beta
+
+</readme>
+
+<brief.say path=".agent/repo=beta/role=surfer/briefs/rule.require.shortboard.md">
+beta: ride a shortboard on big days
+
+</brief.say>
+
+<skill.say path=".agent/repo=beta/role=surfer/skills/wax.board.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = wax the board, as beta does
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+"
+`;
+
+exports[`rhx enroll — two repos that ship one role slug given: [case3] a .this role beside a linked package role of the same slug (the F11 shape) when: [t0] a clone is enrolled with the bare slug \`--roles surfer\` then: the actor boot matches its snapshot 1`] = `
+"<brief.say path="rhachet/intro">
+# rhachet
+
+you are enrolled via rhachet. your roles' briefs and skills follow.
+
+- \`rhx list\` — every skill your roles grant. check it before you improvise
+- \`rhx <skill> --help\` — how to call one
+- \`rhx init · roles · list · run · enroll · actor · clone · keyrack · ask · act · upgrade\` — the commands; \`rhx <command> --help\` for each
+
+entool: a tactic worth repeat becomes a skill — \`.agent/repo=.this/role=any/skills/<name>.sh\` — so the next clone runs it, never rediscovers it.
+
+</brief.say>
+
+<readme path=".agent/repo=.this/role=surfer/readme.md">
+# surfer, native
+
+</readme>
+
+<brief.say path=".agent/repo=.this/role=surfer/briefs/rule.require.local-break.md">
+native: surf the local break
+
+</brief.say>
+
+<readme path=".agent/repo=alpha/role=surfer/readme.md">
+# surfer, of alpha
+
+</readme>
+
+<brief.say path=".agent/repo=alpha/role=surfer/briefs/rule.require.longboard.md">
+alpha: ride a longboard on small days
+
+</brief.say>
+
+<skill.say path=".agent/repo=alpha/role=surfer/skills/wax.board.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = wax the board, as alpha does
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+"
+`;
+
+exports[`rhx enroll — two repos that ship one role slug given: [case3] a .this role beside a linked package role of the same slug (the F11 shape) when: [t1] each is booted on the cli by its repo then: each cli boot matches its snapshot 1`] = `
+{
+  "alpha": "<stats>
+quant
+  ├── files = 3
+  │   ├── briefs = 1
+  │   └── skills = 1
+  ├── chars = 307
+  └── tokens ≈ 77 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+<readme path=".agent/repo=alpha/role=surfer/readme.md">
+# surfer, of alpha
+
+</readme>
+
+<brief.say path=".agent/repo=alpha/role=surfer/briefs/rule.require.longboard.md">
+alpha: ride a longboard on small days
+
+</brief.say>
+
+<skill.say path=".agent/repo=alpha/role=surfer/skills/wax.board.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = wax the board, as alpha does
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<stats>
+quant
+  ├── files = 3
+  │   ├── briefs = 1
+  │   └── skills = 1
+  ├── chars = 307
+  └── tokens ≈ 77 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+",
+  "native": "<stats>
+quant
+  ├── files = 2
+  │   ├── briefs = 1
+  │   └── skills = 0
+  ├── chars = 46
+  └── tokens ≈ 12 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+<readme path=".agent/repo=.this/role=surfer/readme.md">
+# surfer, native
+
+</readme>
+
+<brief.say path=".agent/repo=.this/role=surfer/briefs/rule.require.local-break.md">
+native: surf the local break
+
+</brief.say>
+
+<stats>
+quant
+  ├── files = 2
+  │   ├── briefs = 1
+  │   └── skills = 0
+  ├── chars = 46
+  └── tokens ≈ 12 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+",
+}
+`;

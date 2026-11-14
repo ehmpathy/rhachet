@@ -1,0 +1,206 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx upgrade — a repo with .agent/repo=.mods given: [case1.1] two mods pinned to 0.9.0, of two roles installed at 1.0.0 when: [t0] \`rhx upgrade --roles test/* --which local\` then: the drift notice matches its snapshot 1`] = `
+"🧢 the modded role moved
+   ├─ role    = test/lifeguard
+   ├─ mods    = 0.9.0   (declared in .agent/repo=.mods/role=lifeguard/boot.yml)
+   ├─ now     = 1.0.0
+   ├─ review each mod against the new release
+   │  └─ [+] add briefs/rule.require.rip-currents.md
+   └─ then set \`of: test/lifeguard@1.0.0\` in the mod boot.yml
+
+🧢 the modded role moved
+   ├─ role    = test/surfer
+   ├─ mods    = 0.9.0   (declared in .agent/repo=.mods/role=surfer/boot.yml)
+   ├─ now     = 1.0.0
+   ├─ review each mod against the new release
+   │  ├─ [~] shadow briefs/rule.require.surf-wax.md
+   │  ├─ [+] add briefs/rule.require.reef-etiquette.md
+   │  └─ [-] not briefs/rule.forbid.wipeouts.md
+   └─ then set \`of: test/surfer@1.0.0\` in the mod boot.yml
+
+"
+`;
+
+exports[`rhx upgrade — a repo with .agent/repo=.mods given: [case1.1] two mods pinned to 0.9.0, of two roles installed at 1.0.0 when: [t0] \`rhx upgrade --roles test/* --which local\` then: the whole upgrade output matches its snapshot 1`] = `
+{
+  "stderr": "",
+  "stdout": "🫧 skip (local refs): rhachet-roles-test
+
+🔧 init 2 role(s)...
+
+📚 link role repo=test/role=lifeguard
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=test/readme.md (updated)
+   │  ├─ ✓ .agent/repo=test/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=test/role=lifeguard/readme.md (updated)
+   │  ├─ ↻ .agent/repo=test/role=lifeguard/boot.yml (updated)
+   │  ├─ ↻ .agent/repo=test/role=lifeguard/briefs (updated)
+   │  └─ ↻ .agent/repo=test/role=lifeguard/skills (updated)
+   └─ stats
+      ├─ 1 brief(s)
+      └─ 1 skill(s)
+
+📚 link role repo=test/role=surfer
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=test/readme.md (updated)
+   │  ├─ ✓ .agent/repo=test/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=test/role=surfer/readme.md (updated)
+   │  ├─ ↻ .agent/repo=test/role=surfer/boot.yml (updated)
+   │  ├─ ↻ .agent/repo=test/role=surfer/briefs (updated)
+   │  └─ ↻ .agent/repo=test/role=surfer/skills (updated)
+   └─ stats
+      ├─ 4 brief(s)
+      └─ 2 skill(s)
+
+✨ 2 role(s) linked
+✨ 2 role(s) initialized
+
+🔭 search for linked roles with hooks...
+
+🫧 no roles with hooks found
+
+
+
+🧢 the modded role moved
+   ├─ role    = test/lifeguard
+   ├─ mods    = 0.9.0   (declared in .agent/repo=.mods/role=lifeguard/boot.yml)
+   ├─ now     = 1.0.0
+   ├─ review each mod against the new release
+   │  └─ [+] add briefs/rule.require.rip-currents.md
+   └─ then set \`of: test/lifeguard@1.0.0\` in the mod boot.yml
+
+🧢 the modded role moved
+   ├─ role    = test/surfer
+   ├─ mods    = 0.9.0   (declared in .agent/repo=.mods/role=surfer/boot.yml)
+   ├─ now     = 1.0.0
+   ├─ review each mod against the new release
+   │  ├─ [~] shadow briefs/rule.require.surf-wax.md
+   │  ├─ [+] add briefs/rule.require.reef-etiquette.md
+   │  └─ [-] not briefs/rule.forbid.wipeouts.md
+   └─ then set \`of: test/surfer@1.0.0\` in the mod boot.yml
+
+",
+}
+`;
+
+exports[`rhx upgrade — a repo with .agent/repo=.mods given: [case1] a mod pinned to 0.9.0, of a role installed at 1.0.0 when: [t0] \`rhx upgrade --roles test/surfer --which local\` then: the drift notice matches its snapshot 1`] = `
+"🧢 the modded role moved
+   ├─ role    = test/surfer
+   ├─ mods    = 0.9.0   (declared in .agent/repo=.mods/role=surfer/boot.yml)
+   ├─ now     = 1.0.0
+   ├─ review each mod against the new release
+   │  ├─ [~] shadow briefs/rule.require.surf-wax.md
+   │  ├─ [+] add briefs/rule.require.reef-etiquette.md
+   │  └─ [-] not briefs/rule.forbid.wipeouts.md
+   └─ then set \`of: test/surfer@1.0.0\` in the mod boot.yml
+
+"
+`;
+
+exports[`rhx upgrade — a repo with .agent/repo=.mods given: [case1] a mod pinned to 0.9.0, of a role installed at 1.0.0 when: [t0] \`rhx upgrade --roles test/surfer --which local\` then: the whole upgrade output matches its snapshot 1`] = `
+{
+  "stderr": "",
+  "stdout": "🫧 skip (local refs): rhachet-roles-test
+
+🔧 init 1 role(s)...
+
+📚 link role repo=test/role=surfer
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=test/readme.md (updated)
+   │  ├─ ✓ .agent/repo=test/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=test/role=surfer/readme.md (updated)
+   │  ├─ ↻ .agent/repo=test/role=surfer/boot.yml (updated)
+   │  ├─ ↻ .agent/repo=test/role=surfer/briefs (updated)
+   │  └─ ↻ .agent/repo=test/role=surfer/skills (updated)
+   └─ stats
+      ├─ 4 brief(s)
+      └─ 2 skill(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+🔭 search for linked roles with hooks...
+
+🫧 no roles with hooks found
+
+
+
+🧢 the modded role moved
+   ├─ role    = test/surfer
+   ├─ mods    = 0.9.0   (declared in .agent/repo=.mods/role=surfer/boot.yml)
+   ├─ now     = 1.0.0
+   ├─ review each mod against the new release
+   │  ├─ [~] shadow briefs/rule.require.surf-wax.md
+   │  ├─ [+] add briefs/rule.require.reef-etiquette.md
+   │  └─ [-] not briefs/rule.forbid.wipeouts.md
+   └─ then set \`of: test/surfer@1.0.0\` in the mod boot.yml
+
+",
+}
+`;
+
+exports[`rhx upgrade — a repo with .agent/repo=.mods given: [case2] a release that drops the path a mod nots when: [t0] \`rhx upgrade --roles test/surfer --which local\` then: the refusal readout matches its snapshot 1`] = `
+{
+  "readout": "🧢 a mod no longer applies
+   └─ role=surfer — ✋ ConstraintError: the mod of role=surfer is refused: its not \`briefs/rule.forbid.wipeouts.md\` matches no briefs file the role holds
+      └─ fix = point the not at a held path, or delete the line
+
+",
+  "status": 2,
+}
+`;
+
+exports[`rhx upgrade — a repo with .agent/repo=.mods given: [case2] a release that drops the path a mod nots when: [t0] \`rhx upgrade --roles test/surfer --which local\` then: the refusal stderr matches its snapshot 1`] = `
+"✗ brain://repo=ambient/boot.md not written
+   ├─ ✋ ConstraintError: the mod of role=surfer is refused: its not \`briefs/rule.forbid.wipeouts.md\` matches no briefs file the role holds
+   ├─ mod = .agent/repo=.mods/role=surfer/
+   ├─ subject = briefs/rule.forbid.wipeouts.md
+   └─ fix = point the not at a held path, or delete the line
+"
+`;
+
+exports[`rhx upgrade — a repo with .agent/repo=.mods given: [case2] a release that drops the path a mod nots when: [t0] \`rhx upgrade --roles test/surfer --which local\` then: the whole upgrade output matches its snapshot 1`] = `
+{
+  "stderr": "✗ brain://repo=ambient/boot.md not written
+   ├─ ✋ ConstraintError: the mod of role=surfer is refused: its not \`briefs/rule.forbid.wipeouts.md\` matches no briefs file the role holds
+   ├─ mod = .agent/repo=.mods/role=surfer/
+   ├─ subject = briefs/rule.forbid.wipeouts.md
+   └─ fix = point the not at a held path, or delete the line
+",
+  "stdout": "🫧 skip (local refs): rhachet-roles-test
+
+🔧 init 1 role(s)...
+
+📚 link role repo=test/role=surfer
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=test/readme.md (updated)
+   │  ├─ ✓ .agent/repo=test/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=test/role=surfer/readme.md (updated)
+   │  ├─ ↻ .agent/repo=test/role=surfer/boot.yml (updated)
+   │  ├─ ↻ .agent/repo=test/role=surfer/briefs (updated)
+   │  └─ ↻ .agent/repo=test/role=surfer/skills (updated)
+   └─ stats
+      ├─ 3 brief(s)
+      └─ 2 skill(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+
+
+🧢 a mod no longer applies
+   └─ role=surfer — ✋ ConstraintError: the mod of role=surfer is refused: its not \`briefs/rule.forbid.wipeouts.md\` matches no briefs file the role holds
+      └─ fix = point the not at a held path, or delete the line
+
+",
+}
+`;

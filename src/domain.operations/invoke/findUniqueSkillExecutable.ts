@@ -1,6 +1,7 @@
 import { ConstraintError } from 'helpful-errors';
 
 import type { RoleSkillExecutable } from '@src/domain.objects/RoleSkillExecutable';
+import { getAllRoleModNotsOfSkill } from '@src/domain.operations/mods/getAllRoleModNotsOfSkill';
 
 import { discoverSkillExecutables } from './discoverSkillExecutables';
 
@@ -19,6 +20,27 @@ export const findUniqueSkillExecutable = (input: {
     slugRole: input.slugRole,
     slugSkill: input.slugSkill,
   });
+
+  // a skill a mod `not`ed is gone from the view by design; name the mod as the cause
+  if (matches.length === 0) {
+    const nots = getAllRoleModNotsOfSkill({
+      cwd: process.cwd(),
+      slugSkill: input.slugSkill,
+      slugRole: input.slugRole ?? null,
+    }).filter((not) => !input.slugRepo || not.target.repo === input.slugRepo);
+    if (nots.length > 0)
+      ConstraintError.throw(
+        `no skill "${input.slugSkill}" found — a mod in this repo nots it\n\n${nots
+          .map(
+            (not) =>
+              `  - ${not.modSpecPath} nots ${not.path} (of ${not.target.repo}/${not.target.role})`,
+          )
+          .join(
+            '\n',
+          )}\n\nfix: drop the path from the mod's \`not:\` to run the published skill, or ship a skill of that path in the mod dir to shadow it`,
+        { input, nots },
+      );
+  }
 
   // handle no matches
   if (matches.length === 0) {

@@ -14,16 +14,35 @@ dropped from `boot.md` because another repo shipped the same slug.
 - a skill name two such roles both ship stays a refused ambiguity on `run --skill`, as today; the
   caller names `--repo`
 
-today (v1.49.2) `getAllLinkedRoleRefs.ts:42` → `asRoleRefsFirstSeenPerRole.ts:7-13` keeps the first
-ref per slug and drops the rest, with no notice.
-
 ## .clamp
 
-owed — the `v2026_10_16.feat-role-edit-overlay` route builds it.
+`getAllLinkedRoleRefs` returns one ref per `repo/role`, every repo's role of a slug kept (the per-slug
+dedupe it once ran is deleted). `asRoleRefsForEnrolledSlugs` maps a bare slug to every ref of that
+slug, and `asRoleRefsInEnrollmentOrder` orders refs of one slug by repo, so a render is stable.
 
 ## .proof
 
-owed.
+- `blackbox/cli/init.same-slug-roles.acceptance.test.ts` — two packages ship `surfer`; the repo actor
+  `boot.md` carries both, each boots apart on the cli, and a bare `run --skill` of a skill both ship
+  is refused and names `--repo`; `[t3]` — `roles cost --all` lists one row per repo of the slug
+- `src/domain.operations/init/boots/asRoleRefsForEnrolledSlugs.test.ts` `[case1]` — a bare slug two
+  repos link maps to both refs, in repo order
+- `src/domain.operations/init/roles/link/getAllLinkedRoleRefs.integration.test.ts` `[case7]` — a
+  `.this` role with a `boot.yml` and a package role of the same slug both come back, native first
+- `blackbox/cli/enroll.same-slug-roles.integration.test.ts` — the two enroll clauses:
+  - `[case1]` `[t0]` — a bare `enroll claude --roles surfer` boots both repos' roles, in one actor
+  - `[case1]` `[t1]` — a re-enroll of the bare slug keeps the same actor dir
+  - `[case2]` — a bare-slug actor enrolled while one repo ships the slug keeps its actor dir once a
+    second repo of the slug is linked, so no extant actor dir moves; it then boots both
+  - `[case1]` `[t2]` — a `repo/role` pin is its own actor, and boots the named repo alone
+  - `[case3]` — a `.this/role=surfer` beside a linked `alpha/surfer`: a bare enroll boots both, each
+    in its own section under its own repo dir, and each boots apart on the cli by `--repo`
+- `blackbox/cli/enroll.mods.integration.test.ts` `[case5]` — a mod whose bare `of:` names a slug two
+  repos ship is refused, and pinned applies to the named repo alone
+
+all green 2026-11-07.
+
+status: proven
 
 ## .source
 

@@ -137,4 +137,48 @@ describe('getSettingsForRoles', () => {
       });
     },
   );
+
+  given('[case4] two repos with one slug, and a pinned enroll', () => {
+    const settings: ClaudeCodeSettings = {
+      hooks: {
+        PreToolUse: [
+          {
+            matcher: 'Bash',
+            hooks: [
+              genHook({
+                author: 'repo=ehmpathy/role=mechanic',
+                command: 'check-permissions',
+              }),
+              genHook({
+                author: 'repo=acme/role=mechanic',
+                command: 'acme-guard',
+              }),
+            ],
+          },
+        ],
+      },
+    };
+
+    when('[t0] enrolled as ehmpathy/mechanic', () => {
+      const narrowed = getSettingsForRoles({
+        settings,
+        roles: ['ehmpathy/mechanic'],
+      });
+
+      then('🔴 the pinned role keeps its own hooks', () => {
+        const commands = narrowed.hooks?.PreToolUse?.[0]?.hooks.map(
+          (hook) => hook.command,
+        );
+        expect(commands).toEqual(['check-permissions']);
+      });
+    });
+
+    when('[t1] enrolled as the bare mechanic', () => {
+      const narrowed = getSettingsForRoles({ settings, roles: ['mechanic'] });
+
+      then('the bare slug carries the hooks of every repo', () => {
+        expect(narrowed).toEqual(settings);
+      });
+    });
+  });
 });

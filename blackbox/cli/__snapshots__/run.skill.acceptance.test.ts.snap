@@ -8,6 +8,14 @@ args: --skill echo-args --help
 "
 `;
 
+exports[`rhachet run given: [case1] repo with skills when: [t5] run --skill echo-args -r y (a short flag after the skill, F26) then: stdout matches its snapshot 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=echo-args
+
+args: --skill echo-args -r y
+"
+`;
+
 exports[`rhachet run given: [case3] minimal repo when: [t0] run --skill any then: the refusal frame is locked to a snapshot 1`] = `
 "
 ✋ ConstraintError: no skill "any" found in any linked role

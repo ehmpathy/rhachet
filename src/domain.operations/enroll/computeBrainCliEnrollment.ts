@@ -8,6 +8,7 @@ import type { RoleSlug } from '@src/domain.objects/RoleSlug';
 import { asRolesUpsertedByDelta } from '@src/domain.operations/roles/deltas/asRolesUpsertedByDelta';
 import { getRoleDeltasOfKind } from '@src/domain.operations/roles/deltas/getRoleDeltasOfKind';
 import { asRoleFocusParts } from '@src/domain.operations/roles/focus/asRoleFocusParts';
+import { parseRoleSpecifier } from '@src/domain.operations/roles/parseRoleSpecifier';
 
 /**
  * .what = computes final enrollment from spec and available roles
@@ -107,9 +108,12 @@ const computeRolesForIncrementalMode = (input: {
 };
 
 /**
- * .what = the role a token names, less its focus
+ * .what = the role slug a token names, less its focus and its `repo/` pin
+ * .note = a pin is checked against the linked repos where its refs are mapped
+ *   (`asRoleRefsForEnrolledSlugs`); here only its slug must be linked
  */
-const asRoleOf = (token: string): string => asRoleFocusParts({ token }).role;
+const asRoleOf = (token: string): string =>
+  parseRoleSpecifier({ specifier: asRoleFocusParts({ token }).role }).role;
 
 /**
  * .what = validates role exists in linked roles

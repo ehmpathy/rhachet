@@ -2,6 +2,7 @@ import type { Command } from 'commander';
 import { ConstraintError } from 'helpful-errors';
 
 import type { BrainHookEvent } from '@src/domain.objects/BrainHookEvent';
+import { ContextCli } from '@src/domain.objects/ContextCli';
 import { asBootCostReadout } from '@src/domain.operations/boot/asBootCostReadout';
 import { asBootCostSweepOwnershipLines } from '@src/domain.operations/boot/asBootCostSweepOwnershipLines';
 import { asBootCostSweepReachLines } from '@src/domain.operations/boot/asBootCostSweepReachLines';
@@ -20,9 +21,11 @@ import { getAllRepoBootSpecCosts } from '@src/domain.operations/boot/getAllRepoB
 import { getAllSpecsOverBudget } from '@src/domain.operations/boot/getAllSpecsOverBudget';
 import { getOneBootSource } from '@src/domain.operations/boot/getOneBootSource';
 import { getOneBrainTokenCounter } from '@src/domain.operations/brainCost/getOneBrainTokenCounter';
+import { genRoleModsUncostedReadout } from '@src/domain.operations/mods/genRoleModsUncostedReadout';
+import { getOneRoleModMarkForRoleDir } from '@src/domain.operations/mods/getOneRoleModMarkForRoleDir';
 import { getOneTokensColumnWidth } from '@src/utils/getOneTokensColumnWidth';
 
-import { relative } from 'node:path';
+import { dirname, relative } from 'node:path';
 import { asFlagList } from './asFlagList';
 import { asSubjectFlagValues } from './asSubjectFlagValues';
 import {
@@ -80,13 +83,14 @@ const isHookWhenValue = (input: { value: string }): boolean =>
  *        every session passes through. so the hook holds the stop the moment an owned spec
  *        exceeds its cap, and says naught otherwise
  *
- * 🔴 .note = it sweeps `.agent/repo=.this/role=*` ALONE. a linked role is its supplier's to
- *   cap (`rule.forbid.framework-owned-hooks`).
+ * 🔴 .note = it caps `.agent/repo=.this/role=*` ALONE. a linked role is its supplier's to
+ *   cap (`rule.forbid.framework-owned-hooks`)
  *
  * .note = silent within budget, so the hook prints only when a human must act
  */
 const invokeRolesCostForHook = async (): Promise<void> => {
   const cwd = process.cwd();
+
   const { over } = await genOneRepoThisBootBudgetVerdict({ cwd });
   if (over.length === 0) return;
 
@@ -141,22 +145,42 @@ const invokeRolesCostForAll = async (): Promise<void> => {
   //    about four paths that a reader would otherwise read as a claim about their repo
   const linesReach = asBootCostSweepReachLines({ globs });
 
+  // a modded role the roster could not price has no row, so it is named apart (usecase 4);
+  //   on both arms, since a repo whose only spec is stale sweeps zero rows
+  //   a role the roster already priced is named by its row's mark, never a second time here
+  const { lines: linesUncosted, withheld } = genRoleModsUncostedReadout(
+    { roleDirsPriced: costs.map((one) => dirname(one.pathToSpec)) },
+    new ContextCli({ cwd, gitroot: cwd }),
+  );
+  // the reach and ownership blocks each close on a blank line, so this one opens on none
+  //   and closes on one, like its peers
+  const printUncosted = (): void =>
+    [...linesUncosted, ...(linesUncosted.length > 0 ? [''] : [])].forEach(
+      (line) => console.log(line),
+    );
+
   const over = getAllSpecsOverBudget({ costs });
   if (costs.length === 0) {
-    console.log(asBootCostSweepSummary({ costs, over }));
+    console.log(asBootCostSweepSummary({ costs, over, withheld }));
     linesReach.forEach((line) => console.log(line));
+    printUncosted();
     return;
   }
 
-  console.log(asBootCostSweepSummary({ costs, over }));
+  console.log(asBootCostSweepSummary({ costs, over, withheld }));
 
   // the width is a property of the ROSTER, never of a row, so it is computed once here and
   // handed down — the same shape `asBootCostReadout` and `asBootSubjectMarginLines` use
   const widthTokens = getOneTokensColumnWidth({
     counts: getAllTokensOfCosts({ costs }),
   });
-  costs.forEach((one) => {
-    console.log(asBootCostSweepRow({ one, cwd, widthTokens }));
+  const marks = costs.map((one) => ({
+    one,
+    plan: getOneRoleModMarkForRoleDir({ roleDir: dirname(one.pathToSpec) }),
+  }));
+  marks.forEach(({ one, plan }) => {
+    // a modded role's row carries the mark of what its mod does
+    console.log(asBootCostSweepRow({ one, cwd, widthTokens, plan }));
 
     // each declared subject, as the focus a seat may enroll at (`role::subject`)
     asBootCostSweepSubjectLines({ one, widthTokens }).forEach((line) =>
@@ -168,7 +192,14 @@ const invokeRolesCostForAll = async (): Promise<void> => {
   // 🔴 the ownership note follows the reach, because both are DISCLOSURES about the roster
   //    rather than rows of it — the reach bounds which specs were seen, this one bounds which
   //    of them the reader can act on. it prints naught where no spec is linked
-  asBootCostSweepOwnershipLines({ costs }).forEach((line) => console.log(line));
+  asBootCostSweepOwnershipLines({
+    costs,
+    pathsToSpecModded: marks
+      .filter(({ plan }) => plan !== null)
+      .map(({ one }) => one.pathToSpec),
+  }).forEach((line) => console.log(line));
+
+  printUncosted();
 };
 
 /**

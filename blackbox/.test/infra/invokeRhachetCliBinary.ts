@@ -284,6 +284,8 @@ export const asEnvWithoutCloneIdentity = (
     RHACHET_CLONE_DEPTH_MINTED: _depthMinted,
     RHACHET_CLONE_HOST_DETACHED: _hostDetached,
     RHACHET_CLONE_LEAF: _leaf,
+    // a clone's own brain dir; a role init names it in its stdout, which ci never sees
+    CLAUDE_CONFIG_DIR: _claudeConfigDir,
     ...rest
   } = env;
   return rest;
