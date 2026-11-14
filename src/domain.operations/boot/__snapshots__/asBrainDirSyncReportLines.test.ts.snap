@@ -55,3 +55,15 @@ exports[`asBrainDirSyncReportLines given: [case5] an AGENTS.md reset, with no ot
   "      └─ reset — hand edits dropped; rhachet owns this file",
 ]
 `;
+
+exports[`asBrainDirSyncReportLines given: [case6] a change of repo actor that carried its settings when: [t0] the lines are rendered then: the carry is named, from the former dir into the new 1`] = `
+[
+  "🧠 brain://slug=crew",
+  "   ├─ carried",
+  "   │  └─ .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json → .agent/.actors/actor.via.slug=crew/brain/.claude/settings.of.repo.json",
+  "   ├─ linked",
+  "   │  └─ .claude → .agent/.actors/actor.via.slug=crew/brain/.claude",
+  "   └─ boot.md",
+  "      └─ upgraded — 2 roles",
+]
+`;

@@ -18,6 +18,16 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case1] a manifest
       └─ bhrain/librarian ↺ linked"
 `;
 
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case2] a role linked by hand, then a manifest that omits it when: [t0] \`init\` with no --roles then: the carry is named in the brain dir report 1`] = `
+"🧠 brain://slug=solo
+   ├─ carried
+   │  └─ .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json → .agent/.actors/actor.via.slug=solo/brain/.claude/settings.of.repo.json
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.slug=solo/brain/.claude
+   └─ boot.md
+      └─ created — 1 role"
+`;
+
 exports[`rhx init under .agent/actors.yml (acceptance) given: [case2] a role linked by hand, then a manifest that omits it when: [t0] \`init\` with no --roles then: the report block holds its shape 1`] = `
 "🎭 actors.yml
    ├─ repo actor = @solo
@@ -34,7 +44,7 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case3] \`--roles\
 ✋ ConstraintError: --roles is refused beside .agent/actors.yml
 
 {
-  "hint": "edit the actor roles in .agent/actors.yml, then run \`rhx init\` with no --roles. to keep a --roles list instead, remove .agent/actors.yml",
+  "hint": "drop \`--roles …\` from \`prepare:rhachet\` in package.json (keep \`--hooks\`), and declare the roles in .agent/actors.yml. to keep a --roles list instead, remove .agent/actors.yml",
   "roles": [
     "mechanic"
   ]
@@ -50,7 +60,7 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case3] \`--roles\
 ✋ ConstraintError: --roles is refused beside .agent/actors.yml
 
 {
-  "hint": "edit the actor roles in .agent/actors.yml, then run \`rhx init\` with no --roles. to keep a --roles list instead, remove .agent/actors.yml",
+  "hint": "drop \`--roles …\` from \`prepare:rhachet\` in package.json (keep \`--hooks\`), and declare the roles in .agent/actors.yml. to keep a --roles list instead, remove .agent/actors.yml",
   "roles": [
     "-behaver"
   ]
@@ -66,7 +76,7 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case3] \`--roles\
 ✋ ConstraintError: --prep is refused beside .agent/actors.yml
 
 {
-  "hint": "the manifest is the replay: set \`prepare:rhachet\` to \`rhx init\` with no flags, and declare the roles in .agent/actors.yml",
+  "hint": "the manifest is the replay: set \`prepare:rhachet\` to \`rhachet init --hooks\` (no --roles, no --prep), and declare the roles in .agent/actors.yml",
   "prep": true
 }
 
@@ -269,6 +279,60 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case8] a manifest
 {
   "hint": "add \`brain: <slug>\` — only an actor that extends a base may omit it",
   "path": "/TMP_TEST_DIR/.agent/actors.yml"
+}
+
+[args] init
+
+"
+`;
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case8] a manifest with an authored mistake when: [t9] a role slug with a typo, then \`init\` then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: actors.yml declares role 'ehmpathy/mechnaic', which rhachet-roles-ehmpathy@1.39.7 does not carry
+
+{
+  "hint": "check the slug for a typo against \`roles\`, the ones this version carries. else that version dropped or renamed it: rename it in .agent/actors.yml, drop it, or pin a version of rhachet-roles-ehmpathy that carries it",
+  "role": "ehmpathy/mechnaic",
+  "package": "rhachet-roles-ehmpathy@1.39.7",
+  "roles": [
+    "ehmpathy/architect",
+    "ehmpathy/ergonomist",
+    "ehmpathy/mechanic"
+  ]
+}
+
+[args] init
+
+"
+`;
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case8] a manifest with an authored mistake when: [t10] an unknown key on an actor, then \`init\` then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: actors.yml actor[0] has an unknown key: 'brian'
+
+{
+  "hint": "an actor takes only \`slug\`, \`brain\`, \`roles\`",
+  "path": "/TMP_TEST_DIR/.agent/actors.yml"
+}
+
+[args] init
+
+"
+`;
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case8] a manifest with an authored mistake when: [t11] a role of a package not installed, then \`init\` then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: actors.yml declares role 'surfschool/coach', which no installed role package carries
+
+{
+  "hint": "check the role slug for a typo, or install the role package that carries it",
+  "role": "surfschool/coach",
+  "packages": [
+    "ehmpathy",
+    "bhuild",
+    "bhrain"
+  ],
+  "packagesUnread": []
 }
 
 [args] init

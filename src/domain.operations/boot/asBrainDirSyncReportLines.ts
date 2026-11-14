@@ -1,5 +1,6 @@
 import { asTreeBranch } from '@src/utils/asTreeBranch';
 
+import { basename } from 'node:path';
 import { asBrainDirBootScopeLabel } from './asBrainDirBootScopeLabel';
 import type { BrainDirBootRender } from './BrainDirBootRender';
 import { BRAIN_DIR_BOOT_FILENAMES } from './constants';
@@ -14,6 +15,7 @@ export type BrainDirSyncSymlink = {
   drops: string[];
   moves: string[];
   overwrites: string[];
+  carries: string[];
 };
 
 /** .what = one group of the sync tree — a label and the rows beneath it */
@@ -55,6 +57,14 @@ export const asBrainDirSyncReportLines = (input: {
       rows: symlink.moves.map(
         (name) =>
           `.claude/${name} → ${repoActorBrainDirRel}/${name}${symlink.overwrites.includes(name) ? ' (replaced)' : ''}`,
+      ),
+    });
+  // what a change of repo actor carried from the former one — its own settings, kept
+  if (symlink?.carries.length)
+    groups.push({
+      label: 'carried',
+      rows: symlink.carries.map(
+        (path) => `${path} → ${repoActorBrainDirRel}/${basename(path)}`,
       ),
     });
   if (symlink?.drops.length)

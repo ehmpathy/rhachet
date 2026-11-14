@@ -225,3 +225,6 @@
 {"stone":"5.1.execution.from_vision","status":"absorbed","reason":"absorbed review.peer: arch-hazards-behavior"}
 {"stone":"5.1.execution.from_vision","status":"absorbed","reason":"absorbed review.peer: behavior-intent-coverage"}
 {"stone":"5.1.execution.from_vision","status":"absorbed","reason":"absorbed review.peer: ergo-friction-hazards"}
+{"stone":"5.1.execution.from_vision","status":"arrived","reason":"entered guard reviews"}
+{"stone":"5.1.execution.from_vision","status":"poured","level":3}
+{"stone":"5.1.execution.from_vision","status":"blocked","blocker":"review.peer","reason":"blockers exceed threshold (7 > 0)"}

@@ -34,6 +34,7 @@ const genSymlink = (
   drops: [],
   moves: [],
   overwrites: [],
+  carries: [],
   ...overrides,
 });
 
@@ -171,6 +172,31 @@ describe('asBrainDirSyncReportLines', () => {
           expect(lines).toMatchSnapshot();
         },
       );
+    });
+  });
+
+  given('[case6] a change of repo actor that carried its settings', () => {
+    when('[t0] the lines are rendered', () => {
+      const lines = asBrainDirSyncReportLines({
+        render: genRender({
+          scope: { kind: 'repo', actorExid: 'slug=crew' },
+        }),
+        symlink: genSymlink({
+          effect: 'REWRITTEN',
+          carries: [
+            '.agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json',
+          ],
+        }),
+        repoActorBrainDirRel:
+          '.agent/.actors/actor.via.slug=crew/brain/.claude',
+      });
+
+      then('the carry is named, from the former dir into the new', () => {
+        expect(lines.join('\n')).toContain(
+          '.agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json → .agent/.actors/actor.via.slug=crew/brain/.claude/settings.of.repo.json',
+        );
+        expect(lines).toMatchSnapshot();
+      });
     });
   });
 });

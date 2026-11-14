@@ -7,6 +7,11 @@ import { isSafeCloneSlug } from '@src/domain.operations/clone/isSafeCloneSlug';
 import { isPlainObject } from './isPlainObject';
 
 /**
+ * .what = the keys an actor entry may carry
+ */
+const ACTOR_ENTRY_KEYS = ['slug', 'brain', 'roles'];
+
+/**
  * .what = the kind of one role entry in an actor's `roles`
  */
 type ActorRoleEntryKind = 'base' | 'plus' | 'minus' | 'concrete';
@@ -41,6 +46,18 @@ export const asActorDeclared = (input: {
       found: input.entry,
       hint: 'each actor is a map: { slug, brain, roles }',
     });
+  // an unknown key is a typo (e.g. `brian:`), refused rather than silently dropped
+  const keyUnknown = Object.keys(input.entry).find(
+    (key) => !ACTOR_ENTRY_KEYS.includes(key),
+  );
+  if (keyUnknown)
+    throw new ConstraintError(
+      `actors.yml actor[${input.index}] has an unknown key: '${keyUnknown}'`,
+      {
+        path: input.path,
+        hint: `an actor takes only ${ACTOR_ENTRY_KEYS.map((key) => `\`${key}\``).join(', ')}`,
+      },
+    );
   const { slug, brain, roles } = input.entry;
   if (typeof slug !== 'string' || !slug.length)
     throw new ConstraintError(`actors.yml actor[${input.index}] has no slug`, {

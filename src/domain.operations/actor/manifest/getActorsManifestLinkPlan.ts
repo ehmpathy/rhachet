@@ -1,3 +1,5 @@
+import { ConstraintError } from 'helpful-errors';
+
 import type { ActorsManifest } from '@src/domain.objects/ActorsManifest';
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { RoleLinkRef } from '@src/domain.objects/RoleLinkRef';
@@ -8,10 +10,12 @@ import { asActorExidsUndeclared } from './asActorExidsUndeclared';
 import { asActorsDriftReportLines } from './asActorsDriftReportLines';
 import { asRoleSpecifiersOfLinkedRefs } from './asRoleSpecifiersOfLinkedRefs';
 import { asRoleSpecifiersToLink } from './asRoleSpecifiersToLink';
+import { asRoleSpecifierUncarried } from './asRoleSpecifierUncarried';
 import { asSlugsOfActorsDeclared } from './asSlugsOfActorsDeclared';
 import { genGetPublishedActorOfPackages } from './genGetPublishedActorOfPackages';
 import { getActorsDrift } from './getActorsDrift';
 import { getActorsRoleUnion } from './getActorsRoleUnion';
+import { getRolePackageOfRepo } from './getRolePackageOfRepo';
 
 /**
  * .what = what `rhachet init` links under `.agent/actors.yml`: the union of every declared
@@ -30,11 +34,50 @@ export const getActorsManifestLinkPlan = async (
   context: ContextCli,
 ): Promise<{ reportLines: string[]; roleSpecifiers: string[] }> => {
   // expand every actor over the installed packages
-  const { manifests } = await getRoleRegistriesByConfigImplicit(context);
+  const { manifests, errors } =
+    await getRoleRegistriesByConfigImplicit(context);
   const union = getActorsRoleUnion(
     { manifest: input.manifest },
-    { getPublishedActor: genGetPublishedActorOfPackages({ manifests }) },
+    {
+      getPublishedActor: genGetPublishedActorOfPackages({
+        manifests,
+        failures: errors,
+      }),
+    },
   );
+
+  // every declared role must be carried by an installed package, checked before any write
+  const roleSpecifiers = asRoleSpecifiersToLink({ union: union.roles });
+  const roleUncarried = asRoleSpecifierUncarried({
+    specifiers: roleSpecifiers,
+    manifests,
+  });
+  // its own package is installed, yet carries it no more: the package dropped or renamed it
+  const packageOfRole = roleUncarried
+    ? getRolePackageOfRepo({ specifier: roleUncarried, manifests })
+    : null;
+  if (roleUncarried && packageOfRole)
+    throw new ConstraintError(
+      `actors.yml declares role '${roleUncarried}', which ${packageOfRole.name}@${packageOfRole.version} does not carry`,
+      {
+        role: roleUncarried,
+        package: `${packageOfRole.name}@${packageOfRole.version}`,
+        roles: packageOfRole.roles,
+        hint: `check the slug for a typo against \`roles\`, the ones this version carries. else that version dropped or renamed it: rename it in .agent/actors.yml, drop it, or pin a version of ${packageOfRole.name} that carries it`,
+      },
+    );
+
+  // no installed package claims it: a typo, or a package not installed
+  if (roleUncarried)
+    throw new ConstraintError(
+      `actors.yml declares role '${roleUncarried}', which no installed role package carries`,
+      {
+        role: roleUncarried,
+        packages: manifests.map((one) => one.slug),
+        packagesUnread: errors.map((one) => one.packageName),
+        hint: 'check the role slug for a typo, or install the role package that carries it',
+      },
+    );
 
   // declared vs linked, so a change is never silent
   const drift = getActorsDrift({
@@ -54,8 +97,5 @@ export const getActorsManifestLinkPlan = async (
   });
 
   // the roles to link: the union, save the native ones
-  return {
-    reportLines,
-    roleSpecifiers: asRoleSpecifiersToLink({ union: union.roles }),
-  };
+  return { reportLines, roleSpecifiers };
 };

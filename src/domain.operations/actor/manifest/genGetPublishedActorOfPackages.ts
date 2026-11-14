@@ -1,3 +1,5 @@
+import { ConstraintError } from 'helpful-errors';
+
 import type { RoleRegistryManifest } from '@src/domain.objects';
 import type { ActorDeclared } from '@src/domain.objects/ActorDeclared';
 import type { HasPackageRoot } from '@src/domain.operations/config/ContextConfigOfUsage';
@@ -15,14 +17,35 @@ import { getActorsPublishedOfPackage } from './getActorsPublishedOfPackage';
  *   re-read. so build one lookup per expansion (both callers do: `getOneActorExpandedOfRepo`,
  *   `getActorsManifestLinkPlan`), and never hold one across a change to the installed
  *   packages — a fresh read is a fresh lookup
+ * .note = a package that is installed but could not be read fails loud with its own fault,
+ *   never as absent: "install it" would send the human to a package already on disk
  */
 export const genGetPublishedActorOfPackages = (input: {
   manifests: HasPackageRoot<RoleRegistryManifest>[];
+  failures: { packageName: string; error: Error }[];
 }): GetPublishedActor => {
   const actorsByRepo = new Map<string, ActorDeclared[]>();
   return ({ repo, slug }) => {
-    // find the installed package for the repo; absent → no actor
+    // find the installed package for the repo
     const manifest = input.manifests.find((one) => one.slug === repo);
+
+    // installed but unreadable → its fault, never "absent"
+    const failure = manifest
+      ? undefined
+      : input.failures.find((one) =>
+          one.packageName.endsWith(`rhachet-roles-${repo}`),
+        );
+    if (failure)
+      throw new ConstraintError(
+        `the role package that publishes @${repo}/${slug} could not be read: ${failure.packageName}`,
+        {
+          package: failure.packageName,
+          cause: failure.error,
+          hint: `repair or reinstall ${failure.packageName} — its rhachet.repo.yml failed to load`,
+        },
+      );
+
+    // not installed → no actor
     if (!manifest) return null;
 
     // read its published actors once, then look the slug up

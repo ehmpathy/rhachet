@@ -40,6 +40,7 @@ export const getSupportedBrainCommand = (input: {
   const brainCommands: Record<string, SupportedBrainCommand> = {
     claude: { command: 'claude', socket: true },
     'claude-code': { command: 'claude', socket: true },
+    'anthropic/claude/code': { command: 'claude', socket: true },
   };
 
   const command = brainCommands[input.brain];

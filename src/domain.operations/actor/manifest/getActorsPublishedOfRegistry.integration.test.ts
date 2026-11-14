@@ -9,19 +9,34 @@ import {
 } from 'test-fns';
 
 import { genSampleFileTree } from '@src/.test/assets/genSampleFileTree';
-import { RoleRegistry } from '@src/domain.objects/RoleRegistry';
+import { Role, RoleRegistry } from '@src/domain.objects';
 
 import { join } from 'node:path';
 import { getActorsPublishedOfRegistry } from './getActorsPublishedOfRegistry';
 
 /**
- * .what = a registry with no roles, that names the actors yml at `actorsUri` (or none)
+ * .what = a role of the surfschool registry, by slug
+ */
+const genRole = (input: { slug: string }): Role =>
+  new Role({
+    slug: input.slug,
+    name: input.slug,
+    purpose: `teach ${input.slug}`,
+    readme: { uri: `roles/${input.slug}/readme.md` },
+    traits: [],
+    briefs: { dirs: { uri: `roles/${input.slug}/briefs` } },
+    skills: { dirs: { uri: `roles/${input.slug}/skills` }, refs: [] },
+  });
+
+/**
+ * .what = a registry with the coach + lifeguard roles, that names the actors yml at
+ *         `actorsUri` (or none)
  */
 const genRegistry = (input: { actorsUri: string | null }): RoleRegistry =>
   new RoleRegistry({
     slug: 'surfschool',
     readme: { uri: 'readme.md' },
-    roles: [],
+    roles: [genRole({ slug: 'coach' }), genRole({ slug: 'lifeguard' })],
     ...(input.actorsUri ? { actors: { uri: input.actorsUri } } : {}),
   });
 
@@ -155,4 +170,70 @@ describe('getActorsPublishedOfRegistry', () => {
       );
     });
   });
+
+  given(
+    '[case6] a registry whose actors yml would fail in every consumer',
+    () => {
+      const CASES = [
+        {
+          slug: 'typo-role',
+          description: 'a role the package does not declare',
+          lines: [
+            'actor:',
+            '  - slug: instructor',
+            '    brain: claude',
+            '    roles: [surfschool/coahc]',
+          ],
+          message:
+            "names a role this package does not declare: 'surfschool/coahc'",
+        },
+        {
+          slug: 'typo-base',
+          description: 'a local base not declared',
+          lines: [
+            'actor:',
+            '  - slug: apprentice',
+            "    roles: ['@instrcutor', -surfschool/lifeguard]",
+          ],
+          message: 'extends a peer not declared: @instrcutor',
+        },
+        {
+          slug: 'cycle',
+          description: 'a cycle of local bases',
+          lines: [
+            'actor:',
+            '  - slug: a',
+            "    roles: ['@b']",
+            '  - slug: b',
+            "    roles: ['@a']",
+          ],
+          message: 'extension cycle',
+        },
+      ];
+      CASES.map((thisCase) =>
+        when(`[t0] ${thisCase.description}`, () => {
+          const scene = useBeforeAll(async () => {
+            const dir = genTempDir({
+              slug: `actors-published-registry-${thisCase.slug}`,
+            });
+            genSampleFileTree({
+              dir,
+              files: { 'actors.yml': [...thisCase.lines, ''].join('\n') },
+            });
+            return { uri: join(dir, 'actors.yml') };
+          });
+
+          then('introspect refuses it, and names the fault', async () => {
+            const error = await getError(() =>
+              getActorsPublishedOfRegistry({
+                registry: genRegistry({ actorsUri: scene.uri }),
+              }),
+            );
+            expect(error).toBeInstanceOf(ConstraintError);
+            expect(error.message).toContain(thisCase.message);
+          });
+        }),
+      );
+    },
+  );
 });

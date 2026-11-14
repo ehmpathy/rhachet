@@ -6,6 +6,7 @@ import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
 
 import { existsSync, readFileSync } from 'node:fs';
 import { asActorsPublished } from './asActorsPublished';
+import { assertActorsPublishedSound } from './assertActorsPublishedSound';
 
 /**
  * .what = read the actors a role registry publishes, from the yml its `actors.uri` names
@@ -48,5 +49,14 @@ export const getActorsPublishedOfRegistry = (input: {
       });
     }
   })();
-  return asActorsPublished({ parsed, path });
+  const actors = asActorsPublished({ parsed, path });
+
+  // the set is sound in what the package alone can settle (local bases, cycles, own roles)
+  assertActorsPublishedSound({
+    actors,
+    repo: input.registry.slug,
+    roles: input.registry.roles.map((role) => role.slug),
+    path,
+  });
+  return actors;
 };

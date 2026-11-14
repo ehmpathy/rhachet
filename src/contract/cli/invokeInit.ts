@@ -102,7 +102,7 @@ export const invokeInit = ({ program }: { program: Command }): void => {
             '--roles is refused beside .agent/actors.yml',
             {
               roles: rolesDecoded,
-              hint: 'edit the actor roles in .agent/actors.yml, then run `rhx init` with no --roles. to keep a --roles list instead, remove .agent/actors.yml',
+              hint: 'drop `--roles …` from `prepare:rhachet` in package.json (keep `--hooks`), and declare the roles in .agent/actors.yml. to keep a --roles list instead, remove .agent/actors.yml',
             },
           );
 
@@ -112,7 +112,7 @@ export const invokeInit = ({ program }: { program: Command }): void => {
             '--prep is refused beside .agent/actors.yml',
             {
               prep: options.prep,
-              hint: 'the manifest is the replay: set `prepare:rhachet` to `rhx init` with no flags, and declare the roles in .agent/actors.yml',
+              hint: 'the manifest is the replay: set `prepare:rhachet` to `rhachet init --hooks` (no --roles, no --prep), and declare the roles in .agent/actors.yml',
             },
           );
 
