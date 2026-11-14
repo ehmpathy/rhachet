@@ -156,6 +156,17 @@ const CASES_REFUSED = [
     message: "actors.yml actor[0] has an unknown key: 'brian'",
   },
   {
+    description: 'an empty brain beside a base',
+    parsed: {
+      ambient: '@a',
+      actor: [
+        { slug: 'a', brain: 'claude', roles: ['ehmpathy/mechanic'] },
+        { slug: 'b', brain: '', roles: ['@a'] },
+      ],
+    },
+    message: 'actors.yml actor @b has a brain that is not a slug',
+  },
+  {
     description: 'a slug declared twice',
     parsed: {
       ambient: '@a',

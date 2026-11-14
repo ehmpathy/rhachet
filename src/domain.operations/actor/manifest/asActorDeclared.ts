@@ -76,8 +76,13 @@ export const asActorDeclared = (input: {
       },
     );
 
-  // the brain, where stated, is a slug
-  if (brain !== undefined && brain !== null && typeof brain !== 'string')
+  // the brain, where stated, is a non-empty slug — an empty one would override a base's brain
+  //   with '', since `actor.brain ?? base.brain` keeps it
+  if (
+    brain !== undefined &&
+    brain !== null &&
+    (typeof brain !== 'string' || !brain.trim().length)
+  )
     throw new ConstraintError(
       `actors.yml actor @${slug} has a brain that is not a slug`,
       {

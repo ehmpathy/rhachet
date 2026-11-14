@@ -58,7 +58,7 @@ export const invokeInit = ({ program }: { program: Command }): void => {
     .description('initialize roles from packages or generate rhachet.use.ts')
     .option(
       '--roles <roles...>',
-      'role specifiers: bare names replace the set (mechanic behaver), or +role to add / -role to remove incrementally; role::<subject> boots one subject of the role, with all its hooks (mechanic::flow); list subjects via npx rhachet roles cost --all',
+      'role specifiers: bare names replace the set (mechanic behaver), or +role to add / -role to remove incrementally; role::<subject> boots one subject of the role, with all its hooks (mechanic::flow); list subjects via npx rhachet roles cost --all. refused beside .agent/actors.yml, which declares the roles instead',
     )
     .option(
       '--hooks [brains...]',
