@@ -1,5 +1,6 @@
 import type { RoleLinkRef } from '@src/domain.objects/RoleLinkRef';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
+import { getOneRepoActorExid } from '@src/domain.operations/actor/enrolled/getOneRepoActorExid';
 import { getOneRepoActorOndiskDir } from '@src/domain.operations/actor/enrolled/getOneRepoActorOndiskDir';
 import type { BrainDirBootRender } from '@src/domain.operations/boot/BrainDirBootRender';
 import { BRAIN_DIR_BOOT_FILENAMES } from '@src/domain.operations/boot/constants';
@@ -94,7 +95,10 @@ export const setRepoActorBrainDir = async (input: {
     brainDir: repoActorBrainDir,
     roles: asRoleRefsAtFocus({ refs: input.refsLinked, foci }),
     repoPath: input.repoPath,
-    scope: { kind: 'repo' },
+    scope: {
+      kind: 'repo',
+      actorExid: getOneRepoActorExid({ repoPath: input.repoPath }),
+    },
   });
 
   // link <repo>/.claude to the rendered dir, and findsert the settings layout: the grove

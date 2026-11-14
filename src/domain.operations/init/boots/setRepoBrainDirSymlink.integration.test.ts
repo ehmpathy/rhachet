@@ -231,6 +231,7 @@ describe('setRepoBrainDirSymlink', () => {
           drops: [],
           moves: [],
           overwrites: [],
+          carries: [],
         });
         expect(lstatSync(scene.linkPath).isSymbolicLink()).toBe(true);
       });
@@ -278,6 +279,7 @@ describe('setRepoBrainDirSymlink', () => {
               drops: ['AGENTS.md'],
               moves: ['fresh.json', 'rules', 'settings.json'],
               overwrites: ['rules', 'settings.json'],
+              carries: [],
             });
           },
         );
@@ -525,4 +527,114 @@ describe('setRepoBrainDirSymlink', () => {
       });
     },
   );
+
+  given(
+    '[case14] a manifest names a new repo actor, and the former one holds its own settings',
+    () => {
+      /**
+       * a repo adopts actors.yml: the repo actor moves from `actor.via.repo=ambient` to
+       *   `actor.via.slug=crew`. the former settings.of.repo.json holds a hand-added hook
+       *   (F14 keeps it on the repo actor), so the repoint must carry it, never leave the new
+       *   dir to a blank `{}`
+       */
+      const SETTINGS_FORMER =
+        '{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"echo hand"}]}]}}\n';
+      const scene = useBeforeAll(async () => {
+        const repo = genRepoScene({ slug: 'repo-brain-dir-carry' });
+        const brainDirFormer = repo.repoActorBrainDir;
+        const brainDirLatter = join(
+          repo.repoPath,
+          '.agent/.actors/actor.via.slug=crew/brain/.claude',
+        );
+        mkdirSync(brainDirFormer, { recursive: true });
+        writeFileSync(
+          join(brainDirFormer, 'settings.of.repo.json'),
+          SETTINGS_FORMER,
+        );
+        symlinkSync(
+          '.agent/.actors/actor.via.repo=ambient/brain/.claude',
+          repo.linkPath,
+        );
+        const result = await setRepoBrainDirSymlink({
+          repoPath: repo.repoPath,
+          repoActorBrainDir: brainDirLatter,
+        });
+        return { ...repo, brainDirFormer, brainDirLatter, result };
+      });
+
+      when('[t0] the link is set to the new repo actor', () => {
+        then('the link is repointed and the carry is reported', () => {
+          expect(scene.result.effect).toEqual('REWRITTEN');
+          expect(readlinkSync(scene.linkPath)).toEqual(
+            '.agent/.actors/actor.via.slug=crew/brain/.claude',
+          );
+          expect(scene.result.carries).toEqual([
+            '.agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json',
+          ]);
+        });
+
+        then(
+          'the new repo actor holds the former settings, byte for byte',
+          () => {
+            expect(
+              readFileSync(
+                join(scene.brainDirLatter, 'settings.of.repo.json'),
+                'utf8',
+              ),
+            ).toEqual(SETTINGS_FORMER);
+          },
+        );
+
+        then('the former actor keeps its own copy', () => {
+          expect(
+            readFileSync(
+              join(scene.brainDirFormer, 'settings.of.repo.json'),
+              'utf8',
+            ),
+          ).toEqual(SETTINGS_FORMER);
+        });
+      });
+    },
+  );
+
+  given('[case15] a new repo actor that already holds its own settings', () => {
+    const scene = useBeforeAll(async () => {
+      const repo = genRepoScene({ slug: 'repo-brain-dir-carry-held' });
+      const brainDirLatter = join(
+        repo.repoPath,
+        '.agent/.actors/actor.via.slug=crew/brain/.claude',
+      );
+      mkdirSync(repo.repoActorBrainDir, { recursive: true });
+      mkdirSync(brainDirLatter, { recursive: true });
+      writeFileSync(
+        join(repo.repoActorBrainDir, 'settings.of.repo.json'),
+        '{"former":true}\n',
+      );
+      writeFileSync(
+        join(brainDirLatter, 'settings.of.repo.json'),
+        '{"latter":true}\n',
+      );
+      symlinkSync(
+        '.agent/.actors/actor.via.repo=ambient/brain/.claude',
+        repo.linkPath,
+      );
+      const result = await setRepoBrainDirSymlink({
+        repoPath: repo.repoPath,
+        repoActorBrainDir: brainDirLatter,
+      });
+      return { ...repo, brainDirLatter, result };
+    });
+
+    when('[t0] the link is set to the new repo actor', () => {
+      then('its own file is kept, and naught is carried', () => {
+        expect(scene.result.carries).toEqual([]);
+        expect(
+          readFileSync(
+            join(scene.brainDirLatter, 'settings.of.repo.json'),
+            'utf8',
+          ),
+        ).toEqual('{"latter":true}\n');
+      });
+    });
+  });
 });

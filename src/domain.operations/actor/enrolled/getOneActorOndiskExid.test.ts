@@ -8,7 +8,12 @@ import { genEnrollmentHashOfDelta } from './genEnrollmentHashOfDelta';
 import { getOneActorOndiskExid } from './getOneActorOndiskExid';
 
 const context: ContextOfRepoRoles = {
-  repo: { ambient: { roles: ['mechanic', 'driver', 'ergonomist'] } },
+  repo: {
+    ambient: {
+      exid: 'repo=ambient',
+      roles: ['mechanic', 'driver', 'ergonomist'],
+    },
+  },
 };
 
 describe('getOneActorOndiskExid', () => {
@@ -78,7 +83,7 @@ describe('getOneActorOndiskExid', () => {
         expect(
           getOneActorOndiskExid(
             { brain: 'claude', roles: [] },
-            { repo: { ambient: { roles: [] } } },
+            { repo: { ambient: { exid: 'repo=ambient', roles: [] } } },
           ),
         ).toEqual(REPO_ACTOR_EXID);
       });

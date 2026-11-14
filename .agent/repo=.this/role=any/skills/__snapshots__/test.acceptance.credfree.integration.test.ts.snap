@@ -1,0 +1,38 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`test.acceptance.credfree given: [case1] the help flag when: [t0] \`--help\` then: the help holds its shape 1`] = `
+".what = run acceptance suites that read no credential, via jest direct
+.why  = \`rhx git.repo.test --what acceptance\` unlocks the whole \`test\`
+        env first, so an sso key that lapsed halts EVERY shard, even
+        one that spawns the cli against a temp repo and reads no key.
+        the acceptance globalSetup sources keys in \`lenient\` mode, so
+        jest direct runs such a shard with no unlock at all
+        (rule.require.check-the-precondition-before-you-escalate)
+usage:
+  rhx test.acceptance.credfree --scope 'focus\\.acceptance'
+  rhx test.acceptance.credfree --scope 'init\\.focus' --resnap
+options:
+  --scope    jest path regex for the suites to run (required)
+             🟡 it matches the ABSOLUTE path, worktree dir included: in
+             \`…feat-actors-yml/\`, \`--scope 'actors-yml'\` runs EVERY suite.
+             anchor it on the file name: 'actors-yml\\.acceptance'
+  --resnap   write snapshots (default: verify only, under --ci)
+guarantee:
+  - builds when stale, then runs jest with the acceptance config
+  - runs with CLAUDE_CONFIG_DIR unset, as ci does, so a clone's env
+    never reaches a snapshot
+  - never unlocks the keyrack; a suite that truly reads a key fails
+    in that test with a legible error
+  - the full output lands in .log/role=any/skill=test.acceptance.credfree/;
+    stdout carries the failed tests, the totals, and the log path
+  - a non-zero exit from jest is passed through
+.note = a stopgap. it retires once git.repo.test gains an auth-skip mode
+        (ehmpathy/rhachet-roles-ehmpathy#1198); see the dream
+        .dream/2026_10_29.fix.retire-test-acceptance-credfree-once-git-repo-test-skips-auth.dream.md
+"
+`;
+
+exports[`test.acceptance.credfree given: [case2] no --scope when: [t0] the skill runs with no args then: the refusal holds its shape 1`] = `
+"✋ ConstraintError: --scope is required
+"
+`;

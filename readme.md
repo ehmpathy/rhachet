@@ -286,12 +286,12 @@ every talk verb takes `--output tree|json` (default `tree`): `json` emits a mach
 cron/comms consumer reads by field, never by tree-glyph. `whoami --output json` also carries the
 clone's own `actorHash`, so a clone can `clone list @<actorHash>` to enumerate its peers.
 
-**bake** — make, fork, or wake _(planned — the [`rhx clone` dream](.dream/2026_08_07.clone-actor-from-actors-yml.dream.md); NOT yet registered. today a clone is baked by `rhx enroll`)_:
+**bake** — make from a declared actor today; fork and wake are planned (the [`rhx clone` dream](.dream/2026_08_07.clone-actor-from-actors-yml.dream.md)):
 
 ```bash
-rhx clone make @<slug>          [--as @:<slug>]   # (planned) from a declared actor
-rhx clone fork @:<serial|slug>  [--as @:<slug>]   # (planned) from an extant clone
-rhx clone wake @:<serial|slug>                    # (planned) reopen an extant clone
+rhx clone @<slug> [+role|-role] [--brain <brain>] [--as @:<slug>]   # from an actor in .agent/actors.yml (≡ rhx enroll @<slug>)
+rhx clone fork @:<serial|slug>  [--as @:<slug>]                       # (planned) from an extant clone
+rhx clone wake @:<serial|slug>                                        # (planned) reopen an extant clone
 ```
 
 address an actor with `@<slug>` (≡ `actor://<slug>`) and a clone with `@:<serial>` (≡

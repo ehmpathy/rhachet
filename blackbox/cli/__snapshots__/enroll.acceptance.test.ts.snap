@@ -55,6 +55,9 @@ Options:
                       "<prompt>"). a -p clone is a leaf: it may enroll no clone
                       of its own
   --output <mode>     output mode: tree (default) or json (default: "tree")
+
+actor form:
+  rhx enroll @<slug>   spawn a clone of an actor declared in .agent/actors.yml (≡ rhx clone @<slug>)
 "
 `;
 
@@ -695,7 +698,7 @@ exports[`rhx enroll --roles (acceptance) given: [case10] pre-spawn validation er
 
 exports[`rhx enroll --roles (acceptance) given: [case10] pre-spawn validation errors on a linked repo when: [t1] \`enroll openai --roles mechanic\` (unsupported brain) then: the error output is locked to a snapshot 1`] = `
 "
-✋ ConstraintError: brain 'openai' not supported. supported: claude, claude-code
+✋ ConstraintError: brain 'openai' not supported. supported: claude, claude-code, anthropic/claude/code
 
 {
   "brain": "openai"

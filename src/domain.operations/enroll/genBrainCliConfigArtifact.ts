@@ -1,13 +1,16 @@
 import type { BrainCliEnrollmentManifest } from '@src/domain.objects/BrainCliEnrollmentManifest';
-import { REPO_ACTOR_EXID } from '@src/domain.operations/actor/enrolled/constants';
 import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
+import { getOneRepoActorExid } from '@src/domain.operations/actor/enrolled/getOneRepoActorExid';
 import { getOneRepoActorOndiskDir } from '@src/domain.operations/actor/enrolled/getOneRepoActorOndiskDir';
+import { getActorsManifest } from '@src/domain.operations/actor/manifest/getActorsManifest';
 import {
   CLAUDE_SETTINGS_FILENAMES,
+  type ClaudeCodeSettings,
   readClaudeCodeSettings,
   writeClaudeCodeSettings,
 } from '@src/domain.operations/brains/claudeCodeSettings';
+import { getAllHooksOfLinkedRolesForClaudeCode } from '@src/domain.operations/init/hooks/getAllHooksOfLinkedRolesForClaudeCode';
 import { getHomeDir } from '@src/infra/getHomeDir';
 import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 
@@ -25,12 +28,14 @@ import { getSettingsForRoles } from './getSettingsForRoles';
  *        (define.brain-dir-layout-is-one-for-every-actor). the same function serves enroll
  *        and init, so an actor's settings derive one way, from one source
  *
- * .note = the source is the repo actor's `settings.of.repo.json` — the hook sync writes every
- *   ambient role's hooks there, and a role init that writes it by name adds its own keys
+ * .note = the source is the repo actor's `settings.of.repo.json` — a role init that writes it by
+ *   name adds its own keys there, and with no manifest the hook sync writes every linked role's
+ *   hooks there too
  * .note = drops every clone identity key from the `env` map — a spawn mints a depth, a config
  *   never does
- * .note = the repo actor is the source itself: its hooks are never narrowed (a narrow would
- *   drop any hook with no author), only its claudeMdExcludes are set
+ * .note = with no manifest the repo actor is the source itself: its hooks are never narrowed (a
+ *   narrow would drop any hook with no author), only its claudeMdExcludes are set. under a
+ *   manifest every actor narrows from the linked roles' hooks (`asSettingsNarrowedForActor`)
  * .note = the excludes never name the actor's own doors — for the repo actor, those are its
  *   own boot, so an exclude there would hide the clone's corpus
  * .note = the read of the source and the write of the target hold both files' mutexes, the
@@ -57,7 +62,18 @@ export const genBrainCliConfigArtifact = async (input: {
   const actorBrainDir = getBrainOndiskDir({
     actorDir: getActorOndiskDir({ repoPath, exid: input.exid }),
   });
-  const isRepoActor = input.exid === REPO_ACTOR_EXID;
+  const isRepoActor = input.exid === getOneRepoActorExid({ repoPath });
+
+  // under a manifest, the hooks come from the linked roles, never the repo actor's file: the
+  //   repo actor there is narrowed to its own roles, so its file cannot serve a peer
+  //   (inventory.of=requirements.case=9). with no manifest the repo actor's file holds the
+  //   whole union, as on main
+  const hooksOfLinkedRoles = getActorsManifest({ repoPath })
+    ? await getAllHooksOfLinkedRolesForClaudeCode({
+        repoPath,
+        roles: enrollment.roles,
+      })
+    : null;
 
   // read the source and write the target as one critical section: the source mutex first,
   //   then the target's. every writer of `settings.of.repo.json` takes them in this order, the
@@ -69,6 +85,7 @@ export const genBrainCliConfigArtifact = async (input: {
       repoActorBrainDir,
       actorBrainDir,
       isRepoActor,
+      hooksOfLinkedRoles,
     });
   const withSourceHeld = () =>
     isRepoActor
@@ -99,6 +116,7 @@ const setActorSettingsRepoWithinLock = async (input: {
   repoActorBrainDir: string;
   actorBrainDir: string;
   isRepoActor: boolean;
+  hooksOfLinkedRoles: NonNullable<ClaudeCodeSettings['hooks']> | null;
 }): Promise<{ configPath: string }> => {
   const {
     enrollment,
@@ -106,18 +124,19 @@ const setActorSettingsRepoWithinLock = async (input: {
     repoActorBrainDir,
     actorBrainDir,
     isRepoActor,
+    hooksOfLinkedRoles,
   } = input;
 
   // read the repo actor's settings; narrow the hooks to this actor's roles
   const settingsSource = await readClaudeCodeSettings({
     from: dirname(repoActorBrainDir),
   });
-  const settingsNarrowed = isRepoActor
-    ? settingsSource
-    : getSettingsForRoles({
-        settings: settingsSource,
-        roles: enrollment.roles,
-      });
+  const settingsNarrowed = asSettingsNarrowedForActor({
+    settingsSource,
+    hooksOfLinkedRoles,
+    roles: enrollment.roles,
+    isRepoActor,
+  });
 
   // drop any clone identity key from the env map, so the spawn alone sets the depth
   const settings = asSettingsWithoutCloneEnv({
@@ -148,4 +167,87 @@ const setActorSettingsRepoWithinLock = async (input: {
   return {
     configPath: join(actorBrainDir, CLAUDE_SETTINGS_FILENAMES.repo),
   };
+};
+
+/**
+ * .what = the settings an actor's clone reads: the repo actor's non-hook keys, and the hooks of
+ *         this actor's own roles
+ * .why = one place decides the hook source and the narrow, for both layouts
+ *
+ * .note = no manifest → the repo actor's file is the union; the repo actor keeps it whole (a
+ *   narrow would drop any hook with no author), every other actor narrows from it — main's path
+ * .note = a manifest → the linked roles' hooks are the union, and EVERY actor narrows from it,
+ *   the repo actor too. the repo actor keeps its own authorless hooks — a hand edit is never lost
+ */
+const asSettingsNarrowedForActor = (input: {
+  settingsSource: ClaudeCodeSettings;
+  hooksOfLinkedRoles: NonNullable<ClaudeCodeSettings['hooks']> | null;
+  roles: string[];
+  isRepoActor: boolean;
+}): ClaudeCodeSettings => {
+  // no manifest: main's path, byte for byte
+  if (input.hooksOfLinkedRoles === null)
+    return input.isRepoActor
+      ? input.settingsSource
+      : getSettingsForRoles({
+          settings: input.settingsSource,
+          roles: input.roles,
+        });
+
+  // a manifest: narrow the linked roles' union to this actor's roles
+  const narrowed = getSettingsForRoles({
+    settings: { ...input.settingsSource, hooks: input.hooksOfLinkedRoles },
+    roles: input.roles,
+  });
+  if (!input.isRepoActor) return narrowed;
+
+  // the repo actor keeps the hooks a human added by hand to its own file
+  return {
+    ...narrowed,
+    hooks: asHooksMerged({
+      base: narrowed.hooks ?? {},
+      extra: asHooksAuthorless({ hooks: input.settingsSource.hooks ?? {} }),
+    }),
+  };
+};
+
+/**
+ * .what = only the hook entries whose inner hooks carry no author
+ */
+const asHooksAuthorless = (input: {
+  hooks: NonNullable<ClaudeCodeSettings['hooks']>;
+}): NonNullable<ClaudeCodeSettings['hooks']> =>
+  Object.fromEntries(
+    Object.entries(input.hooks)
+      .map(
+        ([event, entries]) =>
+          [
+            event,
+            (entries ?? [])
+              .map((entry) => ({
+                ...entry,
+                hooks: entry.hooks.filter((hook) => !hook.author),
+              }))
+              .filter((entry) => entry.hooks.length > 0),
+          ] as const,
+      )
+      .filter(([, entries]) => entries.length > 0),
+  );
+
+/**
+ * .what = two hook maps joined, event by event, base entries first
+ */
+const asHooksMerged = (input: {
+  base: NonNullable<ClaudeCodeSettings['hooks']>;
+  extra: NonNullable<ClaudeCodeSettings['hooks']>;
+}): NonNullable<ClaudeCodeSettings['hooks']> => {
+  const events = [
+    ...new Set([...Object.keys(input.base), ...Object.keys(input.extra)]),
+  ] as Array<keyof NonNullable<ClaudeCodeSettings['hooks']>>;
+  return Object.fromEntries(
+    events.map((event) => [
+      event,
+      [...(input.base[event] ?? []), ...(input.extra[event] ?? [])],
+    ]),
+  );
 };

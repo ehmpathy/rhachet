@@ -1,6 +1,7 @@
 import { stringify } from 'yaml';
 
 import type { Role, RoleRegistry } from '@src/domain.objects';
+import type { ActorDeclared } from '@src/domain.objects/ActorDeclared';
 
 import { relative } from 'node:path';
 
@@ -29,6 +30,7 @@ interface RoleRegistryManifestSerializable {
   slug: string;
   readme: string;
   roles: RoleManifestSerializable[];
+  actors?: { slug: string; brain?: string; roles: string[] }[];
 }
 
 /**
@@ -135,10 +137,13 @@ const castIntoRoleManifestSerializable = (input: {
  * .why = enables `npx rhachet repo introspect` to output rhachet.repo.yml
  *
  * .note = all paths are converted to relative paths from packageRoot
+ * .note = `actors:` is emitted only where the registry publishes some, so a package with
+ *         none keeps its `rhachet.repo.yml` byte for byte
  */
 export const castIntoRoleRegistryManifest = (input: {
   registry: RoleRegistry;
   packageRoot: string;
+  actors: ActorDeclared[];
 }): RoleRegistryManifestSerializable => {
   const { registry, packageRoot } = input;
 
@@ -148,6 +153,13 @@ export const castIntoRoleRegistryManifest = (input: {
     roles: registry.roles.map((role) =>
       castIntoRoleManifestSerializable({ role, packageRoot }),
     ),
+    ...(input.actors.length && {
+      actors: input.actors.map((actor) => ({
+        slug: actor.slug,
+        ...(actor.brain && { brain: actor.brain }),
+        roles: actor.roles,
+      })),
+    }),
   };
 };
 

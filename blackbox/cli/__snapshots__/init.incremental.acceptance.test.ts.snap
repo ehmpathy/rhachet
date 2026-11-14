@@ -59,6 +59,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case1] an empty repo,
 ✨ 2 role(s) linked
 ✨ 2 role(s) initialized
 
+💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
+
 🧠 brain://repo=ambient
    ├─ linked
    │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
@@ -86,6 +88,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case2] a repo with me
    └─ stats
       └─ 45 brief(s)
 
+💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
+
 "
 `;
 
@@ -94,6 +98,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case3.1] a repo whose
    ├─ subtractions
    │  └─ - ehmpathy/architect
    └─ untouched (1)
+
+💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
 
 
 📦 persist prepare entries...
@@ -108,6 +114,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case3] a repo with me
    ├─ subtractions
    │  └─ - ehmpathy/architect
    └─ untouched (1)
+
+💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
 
 "
 `;
@@ -131,6 +139,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case4] add and remove
    │  └─ + .agent/repo=ehmpathy/role=architect/briefs
    └─ stats
       └─ 45 brief(s)
+
+💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
 
 "
 `;
@@ -213,6 +223,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case8] qualified incr
    └─ stats
       └─ 45 brief(s)
 
+💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
+
 🧠 brain://repo=ambient
    ├─ linked
    │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
@@ -242,6 +254,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case10] remove of an 
 "🔧 init roles (incremental)
    └─ untouched (1)
 
+💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
+
 "
 `;
 
@@ -250,6 +264,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case11] remove the la
    ├─ subtractions
    │  └─ - ehmpathy/architect
    └─ untouched (0)
+
+💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
 
 "
 `;
@@ -285,6 +301,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case13] duplicate add
    └─ stats
       └─ 45 brief(s)
 
+💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
+
 🧠 brain://repo=ambient
    ├─ linked
    │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
@@ -318,6 +336,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case15] remove where 
    │  └─ - ehmpathy/architect
    └─ untouched (0)
 
+💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
+
 🧠 brain://repo=ambient
    ├─ linked
    │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
@@ -343,6 +363,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case16] re-add an alr
    └─ stats
       └─ 45 brief(s)
 
+💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
+
 "
 `;
 
@@ -351,7 +373,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case18] \`--help\` do
                        behaver), or +role to add / -role to remove
                        incrementally; role::<subject> boots one subject of the
                        role, with all its hooks (mechanic::flow); list subjects
-                       via npx rhachet roles cost --all"
+                       via npx rhachet roles cost --all. refused beside
+                       .agent/actors.yml, which declares the roles instead"
 `;
 
 exports[`rhx init --roles incremental (acceptance) given: [case19] bare add sigil with no role (e9) when: [t0] \`init --roles +\` then: is rejected as empty specifier after "+" 1`] = `
@@ -404,6 +427,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case20] a repo with m
       ├─ 26 brief(s)
       └─ 4 skill(s)
 
+💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
+
 "
 `;
 
@@ -413,6 +438,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case21] a repo with m
    │  ├─ - ehmpathy/architect
    │  └─ - bhrain/reviewer
    └─ untouched (1)
+
+💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
 
 "
 `;
@@ -451,6 +478,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case22] comma-form mu
       ├─ 26 brief(s)
       └─ 4 skill(s)
 
+💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
+
 "
 `;
 
@@ -460,6 +489,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case23] comma-form mu
    │  ├─ - ehmpathy/architect
    │  └─ - bhrain/reviewer
    └─ untouched (1)
+
+💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
 
 "
 `;
@@ -483,6 +514,8 @@ exports[`rhx init --roles incremental (acceptance) given: [case24] comma-form mi
    │  └─ + .agent/repo=ehmpathy/role=architect/briefs
    └─ stats
       └─ 45 brief(s)
+
+💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
 
 "
 `;

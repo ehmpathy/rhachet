@@ -6,16 +6,16 @@ import type { BrainSlug } from '@src/domain.objects/BrainSlug';
 import type { CloneOndisk } from '@src/domain.objects/CloneOndisk';
 import type { ContextOfRepoRoles } from '@src/domain.objects/ContextOfRepoRoles';
 import type { RoleSlug } from '@src/domain.objects/RoleSlug';
+import { findsertActorOndisk } from '@src/domain.operations/actor/enrolled/findsertActorOndisk';
+import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
+import { getActorsRootDir } from '@src/domain.operations/actor/enrolled/getActorsRootDir';
+import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
+import { getOneActorOndiskExid } from '@src/domain.operations/actor/enrolled/getOneActorOndiskExid';
 import { getHomeHash } from '@src/infra/host/getHomeHash';
 import { getOneRepoPath } from '@src/infra/host/getOneRepoPath';
 
 import { mkdirSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
-import { findsertActorOndisk } from '../actor/enrolled/findsertActorOndisk';
-import { getActorOndiskDir } from '../actor/enrolled/getActorOndiskDir';
-import { getActorsRootDir } from '../actor/enrolled/getActorsRootDir';
-import { getBrainOndiskDir } from '../actor/enrolled/getBrainOndiskDir';
-import { getOneActorOndiskExid } from '../actor/enrolled/getOneActorOndiskExid';
 import { asCloneDirName } from './asCloneDirName';
 import { asCloneSocketOmissionReasonError } from './asCloneSocketOmissionReasonError';
 import {
@@ -78,6 +78,8 @@ export const genCloneOndisk = async (
     roles: RoleSlug[];
     /** the actor's delta over the ambient roles (`asActorRolesDelta`), or null */
     rolesDelta?: string[] | null;
+    /** the exid of a declared actor (`asActorFormEnrollment`), or null where it is derived */
+    exidDeclared: string | null;
     delta: string | null;
     reason: string | null;
     command: string;
@@ -112,10 +114,12 @@ export const genCloneOndisk = async (
   spawn: CloneSpawnHandle | null;
 }> => {
   const repoPath = getOneRepoPath({ from: input.repoPath });
-  const exid = getOneActorOndiskExid(
-    { brain: input.brain, roles: input.roles, rolesDelta: input.rolesDelta },
-    context,
-  );
+  const exid =
+    input.exidDeclared ??
+    getOneActorOndiskExid(
+      { brain: input.brain, roles: input.roles, rolesDelta: input.rolesDelta },
+      context,
+    );
   const actorsRoot = getActorsRootDir({ repoPath });
 
   // decide the slug outcome from what already holds the name (if any)
@@ -159,6 +163,7 @@ export const genCloneOndisk = async (
       brain: input.brain,
       roles: input.roles,
       rolesDelta: input.rolesDelta,
+      exidDeclared: input.exidDeclared,
       delta: input.delta,
       reason: input.reason,
       logEnrollment: decision !== 'reuse',

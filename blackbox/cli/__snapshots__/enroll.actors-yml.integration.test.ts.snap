@@ -1,0 +1,88 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx clone @<slug> under .agent/actors.yml (integration) given: [case1] a manifest with three declared actors, linked by init when: [t2] \`clone @solo --roles architect\` (a plain role list) then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: a plain role list beside @solo would replace the actor wholesale
+
+{
+  "hint": "pass deltas only (+role, -role) beside @solo, or use the inline form for a one-off composition: rhx enroll <brain> --roles <roles>",
+  "actor": "@solo"
+}
+
+[args] enroll,@solo,--roles,architect
+
+"
+`;
+
+exports[`rhx clone @<slug> under .agent/actors.yml (integration) given: [case1] a manifest with three declared actors, linked by init when: [t3] \`clone @ghost\` (an undeclared slug) then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: @ghost is not a declared actor
+
+{
+  "hint": "use one of '@crew', '@solo', '@spare'",
+  "actor": "@ghost",
+  "path": "/TMP_TEST_DIR/.agent/actors.yml"
+}
+
+[args] enroll,@ghost
+
+"
+`;
+
+exports[`rhx clone @<slug> under .agent/actors.yml (integration) given: [case1] a manifest with three declared actors, linked by init when: [t7] \`clone @sollo\` (a typo of a declared slug) then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: @sollo is not a declared actor
+
+{
+  "hint": "did you mean '@solo'? declared: '@crew', '@solo', '@spare'",
+  "actor": "@sollo",
+  "path": "/TMP_TEST_DIR/.agent/actors.yml"
+}
+
+[args] enroll,@sollo
+
+"
+`;
+
+exports[`rhx clone @<slug> under .agent/actors.yml (integration) given: [case1] a manifest with three declared actors, linked by init when: [t8] \`clone claude --roles mechanic\` (the inline form on clone) then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: rhx clone has no verb 'claude'
+
+{
+  "hint": "clone reaches a clone (list · say · get · whoami · prune) or spawns one from a declared actor (rhx clone @<slug>, declared in .agent/actors.yml). for a one-off composition, use the inline form: rhx enroll <brain> --roles <roles>",
+  "operand": "claude"
+}
+
+[args] clone,claude,--roles,mechanic
+
+"
+`;
+
+exports[`rhx clone @<slug> under .agent/actors.yml (integration) given: [case3] a repo with linked roles and no .agent/actors.yml when: [t0] \`clone @scholar\` (the actor form, before a manifest is adopted) then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: @scholar is not reachable — this repo has no .agent/actors.yml to declare it
+
+{
+  "hint": "declare @scholar in .agent/actors.yml (see howto.author-actors-yml), or use the inline form: rhx enroll <brain> --roles <roles>",
+  "actor": "@scholar"
+}
+
+[args] enroll,@scholar
+
+"
+`;
+
+exports[`rhx clone @<slug> under .agent/actors.yml (integration) given: [case4] a manifest that declares a role init has not linked yet when: [t0] \`clone @scholar\` (one declared role is not linked) then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: @scholar declares role 'ehmpathy/architect', which is not linked
+
+{
+  "hint": "run \`rhx init\` — it links the roles every declared actor names",
+  "actor": "@scholar",
+  "role": "ehmpathy/architect"
+}
+
+[args] enroll,@scholar
+
+"
+`;

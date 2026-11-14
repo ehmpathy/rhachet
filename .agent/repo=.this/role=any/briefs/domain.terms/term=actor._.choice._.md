@@ -14,9 +14,9 @@ an **actor** is a durable, reusable identity = a brain enrolled in a set of role
 it owns one config derived from that pair. many **clones** run from one actor; all clones of an actor
 share its brain, roles, and config — so they stay in sync. an actor is identified in one of two
 namespaces, split by which command wrote it: a `$slug` (**slug namespace**, `actor.via.slug`, addressed
-`@<slug>`) declared in `actors.yml` and reached via `rhx clone`; or a `genEnrollmentHash`
-(**hash namespace**, `actor.via.hash`, **anonymous**) derived by `rhx enroll`, which is hash-only and
-never consults `actors.yml`.
+`@<slug>`) declared in `actors.yml` and reached via `rhx clone @<slug>` (≡ `rhx enroll @<slug>`); or a
+`genEnrollmentHash` (**hash namespace**, `actor.via.hash`, **anonymous**) derived by the inline form
+`rhx enroll <brain> --roles …`, which `actors.yml` never names (its base is the repo actor's).
 
 ## .refs
 

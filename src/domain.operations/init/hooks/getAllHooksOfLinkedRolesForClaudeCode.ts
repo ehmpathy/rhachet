@@ -1,0 +1,95 @@
+import { MalfunctionError } from 'helpful-errors';
+
+import { ContextCli } from '@src/domain.objects/ContextCli';
+import {
+  type ClaudeCodeSettings,
+  readClaudeCodeSettings,
+} from '@src/domain.operations/brains/claudeCodeSettings';
+import { getBrainsDetectedAndSupplied } from '@src/domain.operations/brains/getBrainsDetectedAndSupplied';
+import { getLinkedRolesWithHooks } from '@src/domain.operations/brains/getLinkedRolesWithHooks';
+import { syncAllRoleHooksIntoEachBrainRepl } from '@src/domain.operations/brains/syncAllRoleHooksIntoEachBrainRepl';
+import { asRoleFocusParts } from '@src/domain.operations/roles/focus/asRoleFocusParts';
+import { withScratchDir } from '@src/utils/withScratchDir';
+
+import { join } from 'node:path';
+import { isBrainClaudeCode } from './isBrainClaudeCode';
+
+/**
+ * .what = the claude hooks of every linked role, as the claude adapter writes them — rendered
+ *         into a self-ignored scratch dir under `.agent/.cache`, removed before return, so the
+ *         render stays inside the repo and leaves no trace
+ * .why = under `.agent/actors.yml` the repo actor is a declared actor, narrowed to its own roles
+ *        like every other. its `settings.of.repo.json` then holds only its own roles' hooks, so a
+ *        peer actor cannot narrow from it. each actor narrows from this union instead — the same
+ *        set the hook sync computes, by the same adapter. it lives beside the hook sync, the one
+ *        context that owns how a role's hooks render
+ *
+ * .note = a role whose discovery faults, or whose hooks fail to render, fails the union loud:
+ *   a silent absence would hand an actor's clones a settings file short of that role's hooks,
+ *   with no signal
+ * .note = no claude adapter installed → no claude hooks, so the union is empty
+ * .note = only the given roles render (matched by role slug, focus stripped, as the narrow
+ *   matches): a linked role the actor does not hold never fails its enroll, so a stale link a
+ *   manifest keeps (F4) blocks no actor that never held it
+ */
+export const getAllHooksOfLinkedRolesForClaudeCode = async (input: {
+  repoPath: string;
+  roles: string[];
+}): Promise<NonNullable<ClaudeCodeSettings['hooks']>> => {
+  const rolesHeld = new Set(
+    input.roles.map((token) => asRoleFocusParts({ token }).role),
+  );
+  const context = new ContextCli({
+    cwd: input.repoPath,
+    gitroot: input.repoPath,
+  });
+
+  // the claude brain this repo has an adapter for, if any
+  const brainsClaude = (await getBrainsDetectedAndSupplied(context)).filter(
+    (brain) => isBrainClaudeCode({ brain }),
+  );
+  if (brainsClaude.length === 0) return {};
+
+  // the held linked roles that declare hooks; a held role that could not be discovered fails loud
+  const discovered = await getLinkedRolesWithHooks(context);
+  const roles = discovered.roles.filter((role) => rolesHeld.has(role.slug));
+  const errors = discovered.errors.filter((one) => rolesHeld.has(one.roleSlug));
+  if (errors.length > 0)
+    throw new MalfunctionError(
+      'a linked role could not be read for its hooks',
+      {
+        roles: errors.map(
+          (one) => `${one.repoSlug}/${one.roleSlug} [${one.phase}]`,
+        ),
+        cause: errors[0]?.error,
+        hint: 'run `rhx init --hooks` to see each fault, then repair or unlink the role',
+      },
+    );
+  if (roles.length === 0) return {};
+
+  // render every role's hooks into a scratch dir, and read the union back
+  return withScratchDir(
+    {
+      within: join(input.repoPath, '.agent', '.cache', 'hooks-union'),
+      prefix: 'render-',
+    },
+    async (scratchDir) => {
+      const synced = await syncAllRoleHooksIntoEachBrainRepl(
+        { roles, brains: brainsClaude, configTargetDir: scratchDir },
+        context,
+      );
+
+      // a role whose hooks could not render fails the union loud, as a discovery fault does
+      if (synced.errors.length > 0)
+        throw new MalfunctionError('a linked role could not render its hooks', {
+          roles: synced.errors.map(
+            (one) => `${one.role.repo}/${one.role.slug} [${one.brain}]`,
+          ),
+          cause: synced.errors[0]?.error,
+          hint: 'run `rhx init --hooks` to see each fault, then repair or unlink the role',
+        });
+      const settings = await readClaudeCodeSettings({ from: scratchDir });
+      return settings.hooks ?? {};
+    },
+  );
+};

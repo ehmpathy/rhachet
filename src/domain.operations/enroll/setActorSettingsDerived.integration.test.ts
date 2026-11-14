@@ -63,9 +63,14 @@ const useSceneOfBlendedActor = (input: {
         roles: ['zeta'],
         delta: 'zeta',
         reason: null,
+        exidDeclared: null,
         logEnrollment: false,
       },
-      { repo: { ambient: { roles: ['any', 'zeta', 'omega'] } } },
+      {
+        repo: {
+          ambient: { exid: 'repo=ambient', roles: ['any', 'zeta', 'omega'] },
+        },
+      },
     );
     const brainDir = getBrainOndiskDir({
       actorDir: getActorOndiskDir({ repoPath, exid: actor.exid }),

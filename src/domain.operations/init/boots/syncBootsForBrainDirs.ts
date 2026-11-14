@@ -1,4 +1,7 @@
 import type { ContextCli } from '@src/domain.objects/ContextCli';
+import { REPO_ACTOR_EXID } from '@src/domain.operations/actor/enrolled/constants';
+import { getOneRepoActorExid } from '@src/domain.operations/actor/enrolled/getOneRepoActorExid';
+import { getAllRepoActorRoleRefs } from '@src/domain.operations/actor/manifest/getAllRepoActorRoleRefs';
 import type { BrainDirSyncSymlink } from '@src/domain.operations/boot/asBrainDirSyncReportLines';
 import type {
   BrainDirBootFailure,
@@ -6,10 +9,12 @@ import type {
 } from '@src/domain.operations/boot/BrainDirBootRender';
 import { setDeltaActorsOndisk } from '@src/domain.operations/enroll/setDeltaActorsOndisk';
 import { getAllLinkedRoleRefs } from '@src/domain.operations/init/roles/link/getAllLinkedRoleRefs';
+import { isCodeDefectError } from '@src/utils/isCodeDefectError';
 
 import { asBrainDirSyncResult } from './asBrainDirSyncResult';
 import { asRepoActorBrainDirOutcome } from './asRepoActorBrainDirOutcome';
 import { asRoleSlugsOfRefs } from './asRoleSlugsOfRefs';
+import { setDeclaredActorsOndisk } from './setDeclaredActorsOndisk';
 import { setRepoActorBrainDir } from './setRepoActorBrainDir';
 import { syncActiveActorBrainDirs } from './syncActiveActorBrainDirs';
 
@@ -40,20 +45,57 @@ export const syncBootsForBrainDirs = async (
 }> => {
   const refsLinked = getAllLinkedRoleRefs({}, context);
 
+  // the repo actor's roles — every linked role, or the `ambient:` actor's under a manifest. a
+  //   throw (a declared role not linked yet, an invalid manifest) is collected under the repo
+  //   scope with the repo actor sync below, never raised: `roles link` and `upgrade` reach here
+  //   with no plan, after their writes
+  const [refsAmbientSettled] = await Promise.allSettled([
+    getAllRepoActorRoleRefs({ refsLinked }, context),
+  ]);
+  const refsAmbient =
+    refsAmbientSettled.status === 'fulfilled' ? refsAmbientSettled.value : null;
+
   // the repo actor's brain dir; a throw is collected under the repo scope
   const [repoActorSettled] = await Promise.allSettled([
-    setRepoActorBrainDir({ repoPath: input.repoPath, refsLinked }),
+    refsAmbient
+      ? setRepoActorBrainDir({
+          repoPath: input.repoPath,
+          refsLinked: refsAmbient,
+        })
+      : Promise.reject(
+          refsAmbientSettled.status === 'rejected'
+            ? refsAmbientSettled.reason
+            : null,
+        ),
   ]);
   const repoActorOutcome = asRepoActorBrainDirOutcome({
     settled: repoActorSettled,
+    actorExid: getOneRepoActorExidOrMain({ repoPath: input.repoPath }),
   });
 
-  // each delta actor re-derives its roles from the linked set it stands over, so the sweep
-  //   below renders it from its fresh roles (`inventory.of=requirements.case=2`)
-  const deltaOutcome = await setDeltaActorsOndisk({
-    repoPath: input.repoPath,
-    rolesLinked: asRoleSlugsOfRefs({ refs: refsLinked }),
-  });
+  // each delta actor re-derives its roles from the ambient set it stands over, so the sweep
+  //   below renders it from its fresh roles (`inventory.of=requirements.case=2`). with no
+  //   ambient set read, there is naught to re-derive from: the repo failure above names why
+  const deltaOutcome = refsAmbient
+    ? await setDeltaActorsOndisk({
+        repoPath: input.repoPath,
+        rolesAmbient: asRoleSlugsOfRefs({ refs: refsAmbient }),
+        rolesLinked: asRoleSlugsOfRefs({ refs: refsLinked }),
+      })
+    : { failures: [] };
+
+  // each declared actor of `.agent/actors.yml` re-derives from the manifest as it reads now,
+  //   so an edit to an actor's roles reaches its dir at init (the sync invariant)
+  const declaredOutcome = refsAmbient
+    ? await setDeclaredActorsOndisk(
+        {
+          repoPath: input.repoPath,
+          refsLinked,
+          rolesAmbient: asRoleSlugsOfRefs({ refs: refsAmbient }),
+        },
+        context,
+      )
+    : { failures: [] };
 
   // each active actor; its own failures are already collected per scope
   const actorOutcome = await syncActiveActorBrainDirs({
@@ -71,6 +113,7 @@ export const syncBootsForBrainDirs = async (
       failures: [
         ...repoActorResult.failures,
         ...deltaOutcome.failures,
+        ...declaredOutcome.failures,
         ...actorOutcome.failures,
       ],
     }),
@@ -80,6 +123,20 @@ export const syncBootsForBrainDirs = async (
     }),
     settings: repoActorOutcome.settings,
   };
+};
+
+/**
+ * .what = the repo actor's exid, or main's where the manifest cannot be read
+ * .why = it only labels the repo scope of a failure; an unreadable manifest is that failure,
+ *   so the label must not throw in its place
+ */
+const getOneRepoActorExidOrMain = (input: { repoPath: string }): string => {
+  try {
+    return getOneRepoActorExid(input);
+  } catch (error) {
+    if (isCodeDefectError({ error })) throw error;
+    return REPO_ACTOR_EXID;
+  }
 };
 
 /**

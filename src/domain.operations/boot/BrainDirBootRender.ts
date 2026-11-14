@@ -6,7 +6,7 @@ import type { BootStats } from './BootStats';
  * .why = a census line and a failure line each name which brain dir they speak of
  */
 export type BrainDirBootScope =
-  | { kind: 'repo' }
+  | { kind: 'repo'; actorExid: string }
   | { kind: 'actor'; actorExid: string }
   | { kind: 'actors' };
 

@@ -1,6 +1,7 @@
 import { given, then, when } from 'test-fns';
 
 import { Role, RoleRegistry } from '@src/domain.objects';
+import { ActorDeclared } from '@src/domain.objects/ActorDeclared';
 
 import {
   castIntoRoleRegistryManifest,
@@ -42,6 +43,7 @@ describe('castIntoRoleRegistryManifest', () => {
         const manifest = castIntoRoleRegistryManifest({
           registry,
           packageRoot,
+          actors: [],
         });
         expect(manifest.slug).toEqual('ehmpathy');
       });
@@ -50,6 +52,7 @@ describe('castIntoRoleRegistryManifest', () => {
         const manifest = castIntoRoleRegistryManifest({
           registry,
           packageRoot,
+          actors: [],
         });
         expect(manifest.readme).toEqual('readme.md');
       });
@@ -58,6 +61,7 @@ describe('castIntoRoleRegistryManifest', () => {
         const manifest = castIntoRoleRegistryManifest({
           registry,
           packageRoot,
+          actors: [],
         });
         expect(manifest.roles).toHaveLength(1);
       });
@@ -66,6 +70,7 @@ describe('castIntoRoleRegistryManifest', () => {
         const manifest = castIntoRoleRegistryManifest({
           registry,
           packageRoot,
+          actors: [],
         });
         expect(manifest.roles[0]?.slug).toEqual('mechanic');
       });
@@ -74,6 +79,7 @@ describe('castIntoRoleRegistryManifest', () => {
         const manifest = castIntoRoleRegistryManifest({
           registry,
           packageRoot,
+          actors: [],
         });
         expect(manifest.roles[0]?.readme).toEqual(
           'src/roles/mechanic/readme.md',
@@ -84,6 +90,7 @@ describe('castIntoRoleRegistryManifest', () => {
         const manifest = castIntoRoleRegistryManifest({
           registry,
           packageRoot,
+          actors: [],
         });
         expect(manifest.roles[0]?.briefs.dirs).toEqual(
           'src/roles/mechanic/briefs',
@@ -94,6 +101,7 @@ describe('castIntoRoleRegistryManifest', () => {
         const manifest = castIntoRoleRegistryManifest({
           registry,
           packageRoot,
+          actors: [],
         });
         expect(manifest.roles[0]?.skills.dirs).toEqual(
           'src/roles/mechanic/skills',
@@ -104,6 +112,7 @@ describe('castIntoRoleRegistryManifest', () => {
         const manifest = castIntoRoleRegistryManifest({
           registry,
           packageRoot,
+          actors: [],
         });
         expect(manifest.roles[0]?.inits).toBeUndefined();
       });
@@ -150,6 +159,7 @@ describe('castIntoRoleRegistryManifest', () => {
         const manifest = castIntoRoleRegistryManifest({
           registry,
           packageRoot,
+          actors: [],
         });
         expect(manifest.roles[0]?.briefs.dirs).toEqual([
           'src/roles/behaver/briefs',
@@ -161,6 +171,7 @@ describe('castIntoRoleRegistryManifest', () => {
         const manifest = castIntoRoleRegistryManifest({
           registry,
           packageRoot,
+          actors: [],
         });
         expect(manifest.roles[0]?.skills.dirs).toEqual([
           'src/roles/behaver/skills',
@@ -212,6 +223,7 @@ describe('castIntoRoleRegistryManifest', () => {
         const manifest = castIntoRoleRegistryManifest({
           registry,
           packageRoot,
+          actors: [],
         });
         expect(manifest.roles[0]?.inits?.dirs).toEqual('src/roles/setup/inits');
       });
@@ -220,6 +232,7 @@ describe('castIntoRoleRegistryManifest', () => {
         const manifest = castIntoRoleRegistryManifest({
           registry,
           packageRoot,
+          actors: [],
         });
         expect(manifest.roles[0]?.inits?.exec).toEqual([
           'src/roles/setup/inits/setup.sh',
@@ -282,6 +295,7 @@ describe('castIntoRoleRegistryManifest', () => {
         const manifest = castIntoRoleRegistryManifest({
           registry,
           packageRoot,
+          actors: [],
         });
         expect(manifest.roles).toHaveLength(2);
       });
@@ -290,8 +304,62 @@ describe('castIntoRoleRegistryManifest', () => {
         const manifest = castIntoRoleRegistryManifest({
           registry,
           packageRoot,
+          actors: [],
         });
         expect(manifest.roles.map((r) => r.slug)).toEqual(['alpha', 'beta']);
+      });
+    });
+  });
+
+  given('[case5] a registry that publishes actors', () => {
+    const packageRoot = '/packages/rhachet-roles-ehmpathy';
+    const registry = new RoleRegistry({
+      slug: 'ehmpathy',
+      readme: { uri: '/packages/rhachet-roles-ehmpathy/readme.md' },
+      roles: [],
+    });
+    const actors = [
+      new ActorDeclared({
+        slug: 'builder',
+        brain: 'anthropic/claude/code',
+        roles: ['ehmpathy/mechanic', 'bhuild/behaver'],
+      }),
+      new ActorDeclared({
+        slug: 'reader',
+        brain: null,
+        roles: ['@builder', '-behaver'],
+      }),
+    ];
+
+    when('[t0] castIntoRoleRegistryManifest is called with them', () => {
+      then(
+        'the manifest carries them as `actors:`, a null brain omitted',
+        () => {
+          const manifest = castIntoRoleRegistryManifest({
+            registry,
+            packageRoot,
+            actors,
+          });
+          expect(manifest.actors).toEqual([
+            {
+              slug: 'builder',
+              brain: 'anthropic/claude/code',
+              roles: ['ehmpathy/mechanic', 'bhuild/behaver'],
+            },
+            { slug: 'reader', roles: ['@builder', '-behaver'] },
+          ]);
+        },
+      );
+    });
+
+    when('[t1] castIntoRoleRegistryManifest is called with none', () => {
+      then('the manifest has no `actors:` key, byte for byte as before', () => {
+        const manifest = castIntoRoleRegistryManifest({
+          registry,
+          packageRoot,
+          actors: [],
+        });
+        expect('actors' in manifest).toEqual(false);
       });
     });
   });

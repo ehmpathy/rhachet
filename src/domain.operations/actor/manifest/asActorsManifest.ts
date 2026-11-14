@@ -1,0 +1,91 @@
+import { ConstraintError } from 'helpful-errors';
+
+import { ActorsManifest } from '@src/domain.objects/ActorsManifest';
+
+import { asActorDeclared } from './asActorDeclared';
+import { asActorRefNearbyHint } from './asActorRefNearbyHint';
+import { asSlugsDuplicated } from './asSlugsDuplicated';
+import { isPlainObject } from './isPlainObject';
+
+/**
+ * .what = the top-level keys a consumer `actors.yml` may hold
+ */
+const ACTORS_MANIFEST_KEYS: string[] = ['ambient', 'actor'];
+
+/**
+ * .what = cast a parsed `.agent/actors.yml` into an ActorsManifest, or fail fast with the fix
+ * .why = every reader (init, enroll, clone) validates the same way before any write (case=7)
+ *
+ * .note = checks the shape alone. base lookup, cycles and brain propagation need the other
+ *         actors and the installed packages, so the expander owns them
+ */
+export const asActorsManifest = (input: {
+  parsed: unknown;
+  path: string;
+}): ActorsManifest => {
+  // the file is a map
+  if (!isPlainObject(input.parsed))
+    throw new ConstraintError('actors.yml is not a map', {
+      path: input.path,
+      hint: "declare `ambient: '@<slug>'` and an `actor:` list",
+    });
+
+  // no top-level key but `ambient` and `actor`, as no per-actor key but its own: a typo'd
+  //   key would otherwise be dropped, and the declaration it carried lost in silence
+  const keysUnknown = Object.keys(input.parsed).filter(
+    (key) => !ACTORS_MANIFEST_KEYS.includes(key),
+  );
+  if (keysUnknown.length)
+    throw new ConstraintError('actors.yml has an unknown top-level key', {
+      path: input.path,
+      keys: keysUnknown,
+      hint: 'the top level holds `ambient:` and `actor:` alone — rename or drop the rest',
+    });
+
+  // the actor list is present and every entry is valid
+  const { ambient, actor } = input.parsed;
+  if (!Array.isArray(actor) || !actor.length)
+    throw new ConstraintError('actors.yml declares no actor', {
+      path: input.path,
+      hint: 'add an `actor:` list of `{ slug, brain, roles }` entries',
+    });
+  const actors = actor.map((entry, index) =>
+    asActorDeclared({ entry, index, path: input.path }),
+  );
+
+  // each slug is declared once
+  const slugs = actors.map((one) => one.slug);
+  const slugsTwice = asSlugsDuplicated({ slugs });
+  if (slugsTwice.length)
+    throw new ConstraintError('actors.yml declares a slug more than once', {
+      path: input.path,
+      slugs: [...new Set(slugsTwice)],
+      hint: 'give each actor its own slug',
+    });
+
+  // the repo actor is named by name, and is declared (F12, S9)
+  if (ambient === undefined || ambient === null)
+    throw new ConstraintError('actors.yml has no `ambient:` key', {
+      path: input.path,
+      actors: slugs.map((slug) => `@${slug}`),
+      hint: `add \`ambient: '@<slug>'\` to name the repo actor — one of ${slugs.map((slug) => `'@${slug}'`).join(', ')}`,
+    });
+  if (typeof ambient !== 'string' || !ambient.startsWith('@'))
+    throw new ConstraintError('actors.yml `ambient:` does not name an actor', {
+      path: input.path,
+      found: ambient,
+      hint: `set \`ambient: '@<slug>'\`, quoted — one of ${slugs.map((slug) => `'@${slug}'`).join(', ')}`,
+    });
+  if (!slugs.includes(ambient.slice(1)))
+    throw new ConstraintError(
+      'actors.yml `ambient:` names an actor not declared',
+      {
+        path: input.path,
+        found: ambient,
+        actors: slugs.map((slug) => `@${slug}`),
+        hint: `set \`ambient:\` — ${asActorRefNearbyHint({ ref: ambient, slugs })}`,
+      },
+    );
+
+  return new ActorsManifest({ ambient, actor: actors });
+};

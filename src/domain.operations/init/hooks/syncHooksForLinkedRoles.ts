@@ -5,6 +5,7 @@ import type { BrainSpecifier } from '@src/domain.objects/BrainSpecifier';
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 import { getAllActorsOndisk } from '@src/domain.operations/actor/enrolled/getAllActorsOndisk';
 import { withBrainDirSettingsShield } from '@src/domain.operations/actor/enrolled/withBrainDirSettingsShield';
+import { getActorsManifest } from '@src/domain.operations/actor/manifest/getActorsManifest';
 import { getBrainsDetectedAndSupplied } from '@src/domain.operations/brains/getBrainsDetectedAndSupplied';
 import { getLinkedRolesWithHooks } from '@src/domain.operations/brains/getLinkedRolesWithHooks';
 import { setActorSettingsDerived } from '@src/domain.operations/enroll/setActorSettingsDerived';
@@ -20,6 +21,7 @@ import { asHookChangeSummary } from './asHookChangeSummary';
 import { asHookChangeTally } from './asHookChangeTally';
 import { asHookFaultRows } from './asHookFaultRows';
 import { asHookSyncTotalRows } from './asHookSyncTotalRows';
+import { getBrainsOfRootHookPass } from './getBrainsOfRootHookPass';
 import { getOneHookChangeTally } from './getOneHookChangeTally';
 import { getOneHookOrphanCount } from './getOneHookOrphanCount';
 import { isBrainClaudeCode } from './isBrainClaudeCode';
@@ -118,7 +120,19 @@ export const syncHooksForLinkedRoles = async (
   // .note = the brains are detected BEFORE the shield opens: the shield puts a real
   //   settings.json in claude's slot, which detection would read as a claude repo
   // .note = a detected brain no installed package supplies is skipped; a named one is not
-  const brainsTarget = brains ?? (await getBrainsDetectedAndSupplied(context));
+  //
+  // 🔴 under `.agent/actors.yml` claude is left out of the root pass: the repo actor there is a
+  //   declared actor, narrowed to its own roles by the actor pass below, which derives every
+  //   actor's claude hooks from the linked roles' union. a root write of the whole union into
+  //   its file would hand its clones a peer's hooks (inventory.of=requirements.case=9)
+  // 🔴 the manifest is read from the git root, as every other read of one init run does — a
+  //   read from the cwd would miss it from a subdir, and the root pass would leak the union
+  const brainsDetected =
+    brains ?? (await getBrainsDetectedAndSupplied(context));
+  const brainsTarget = getBrainsOfRootHookPass({
+    brains: brainsDetected,
+    isManifestDeclared: !!getActorsManifest({ repoPath: context.gitroot }),
+  });
   const syncIntoRoot = () =>
     syncRoleHooksIntoTarget(
       { authorsDesired, roles, brains: brainsTarget, configTargetDir: null },
@@ -231,9 +245,12 @@ export const syncHooksForLinkedRoles = async (
   //   hooks in `~/.claude/settings.json` (inventory.of=requirements.case=9)
   //
   // 🟡 .note = the repo actor is included: this pass is init's one writer of its
-  //   `claudeMdExcludes` (enroll writes them only at spawn). its hooks come back unchanged,
-  //   since `genBrainCliConfigArtifact` never narrows the source
-  const actorsEnrolled = getAllActorsOndisk({ repoPath: context.cwd });
+  //   `claudeMdExcludes` (enroll writes them only at spawn). with no manifest its hooks come
+  //   back unchanged; under `.agent/actors.yml` it narrows from the linked roles' union like
+  //   every other actor, and only its authorless hooks merge back
+  // 🟡 .note = the actors and their settings are read from the git root, as the gate above
+  //   reads the manifest — a subdir run must derive the same actors a root run does
+  const actorsEnrolled = getAllActorsOndisk({ repoPath: context.gitroot });
   if (actorsEnrolled.length > 0) {
     // derive each actor's settings, one at a time and in order; a fault is collected, so one
     //   broken actor never skips the rest. the actor row carries the SAME +N/~N/-N summary
@@ -246,7 +263,7 @@ export const syncHooksForLinkedRoles = async (
     for (const actor of actorsEnrolled) {
       const { outcome, fault } = await getOneEnrolledActorSettingsOutcome({
         actor,
-        repoPath: context.cwd,
+        repoPath: context.gitroot,
       });
       if (fault)
         errors.push({ source: `sync:actor=${actor.exid}`, error: fault });

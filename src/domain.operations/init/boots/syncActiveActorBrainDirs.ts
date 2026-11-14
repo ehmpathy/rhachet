@@ -2,10 +2,11 @@ import { MalfunctionError } from 'helpful-errors';
 
 import type { ActorOndisk } from '@src/domain.objects/ActorOndisk';
 import type { RoleLinkRef } from '@src/domain.objects/RoleLinkRef';
-import { REPO_ACTOR_EXID } from '@src/domain.operations/actor/enrolled/constants';
+import { asActorsExceptRepoActor } from '@src/domain.operations/actor/enrolled/asActorsExceptRepoActor';
 import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
 import { getAllActorsOndisk } from '@src/domain.operations/actor/enrolled/getAllActorsOndisk';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
+import { getOneRepoActorExid } from '@src/domain.operations/actor/enrolled/getOneRepoActorExid';
 import type {
   BrainDirBootFailure,
   BrainDirBootRender,
@@ -60,7 +61,8 @@ const getAllActorsOrFailure = (input: {
 }): { actors: ActorOndisk[] } | { failure: BrainDirBootFailure } => {
   try {
     const actors = getAllActorsOndisk({ repoPath: input.repoPath });
-    return { actors: actors.filter((actor) => actor.exid !== REPO_ACTOR_EXID) };
+    const exidRepoActor = getOneRepoActorExid({ repoPath: input.repoPath });
+    return { actors: asActorsExceptRepoActor({ actors, exidRepoActor }) };
   } catch (error) {
     return {
       failure: {

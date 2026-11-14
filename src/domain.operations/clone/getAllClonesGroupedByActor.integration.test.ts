@@ -24,6 +24,7 @@ describe('getAllClonesGroupedByActor.integration', () => {
           roles: ['architect'],
           delta: null,
           reason: null,
+          exidDeclared: null,
           logEnrollment: true,
         },
         genSampleContextNoAmbient(),

@@ -77,6 +77,7 @@ const genCloneVia = (
       repoPath,
       brain: 'claude',
       roles: opts.roles ?? (['mechanic'] as RoleSlug[]),
+      exidDeclared: null,
       delta: null,
       reason: null,
       command: process.execPath,

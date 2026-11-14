@@ -58,9 +58,14 @@ export const genSampleCloneOndisk = async (input: {
       roles: input.roles ?? ['mechanic'],
       delta: null,
       reason: null,
+      exidDeclared: null,
       logEnrollment: true,
     },
-    { repo: { ambient: { roles: input.rolesAmbient ?? [] } } },
+    {
+      repo: {
+        ambient: { exid: 'repo=ambient', roles: input.rolesAmbient ?? [] },
+      },
+    },
   );
 
   const actorsRoot = `${actor.repoPath}/.agent/.actors`;
