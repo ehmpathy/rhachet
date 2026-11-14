@@ -343,6 +343,27 @@ describe('rhx clone @<slug> under .agent/actors.yml (integration)', () => {
         expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
       });
     });
+
+    when('[t9] `clone @solo +architekt` (a typo of a linked role)', () => {
+      const run = useThen('exits 2', () =>
+        invokeRhachetCliBinary({
+          args: ['clone', '@solo', '+architekt'],
+          cwd: dir,
+          env: { PATH: scene.path },
+          logOnError: false,
+        }),
+      );
+
+      then('it is refused, and names the role meant', () => {
+        expect(run.status).toEqual(2);
+        expect(run.stderr).toContain(
+          "role delta '+architekt' names no linked role, did you mean '+architect'?",
+        );
+      });
+      then('no clone is enrolled', () => {
+        expect(run.stderr).not.toContain('clone enrolled');
+      });
+    });
   });
 
   given('[case2] a peer-only role that carries hooks (inventory.of=requirements.case=9)', () => {
@@ -620,6 +641,85 @@ describe('rhx clone @<slug> under .agent/actors.yml (integration)', () => {
         expect(
           getAllActorDirNames({ dir }).some((name) => name.includes('scholar')),
         ).toEqual(false);
+      });
+    });
+  });
+
+  given('[case4b] a repo actor that declares a role init has not linked yet', () => {
+    const dir = genTempDir({ slug: 'enroll-actors-yml-ambient-unlinked' });
+    const scene = useBeforeAll(async () => {
+      setupRoleFixtureRepo({ dir });
+      setActorsYml({
+        dir,
+        lines: [
+          "ambient: '@lone'",
+          'actor:',
+          '  - slug: lone',
+          '    brain: claude',
+          '    roles: [ehmpathy/mechanic]',
+          '  - slug: peer',
+          '    brain: claude',
+          '    roles: [ehmpathy/mechanic]',
+          '',
+        ],
+      });
+      const init = invokeRhachetCliBinary({ args: ['init'], cwd: dir });
+      if (init.status !== 0)
+        throw new MalfunctionError('fixture init failed', {
+          stderr: init.stderr,
+          hint: 'the fixture setup broke, not the case under test; read the stderr above, then rebuild (`npm run build`) if dist/ is stale',
+        });
+
+      // the human grows the repo actor, and clones a peer before a re-init links the new role
+      setActorsYml({
+        dir,
+        lines: [
+          "ambient: '@lone'",
+          'actor:',
+          '  - slug: lone',
+          '    brain: claude',
+          '    roles: [ehmpathy/mechanic, ehmpathy/architect]',
+          '  - slug: peer',
+          '    brain: claude',
+          '    roles: [ehmpathy/mechanic]',
+          '',
+        ],
+      });
+      return { path: setupRichStubBrainPath({ dir }) };
+    });
+
+    when('[t0] `clone @peer` (its own roles are all linked)', () => {
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinary({
+          args: ['clone', '@peer'],
+          cwd: dir,
+          env: { PATH: scene.path },
+          logOnError: false,
+        }),
+      );
+
+      then('the peer enrolls; the repo actor role it never holds blocks it not', () => {
+        expect(run.stderr).not.toContain('which is not linked');
+        expect(run.status).toEqual(0);
+        expect(
+          getActorRolesRecorded({ dir, actorDirName: 'actor.via.slug=peer' }),
+        ).toEqual(['mechanic']);
+      });
+    });
+
+    when('[t1] `clone @lone` (the repo actor itself)', () => {
+      const run = useThen('exits 2', () =>
+        invokeRhachetCliBinary({
+          args: ['clone', '@lone'],
+          cwd: dir,
+          env: { PATH: scene.path },
+          logOnError: false,
+        }),
+      );
+
+      then('it is still refused, and names the absent role', () => {
+        expect(run.status).toEqual(2);
+        expect(run.stderr).toContain("'ehmpathy/architect', which is not linked");
       });
     });
   });

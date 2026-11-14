@@ -103,6 +103,21 @@ export const asActorDeclared = (input: {
       found: roles,
       hint: "set `roles:` to a list of roles, or a quoted base `'@<slug>'` then `+role` / `-role` deltas",
     });
+  // a focus (`role::subject`) is not yet declarable in actors.yml (F25): name it, so the refusal
+  //   never reads as an absent role
+  const entryFocused = (roles as string[]).find((entry) =>
+    entry.includes('::'),
+  );
+  if (entryFocused)
+    throw new ConstraintError(
+      `actors.yml actor @${slug} names a role focus '${entryFocused}', which actors.yml does not support yet`,
+      {
+        path: input.path,
+        roles,
+        hint: `declare the role bare ('${entryFocused.split('::')[0]}'), then focus it per clone: rhx enroll <brain> --roles ${entryFocused.replace(/^[+-]/, '').split('/').pop()}`,
+      },
+    );
+
   const kinds = (roles as string[]).map((entry) =>
     asActorRoleEntryKind({ entry }),
   );

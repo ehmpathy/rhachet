@@ -356,7 +356,7 @@ describe('getActorExpanded', () => {
           ),
         );
         expect(error.message).toContain(
-          'published actor not found: @ghlitch/watcher',
+          'published actor whose package is not installed: @ghlitch/watcher',
         );
         expect(error.message).toContain('rhachet-roles-ghlitch');
       });

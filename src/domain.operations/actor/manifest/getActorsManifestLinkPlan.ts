@@ -67,15 +67,27 @@ export const getActorsManifestLinkPlan = async (
       },
     );
 
-  // no installed package claims it: a typo, or a package not installed
+  // no installed package claims it: a typo, or a package not installed. a role reached through
+  //   a published base is named with that base, since actors.yml never lists it itself
+  const viaOfUncarried = roleUncarried
+    ? (union.roles.find((one) => one.role === roleUncarried)?.via ?? null)
+    : null;
+  const packageOfUncarried = roleUncarried?.includes('/')
+    ? `rhachet-roles-${roleUncarried.split('/')[0]}`
+    : null;
   if (roleUncarried)
     throw new ConstraintError(
-      `actors.yml declares role '${roleUncarried}', which no installed role package carries`,
+      viaOfUncarried
+        ? `actors.yml extends ${viaOfUncarried}, whose role '${roleUncarried}' no installed role package carries`
+        : `actors.yml declares role '${roleUncarried}', which no installed role package carries`,
       {
         role: roleUncarried,
+        ...(viaOfUncarried ? { via: viaOfUncarried } : {}),
         packages: manifests.map((one) => one.slug),
         packagesUnread: errors.map((one) => one.packageName),
-        hint: 'check the role slug for a typo, or install the role package that carries it',
+        hint: packageOfUncarried
+          ? `install ${packageOfUncarried}${viaOfUncarried ? `, which ${viaOfUncarried} needs` : ''}, or check the role slug for a typo`
+          : 'check the role slug for a typo, or install the role package that carries it',
       },
     );
 

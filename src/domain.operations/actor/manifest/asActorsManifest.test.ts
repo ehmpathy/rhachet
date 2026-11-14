@@ -59,6 +59,22 @@ const CASES_ACCEPTED = [
 
 const CASES_REFUSED = [
   {
+    description:
+      'a role focus (`role::subject`) is named, never read as an absent role (F25)',
+    parsed: {
+      ambient: '@solo',
+      actor: [
+        {
+          slug: 'solo',
+          brain: 'claude',
+          roles: ['ehmpathy/mechanic::flow'],
+        },
+      ],
+    },
+    message:
+      "names a role focus 'ehmpathy/mechanic::flow', which actors.yml does not support yet",
+  },
+  {
     description: 'no `ambient:` key, even with a sole actor (S9)',
     parsed: {
       actor: [

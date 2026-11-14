@@ -8,6 +8,7 @@ import {
 import { getBrainsDetectedAndSupplied } from '@src/domain.operations/brains/getBrainsDetectedAndSupplied';
 import { getLinkedRolesWithHooks } from '@src/domain.operations/brains/getLinkedRolesWithHooks';
 import { syncAllRoleHooksIntoEachBrainRepl } from '@src/domain.operations/brains/syncAllRoleHooksIntoEachBrainRepl';
+import { asRoleFocusParts } from '@src/domain.operations/roles/focus/asRoleFocusParts';
 import { withScratchDir } from '@src/utils/withScratchDir';
 
 import { join } from 'node:path';
@@ -27,10 +28,17 @@ import { isBrainClaudeCode } from './isBrainClaudeCode';
  *   a silent absence would hand an actor's clones a settings file short of that role's hooks,
  *   with no signal
  * .note = no claude adapter installed → no claude hooks, so the union is empty
+ * .note = only the given roles render (matched by role slug, focus stripped, as the narrow
+ *   matches): a linked role the actor does not hold never fails its enroll, so a stale link a
+ *   manifest keeps (F4) blocks no actor that never held it
  */
 export const getAllHooksOfLinkedRolesForClaudeCode = async (input: {
   repoPath: string;
+  roles: string[];
 }): Promise<NonNullable<ClaudeCodeSettings['hooks']>> => {
+  const rolesHeld = new Set(
+    input.roles.map((token) => asRoleFocusParts({ token }).role),
+  );
   const context = new ContextCli({
     cwd: input.repoPath,
     gitroot: input.repoPath,
@@ -42,8 +50,10 @@ export const getAllHooksOfLinkedRolesForClaudeCode = async (input: {
   );
   if (brainsClaude.length === 0) return {};
 
-  // the linked roles that declare hooks; a role that could not be discovered fails loud
-  const { roles, errors } = await getLinkedRolesWithHooks(context);
+  // the held linked roles that declare hooks; a held role that could not be discovered fails loud
+  const discovered = await getLinkedRolesWithHooks(context);
+  const roles = discovered.roles.filter((role) => rolesHeld.has(role.slug));
+  const errors = discovered.errors.filter((one) => rolesHeld.has(one.roleSlug));
   if (errors.length > 0)
     throw new MalfunctionError(
       'a linked role could not be read for its hooks',

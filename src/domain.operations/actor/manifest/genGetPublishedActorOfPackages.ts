@@ -4,6 +4,7 @@ import type { RoleRegistryManifest } from '@src/domain.objects';
 import type { ActorDeclared } from '@src/domain.objects/ActorDeclared';
 import type { HasPackageRoot } from '@src/domain.operations/config/ContextConfigOfUsage';
 
+import { asActorRefNearbyHint } from './asActorRefNearbyHint';
 import type { GetPublishedActor } from './getActorExpanded';
 import { getActorsPublishedOfPackage } from './getActorsPublishedOfPackage';
 
@@ -19,6 +20,9 @@ import { getActorsPublishedOfPackage } from './getActorsPublishedOfPackage';
  *   packages — a fresh read is a fresh lookup
  * .note = a package that is installed but could not be read fails loud with its own fault,
  *   never as absent: "install it" would send the human to a package already on disk
+ * .note = a package that is installed but publishes no such slug fails loud too, with the
+ *   slugs it does publish and the nearest one — a typo, or an older version
+ * .note = null means one case only: no package for the repo is installed
  */
 export const genGetPublishedActorOfPackages = (input: {
   manifests: HasPackageRoot<RoleRegistryManifest>[];
@@ -53,6 +57,21 @@ export const genGetPublishedActorOfPackages = (input: {
       actorsByRepo.get(repo) ??
       getActorsPublishedOfPackage({ packageRoot: manifest.packageRoot });
     actorsByRepo.set(repo, actors);
-    return actors.find((one) => one.slug === slug) ?? null;
+    const found = actors.find((one) => one.slug === slug);
+    if (found) return found;
+
+    // installed, yet the slug is not among its published actors: name the ones it does publish
+    const slugsPublished = actors.map((one) => one.slug);
+    throw new ConstraintError(
+      `rhachet-roles-${repo} is installed, and publishes no actor @${repo}/${slug}`,
+      {
+        actor: `@${repo}/${slug}`,
+        published: slugsPublished.map((one) => `@${repo}/${one}`),
+        hint:
+          slugsPublished.length > 0
+            ? `${asActorRefNearbyHint({ ref: `@${slug}`, slugs: slugsPublished }).replace(/'@/g, `'@${repo}/`)} — or upgrade rhachet-roles-${repo}, if a newer version publishes it`
+            : `rhachet-roles-${repo} publishes no actors at this version — upgrade it, or list its roles in .agent/actors.yml`,
+      },
+    );
   };
 };

@@ -193,11 +193,12 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case8] a manifest
 
 exports[`rhx init under .agent/actors.yml (acceptance) given: [case8] a manifest with an authored mistake when: [t3] a published base whose package is not installed, then \`init\` then: the refusal holds its shape 1`] = `
 "
-✋ ConstraintError: actors.yml names a published actor not found: @ghlitch/watcher
+✋ ConstraintError: actors.yml names a published actor whose package is not installed: @ghlitch/watcher
 
 {
-  "hint": "install the role package that publishes it (rhachet-roles-ghlitch), or check the slug",
-  "ref": "@ghlitch/watcher"
+  "hint": "install rhachet-roles-ghlitch, or check the repo in '@ghlitch/watcher'",
+  "ref": "@ghlitch/watcher",
+  "package": "rhachet-roles-ghlitch"
 }
 
 [args] init
@@ -325,7 +326,7 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case8] a manifest
 ✋ ConstraintError: actors.yml declares role 'surfschool/coach', which no installed role package carries
 
 {
-  "hint": "check the role slug for a typo, or install the role package that carries it",
+  "hint": "install rhachet-roles-surfschool, or check the role slug for a typo",
   "role": "surfschool/coach",
   "packages": [
     "ehmpathy",
@@ -333,6 +334,23 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case8] a manifest
     "bhrain"
   ],
   "packagesUnread": []
+}
+
+[args] init
+
+"
+`;
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case8] a manifest with an authored mistake when: [t12] a role focus (F25), then \`init\` then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: actors.yml actor @a names a role focus 'ehmpathy/mechanic::flow', which actors.yml does not support yet
+
+{
+  "hint": "declare the role bare ('ehmpathy/mechanic'), then focus it per clone: rhx enroll <brain> --roles mechanic::flow",
+  "path": "/TMP_TEST_DIR/.agent/actors.yml",
+  "roles": [
+    "ehmpathy/mechanic::flow"
+  ]
 }
 
 [args] init

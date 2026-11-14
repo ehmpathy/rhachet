@@ -476,7 +476,7 @@ describe('rhx init under .agent/actors.yml (acceptance)', () => {
     {
       description: 'a published base whose package is not installed',
       lines: ["ambient: '@crew'", 'actor:', '  - slug: crew', "    roles: ['@ghlitch/watcher']", ''],
-      message: 'published actor not found: @ghlitch/watcher',
+      message: 'published actor whose package is not installed: @ghlitch/watcher',
     },
     {
       description: 'an extension cycle',
@@ -517,6 +517,11 @@ describe('rhx init under .agent/actors.yml (acceptance)', () => {
       description: 'a role of a package not installed',
       lines: ["ambient: '@a'", 'actor:', '  - slug: a', '    brain: claude', '    roles: [surfschool/coach]', ''],
       message: "actors.yml declares role 'surfschool/coach', which no installed role package carries",
+    },
+    {
+      description: 'a role focus (F25)',
+      lines: ["ambient: '@a'", 'actor:', '  - slug: a', '    brain: claude', "    roles: ['ehmpathy/mechanic::flow']", ''],
+      message: "names a role focus 'ehmpathy/mechanic::flow', which actors.yml does not support yet",
     },
   ];
 
