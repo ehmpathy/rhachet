@@ -1,7 +1,8 @@
+import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
+
 import { type ChildProcess, spawn } from 'node:child_process';
 import { existsSync, readFileSync, readlinkSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
 const STUB_BRAIN = join(__dirname, '../../../.test/assets/stubBrainCli.cjs');
 
@@ -111,27 +112,33 @@ describe('stubBrainCli, on parent loss', () => {
     });
   });
 
-  given('[case2] a stub whose parent lives on, and whose cwd is deleted', () => {
-    // the measured leak: a detached enroll host outlives its test, so the stub's parent never
-    //   dies; only the test repo's prune tells the stub it is unreachable
-    const scene = useBeforeAll(async () => {
-      const cwd = genTempDir({ slug: 'stub-cwd-loss' });
-      return { cwd, ...(await startStubUnderParent({ cwd })) };
-    });
-    afterAll(() => endScene(scene));
-
-    when('[t0] the cwd is removed', () => {
-      then('the stub is alive while its cwd exists', () => {
-        expect(isPidGone(scene.stubPid)).toEqual(false);
+  given(
+    '[case2] a stub whose parent lives on, and whose cwd is deleted',
+    () => {
+      // the measured leak: a detached enroll host outlives its test, so the stub's parent never
+      //   dies; only the test repo's prune tells the stub it is unreachable
+      const scene = useBeforeAll(async () => {
+        const cwd = genTempDir({ slug: 'stub-cwd-loss' });
+        return { cwd, ...(await startStubUnderParent({ cwd })) };
       });
+      afterAll(() => endScene(scene));
 
-      then('the stub exits within 3s of its cwd removal', async () => {
-        // delete the stub's own cwd, read from /proc, as the prune deletes the test repo
-        const stubCwd = readlinkSync(`/proc/${scene.stubPid}/cwd`);
-        rmSync(stubCwd, { recursive: true, force: true });
-        const gone = await awaitPidGone({ pid: scene.stubPid, boundMs: 3000 });
-        expect(gone).toEqual(true);
+      when('[t0] the cwd is removed', () => {
+        then('the stub is alive while its cwd exists', () => {
+          expect(isPidGone(scene.stubPid)).toEqual(false);
+        });
+
+        then('the stub exits within 3s of its cwd removal', async () => {
+          // delete the stub's own cwd, read from /proc, as the prune deletes the test repo
+          const stubCwd = readlinkSync(`/proc/${scene.stubPid}/cwd`);
+          rmSync(stubCwd, { recursive: true, force: true });
+          const gone = await awaitPidGone({
+            pid: scene.stubPid,
+            boundMs: 3000,
+          });
+          expect(gone).toEqual(true);
+        });
       });
-    });
-  });
+    },
+  );
 });
