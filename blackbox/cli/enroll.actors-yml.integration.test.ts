@@ -11,6 +11,7 @@ import { join } from 'node:path';
 import { genTempDir, given, then, useBeforeAll, useThen, when } from 'test-fns';
 
 import { setupRichStubBrainPath } from '@/blackbox/.test/infra/enrollCloneHarness';
+import { endClonesBakedIn } from '@/blackbox/.test/infra/endClonesBakedIn';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import {
   asSnapshotSafe,
@@ -68,6 +69,7 @@ const ACTORS_YML = [
 describe('rhx clone @<slug> under .agent/actors.yml (integration)', () => {
   given('[case1] a manifest with three declared actors, linked by init', () => {
     const dir = genTempDir({ slug: 'enroll-actors-yml' });
+    afterAll(() => endClonesBakedIn({ repoDir: dir, env: null }));
     const scene = useBeforeAll(async () => {
       setupRoleFixtureRepo({ dir });
       setActorsYml({ dir, lines: ACTORS_YML });
@@ -360,6 +362,9 @@ describe('rhx clone @<slug> under .agent/actors.yml (integration)', () => {
           "role delta '+architekt' names no linked role, did you mean '+architect'?",
         );
       });
+      then('the refusal holds its shape', () => {
+        expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+      });
       then('no clone is enrolled', () => {
         expect(run.stderr).not.toContain('clone enrolled');
       });
@@ -398,6 +403,9 @@ describe('rhx clone @<slug> under .agent/actors.yml (integration)', () => {
         });
       return { dir: repo.path, home, path: setupRichStubBrainPath({ dir: repo.path }) };
     });
+    afterAll(() =>
+      endClonesBakedIn({ repoDir: scene.dir, env: { HOME: scene.home } }),
+    );
 
     when('[t0] a bare `enroll` (the repo actor `@crew`)', () => {
       const run = useThen('exits 0', () =>
@@ -534,6 +542,7 @@ describe('rhx clone @<slug> under .agent/actors.yml (integration)', () => {
 
   given('[case3] a repo with linked roles and no .agent/actors.yml', () => {
     const dir = genTempDir({ slug: 'enroll-actors-yml-absent' });
+    afterAll(() => endClonesBakedIn({ repoDir: dir, env: null }));
     const scene = useBeforeAll(async () => {
       setupRoleFixtureRepo({ dir });
       const init = invokeRhachetCliBinary({
@@ -582,6 +591,7 @@ describe('rhx clone @<slug> under .agent/actors.yml (integration)', () => {
 
   given('[case4] a manifest that declares a role init has not linked yet', () => {
     const dir = genTempDir({ slug: 'enroll-actors-yml-unlinked' });
+    afterAll(() => endClonesBakedIn({ repoDir: dir, env: null }));
     const scene = useBeforeAll(async () => {
       setupRoleFixtureRepo({ dir });
       setActorsYml({
@@ -650,6 +660,7 @@ describe('rhx clone @<slug> under .agent/actors.yml (integration)', () => {
 
   given('[case4b] a repo actor that declares a role init has not linked yet', () => {
     const dir = genTempDir({ slug: 'enroll-actors-yml-ambient-unlinked' });
+    afterAll(() => endClonesBakedIn({ repoDir: dir, env: null }));
     const scene = useBeforeAll(async () => {
       setupRoleFixtureRepo({ dir });
       setActorsYml({
@@ -729,6 +740,7 @@ describe('rhx clone @<slug> under .agent/actors.yml (integration)', () => {
 
   given('[case5] a repo actor whose declared brain is not the default', () => {
     const dir = genTempDir({ slug: 'enroll-actors-yml-brain' });
+    afterAll(() => endClonesBakedIn({ repoDir: dir, env: null }));
     const scene = useBeforeAll(async () => {
       setupRoleFixtureRepo({ dir });
       setActorsYml({
@@ -794,6 +806,7 @@ describe('rhx clone @<slug> under .agent/actors.yml (integration)', () => {
 
   given('[case6] an actor that names the documented repl slug `anthropic/claude/code`', () => {
     const dir = genTempDir({ slug: 'enroll-actors-yml-repl-slug' });
+    afterAll(() => endClonesBakedIn({ repoDir: dir, env: null }));
     const scene = useBeforeAll(async () => {
       setupRoleFixtureRepo({ dir });
       setActorsYml({

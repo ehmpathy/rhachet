@@ -368,15 +368,19 @@ describe('getLinkedRolesWithHooks (integration)', () => {
           linked: { badpkg: ['mechanic'], goodpkg: ['surfer', 'diver'] },
         });
         const context = new ContextCli({ cwd: gitroot, gitroot });
-        return getLinkedRolesWithHooks({ rolesHeld: ['surfer'] }, context);
+        const result = await getLinkedRolesWithHooks(
+          { rolesHeld: ['surfer'] },
+          context,
+        );
+        // read the calls here: the suite's `beforeEach` resets the mock before each `then`
+        const packagesImported = mockImportPackageExports.mock.calls.map(
+          ([call]: [{ packageName: string }]) => call.packageName,
+        );
+        return { ...result, packagesImported };
       });
 
       then('the unheld package is never imported', () => {
-        expect(
-          mockImportPackageExports.mock.calls.map(
-            ([call]: [{ packageName: string }]) => call.packageName,
-          ),
-        ).toEqual(['rhachet-roles-goodpkg']);
+        expect(scene.packagesImported).toEqual(['rhachet-roles-goodpkg']);
       });
 
       then('no error is recorded for the unheld role', () => {

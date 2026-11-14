@@ -9,7 +9,7 @@ exports[`rhx clone @<slug> under .agent/actors.yml (integration) given: [case1] 
   "actor": "@solo"
 }
 
-[args] enroll,@solo,--roles,architect
+[args] clone,@solo,--roles,architect
 
 "
 `;
@@ -24,7 +24,7 @@ exports[`rhx clone @<slug> under .agent/actors.yml (integration) given: [case1] 
   "path": "/TMP_TEST_DIR/.agent/actors.yml"
 }
 
-[args] enroll,@ghost
+[args] clone,@ghost
 
 "
 `;
@@ -39,7 +39,7 @@ exports[`rhx clone @<slug> under .agent/actors.yml (integration) given: [case1] 
   "path": "/TMP_TEST_DIR/.agent/actors.yml"
 }
 
-[args] enroll,@sollo
+[args] clone,@sollo
 
 "
 `;
@@ -54,6 +54,25 @@ exports[`rhx clone @<slug> under .agent/actors.yml (integration) given: [case1] 
 }
 
 [args] clone,claude,--roles,mechanic
+
+"
+`;
+
+exports[`rhx clone @<slug> under .agent/actors.yml (integration) given: [case1] a manifest with three declared actors, linked by init when: [t9] \`clone @solo +architekt\` (a typo of a linked role) then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: role delta '+architekt' names no linked role, did you mean '+architect'?
+
+{
+  "hint": "linked roles: architect, ergonomist, mechanic",
+  "token": "+architekt",
+  "rolesLinked": [
+    "architect",
+    "ergonomist",
+    "mechanic"
+  ]
+}
+
+[args] clone,@solo,+architekt
 
 "
 `;

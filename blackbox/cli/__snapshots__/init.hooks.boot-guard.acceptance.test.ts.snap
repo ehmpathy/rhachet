@@ -64,7 +64,11 @@ exports[`rhachet init --hooks, boot guard for .agent/repo=.this/role=any given: 
 `;
 
 exports[`rhachet init --hooks, boot guard for .agent/repo=.this/role=any given: [case1] a repo whose own role has a payload and no budget when: [t3] init --hooks runs again then: the re-run renders as snapshotted: stdout-rerun 1`] = `
-"🔭 search for linked roles with hooks...
+"🧠 brain://repo=ambient
+   └─ boot.md
+      └─ upgraded — 1 role
+
+🔭 search for linked roles with hooks...
    └─ .this/any
 
 🪝 apply hooks to brains...
