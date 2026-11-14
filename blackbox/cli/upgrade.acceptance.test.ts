@@ -1099,6 +1099,81 @@ describe('rhachet upgrade', () => {
     });
   });
 
+  given('[case12.4] --roles ehmpathy/mechanic under a declared .agent/actors.yml', () => {
+    const scene = useBeforeAll(async () => {
+      // the same linked mechanic as [case12], plus a manifest that names it on a repo actor.
+      //   upgrade must read the manifest, as init does — a repo that adopted actors.yml must
+      //   never fall back to a flag list on upgrade. architect is declared and NOT yet linked,
+      //   so the run proves upgrade links what the manifest declares, beyond what is linked
+      const repo = await genTestTempRepo({
+        fixture: 'with-roles-linked',
+        install: true,
+      });
+      writeFileSync(
+        join(repo.path, '.agent', 'actors.yml'),
+        [
+          "ambient: '@crew'",
+          'actor:',
+          '  - slug: crew',
+          '    brain: claude',
+          '    roles: [ehmpathy/mechanic, ehmpathy/architect]',
+          '',
+        ].join('\n'),
+      );
+      return { repo };
+    });
+
+    when('[t0] rhachet upgrade --roles ehmpathy/mechanic', () => {
+      const result = useBeforeAll(async () => ({
+        upgradeResult: invokeRhachetCliBinary({
+          args: ['upgrade', '--roles', 'ehmpathy/mechanic'],
+          cwd: scene.repo.path,
+          logOnError: false,
+        }),
+      }));
+
+      then('exits with status 0', () => {
+        expect({
+          status: result.upgradeResult.status,
+          stderr: result.upgradeResult.stderr,
+        }).toMatchObject({ status: 0 });
+      });
+
+      then('the manifest drift report prints, so the declared set is never silent', () => {
+        expect(result.upgradeResult.stdout).toContain('🎭 actors.yml');
+        expect(result.upgradeResult.stdout).toContain('repo actor = @crew');
+      });
+
+      then('a role the manifest declares and no flag named is linked', () => {
+        expect(
+          existsSync(
+            join(scene.repo.path, '.agent/repo=ehmpathy/role=architect'),
+          ),
+        ).toEqual(true);
+      });
+
+      then("the declared repo actor's corpus is rendered", () => {
+        expect(
+          existsSync(
+            join(
+              scene.repo.path,
+              '.agent/.actors/actor.via.slug=crew/brain/.claude/boot.md',
+            ),
+          ),
+        ).toEqual(true);
+      });
+
+      then('the manifest report block is locked to a snapshot', () => {
+        const lines = result.upgradeResult.stdout.split('\n');
+        const start = lines.findIndex((line) => line.startsWith('🎭 actors.yml'));
+        const end = lines.findIndex((line, index) => index > start && line === '');
+        expect(
+          lines.slice(start, end === -1 ? undefined : end).join('\n'),
+        ).toMatchSnapshot();
+      });
+    });
+  });
+
   given('[case12.1] --roles ehmpathy/mechanic where <repo>/.claude and the default dir hold the same name', () => {
     const scene = useBeforeAll(async () => {
       // both <repo>/.claude and the default dir hold a settings.json. rhachet OWNS the

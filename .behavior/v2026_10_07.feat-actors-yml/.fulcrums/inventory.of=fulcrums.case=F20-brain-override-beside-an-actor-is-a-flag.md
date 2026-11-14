@@ -5,4 +5,5 @@
 - **rework** — clean — a positional read in `performEnroll` before the passthrough split, plus one case
 - **confidence** — 70%; the vision row is the wisher's text, so it stays flagged, never dropped
 - **where** — `src/contract/cli/invokeEnroll.ts` (actor form sets `positionalBrain = null`), `src/domain.operations/enroll/asActorFormEnrollment.ts`; raised by behavior-intent-coverage nitpick.1 (i002)
-- **verdict** — unruled; best guess taken, needs the wisher to amend the edge row or rule (a)
+- **verdict** — **ruled** by the director, 2026-11-14: keep the guess (ux taste, a clean rework);
+  listed in the pr body for the commander's review

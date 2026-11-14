@@ -17,7 +17,8 @@
 #   --scope    jest path regex for the suites to run (required)
 #              🟡 it matches the ABSOLUTE path, worktree dir included: in
 #              `…feat-actors-yml/`, `--scope 'actors-yml'` runs EVERY suite.
-#              anchor it on the file name: 'actors-yml\.acceptance'
+#              anchor it on the file name: 'actors-yml\.acceptance'.
+#              a scope that matches the repo root is refused, exit 2
 #   --resnap   write snapshots (default: verify only, under --ci)
 #
 # guarantee:
@@ -51,6 +52,17 @@ done
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
+
+# refuse a scope that matches the repo root itself: jest reads it against each suite's absolute
+#   path, so it would match every suite under the root and run the whole tier
+#   (rule.forbid.local-full-test-sweeps). a caution in --help did not stop it; this does
+if printf '%s/\n' "$REPO_ROOT" | grep -Eq -- "$SCOPE"; then
+  echo "✋ ConstraintError: --scope matches the repo root, so it would run every suite" >&2
+  echo "   ├─ scope = $SCOPE" >&2
+  echo "   ├─ root  = $REPO_ROOT/" >&2
+  echo "   └─ hint  = anchor it on the file name, e.g. 'init\\.actors-yml\\.acceptance'" >&2
+  exit 2
+fi
 
 # every run keeps its full output, both streams, so a failure can be read after
 LOG_DIR=".log/role=any/skill=test.acceptance.credfree"

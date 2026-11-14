@@ -17,4 +17,5 @@
   until (a) lands, and the wisher may rule that a blocker to adoption
 - **where** — `asActorDeclared.ts`; proven by `asActorsManifest.test.ts` and
   `init.actors-yml.acceptance.test.ts` case8 `[t12]`
-- **verdict** — unruled; **needs the wisher** to rule whether foci join `actors.yml`
+- **verdict** — **ruled** by the director, 2026-11-14: keep the guess (ux taste, a clean rework);
+  listed in the pr body for the commander's review

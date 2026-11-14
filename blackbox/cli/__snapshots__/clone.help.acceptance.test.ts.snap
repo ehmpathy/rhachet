@@ -136,3 +136,17 @@ Options:
   -h, --help          display help for command
 "
 `;
+
+exports[`rhx actor/clone --help (acceptance) given: [case1] a repo where the commands are registered when: [t8] clone claude --roles mechanic (the inline form, typed on clone) then: the refusal is locked (visual spot-check) 1`] = `
+"
+✋ ConstraintError: rhx clone has no verb 'claude'
+
+{
+  "hint": "clone reaches a clone (list · say · get · whoami · prune) or spawns one from a declared actor (rhx clone @<slug>, declared in .agent/actors.yml). for a one-off composition, use the inline form: rhx enroll <brain> --roles <roles>",
+  "operand": "claude"
+}
+
+[args] clone,claude,--roles,mechanic
+
+"
+`;

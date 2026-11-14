@@ -62,8 +62,10 @@ export const syncHooksForLinkedRoles = async (
   const errors: Array<{ source: string; error: Error }> = [];
 
   // get linked roles with hooks
-  const { roles, errors: discoverErrors } =
-    await getLinkedRolesWithHooks(context);
+  const { roles, errors: discoverErrors } = await getLinkedRolesWithHooks(
+    { rolesHeld: null },
+    context,
+  );
 
   // report discover errors loud and proud
   //

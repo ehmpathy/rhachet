@@ -113,6 +113,23 @@ const getRawArgsAfterEnroll = (): string[] => {
 };
 
 /**
+ * .what = the invocation echo with the verb the human typed — `clone` where they wrote
+ *   `rhx clone @<slug>`, which `invoke` maps onto enroll before the parse
+ * .why = a refusal echoes what was typed (`rule.require.refusals-carry-context`); an echo of a
+ *   verb the human never typed is a surprise, and they cannot paste it back to retry
+ */
+const asArgsWithVerbTyped = (input: { args: string[] }): string[] => {
+  const verbTyped = process.argv.find(
+    (arg) => arg === 'enroll' || arg === 'clone',
+  );
+  if (verbTyped !== 'clone') return input.args;
+  const verbIndex = input.args.indexOf('enroll');
+  return input.args.map((token, index) =>
+    index === verbIndex ? 'clone' : token,
+  );
+};
+
+/**
  * .what = the slug a positional `@<slug>` names — the actor form — or null for a brain
  * .why = `@<slug>` addresses a declared actor, `@:<slug>` a clone (`define.address-sigils`);
  *   only the actor grain is an enroll target
@@ -1039,7 +1056,9 @@ export const invokeEnroll = ({ program }: { program: Command }): void => {
         }
 
         await withCliOutputErrors({
-          args: getCliInvocationArgs({ command }),
+          args: asArgsWithVerbTyped({
+            args: getCliInvocationArgs({ command }),
+          }),
           outputRaw: opts.output,
           run: async () => {
             const gitroot = process.cwd();

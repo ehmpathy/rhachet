@@ -43,12 +43,16 @@ exports[`rhx given: [case5] rhx init bare-sigil alias when: [t2.1] \`rhx init -e
    │  └─ - ehmpathy/ergonomist
    └─ untouched (1)
 
-💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
-
 
 📦 persist prepare entries...
    ↻ [updated] scripts["prepare:rhachet"]
       └─ rhachet init --hooks --roles architect
+
+💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
+
+🧠 brain://repo=ambient
+   └─ boot.md
+      └─ upgraded — 1 role
 
 🔭 search for linked roles with hooks...
 
@@ -64,6 +68,10 @@ exports[`rhx given: [case5] rhx init bare-sigil alias when: [t2] \`rhx init -erg
    └─ untouched (1)
 
 💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
+
+🧠 brain://repo=ambient
+   └─ boot.md
+      └─ upgraded — 1 role
 
 🔭 search for linked roles with hooks...
 

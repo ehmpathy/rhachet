@@ -135,6 +135,7 @@ export const asActorsDriftReportLines = (input: {
         (line) => `   ${line}`,
       ),
     ),
-    '',
   ];
+  // .note = no blank at the end: every caller's next block (`🔧 init …`) opens on a blank of
+  //   its own, so a blank here stacked two
 };

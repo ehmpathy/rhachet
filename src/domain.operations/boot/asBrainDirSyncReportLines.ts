@@ -101,9 +101,10 @@ export const asBrainDirSyncReportLines = (input: {
       rows: ['reset — hand edits dropped; rhachet owns this file'],
     });
 
-  // a corpus that merely re-rendered, with no migration and no link change, is no news
+  // a corpus that re-rendered identical bytes, with no migration and no link change, is no news.
+  //   a corpus whose bytes changed is news: its clones boot a new roleset
   const isBootOnly = groups.length === 1;
-  if (isBootOnly && !render.bootMdCreated) return [];
+  if (isBootOnly && !render.bootMdChanged) return [];
 
   return [
     `🧠 ${asBrainDirBootScopeLabel({ scope: render.scope })}`,

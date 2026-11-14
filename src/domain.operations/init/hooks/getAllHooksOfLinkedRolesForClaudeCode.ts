@@ -50,10 +50,12 @@ export const getAllHooksOfLinkedRolesForClaudeCode = async (input: {
   );
   if (brainsClaude.length === 0) return {};
 
-  // the held linked roles that declare hooks; a held role that could not be discovered fails loud
-  const discovered = await getLinkedRolesWithHooks(context);
-  const roles = discovered.roles.filter((role) => rolesHeld.has(role.slug));
-  const errors = discovered.errors.filter((one) => rolesHeld.has(one.roleSlug));
+  // the held linked roles that declare hooks — narrowed before the import, so an unheld role's
+  //   package is never loaded; a held role that could not be discovered fails loud
+  const { roles, errors } = await getLinkedRolesWithHooks(
+    { rolesHeld: [...rolesHeld] },
+    context,
+  );
   if (errors.length > 0)
     throw new MalfunctionError(
       'a linked role could not be read for its hooks',

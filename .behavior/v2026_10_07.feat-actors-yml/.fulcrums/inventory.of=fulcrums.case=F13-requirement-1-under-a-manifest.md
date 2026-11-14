@@ -5,4 +5,6 @@
 - **rework** — clean — one refusal message, or one manifest writer
 - **confidence** — 70% — the wisher may prefer (b), since entry 1 is marked 🔴
 - **where** — contract row *behavioral requirements*; inventory rows 19, 41; edgecases
-- **verdict** — unruled; **needs the wisher** to amend requirement 1 or pick (b)
+- **verdict** — **ruled** by the director, 2026-11-14: keep the guess (ux taste, a clean rework);
+  listed in the pr body for the commander's review. the scope note is recorded in
+  `inventory.of=requirements.case=1`

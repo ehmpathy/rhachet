@@ -1,5 +1,5 @@
 import { spawnSync } from 'child_process';
-import { join } from 'path';
+import { basename, join } from 'path';
 import { given, then, useThen, when } from 'test-fns';
 
 /**
@@ -58,6 +58,31 @@ describe('test.acceptance.credfree', () => {
       });
       then('the refusal holds its shape', () => {
         expect(run.stderr).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case3] a --scope that matches the repo root path', () => {
+    when('[t0] the scope is the repo dir name itself', () => {
+      // the repo dir name matches the root on any host, as a branch slug in a worktree name does
+      const run = useThen('exits 2', () =>
+        runSkill({ args: ['--scope', basename(REPO_ROOT)] }),
+      );
+
+      then('it refuses before any build or jest run', () => {
+        expect(run.status).toEqual(2);
+        expect(run.stderr).toContain(
+          '--scope matches the repo root, so it would run every suite',
+        );
+      });
+    });
+
+    when('[t1] the scope is a bare dot', () => {
+      const run = useThen('exits 2', () => runSkill({ args: ['--scope', '.'] }));
+
+      then('it refuses, and names the anchor fix', () => {
+        expect(run.status).toEqual(2);
+        expect(run.stderr).toContain('anchor it on the file name');
       });
     });
   });

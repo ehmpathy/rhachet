@@ -8,5 +8,13 @@ exports[`init role delta → a delta actor with a live clone (acceptance) given:
 
 💡 declare these roles by name in .agent/actors.yml, and \`rhx init\` reads them
 
+🧠 brain://repo=ambient
+   └─ boot.md
+      └─ upgraded — 2 roles
+
+🧠 brain://hash=692c8604
+   └─ boot.md
+      └─ upgraded — 1 role
+
 "
 `;

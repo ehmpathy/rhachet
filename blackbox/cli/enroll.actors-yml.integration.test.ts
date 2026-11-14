@@ -566,6 +566,9 @@ describe('rhx clone @<slug> under .agent/actors.yml (integration)', () => {
         expect(run.stderr).toContain('declare @scholar in .agent/actors.yml');
         expect(run.stderr).toContain('rhx enroll <brain> --roles <roles>');
       });
+      then('the echo names the verb the human typed, `clone`', () => {
+        expect(run.stderr).toContain('[args] clone,@scholar');
+      });
       then('the refusal holds its shape', () => {
         expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
       });

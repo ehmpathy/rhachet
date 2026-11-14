@@ -1,0 +1,19 @@
+{
+  "key": "d90e7243a33e916c",
+  "kind": "create",
+  "repo": {
+    "owner": "ehmpathy",
+    "name": "rhachet"
+  },
+  "exid": null,
+  "title": "refactor(actors): one collect-or-throw helper and the actor-sweep shape moves (after #699)",
+  "description": "# refactor(actors): one collect-or-throw helper and the actor-sweep shape moves\n\na planned dedicated PR, scoped out of #699 (`beav/feat-actors-yml`) by fulcrums F19 and F21. no\nbehavior a human sees changes except the refusal frames named in part 1.\n\n## .part 1 — one collect-or-throw helper (F19)\n\nfour sweeps carry the same catch: a code defect rethrows (`isCodeDefectError`), a non-Error wraps\nin a `MalfunctionError`, else a `BrainDirBootFailure` with a scope.\n\n- `src/domain.operations/init/boots/setDeclaredActorsOndisk.ts` (three copies)\n- `src/domain.operations/enroll/setDeltaActorsOndisk.ts` (three copies)\n- `src/domain.operations/init/boots/syncActiveActorBrainDirs.ts` (`asErrorCollectedOrThrow`)\n- `src/domain.operations/init/boots/asRepoActorBrainDirOutcome.ts`\n\nthe change: one `asBrainDirBootFailure({ scope, error })`; each catch becomes one call. the\nnon-Error message is settled once, so the `init.*` and `enroll.*` acceptance refusal frames resnap.\n\n## .part 2 — the six shape moves (F21)\n\n1. one `asActorsPartitioned({ actors, manifest })` → `{ repo, declared, delta, hash }`, read once in\n   `syncBootsForBrainDirs`; delete `asFailuresWithEnumerationOnce`\n2. one `getOneRoleRefLinkedOfSpecifier` for the \"declares role …, which is not linked\" refusal,\n   today in `asRoleRefsOfActorExpanded` and `asActorFormEnrollment`, with one role order\n   (`expanded.roles`)\n3. move `setActorSettingsDerived` under `actor/enrolled/`, so `enroll` → `init` and `init` →\n   `enroll` stop to cross\n4. one `getActorOndiskManifestPath({ repoPath, exid })` for the 7 hand joins of `actor.json`\n5. move `isSafeCloneSlug` to a neutral `actor/` home, so `actor/manifest` stops to import `clone/`\n6. one `asInitRefusalOfManifest` transformer, called once from `invokeInit`\n\n## .bounds\n\n- in: the files above, their unit and integration tests, the resnapped refusal frames\n- out: any change to what init, enroll or clone decide; any new flag or output row\n- each part lands as its own commit, so a revert can take one without the other\n\n## .why it is its own PR\n\neach move opens files #699 did not otherwise need, two of the four sweeps predate the branch, and\npart 1 moves refusal text across suites. it re-shapes the sweep contract every actor form rides,\nso it earns its own focused review.\n\n---\n\ndispatched by human + beaver 🦫",
+  "status": null,
+  "via": "gh.issues",
+  "auth": null,
+  "idem": null,
+  "heldSeq": 1,
+  "recordStatus": "DELIVERED",
+  "reason": null,
+  "deliveredExid": "746"
+}

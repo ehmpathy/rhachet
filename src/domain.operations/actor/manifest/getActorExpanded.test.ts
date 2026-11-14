@@ -285,6 +285,87 @@ describe('getActorExpanded', () => {
     });
   });
 
+  given(
+    "[case7] a package's published actor extends ANOTHER package's published actor",
+    () => {
+      const steward = new ActorDeclared({
+        slug: 'steward',
+        brain: null,
+        roles: ['@ehmpathy/builder', '+ahbode/steward'],
+      });
+      const manifest = new ActorsManifest({
+        ambient: '@crew',
+        actor: [
+          new ActorDeclared({
+            slug: 'crew',
+            brain: null,
+            roles: ['@ahbode/steward'],
+          }),
+        ],
+      });
+      const getCrew = (input: { builder: ActorDeclared }) =>
+        getActorExpanded(
+          { ref: '@crew', scope: null, trail: [] },
+          {
+            manifest,
+            getPublishedActor: genGetPublishedActor({
+              actors: {
+                'ehmpathy/builder': input.builder,
+                'ahbode/steward': steward,
+              },
+            }),
+          },
+        );
+
+      when('[t0] the consumer adopts the ahbode actor', () => {
+        const expanded = getCrew({ builder: PUBLISHED['ehmpathy/builder'] });
+
+        then('it holds the ehmpathy base plus the ahbode role', () => {
+          expect(expanded.roles).toEqual([
+            'ehmpathy/mechanic',
+            'bhrain/driver',
+            'bhuild/behaver',
+            'ahbode/steward',
+          ]);
+        });
+        then('the brain propagates from the ehmpathy base', () => {
+          expect(expanded.brain).toEqual('anthropic/claude/code');
+        });
+        then('each role names the base the consumer wrote', () => {
+          expect(expanded.rolesVia['ahbode/steward']).toEqual(
+            '@ahbode/steward',
+          );
+          expect(expanded.rolesVia['bhrain/driver']).toEqual('@ahbode/steward');
+        });
+      });
+
+      when('[t1] the ehmpathy base gains a role', () => {
+        then(
+          'the ahbode extension and the consumer gain it with no edit',
+          () => {
+            const builderGrown = new ActorDeclared({
+              slug: 'builder',
+              brain: 'anthropic/claude/code',
+              roles: [
+                'ehmpathy/mechanic',
+                'bhrain/driver',
+                'bhuild/behaver',
+                'bhrain/reviewer',
+              ],
+            });
+            expect(getCrew({ builder: builderGrown }).roles).toEqual([
+              'ehmpathy/mechanic',
+              'bhrain/driver',
+              'bhuild/behaver',
+              'bhrain/reviewer',
+              'ahbode/steward',
+            ]);
+          },
+        );
+      });
+    },
+  );
+
   given('[case4] refusals', () => {
     when('[t0] a base names an undeclared peer', () => {
       then('it lists the declared actors', async () => {

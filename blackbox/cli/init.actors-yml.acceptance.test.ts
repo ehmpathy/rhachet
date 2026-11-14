@@ -2,7 +2,7 @@ import { MalfunctionError } from 'helpful-errors';
 import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { genTempDir, given, then, useThen, when } from 'test-fns';
+import { genTempDir, given, then, useBeforeAll, useThen, when } from 'test-fns';
 
 import {
   asSnapshotSafe,
@@ -34,6 +34,25 @@ const asStdoutBlock = (input: { stdout: string; header: string }): string => {
  */
 const asActorsReportBlock = (input: { stdout: string }): string =>
   asStdoutBlock({ stdout: input.stdout, header: '🎭 actors.yml' });
+
+/**
+ * .what = mask the installed role package's version and its carried role list in a refusal frame
+ * .why = both belong to the role package, not to this repo's contract; unmasked, a version bump of
+ *        `rhachet-roles-ehmpathy` turns the snapshot red on a change that never touched actors.yml
+ *        (rule.require.snapshot-verified-on-independent-run)
+ */
+const asStderrWithPackageCarriageMasked = (input: { stderr: string }): string => {
+  if (!input.stderr.includes('"package": "rhachet-roles-')) return input.stderr;
+  return input.stderr
+    .replace(/(rhachet-roles-[a-z0-9-]+)@\d+\.\d+\.\d+[^\s",']*/g, '$1@$VERSION')
+    .replace(/"roles": \[[^\]]*\]/g, '"roles": [$ROLES_CARRIED]');
+};
+
+/**
+ * .what = the path of an actor's rendered `boot.md`
+ */
+const getBootPath = (input: { dir: string; actorDirName: string }): string =>
+  join(input.dir, '.agent', '.actors', input.actorDirName, 'brain', '.claude', 'boot.md');
 
 const ACTORS_YML_CREW = [
   "ambient: '@crew'",
@@ -453,6 +472,72 @@ describe('rhx init under .agent/actors.yml (acceptance)', () => {
   });
 
   /**
+   * .note = init re-derives the repo actor, the one actor whose dir it owns; a peer's dir is minted
+   *   at its first enroll, and its re-derive is proven where a clone spawns
+   *   (`enroll.actors-yml.integration.test.ts` [case2][t3])
+   */
+  given('[case9] two declared actors, then a manifest that swaps their roles (the sync invariant)', () => {
+    const testDir = genTempDir({ slug: 'init-actors-yml-rederive' });
+    const actorsLinesOf = (input: { crew: string; peer: string }): string[] => [
+      "ambient: '@crew'",
+      'actor:',
+      '  - slug: crew',
+      '    brain: claude',
+      `    roles: [${input.crew}]`,
+      '  - slug: peer',
+      '    brain: claude',
+      `    roles: [${input.peer}]`,
+      '',
+    ];
+    const scene = useBeforeAll(async () => {
+      setupRoleFixtureRepo({ dir: testDir });
+      setActorsYml({
+        dir: testDir,
+        lines: actorsLinesOf({ crew: 'ehmpathy/mechanic', peer: 'bhuild/behaver' }),
+      });
+      const before = invokeRhachetCliBinary({ args: ['init'], cwd: testDir });
+      if (before.status !== 0)
+        throw new MalfunctionError('the first init of the re-derive case failed', {
+          stderr: before.stderr,
+        });
+      return { testDir };
+    });
+
+    when('[t0] the manifest swaps the roles of @crew and @peer, then `init`', () => {
+      const run = useThen('exits 0', () => {
+        setActorsYml({
+          dir: scene.testDir,
+          lines: actorsLinesOf({ crew: 'bhuild/behaver', peer: 'ehmpathy/mechanic' }),
+        });
+        return invokeRhachetCliBinary({ args: ['init'], cwd: scene.testDir });
+      });
+
+      then("the repo actor's boot.md is re-rendered for its new roles, with no edit by hand", () => {
+        expect(run.status).toEqual(0);
+        const bootCrew = readFileSync(getBootPath({ dir: scene.testDir, actorDirName: 'actor.via.slug=crew' }), 'utf8');
+        expect(bootCrew).toContain('role=behaver');
+        expect(bootCrew).not.toContain('role=mechanic');
+      });
+      then('both roles stay linked — the union of every actor', () => {
+        expect(getOneIsRoleLinked({ dir: scene.testDir, role: 'mechanic' })).toEqual(true);
+        expect(getOneIsRoleLinked({ dir: scene.testDir, role: 'behaver' })).toEqual(true);
+      });
+      then('a peer is minted at its first enroll, never by init', () => {
+        expect(existsSync(join(scene.testDir, '.agent', '.actors', 'actor.via.slug=peer'))).toEqual(false);
+      });
+      then('the report block holds its shape', () => {
+        expect(asActorsReportBlock({ stdout: run.stdout })).toMatchSnapshot();
+      });
+      then('the repo actor brain block names the upgrade — never a silent re-render', () => {
+        const block = asStdoutBlock({ stdout: run.stdout, header: '🧠 brain://slug=crew' });
+        expect(block.startsWith('🧠 brain://slug=crew')).toEqual(true);
+        expect(block).toContain('upgraded — 1 role');
+        expect(asSnapshotSafe(block)).toMatchSnapshot();
+      });
+    });
+  });
+
+  /**
    * .what = every manifest mistake a human can author, each refused by `init` with a named fix
    * .why = the manifest is a new surface a human writes by hand; each refusal frame is snapped so
    *        its headline, hint and metadata cannot drift unseen
@@ -545,7 +630,9 @@ describe('rhx init under .agent/actors.yml (acceptance)', () => {
           expect(run.stderr).toContain('hint');
         });
         then('the refusal holds its shape', () => {
-          expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+          expect(
+            asStderrWithPackageCarriageMasked({ stderr: asSnapshotSafe(run.stderr) }),
+          ).toMatchSnapshot();
         });
         then('no role is linked', () => {
           expect(existsSync(join(testDir, '.agent', 'repo=ehmpathy'))).toEqual(

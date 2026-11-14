@@ -124,7 +124,35 @@ describe('setBrainDirBoot', () => {
 
         expect(readFileSync(second.bootMdPath, 'utf8')).toEqual(bytesFirst);
         expect(second.agentsMdReset).toEqual(false);
+        expect(first.bootMdCreated).toEqual(true);
+        expect(first.bootMdChanged).toEqual(true);
+        expect(second.bootMdCreated).toEqual(false);
+        expect(second.bootMdChanged).toEqual(false);
       });
+
+      then(
+        'a re-render with fewer roles reports the corpus changed',
+        async () => {
+          const repoPath = genRepoWithRoles({ slug: 'setBrainDirBoot-c1t2b' });
+          const brainDir = join(repoPath, 'brain');
+          await setBrainDirBoot({
+            brainDir,
+            roles: ROLES,
+            repoPath,
+            scope: { kind: 'repo', actorExid: 'repo=ambient' },
+          });
+
+          const narrowed = await setBrainDirBoot({
+            brainDir,
+            roles: ROLES.slice(0, 1),
+            repoPath,
+            scope: { kind: 'repo', actorExid: 'repo=ambient' },
+          });
+
+          expect(narrowed.bootMdCreated).toEqual(false);
+          expect(narrowed.bootMdChanged).toEqual(true);
+        },
+      );
     });
 
     when('[t3] the same roles are rendered in two repos at two paths', () => {

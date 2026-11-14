@@ -289,17 +289,13 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case8] a manifest
 
 exports[`rhx init under .agent/actors.yml (acceptance) given: [case8] a manifest with an authored mistake when: [t9] a role slug with a typo, then \`init\` then: the refusal holds its shape 1`] = `
 "
-✋ ConstraintError: actors.yml declares role 'ehmpathy/mechnaic', which rhachet-roles-ehmpathy@1.39.7 does not carry
+✋ ConstraintError: actors.yml declares role 'ehmpathy/mechnaic', which rhachet-roles-ehmpathy@$VERSION does not carry
 
 {
   "hint": "check the slug for a typo against \`roles\`, the ones this version carries. else that version dropped or renamed it: rename it in .agent/actors.yml, drop it, or pin a version of rhachet-roles-ehmpathy that carries it",
   "role": "ehmpathy/mechnaic",
-  "package": "rhachet-roles-ehmpathy@1.39.7",
-  "roles": [
-    "ehmpathy/architect",
-    "ehmpathy/ergonomist",
-    "ehmpathy/mechanic"
-  ]
+  "package": "rhachet-roles-ehmpathy@$VERSION",
+  "roles": [$ROLES_CARRIED]
 }
 
 [args] init
@@ -356,4 +352,17 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case8] a manifest
 [args] init
 
 "
+`;
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case9] two declared actors, then a manifest that swaps their roles (the sync invariant) when: [t0] the manifest swaps the roles of @crew and @peer, then \`init\` then: the repo actor brain block names the upgrade — never a silent re-render 1`] = `
+"🧠 brain://slug=crew
+   └─ boot.md
+      └─ upgraded — 1 role"
+`;
+
+exports[`rhx init under .agent/actors.yml (acceptance) given: [case9] two declared actors, then a manifest that swaps their roles (the sync invariant) when: [t0] the manifest swaps the roles of @crew and @peer, then \`init\` then: the report block holds its shape 1`] = `
+"🎭 actors.yml
+   ├─ repo actor = @crew
+   ├─ 2 actor(s), 2 role(s) declared
+   └─ in sync, no role short"
 `;

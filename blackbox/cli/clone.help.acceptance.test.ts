@@ -80,5 +80,26 @@ describe('rhx actor/clone --help (acceptance)', () => {
         });
       });
     });
+
+    when('[t8] clone claude --roles mechanic (the inline form, typed on clone)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['clone', 'claude', '--roles', 'mechanic'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('it is refused, and names the inline form and the actor form', () => {
+        expect(result.status).toEqual(2);
+        expect(result.stderr).toContain("rhx clone has no verb 'claude'");
+        expect(result.stderr).toContain('rhx enroll <brain> --roles <roles>');
+        expect(result.stderr).toContain('rhx clone @<slug>');
+      });
+
+      then('the refusal is locked (visual spot-check)', () => {
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
+      });
+    });
   });
 });

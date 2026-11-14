@@ -13,6 +13,7 @@ const render: BrainDirBootRender = {
   stats: BOOT_STATS_ZERO,
   agentsMdReset: false,
   bootMdCreated: true,
+  bootMdChanged: true,
 };
 const symlink = {
   effect: 'CREATED' as const,

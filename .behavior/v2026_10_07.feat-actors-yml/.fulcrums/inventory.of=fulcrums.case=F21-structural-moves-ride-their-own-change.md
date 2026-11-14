@@ -16,4 +16,7 @@
 - **confidence** — 80%; the twice-held refusal is the one with a real seam (the two copies list
   roles in different orders), so it is the first of the six to pull in
 - **where** — raised by enroll-impl-arch-defects nitpick.1, .2, .4, .7, .11 (i004)
-- **verdict** — unruled; best guess taken
+- **verdict** — unruled; best guess taken. 2026-11-14: no longer a dream — a planned dedicated pr,
+  `ehmpathy/rhachet#746` (title + bounded diff: `appendix/dedicated-pr.actor-sweep-refactor.md`),
+  shared with F19. the rework is re-graded dirty: the six moves re-shape the sweep contract every
+  actor form rides

@@ -21,6 +21,7 @@ const genRender = (
   stats: { ...BOOT_STATS_ZERO, roles: 2, chars: 4096 },
   agentsMdReset: false,
   bootMdCreated: false,
+  bootMdChanged: false,
   ...overrides,
 });
 
@@ -44,7 +45,7 @@ describe('asBrainDirSyncReportLines', () => {
     () => {
       when('[t0] the lines are rendered', () => {
         const lines = asBrainDirSyncReportLines({
-          render: genRender({ bootMdCreated: true }),
+          render: genRender({ bootMdCreated: true, bootMdChanged: true }),
           symlink: genSymlink({
             effect: 'MIGRATED',
             drops: ['CLAUDE.md'],
@@ -70,7 +71,7 @@ describe('asBrainDirSyncReportLines', () => {
   given('[case2] a link this run created, with naught to migrate', () => {
     when('[t0] the lines are rendered', () => {
       const lines = asBrainDirSyncReportLines({
-        render: genRender({ bootMdCreated: true }),
+        render: genRender({ bootMdCreated: true, bootMdChanged: true }),
         symlink: genSymlink({ effect: 'CREATED' }),
         repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
       });
@@ -98,6 +99,29 @@ describe('asBrainDirSyncReportLines', () => {
   });
 
   given(
+    '[case3b] a link already in place, and a corpus whose bytes changed',
+    () => {
+      when('[t0] the lines are rendered', () => {
+        const lines = asBrainDirSyncReportLines({
+          render: genRender({ bootMdChanged: true }),
+          symlink: genSymlink({ effect: 'FOUND' }),
+          repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+        });
+
+        then(
+          'it names the upgrade — a live brain dir changed under its clones',
+          () => {
+            // a roleset edit re-renders boot.md with new roles. silence here would hide
+            //   that every clone of this actor now boots a different corpus
+            expect(lines.join('\n')).toContain('upgraded — 2 roles');
+            expect(lines).toMatchSnapshot();
+          },
+        );
+      });
+    },
+  );
+
+  given(
     '[case4] an actor brain dir, which has no <repo>/.claude beneath it',
     () => {
       when('[t0] a first render, with no symlink', () => {
@@ -105,6 +129,7 @@ describe('asBrainDirSyncReportLines', () => {
           render: genRender({
             scope: { kind: 'actor', actorExid: 'hash=051970ec' },
             bootMdCreated: true,
+            bootMdChanged: true,
             stats: { ...BOOT_STATS_ZERO, roles: 1, chars: 512 },
           }),
           symlink: null,

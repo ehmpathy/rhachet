@@ -1,12 +1,50 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`actors.yml, published by a role package and adopted by a repo (journey) given: [case1] the package introspects, the consumer adopts and extends its actor when: [t1] the consumer writes actors.yml, then \`init\` then: the report block holds its shape 1`] = `
+exports[`actors.yml, published by a role package and adopted by a repo (journey) given: [case1] the package introspects, the consumer adopts and extends its actor when: [t0] \`repo introspect\` in the package then: rhachet.repo.yml holds its shape — the actors block a consumer reads 1`] = `
+"slug: surfschool
+readme: readme.md
+roles:
+  - slug: coach
+    readme: roles/coach/readme.md
+    briefs:
+      dirs: roles/coach/briefs
+    skills:
+      dirs: roles/coach/skills
+  - slug: lifeguard
+    readme: roles/lifeguard/readme.md
+    briefs:
+      dirs: roles/lifeguard/briefs
+    skills:
+      dirs: roles/lifeguard/skills
+  - slug: scholar
+    readme: roles/scholar/readme.md
+    briefs:
+      dirs: roles/scholar/briefs
+    skills:
+      dirs: roles/scholar/skills
+actors:
+  - slug: instructor
+    brain: claude
+    roles:
+      - surfschool/coach
+"
+`;
+
+exports[`actors.yml, published by a role package and adopted by a repo (journey) given: [case1] the package introspects, the consumer adopts and extends its actor when: [t1] the package is packed and installed, the consumer writes actors.yml, then \`init\` then: the report block holds its shape 1`] = `
 "🎭 actors.yml
    ├─ repo actor = @crew
    ├─ 1 actor(s), 2 role(s) declared
    └─ short → restored
       ├─ surfschool/coach ↺ linked, via @surfschool/instructor
       └─ surfschool/scholar ↺ linked"
+`;
+
+exports[`actors.yml, published by a role package and adopted by a repo (journey) given: [case1] the package introspects, the consumer adopts and extends its actor when: [t2] the package grows instructor by a role, bumps its version, re-introspects and re-installs, then the consumer \`init\`s then: the report block holds its shape — the role that arrived through the grown base 1`] = `
+"🎭 actors.yml
+   ├─ repo actor = @crew
+   ├─ 1 actor(s), 3 role(s) declared
+   └─ short → restored
+      └─ surfschool/lifeguard ↺ linked, via @surfschool/instructor"
 `;
 
 exports[`actors.yml, published by a role package and adopted by a repo (journey) given: [case2] an empty, comment-only actors.yml when: [t0] \`init\` then: the refusal holds its shape 1`] = `

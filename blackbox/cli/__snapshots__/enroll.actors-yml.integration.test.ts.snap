@@ -67,7 +67,7 @@ exports[`rhx clone @<slug> under .agent/actors.yml (integration) given: [case3] 
   "actor": "@scholar"
 }
 
-[args] enroll,@scholar
+[args] clone,@scholar
 
 "
 `;
@@ -82,7 +82,7 @@ exports[`rhx clone @<slug> under .agent/actors.yml (integration) given: [case4] 
   "role": "ehmpathy/architect"
 }
 
-[args] enroll,@scholar
+[args] clone,@scholar
 
 "
 `;

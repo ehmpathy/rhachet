@@ -13,6 +13,20 @@ it holds in every form `rhx init` reads its `--roles` in — space (`--roles a x
 so the next `npm install` / `pnpm install`, which runs `prepare` → `prepare:rhachet`, never re-links a
 role the human removed.
 
+## .scope — under `.agent/actors.yml` (ruled 2026-11-14)
+
+where a repo declares `.agent/actors.yml`, `prepare:rhachet` carries no `--roles` list: the manifest
+owns the roles, and the next install re-links what the manifest declares. so `rhx init --roles -xyz`
+there is refused (exit 2), with a hint that names the `actors.yml` edit that drops `xyz` — never a
+silent no-op, and never a second source of truth beside the manifest. the intent holds: a role the
+human removes (from `actors.yml`) is never re-linked by the next install.
+
+- ruled by the director, 2026-11-14, on fulcrum F13 of `v2026_10_07.feat-actors-yml`: keep the
+  guess; listed in #699 for the commander's review. a repo with no manifest keeps the requirement
+  unchanged
+- proof: `blackbox/cli/init.actors-yml.acceptance.test.ts` — `--roles` beside a manifest is refused,
+  with the `actors.yml` hint
+
 ## .why
 
 `prepare:rhachet` is how a repo re-links its roles on every install, for every teammate and every

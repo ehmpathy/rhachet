@@ -1,10 +1,11 @@
-import { execSync } from 'node:child_process';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
+import { execSync, spawnSync } from 'node:child_process';
 import {
   existsSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
@@ -26,9 +27,9 @@ import { setActorsYml } from '@/blackbox/.test/infra/setActorsYml';
  * .why a journey = each step reads the state the prior one left: introspect emits what init
  *   reads, and the growth is proven only against the init that came before it
  *
- * .note = the package is a plain directory symlinked into the consumer's node_modules, so a
- *   re-introspect in the package is what the consumer's next init reads — the same tether an
- *   upgrade gives, with no install in the loop
+ * .note = the package reaches the consumer as a publish would: `pnpm pack` builds the tarball from
+ *   `files` (which introspect extends with rhachet.repo.yml), and the tarball is extracted into
+ *   the consumer's node_modules. a growth is a version bump, a re-introspect, and a re-install
  */
 
 /** .what = the role slugs the surfschool package carries */
@@ -42,9 +43,20 @@ const setSurfschoolPackage = (input: { dir: string; actorsLines: string[] }): vo
   mkdirSync(input.dir, { recursive: true });
   // introspect reads the package from its git root, as a package repo always is
   execSync('git init', { cwd: input.dir, stdio: 'pipe' });
+  // `files` names what a publish ships; `repo introspect` adds rhachet.repo.yml to it, and the
+  // actors.yml source stays behind — the consumer reads the actors introspect inlined
   writeFileSync(
     join(input.dir, 'package.json'),
-    JSON.stringify({ name: 'rhachet-roles-surfschool', version: '1.0.0', main: 'index.js' }, null, 2),
+    JSON.stringify(
+      {
+        name: 'rhachet-roles-surfschool',
+        version: '1.0.0',
+        main: 'index.js',
+        files: ['index.js', 'roles'],
+      },
+      null,
+      2,
+    ),
   );
   writeFileSync(join(input.dir, 'readme.md'), '# surfschool\n');
   for (const role of SURFSCHOOL_ROLES) {
@@ -79,9 +91,10 @@ const setSurfschoolPackage = (input: { dir: string; actorsLines: string[] }): vo
 };
 
 /**
- * .what = write a consumer repo that depends on the surfschool package, linked from `pkgDir`
+ * .what = write a consumer repo that depends on the surfschool package
+ * .note = the package itself lands via `setPackageInstalledFromTarball`, after it introspects
  */
-const setConsumerRepo = (input: { dir: string; pkgDir: string }): void => {
+const setConsumerRepo = (input: { dir: string }): void => {
   execSync('git init', { cwd: input.dir, stdio: 'pipe' });
   writeFileSync(
     join(input.dir, 'package.json'),
@@ -91,8 +104,56 @@ const setConsumerRepo = (input: { dir: string; pkgDir: string }): void => {
       2,
     ),
   );
-  mkdirSync(join(input.dir, 'node_modules'), { recursive: true });
-  symlinkSync(input.pkgDir, join(input.dir, 'node_modules', 'rhachet-roles-surfschool'), 'dir');
+};
+
+/**
+ * .what = pack the surfschool package with the real package manager, and extract the tarball into
+ *         the consumer's node_modules
+ * .why = the consumer must read the bytes a publish ships — `files`, the rhachet.repo.yml that
+ *        introspect emitted, and naught the pack leaves out — never the package's source dir
+ *        (rule.require.external-contract-integration-tests)
+ * .note = pnpm, never npm (rule.forbid.npm-in-tests); an absent pnpm fails fast
+ */
+const setPackageInstalledFromTarball = (input: {
+  pkgDir: string;
+  consumerDir: string;
+  packDir: string;
+}): void => {
+  // fail fast where pnpm is absent
+  const isPnpmOnPath = spawnSync('pnpm', ['--version'], { stdio: 'pipe' }).status === 0;
+  if (!isPnpmOnPath)
+    throw new ConstraintError('pnpm is required to pack the fixture role package', {
+      hint: 'install pnpm: corepack enable pnpm (or see https://pnpm.io/installation)',
+    });
+
+  // pack, as a publish would
+  rmSync(input.packDir, { recursive: true, force: true });
+  mkdirSync(input.packDir, { recursive: true });
+  const packed = spawnSync('pnpm', ['pack', '--pack-destination', input.packDir], {
+    cwd: input.pkgDir,
+    stdio: 'pipe',
+  });
+  if (packed.status !== 0)
+    throw new MalfunctionError('pnpm pack of the fixture role package failed', {
+      stderr: packed.stderr?.toString(),
+    });
+  const tarball = readdirSync(input.packDir).find((name) => name.endsWith('.tgz'));
+  if (!tarball)
+    throw new MalfunctionError('pnpm pack wrote no tarball', { packDir: input.packDir });
+
+  // extract into node_modules, as an install would
+  const installDir = join(input.consumerDir, 'node_modules', 'rhachet-roles-surfschool');
+  rmSync(installDir, { recursive: true, force: true });
+  mkdirSync(installDir, { recursive: true });
+  const extracted = spawnSync(
+    'tar',
+    ['-xzf', join(input.packDir, tarball), '-C', installDir, '--strip-components=1'],
+    { stdio: 'pipe' },
+  );
+  if (extracted.status !== 0)
+    throw new MalfunctionError('tar extract of the packed fixture role package failed', {
+      stderr: extracted.stderr?.toString(),
+    });
 };
 
 /**
@@ -121,6 +182,7 @@ describe('actors.yml, published by a role package and adopted by a repo (journey
   const root = genTempDir({ slug: 'actors-yml-publish-journey' });
   const pkgDir = join(root, 'pkg');
   const repoDir = join(root, 'repo');
+  const packDir = join(root, 'pack');
   beforeAll(() => {
     // the package publishes `instructor` with a BARE role slug — its own role (fix 1)
     setSurfschoolPackage({
@@ -128,7 +190,7 @@ describe('actors.yml, published by a role package and adopted by a repo (journey
       actorsLines: ['actor:', '  - slug: instructor', '    brain: claude', '    roles: [coach]'],
     });
     mkdirSync(repoDir, { recursive: true });
-    setConsumerRepo({ dir: repoDir, pkgDir });
+    setConsumerRepo({ dir: repoDir });
   });
 
   given('[case1] the package introspects, the consumer adopts and extends its actor', () => {
@@ -144,10 +206,15 @@ describe('actors.yml, published by a role package and adopted by a repo (journey
         expect(yml).toContain('slug: instructor');
         expect(yml).toContain('surfschool/coach');
       });
+      then('rhachet.repo.yml holds its shape — the actors block a consumer reads', () => {
+        const yml = readFileSync(join(pkgDir, 'rhachet.repo.yml'), 'utf8');
+        expect(asSnapshotSafe(yml)).toMatchSnapshot();
+      });
     });
 
-    when('[t1] the consumer writes actors.yml, then `init`', () => {
+    when('[t1] the package is packed and installed, the consumer writes actors.yml, then `init`', () => {
       const run = useThen('exits 0', () => {
+        setPackageInstalledFromTarball({ pkgDir, consumerDir: repoDir, packDir });
         setActorsYml({ dir: repoDir, lines: ACTORS_YML_CONSUMER });
         return invokeRhachetCliBinary({ args: ['init'], cwd: repoDir });
       });
@@ -168,14 +235,20 @@ describe('actors.yml, published by a role package and adopted by a repo (journey
       });
     });
 
-    when('[t2] the package grows instructor by a role, re-introspects, then the consumer `init`s', () => {
+    when('[t2] the package grows instructor by a role, bumps its version, re-introspects and re-installs, then the consumer `init`s', () => {
       const run = useThen('exits 0', () => {
         writeFileSync(
           join(pkgDir, 'actors.yml'),
           ['actor:', '  - slug: instructor', '    brain: claude', '    roles: [coach, lifeguard]', ''].join('\n'),
         );
+        const pkgJsonPath = join(pkgDir, 'package.json');
+        writeFileSync(
+          pkgJsonPath,
+          JSON.stringify({ ...JSON.parse(readFileSync(pkgJsonPath, 'utf8')), version: '1.1.0' }, null, 2),
+        );
         const introspected = invokeRhachetCliBinary({ args: ['repo', 'introspect'], cwd: pkgDir });
         expect(introspected.status).toEqual(0);
+        setPackageInstalledFromTarball({ pkgDir, consumerDir: repoDir, packDir });
         return invokeRhachetCliBinary({ args: ['init'], cwd: repoDir });
       });
 
@@ -187,6 +260,9 @@ describe('actors.yml, published by a role package and adopted by a repo (journey
         const block = asActorsReportBlock({ stdout: run.stdout });
         expect(block).toContain('surfschool/lifeguard');
         expect(block).toContain('via @surfschool/instructor');
+      });
+      then('the report block holds its shape — the role that arrived through the grown base', () => {
+        expect(asSnapshotSafe(asActorsReportBlock({ stdout: run.stdout }))).toMatchSnapshot();
       });
       then('the repo actor boots the grown set', () => {
         const bootMd = readFileSync(

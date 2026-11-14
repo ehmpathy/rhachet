@@ -266,19 +266,22 @@ export const invokeInit = ({ program }: { program: Command }): void => {
           lines.forEach((line) => console.log(line));
         }
 
-        // no manifest + --roles => one hint, after the link trees, that names the manifest (case=5)
-        //   .note = plain text, no ansi: the same bytes reach a pipe, a pty, and every snapshot
-        if (!actorsManifest && deltas !== null)
-          console.log(
-            '💡 declare these roles by name in .agent/actors.yml, and `rhx init` reads them\n',
-          );
-
         // an incremental delta reaches the `prepare:rhachet` replay, so the next install
         // never re-links a removed role (critical: inventory.of=requirements.case=1)
         const prepareDelta = await setPrepareRhachetOfIncrementalOrNull(
           { deltas, prep: options.prep === true },
           context,
         );
+
+        // no manifest + --roles => one hint, after the link trees and the prepare replay, that
+        // names the manifest (case=5)
+        //   .note = after the replay, since its block closes on a blank line of its own; before
+        //     it, the two blank lines stacked
+        //   .note = plain text, no ansi: the same bytes reach a pipe, a pty, and every snapshot
+        if (!actorsManifest && deltas !== null)
+          console.log(
+            '💡 declare these roles by name in .agent/actors.yml, and `rhx init` reads them\n',
+          );
 
         // flag: --keys => init keyrack manifest (after roles); plain slugs only.
         //   under a manifest, the slugs are the declared union's

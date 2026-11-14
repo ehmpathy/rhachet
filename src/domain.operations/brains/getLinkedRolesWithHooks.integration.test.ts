@@ -80,7 +80,7 @@ describe('getLinkedRolesWithHooks (integration)', () => {
           linked: null,
         });
         const context = new ContextCli({ cwd: gitroot, gitroot });
-        return getLinkedRolesWithHooks(context);
+        return getLinkedRolesWithHooks({ rolesHeld: null }, context);
       });
 
       then('the roles array is empty', () => {
@@ -105,7 +105,7 @@ describe('getLinkedRolesWithHooks (integration)', () => {
           linked: { '.this': ['any'] },
         });
         const context = new ContextCli({ cwd: gitroot, gitroot });
-        return getLinkedRolesWithHooks(context);
+        return getLinkedRolesWithHooks({ rolesHeld: null }, context);
       });
 
       then('the roles array is empty', () => {
@@ -135,7 +135,7 @@ describe('getLinkedRolesWithHooks (integration)', () => {
           linked: { '.this': ['any'], nonexistent: ['mechanic', 'designer'] },
         });
         const context = new ContextCli({ cwd: gitroot, gitroot });
-        return getLinkedRolesWithHooks(context);
+        return getLinkedRolesWithHooks({ rolesHeld: null }, context);
       });
 
       then('the roles array is empty', () => {
@@ -193,7 +193,7 @@ describe('getLinkedRolesWithHooks (integration)', () => {
           linked: { badpkg: ['mechanic'], goodpkg: ['surfer'] },
         });
         const context = new ContextCli({ cwd: gitroot, gitroot });
-        return getLinkedRolesWithHooks(context);
+        return getLinkedRolesWithHooks({ rolesHeld: null }, context);
       });
 
       then('the healthy repo role still loads', () => {
@@ -236,7 +236,7 @@ describe('getLinkedRolesWithHooks (integration)', () => {
           linked: { malformed: ['mechanic'], goodpkg: ['surfer'] },
         });
         const context = new ContextCli({ cwd: gitroot, gitroot });
-        return getLinkedRolesWithHooks(context);
+        return getLinkedRolesWithHooks({ rolesHeld: null }, context);
       });
 
       then('the healthy repo role still loads', () => {
@@ -316,7 +316,7 @@ describe('getLinkedRolesWithHooks (integration)', () => {
           linked: { bhrain: ['driver', 'learner'] },
         });
         const context = new ContextCli({ cwd: gitroot, gitroot });
-        return getLinkedRolesWithHooks(context);
+        return getLinkedRolesWithHooks({ rolesHeld: null }, context);
       });
 
       then('the adhoc route.drive hook is kept', () => {
@@ -344,6 +344,50 @@ describe('getLinkedRolesWithHooks (integration)', () => {
           ]);
         },
       );
+    });
+  });
+
+  given('[case7] a held-roles narrow beside a broken unheld package', () => {
+    when('[t0] the actor holds only the healthy repo role', () => {
+      // .why = an actor's derivation imports only its own roles' packages: a linked package
+      //        the actor never held must neither load nor fail it. the clamp bites under the
+      //        pre-import filter's absence — badpkg would load and record an error
+      const scene = useBeforeAll(async () => {
+        mockImportPackageExports.mockImplementation(
+          async ({ packageName }: { packageName: string }) => {
+            if (packageName === 'rhachet-roles-badpkg')
+              return { ok: false, error: new Error('badpkg must not load') };
+            return asHealthyRegistryModule({
+              slug: 'goodpkg',
+              role: 'surfer',
+            });
+          },
+        );
+        const gitroot = genRepoWithLinkedRoles({
+          slug: 'getLinkedRoles-heldnarrow',
+          linked: { badpkg: ['mechanic'], goodpkg: ['surfer', 'diver'] },
+        });
+        const context = new ContextCli({ cwd: gitroot, gitroot });
+        return getLinkedRolesWithHooks({ rolesHeld: ['surfer'] }, context);
+      });
+
+      then('the unheld package is never imported', () => {
+        expect(
+          mockImportPackageExports.mock.calls.map(
+            ([call]: [{ packageName: string }]) => call.packageName,
+          ),
+        ).toEqual(['rhachet-roles-goodpkg']);
+      });
+
+      then('no error is recorded for the unheld role', () => {
+        expect(scene.errors).toEqual([]);
+      });
+
+      then('the held role loads', () => {
+        expect(scene.roles.map((role) => `${role.repo}/${role.slug}`)).toEqual([
+          'goodpkg/surfer',
+        ]);
+      });
     });
   });
 });

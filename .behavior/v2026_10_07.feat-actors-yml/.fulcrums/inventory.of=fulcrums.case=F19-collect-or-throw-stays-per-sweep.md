@@ -5,5 +5,7 @@
 - **rework** — dirty — four sweeps, their snapped refusal frames, and a policy choice across code this branch did not author
 - **confidence** — 80%; a reviewer may prefer the extract now
 - **where** — `setDeclaredActorsOndisk.ts`, `setDeltaActorsOndisk.ts`, `syncActiveActorBrainDirs.ts`, `asRepoActorBrainDirOutcome.ts`; raised by arch-opport-decomposition nitpick.2 (i002)
-- **dream** — `.dream/v2026_11_14.refactor.collect-or-throw-for-brain-dir-sweeps.md`
-- **verdict** — unruled; best guess taken
+- **dedicated pr** — `ehmpathy/rhachet#746` (the dream it replaced is removed)
+- **verdict** — unruled; best guess taken. 2026-11-14: no longer a dream — a planned dedicated pr,
+  `ehmpathy/rhachet#746` (title + bounded diff: `appendix/dedicated-pr.actor-sweep-refactor.md`),
+  shared with F21, per `rule.forbid.deferrals-short-of-a-dedicated-pr`
