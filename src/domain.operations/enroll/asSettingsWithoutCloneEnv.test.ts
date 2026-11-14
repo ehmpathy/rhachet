@@ -1,6 +1,6 @@
 import { given, then, when } from 'test-fns';
 
-import type { ClaudeCodeSettings } from '@src/_topublish/rhachet-brains-anthropic/src/hooks/config.dao';
+import type { ClaudeCodeSettings } from '@src/domain.operations/brains/claudeCodeSettings';
 
 import { asSettingsWithoutCloneEnv } from './asSettingsWithoutCloneEnv';
 
@@ -77,6 +77,21 @@ describe('asSettingsWithoutCloneEnv', () => {
           },
         ),
       );
+    });
+  });
+
+  // a re-appended key would move bytes in a tracked file on each write
+  given('[case3] an env map ahead of another key', () => {
+    when('[t0] the clone keys are stripped', () => {
+      then('the env key keeps its position', () => {
+        const output = asSettingsWithoutCloneEnv({
+          settings: {
+            env: { RHACHET_CLONE_DEPTH: '0', DEBUG: 'surf:*' },
+            model: 'haiku',
+          },
+        });
+        expect(Object.keys(output)).toEqual(['env', 'model']);
+      });
     });
   });
 });
