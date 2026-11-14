@@ -5,7 +5,13 @@ import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 
 import { spawn } from 'node:child_process';
 import { EventEmitter, once } from 'node:events';
-import { readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 
 /**
@@ -154,6 +160,18 @@ describe('withRepoMutex', () => {
             );
             expect(error?.message).toContain(path);
             expect(error?.constructor.name).toEqual('ConstraintError');
+            expect(error?.message).toContain(
+              'lapses on its own within five minutes',
+            );
+
+            // the whole text the human reads, hint included, with the temp dir masked
+            expect(
+              error?.message
+                .split(realpathSync(repoPath))
+                .join('<repo>')
+                .split(repoPath)
+                .join('<repo>'),
+            ).toMatchSnapshot();
 
             // the wait is announced once, so a two-minute wait never reads as a hang
             const written = errSpy.mock.calls.map((call) => String(call[0]));

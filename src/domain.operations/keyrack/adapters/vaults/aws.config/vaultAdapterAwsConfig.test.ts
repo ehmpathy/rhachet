@@ -1,4 +1,4 @@
-import { given, then, when } from 'test-fns';
+import { given, then, useThen, when } from 'test-fns';
 
 /**
  * unit tests — mocks child_process for adapter logic
@@ -12,7 +12,9 @@ jest.mock('node:child_process', () => {
 
   return {
     ...originalModule,
-    exec: jest.fn((cmd: string, callback: Function) => {
+    // .note = the callback is the last arg; the export op passes an options arg before it
+    exec: jest.fn((cmd: string, ...rest: any[]) => {
+      const callback = rest[rest.length - 1];
       // default: commands succeed
       callback(null, { stdout: '{}', stderr: '' });
     }),
@@ -86,6 +88,79 @@ region = us-east-1
   mkdir: jest.fn(),
 }));
 
+/**
+ * .mock = genAwsProfileExport, as a disk-free stub: it runs the mocked `exec` export and parses
+ *   its lines, with no cache file and no disk mutex
+ * .why = a unit test crosses no disk boundary; the adapter's contract with the op is which
+ *   profile it asks for, with which `refresh`, and what it does with the result or the fault
+ * .real = genAwsProfileExport.integration.test.ts (the cache and the mutex, a fake aws on PATH),
+ *   genAwsProfileExport.awscli.integration.test.ts (the real aws cli), and
+ *   keyrack.vault.awsIamSso.acceptance.test.ts [case20] [case21] (unlocks share one export)
+ */
+jest.mock('../../mechanisms/aws.sso/genAwsProfileExport', () => {
+  const { MalfunctionError } = jest.requireActual('helpful-errors');
+  const { asAwsExecFailureText } = jest.requireActual(
+    '../../mechanisms/aws.sso/asAwsExecFailureText',
+  );
+  const genAwsProfileExportStub = (input: {
+    profile: string;
+    refresh: boolean;
+  }) =>
+    new Promise((settle, fail) => {
+      const { exec } = require('node:child_process');
+      exec(
+        `exec aws configure export-credentials --profile '${input.profile}' --format env-no-export`,
+        {},
+        (error: unknown, result: { stdout: string }) => {
+          if (error)
+            return fail(
+              new MalfunctionError('aws configure export-credentials failed', {
+                profile: input.profile,
+                cliError: asAwsExecFailureText({ error }),
+              }),
+            );
+          const credentials: Record<string, string> = Object.fromEntries(
+            String(result.stdout)
+              .trim()
+              .split('\n')
+              .map((line) => line.match(/^([A-Z_]+)=(.*)$/))
+              .filter((match): match is RegExpMatchArray => !!match)
+              .map((match) => [match[1], match[2] ?? '']),
+          );
+          if (
+            !credentials.AWS_ACCESS_KEY_ID ||
+            !credentials.AWS_SECRET_ACCESS_KEY
+          )
+            return fail(
+              new MalfunctionError(
+                'aws configure export-credentials did not return expected credentials',
+                { profile: input.profile, keysFound: Object.keys(credentials) },
+              ),
+            );
+          return settle({
+            credentials,
+            expiresAt:
+              credentials.AWS_CREDENTIAL_EXPIRATION ??
+              new Date(Date.now() + 55 * 60 * 1000).toISOString(),
+          });
+        },
+      );
+    });
+  return {
+    genAwsProfileExport: jest.fn(genAwsProfileExportStub),
+    genAwsProfileExportStub,
+  };
+});
+
+/**
+ * .mock = delAwsProfileExport, as a no-op spy
+ * .why = a relock case asserts the adapter drops the profile's exports; the drop itself is disk
+ * .real = genAwsProfileExport.integration.test.ts [case14] proves the drop on disk
+ */
+jest.mock('../../mechanisms/aws.sso/delAwsProfileExport', () => ({
+  delAwsProfileExport: jest.fn(),
+}));
+
 // mock getAllAwsSsoCacheEntries for SSO token validation
 jest.mock('./getAllAwsSsoCacheEntries', () => ({
   getAllAwsSsoCacheEntries: jest.fn(() => []),
@@ -98,11 +173,14 @@ jest.mock('@aws-sdk/credential-provider-sso', () => ({
 }));
 
 import { fromSSO } from '@aws-sdk/credential-provider-sso';
-import { ConstraintError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import { getError } from 'test-fns';
 
 import { exec, spawn } from 'node:child_process';
 import { existsSync, readFileSync, unlinkSync } from 'node:fs';
+import { asKeyrackErroredKeyTip } from '../../../cli/asKeyrackErroredKeyTip';
+import { delAwsProfileExport } from '../../mechanisms/aws.sso/delAwsProfileExport';
+import { genAwsProfileExport } from '../../mechanisms/aws.sso/genAwsProfileExport';
 import { getAllAwsSsoCacheEntries } from './getAllAwsSsoCacheEntries';
 import { vaultAdapterAwsConfig } from './vaultAdapterAwsConfig';
 
@@ -117,6 +195,12 @@ const readFileSyncMock = readFileSync as jest.MockedFunction<
 const unlinkSyncMock = unlinkSync as jest.MockedFunction<typeof unlinkSync>;
 
 const execMock = exec as jest.MockedFunction<typeof exec>;
+const genAwsProfileExportMock = genAwsProfileExport as jest.MockedFunction<
+  typeof genAwsProfileExport
+>;
+const delAwsProfileExportMock = delAwsProfileExport as jest.MockedFunction<
+  typeof delAwsProfileExport
+>;
 const spawnMock = spawn as jest.MockedFunction<typeof spawn>;
 const getAllAwsSsoCacheEntriesMock =
   getAllAwsSsoCacheEntries as jest.MockedFunction<
@@ -168,10 +252,11 @@ describe('vaultAdapterAwsConfig', () => {
     beforeEach(() => {
       // mock aws configure export-credentials output
       // this proves credentials are available (session active) but NOT returned
-      execMock.mockImplementation((cmd: string, callback: any) => {
+      execMock.mockImplementation((cmd: string, ...rest: any[]) => {
+        const callback = rest[rest.length - 1];
         callback(null, {
           stdout: [
-            'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE',
+            'AWS_ACCESS_KEY_ID=AKIAFAKEKEYEXAMPLE',
             'AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
             'AWS_SESSION_TOKEN=FwoGZXIvYXdzEBYaDK...',
             'AWS_CREDENTIAL_EXPIRATION=2026-04-14T12:00:00Z',
@@ -278,10 +363,11 @@ describe('vaultAdapterAwsConfig', () => {
     when('[t0] get called with exid', () => {
       beforeEach(() => {
         // mock aws configure export-credentials output (mech.deliverForGet calls this)
-        execMock.mockImplementation((cmd: string, callback: any) => {
+        execMock.mockImplementation((cmd: string, ...rest: any[]) => {
+          const callback = rest[rest.length - 1];
           callback(null, {
             stdout: [
-              'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE',
+              'AWS_ACCESS_KEY_ID=AKIAFAKEKEYEXAMPLE',
               'AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
               'AWS_SESSION_TOKEN=FwoGZXIvYXdzEBYaDK...',
               'AWS_CREDENTIAL_EXPIRATION=2026-04-14T12:00:00Z',
@@ -318,13 +404,85 @@ describe('vaultAdapterAwsConfig', () => {
       });
     });
 
+    when('[t0.2] an unlock check then a get, of one profile', () => {
+      beforeEach(() => {
+        // the cli answers an export with creds that outlive the margin, and sts with an arn
+        const expiration = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+        execMock.mockImplementation((cmd: string, ...rest: any[]) => {
+          const callback = rest[rest.length - 1];
+          if (cmd.includes('aws configure export-credentials'))
+            callback(null, {
+              stdout: [
+                'AWS_ACCESS_KEY_ID=AKIAFAKEKEYEXAMPLE',
+                'AWS_SECRET_ACCESS_KEY=fake-secret-for-test',
+                'AWS_SESSION_TOKEN=fake-token-for-test',
+                `AWS_CREDENTIAL_EXPIRATION=${expiration}`,
+              ].join('\n'),
+              stderr: '',
+            });
+          if (cmd.includes('aws sts get-caller-identity'))
+            callback(null, {
+              stdout:
+                '{"Account":"123456789012","Arn":"arn:aws:sts::123456789012:assumed-role/MyRole/alice@acme.com"}',
+              stderr: '',
+            });
+          return {} as any;
+        });
+        mockFromSSO.mockImplementation(async () => ({
+          accessKeyId: 'AKIA...',
+          secretAccessKey: 'secret',
+          sessionToken: 'token',
+        }));
+        execMock.mockClear();
+        genAwsProfileExportMock.mockClear();
+      });
+
+      then(
+        'the pre-warm and each get ask the single-flight op for the profile, never the cli direct',
+        async () => {
+          // the call sites the vision counts: the unlock's pre-warm, then the get's deliverForGet
+          const isUnlocked = await vaultAdapterAwsConfig.isUnlocked({
+            exid: 'acme-prod',
+            meta: { awsSsoUsername: 'alice@acme.com' },
+          });
+          expect(isUnlocked).toEqual(true);
+          await vaultAdapterAwsConfig.get({
+            slug: 'acme.prod.AWS_PROFILE',
+            exid: 'acme-prod',
+          });
+          await vaultAdapterAwsConfig.get({
+            slug: 'acme.prod.AWS_PROFILE',
+            exid: 'acme-prod',
+          });
+
+          // all three go through the op, none with a refresh, so its cache can answer them;
+          //   that the op exports once across them is clamped in genAwsProfileExport [case2] and
+          //   at the cli in the acceptance [case20]
+          expect(genAwsProfileExportMock.mock.calls).toEqual([
+            [{ profile: 'acme-prod', refresh: false }],
+            [{ profile: 'acme-prod', refresh: false }],
+            [{ profile: 'acme-prod', refresh: false }],
+          ]);
+
+          // every export the cli saw came through the op; none ran beside it
+          const exportCalls = execMock.mock.calls.filter(([cmd]) =>
+            String(cmd).includes('aws configure export-credentials'),
+          );
+          expect(exportCalls).toHaveLength(
+            genAwsProfileExportMock.mock.calls.length,
+          );
+        },
+      );
+    });
+
     when('[t0.5] get called with exid and explicit mech', () => {
       beforeEach(() => {
         // mock aws configure export-credentials output (mech.deliverForGet calls this)
-        execMock.mockImplementation((cmd: string, callback: any) => {
+        execMock.mockImplementation((cmd: string, ...rest: any[]) => {
+          const callback = rest[rest.length - 1];
           callback(null, {
             stdout: [
-              'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE',
+              'AWS_ACCESS_KEY_ID=AKIAFAKEKEYEXAMPLE',
               'AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
               'AWS_SESSION_TOKEN=FwoGZXIvYXdzEBYaDK...',
               'AWS_CREDENTIAL_EXPIRATION=2026-04-14T12:00:00Z',
@@ -356,11 +514,12 @@ describe('vaultAdapterAwsConfig', () => {
           sessionToken: 'token',
         });
         // mock export-credentials (STS refresh) and sts get-caller-identity (username)
-        execMock.mockImplementation((cmd: string, callback: any) => {
+        execMock.mockImplementation((cmd: string, ...rest: any[]) => {
+          const callback = rest[rest.length - 1];
           if (cmd.includes('aws configure export-credentials')) {
             callback(null, {
               stdout: [
-                'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE',
+                'AWS_ACCESS_KEY_ID=AKIAFAKEKEYEXAMPLE',
                 'AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
                 'AWS_SESSION_TOKEN=FwoGZXIvYXdzEBYaDK...',
                 'AWS_CREDENTIAL_EXPIRATION=2026-04-14T12:00:00Z',
@@ -396,6 +555,7 @@ describe('vaultAdapterAwsConfig', () => {
         // second: extract username via sts
         expect(execMock).toHaveBeenCalledWith(
           expect.stringContaining('aws sts get-caller-identity'),
+          { timeout: 120_000 },
           expect.any(Function),
         );
       });
@@ -415,6 +575,175 @@ describe('vaultAdapterAwsConfig', () => {
             profile: 'acme-prod',
             ignoreCache: true,
           });
+        },
+      );
+    });
+
+    when(
+      '[t1.5] isUnlocked while a peer holds the export past the wait bound',
+      () => {
+        beforeEach(() => {
+          mockFromSSO.mockResolvedValue({
+            accessKeyId: 'AKIA...',
+            secretAccessKey: 'secret',
+            sessionToken: 'token',
+          });
+        });
+
+        then(
+          'the wait-bound ConstraintError reaches the caller unchanged, never a re-login or a malfunction',
+          async () => {
+            // .mock = genAwsProfileExport rejects once with its wait-bound error
+            // .why = the real bound is five minutes; a unit case cannot hold a peer that long
+            // .real = genAwsProfileExport.integration.test.ts [case9] [t1] proves the op throws it
+            const waitBound = new ConstraintError(
+              'another process held the aws export for this profile past the wait bound',
+              { profile: 'acme-prod' },
+            );
+            genAwsProfileExportMock.mockRejectedValueOnce(waitBound);
+            const error = await getError(
+              vaultAdapterAwsConfig.isUnlocked({
+                exid: 'acme-prod',
+                meta: { awsSsoUsername: 'alice@acme.com' },
+              }),
+            );
+            expect(error).toBe(waitBound);
+            expect(spawnMock).not.toHaveBeenCalled();
+          },
+        );
+
+        then(
+          "an export fault of the op's own (a hang) reaches the caller whole, never as an unexpected-error wrapper",
+          async () => {
+            // .mock = genAwsProfileExport rejects once with its hang-guard error
+            // .why = the real hang guard is two minutes; a unit case cannot hold a cli that long
+            // .real = genAwsProfileExport.integration.test.ts [case9] [t0] proves the op throws it
+            const hung = new MalfunctionError(
+              'aws configure export-credentials hung',
+              { profile: 'acme-prod' },
+            );
+            genAwsProfileExportMock.mockRejectedValueOnce(hung);
+            const error = await getError(
+              vaultAdapterAwsConfig.isUnlocked({
+                exid: 'acme-prod',
+                meta: { awsSsoUsername: 'alice@acme.com' },
+              }),
+            );
+            expect(error).toBe(hung);
+            expect(error.message).not.toContain('unexpected error');
+            expect(spawnMock).not.toHaveBeenCalled();
+          },
+        );
+      },
+    );
+
+    when('[t1.7] isUnlocked reads the username via sts', () => {
+      // the export answers; sts answers per case
+      const asExecMockWithSts = (sts: (callback: Function) => void) =>
+        execMock.mockImplementation((cmd: string, ...rest: any[]) => {
+          const callback = rest[rest.length - 1];
+          if (cmd.includes('aws configure export-credentials'))
+            callback(null, {
+              stdout:
+                'AWS_ACCESS_KEY_ID=AKIAFAKEKEYEXAMPLE\nAWS_SECRET_ACCESS_KEY=fake-secret-for-test',
+              stderr: '',
+            });
+          if (cmd.includes('aws sts get-caller-identity')) sts(callback);
+          return {} as any;
+        });
+
+      beforeEach(() => {
+        mockFromSSO.mockResolvedValue({
+          accessKeyId: 'AKIA...',
+          secretAccessKey: 'secret',
+          sessionToken: 'token',
+        });
+      });
+
+      then(
+        'the profile rides as one single-quoted word, under a hang guard',
+        async () => {
+          asExecMockWithSts((callback) =>
+            callback(null, {
+              stdout:
+                '{"Account":"123456789012","Arn":"arn:aws:sts::123456789012:assumed-role/MyRole/alice@acme.com"}',
+              stderr: '',
+            }),
+          );
+          await vaultAdapterAwsConfig.isUnlocked({
+            exid: 'acme-prod',
+            meta: { awsSsoUsername: 'alice@acme.com' },
+          });
+          const stsCall = execMock.mock.calls.find(([cmd]) =>
+            String(cmd).includes('aws sts get-caller-identity'),
+          );
+          expect(stsCall?.[0]).toEqual(
+            "exec aws sts get-caller-identity --profile 'acme-prod'",
+          );
+          expect(stsCall?.[1]).toEqual({ timeout: 120_000 });
+        },
+      );
+
+      then(
+        'a sts call killed at the hang guard fails loud, never as an expired session',
+        async () => {
+          asExecMockWithSts((callback) =>
+            callback(
+              Object.assign(new Error('Command failed: exec aws sts'), {
+                killed: true,
+                code: null,
+                signal: 'SIGTERM',
+              }),
+            ),
+          );
+          const error = await getError(
+            vaultAdapterAwsConfig.isUnlocked({
+              exid: 'acme-prod',
+              meta: { awsSsoUsername: 'alice@acme.com' },
+            }),
+          );
+          expect(error).toBeInstanceOf(MalfunctionError);
+          expect(error.message).toContain('aws sts get-caller-identity hung');
+          expect(spawnMock).not.toHaveBeenCalled();
+
+          // the unlock row names the retry, then the by-hand command for a recurrence
+          const row = asKeyrackErroredKeyTip({
+            cause: error,
+            slug: 'acme.prod.AWS_PROFILE',
+            orgDefault: 'acme',
+            owner: null,
+          });
+          expect(row).toEqual(
+            "aws sts get-caller-identity hung — retry: rhx keyrack unlock --env prod --key AWS_PROFILE; if it recurs, run `aws sts get-caller-identity --profile 'acme-prod'` by hand to see where it stalls",
+          );
+        },
+      );
+    });
+
+    when('[t1.8] isUnlocked on a profile with no sso config', () => {
+      then(
+        'it fails as a constraint that names the cure, never as an expired session',
+        async () => {
+          // the sdk's own words for a profile with no sso_session or sso_start_url
+          const notSso = new Error(
+            'Profile acme-static is not configured with SSO credentials.',
+          );
+          notSso.name = 'CredentialsProviderError';
+          mockFromSSO.mockRejectedValue(notSso);
+
+          const error = await getError(
+            vaultAdapterAwsConfig.isUnlocked({
+              exid: 'acme-static',
+              meta: { awsSsoUsername: 'alice@acme.com' },
+            }),
+          );
+          expect(error).toBeInstanceOf(ConstraintError);
+          expect(error.message).toContain(
+            'aws profile is not an sso profile; the aws.config vault needs one',
+          );
+          expect(error.message).toContain('os.direct');
+          expect(error.message).not.toContain('aws sso login');
+          expect(spawnMock).not.toHaveBeenCalled();
         },
       );
     });
@@ -492,11 +821,12 @@ describe('vaultAdapterAwsConfig', () => {
           secretAccessKey: 'secret',
           sessionToken: 'token',
         });
-        execMock.mockImplementation((cmd: string, callback: any) => {
+        execMock.mockImplementation((cmd: string, ...rest: any[]) => {
+          const callback = rest[rest.length - 1];
           if (cmd.includes('aws configure export-credentials')) {
             callback(null, {
               stdout: [
-                'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE',
+                'AWS_ACCESS_KEY_ID=AKIAFAKEKEYEXAMPLE',
                 'AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
                 'AWS_SESSION_TOKEN=FwoGZXIvYXdzEBYaDK...',
                 'AWS_CREDENTIAL_EXPIRATION=2026-04-14T12:00:00Z',
@@ -536,11 +866,12 @@ describe('vaultAdapterAwsConfig', () => {
           sessionToken: 'token',
         });
         // mock export-credentials (STS refresh) and sts get-caller-identity (username)
-        execMock.mockImplementation((cmd: string, callback: any) => {
+        execMock.mockImplementation((cmd: string, ...rest: any[]) => {
+          const callback = rest[rest.length - 1];
           if (cmd.includes('aws configure export-credentials')) {
             callback(null, {
               stdout: [
-                'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE',
+                'AWS_ACCESS_KEY_ID=AKIAFAKEKEYEXAMPLE',
                 'AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
                 'AWS_SESSION_TOKEN=FwoGZXIvYXdzEBYaDK...',
                 'AWS_CREDENTIAL_EXPIRATION=2026-04-14T12:00:00Z',
@@ -630,7 +961,8 @@ describe('vaultAdapterAwsConfig', () => {
         const futureExpiration = new Date(
           Date.now() + 30 * 60 * 1000,
         ).toISOString();
-        execMock.mockImplementation((cmd: string, callback: any) => {
+        execMock.mockImplementation((cmd: string, ...rest: any[]) => {
+          const callback = rest[rest.length - 1];
           if (cmd.includes('aws configure export-credentials')) {
             // called AFTER sso login to force STS refresh
             callback(null, {
@@ -756,7 +1088,8 @@ AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
         const futureExpiration = new Date(
           Date.now() + 30 * 60 * 1000,
         ).toISOString();
-        execMock.mockImplementation((cmd: string, callback: any) => {
+        execMock.mockImplementation((cmd: string, ...rest: any[]) => {
+          const callback = rest[rest.length - 1];
           if (cmd.includes('aws configure export-credentials')) {
             callback(null, {
               stdout: `AWS_ACCESS_KEY_ID=AKIA...
@@ -810,6 +1143,161 @@ AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
       });
     });
 
+    when('[t1.6] the post-login export fails after a fresh login', () => {
+      // .note = deliberate mutation — each `then` sets the cli faults its case wants; each
+      //         post-login refresh shifts one off and rejects as the op does, then the stub runs
+      const exportPlan = {
+        failures: [] as string[],
+        hint: null as string | null,
+      };
+      // .cast = the stub the module mock exposes beside the op; see the mock's .mock doc above
+      const genAwsProfileExportStub = (
+        jest.requireMock('../../mechanisms/aws.sso/genAwsProfileExport') as {
+          genAwsProfileExportStub: typeof genAwsProfileExport;
+        }
+      ).genAwsProfileExportStub;
+
+      afterEach(() => {
+        genAwsProfileExportMock.mockImplementation(genAwsProfileExportStub);
+      });
+
+      beforeEach(() => {
+        exportPlan.failures = [];
+        exportPlan.hint = null;
+        genAwsProfileExportMock.mockClear();
+        genAwsProfileExportMock.mockImplementation(async (input, options) => {
+          const failure = input.refresh ? exportPlan.failures.shift() : null;
+          if (failure)
+            throw new MalfunctionError(
+              'aws configure export-credentials failed',
+              {
+                profile: input.profile,
+                cliError: failure,
+                ...(exportPlan.hint ? { hint: exportPlan.hint } : {}),
+              },
+            );
+          return genAwsProfileExportStub(input, options);
+        });
+        let loginCompleted = false;
+        const credentialsError = new Error(
+          'The SSO session associated with this profile has expired',
+        );
+        credentialsError.name = 'CredentialsProviderError';
+        mockFromSSO.mockImplementation(async () => {
+          if (!loginCompleted) throw credentialsError;
+          return {
+            accessKeyId: 'AKIA...',
+            secretAccessKey: 'secret',
+            sessionToken: 'token',
+          };
+        });
+        getAllAwsSsoCacheEntriesMock.mockReturnValue([]);
+
+        const futureExpiration = new Date(
+          Date.now() + 30 * 60 * 1000,
+        ).toISOString();
+        execMock.mockImplementation((cmd: string, ...rest: any[]) => {
+          const callback = rest[rest.length - 1];
+          if (cmd.includes('aws configure export-credentials')) {
+            callback(null, {
+              stdout: `AWS_ACCESS_KEY_ID=AKIA...
+AWS_SECRET_ACCESS_KEY=secret
+AWS_SESSION_TOKEN=token
+AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
+              stderr: '',
+            });
+          } else if (cmd.includes('aws sts get-caller-identity')) {
+            callback(null, {
+              stdout:
+                '{"Account":"123456789012","Arn":"arn:aws:sts::123456789012:assumed-role/MyRole/alice@acme.com"}',
+              stderr: '',
+            });
+          }
+          return {} as any;
+        });
+
+        const { EventEmitter } = require('node:events');
+        spawnMock.mockImplementation(() => {
+          const emitter = new EventEmitter();
+          process.nextTick(() => {
+            loginCompleted = true;
+            emitter.emit('close', 0);
+          });
+          return emitter;
+        });
+      });
+
+      // the export calls the unlock made after its login, each a refresh
+      const getRefreshCalls = () =>
+        genAwsProfileExportMock.mock.calls.filter(([input]) => input.refresh);
+
+      then(
+        'an expired failure clears the cli cache and the retry succeeds',
+        async () => {
+          exportPlan.failures = ['Error: Token has expired and refresh failed'];
+          await vaultAdapterAwsConfig.unlock({
+            identity: null,
+            exid: 'acme-prod',
+            meta: { awsSsoUsername: 'alice@acme.com' },
+            silent: true,
+          });
+          expect(getRefreshCalls()).toHaveLength(2);
+        },
+      );
+
+      then('an expired failure whose retry fails again throws', async () => {
+        exportPlan.failures = [
+          'Error: Token has expired and refresh failed',
+          'Error: Token has expired and refresh failed',
+        ];
+        const error = await getError(
+          vaultAdapterAwsConfig.unlock({
+            identity: null,
+            exid: 'acme-prod',
+            meta: { awsSsoUsername: 'alice@acme.com' },
+            silent: true,
+          }),
+        );
+        expect(error.message).toContain(
+          'aws configure export-credentials failed',
+        );
+        expect(getRefreshCalls()).toHaveLength(2);
+      });
+
+      then('a failure that is not an expiry throws with no retry', async () => {
+        exportPlan.failures = ['Error: connection refused'];
+        const error = await getError(
+          vaultAdapterAwsConfig.unlock({
+            identity: null,
+            exid: 'acme-prod',
+            meta: { awsSsoUsername: 'alice@acme.com' },
+            silent: true,
+          }),
+        );
+        expect(error.message).toContain('connection refused');
+        expect(getRefreshCalls()).toHaveLength(1);
+      });
+
+      then(
+        'a non-expiry cli fault whose hint says "expired" still throws with no retry',
+        async () => {
+          // only the cli's own words sort the fault; the hint text must not flip it
+          exportPlan.failures = ['Error: connection refused'];
+          exportPlan.hint = 'if the session expired, re-run the unlock';
+          const error = await getError(
+            vaultAdapterAwsConfig.unlock({
+              identity: null,
+              exid: 'acme-prod',
+              meta: { awsSsoUsername: 'alice@acme.com' },
+              silent: true,
+            }),
+          );
+          expect(error.message).toContain('connection refused');
+          expect(getRefreshCalls()).toHaveLength(1);
+        },
+      );
+    });
+
     when('[t2] unlock called but aws sso login fails', () => {
       beforeEach(() => {
         // mock fromSSO to fail (triggers login)
@@ -854,18 +1342,22 @@ AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
         const originalLog = console.log;
         console.log = (...args: unknown[]) => consoleLogs.push(args.join(' '));
 
-        try {
-          await vaultAdapterAwsConfig.unlock({
+        const error = await getError(
+          vaultAdapterAwsConfig.unlock({
             identity: null,
             exid: 'acme-prod',
             silent: false,
             // meta.awsSsoUsername intentionally absent
-          });
-        } catch {
-          // error expected
-        } finally {
+          }),
+        ).finally(() => {
           console.log = originalLog;
-        }
+        });
+
+        // the error names the fix
+        expect(error).toBeInstanceOf(ConstraintError);
+        expect(error.message).toContain(
+          'rhx keyrack set --owner <owner> --env <env> --key <key> --vault aws.config',
+        );
 
         // snapshot the adapter output directly — it emits its own root header
         const output = consoleLogs.join('\n');
@@ -890,11 +1382,12 @@ AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
           });
 
           // returns bob before login, alice after login
-          execMock.mockImplementation((cmd: string, callback: any) => {
+          execMock.mockImplementation((cmd: string, ...rest: any[]) => {
+            const callback = rest[rest.length - 1];
             if (cmd.includes('aws configure export-credentials')) {
               callback(null, {
                 stdout: [
-                  'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE',
+                  'AWS_ACCESS_KEY_ID=AKIAFAKEKEYEXAMPLE',
                   'AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
                   'AWS_SESSION_TOKEN=FwoGZXIvYXdzEBYaDK...',
                   'AWS_CREDENTIAL_EXPIRATION=2026-04-14T12:00:00Z',
@@ -998,11 +1491,12 @@ AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
      */
     const genExecMockWithUsernameSequence = (usernames: string[]) => {
       let callIndex = 0;
-      return (cmd: string, callback: any) => {
+      return (cmd: string, ...rest: any[]) => {
+        const callback = rest[rest.length - 1];
         if (cmd.includes('aws configure export-credentials')) {
           callback(null, {
             stdout: [
-              'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE',
+              'AWS_ACCESS_KEY_ID=AKIAFAKEKEYEXAMPLE',
               'AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
               'AWS_SESSION_TOKEN=FwoGZXIvYXdzEBYaDK...',
               'AWS_CREDENTIAL_EXPIRATION=2026-04-14T12:00:00Z',
@@ -1333,11 +1827,12 @@ AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
         sessionToken: 'token',
       });
       // mock export-credentials and sts get-caller-identity
-      execMock.mockImplementation((cmd: string, callback: any) => {
+      execMock.mockImplementation((cmd: string, ...rest: any[]) => {
+        const callback = rest[rest.length - 1];
         if (cmd.includes('aws configure export-credentials')) {
           callback(null, {
             stdout: [
-              'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE',
+              'AWS_ACCESS_KEY_ID=AKIAFAKEKEYEXAMPLE',
               'AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
               'AWS_SESSION_TOKEN=FwoGZXIvYXdzEBYaDK...',
               'AWS_CREDENTIAL_EXPIRATION=2026-04-14T12:00:00Z',
@@ -1443,14 +1938,26 @@ AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
         ]);
       });
 
-      then('deletes cache files for target domain', async () => {
+      // one relock, shared by the thens; the calls are copied out, since a beforeEach clears them
+      const relocked = useThen('the relock completes', async () => {
+        delAwsProfileExportMock.mockClear();
         await vaultAdapterAwsConfig.relock!({
           slug: 'acme.prod.AWS_PROFILE',
           exid: 'acme-prod',
         });
+        return {
+          unlinkCalls: unlinkSyncMock.mock.calls.length,
+          dropCalls: [...delAwsProfileExportMock.mock.calls],
+        };
+      });
 
+      then('deletes cache files for target domain', () => {
         // should delete the cached token file for example.awsapps.com/start
-        expect(unlinkSyncMock).toHaveBeenCalled();
+        expect(relocked.unlinkCalls).toBeGreaterThan(0);
+      });
+
+      then("drops keyrack's cached exports of the profile", () => {
+        expect(relocked.dropCalls).toEqual([[{ profile: 'acme-prod' }]]);
       });
     });
 

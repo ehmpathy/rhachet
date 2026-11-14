@@ -634,3 +634,114 @@ exports[`keyrack vault aws.config given: [case19] unlock mode 2 deep: wrong user
 
 "
 `;
+
+exports[`keyrack vault aws.config given: [case20] repeated unlocks of one profile share one export (ehmpathy/rhachet#656) when: [t0] keyrack unlock runs twice for one profile then: the two unlock rows match snapshot: the cached unlock renders the same row as the cold one 1`] = `
+{
+  "first": "
+🔓 keyrack unlock
+   └─ testorg.test.AWS_PROFILE
+      ├─ env: test
+      ├─ org: testorg
+      ├─ vault: aws.config
+      └─ expires in: __TIMESTAMP__
+
+",
+  "second": "
+🔓 keyrack unlock
+   └─ testorg.test.AWS_PROFILE
+      ├─ env: test
+      ├─ org: testorg
+      ├─ vault: aws.config
+      └─ expires in: __TIMESTAMP__
+
+",
+}
+`;
+
+exports[`keyrack vault aws.config given: [case20] repeated unlocks of one profile share one export (ehmpathy/rhachet#656) when: [t2] keyrack relock --key on the held slug, then keyrack unlock again then: the relock stdout names the pruned key, and matches snapshot 1`] = `
+"
+🔒 keyrack relock
+   └─ testorg.test.AWS_PROFILE: pruned 🔒
+
+"
+`;
+
+exports[`keyrack vault aws.config given: [case20] repeated unlocks of one profile share one export (ehmpathy/rhachet#656) when: [t3] keyrack relock --env test, then keyrack unlock again then: the relock stdout names the pruned key, and matches snapshot 1`] = `
+"
+🔒 keyrack relock
+   └─ testorg.test.AWS_PROFILE: pruned 🔒
+
+"
+`;
+
+exports[`keyrack vault aws.config given: [case21] the export under a burst and under faults, via rhx keyrack unlock (ehmpathy/rhachet#656) when: [t0] three unlocks of one profile run at once then: the distinct stdout and stderr across the burst match snapshot 1`] = `
+{
+  "stderrsDistinct": [
+    "ℹ another process exports aws credentials for profile testorg.dev; this one will wait for it, up to 5 minutes (if the other process was killed, the wait ends on its own within 3 minutes)
+",
+  ],
+  "stdouts": [
+    "
+🔓 keyrack unlock
+   └─ testorg.test.AWS_PROFILE
+      ├─ env: test
+      ├─ org: testorg
+      ├─ vault: aws.config
+      └─ expires in: __TIMESTAMP__
+
+",
+  ],
+}
+`;
+
+exports[`keyrack vault aws.config given: [case21] the export under a burst and under faults, via rhx keyrack unlock (ehmpathy/rhachet#656) when: [t1] the aws cli fails the export then: stdout and stderr match snapshot 1`] = `
+{
+  "stderr": "",
+  "stdout": "
+🔓 keyrack unlock
+   └─ testorg.test.AWS_PROFILE
+      ├─ status: errored 💥
+      └─ tip: aws configure export-credentials failed — retry: rhx keyrack unlock --env test --key AWS_PROFILE; if it recurs, run \`aws configure export-credentials --profile 'testorg.dev'\` by hand to see the cli's own error, then fix the profile or its sso session
+
+",
+}
+`;
+
+exports[`keyrack vault aws.config given: [case21] the export under a burst and under faults, via rhx keyrack unlock (ehmpathy/rhachet#656) when: [t2] a file sits at the cache dir path then: stdout and stderr match snapshot 1`] = `
+{
+  "stderr": "",
+  "stdout": "
+🔓 keyrack unlock
+   └─ testorg.test.AWS_PROFILE
+      ├─ status: errored 💥
+      └─ tip: a file blocks the aws export cache dir — fix: move aside the file at /TMP_REPO/.rhachet/keyrack/cache/aws.export, then retry; the disk said EEXIST
+
+",
+}
+`;
+
+exports[`keyrack vault aws.config given: [case21] the export under a burst and under faults, via rhx keyrack unlock (ehmpathy/rhachet#656) when: [t3] the credentials expire in 20 minutes, in the utc offset form the real cli prints then: the unlock row matches snapshot, the minute count pinned to ~20m 1`] = `
+"
+🔓 keyrack unlock
+   └─ testorg.test.AWS_PROFILE
+      ├─ env: test
+      ├─ org: testorg
+      ├─ vault: aws.config
+      └─ expires in: ~20m
+
+"
+`;
+
+exports[`keyrack vault aws.config given: [case22] keyrack set at a profile with no sso config when: [t0] keyrack set --vault aws.config --exid testorg.static then: stdout and stderr match snapshot 1`] = `
+{
+  "stderr": "
+🔐 keyrack set
+   └─ ✋ ConstraintError: aws profile is not an sso profile; the aws.config vault needs one
+      ├─ profileName: testorg.static
+      ├─ ran: keyrack set --key AWS_PROFILE --env test --vault aws.config --exid testorg.static
+      └─ hint: point the key at a profile with sso_session or sso_start_url in its aws config, or store 'testorg.static' in os.direct
+
+",
+  "stdout": "",
+}
+`;

@@ -1,0 +1,15 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asAwsProfileExportDiskFixHint given: [case1] EEXIST — a file sits where the cache dir belongs when: [t0] the hint is cast then: it names the move cure, the path once, and the disk's code 1`] = `"move aside the file at /home/beach/.rhachet/keyrack/cache/aws.export, then retry; the disk said EEXIST"`;
+
+exports[`asAwsProfileExportDiskFixHint given: [case2.5] ERR_FS_EISDIR — node rm meets a dir where a cache file belongs when: [t0] the hint is cast then: it names the move cure, the path once, and the disk's code 1`] = `"move aside the dir at /home/beach/.rhachet/keyrack/cache/aws.export, then retry; the disk said ERR_FS_EISDIR"`;
+
+exports[`asAwsProfileExportDiskFixHint given: [case2] EISDIR — a dir sits where a cache file belongs when: [t0] the hint is cast then: it names the move cure, the path once, and the disk's code 1`] = `"move aside the dir at /home/beach/.rhachet/keyrack/cache/aws.export, then retry; the disk said EISDIR"`;
+
+exports[`asAwsProfileExportDiskFixHint given: [case3] ENOTDIR — a file sits above the cache path when: [t0] the hint is cast then: it names the move cure, the path once, and the disk's code 1`] = `"move aside the file that sits on the way to /home/beach/.rhachet/keyrack/cache/aws.export, then retry; the disk said ENOTDIR"`;
+
+exports[`asAwsProfileExportDiskFixHint given: [case4] EACCES — a root-owned cache dir when: [t0] the hint is cast then: it names the mode cure, the path once, and the disk's code 1`] = `"make /home/beach/.rhachet/keyrack/cache/aws.export readable and writable by this user (a \`sudo rhx\` may have left it root-owned), then retry; the disk said EACCES"`;
+
+exports[`asAwsProfileExportDiskFixHint given: [case5] EROFS — a read-only HOME when: [t0] the hint is cast then: it names the mode cure, the path once, and the disk's code 1`] = `"make /home/beach/.rhachet/keyrack/cache/aws.export readable and writable by this user (a \`sudo rhx\` may have left it root-owned), then retry; the disk said EROFS"`;
+
+exports[`asAwsProfileExportDiskFixHint given: [case6] an error with no code, from another realm when: [t0] the hint is cast then: it names the mode cure and the error text 1`] = `"make /home/beach/.rhachet/keyrack/cache/aws.export readable and writable by this user (a \`sudo rhx\` may have left it root-owned), then retry; the disk said quota exceeded"`;

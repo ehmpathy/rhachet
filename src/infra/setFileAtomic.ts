@@ -21,13 +21,14 @@ export const setFileAtomic = (
     `.${basename(input.path)}.${process.pid}.${randomBytes(4).toString('hex')}.tmp`,
   );
 
-  // write the temp, then swap it in; drop the temp if the swap fails
+  // write the temp, then swap it in; drop the temp if the write or the swap fails, so a
+  //   partial temp (perhaps of a credential) never stays on disk
   // an absent mode falls to node's default (0o666, less the umask)
-  writeFileSync(pathTemp, input.content, {
-    encoding: 'utf8',
-    mode: options?.mode,
-  });
   try {
+    writeFileSync(pathTemp, input.content, {
+      encoding: 'utf8',
+      mode: options?.mode,
+    });
     renameSync(pathTemp, input.path);
   } catch (error) {
     rmSync(pathTemp, { force: true });

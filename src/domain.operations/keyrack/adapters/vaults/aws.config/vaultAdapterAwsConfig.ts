@@ -1,5 +1,9 @@
 import { fromSSO } from '@aws-sdk/credential-provider-sso';
-import { ConstraintError, MalfunctionError } from 'helpful-errors';
+import {
+  ConstraintError,
+  HelpfulError,
+  MalfunctionError,
+} from 'helpful-errors';
 import { genLogMethods } from 'sdk-logs';
 
 import type {
@@ -9,6 +13,9 @@ import type {
   KeyrackKeyHostMetaAwsConfig,
 } from '@src/domain.objects/keyrack';
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack';
+import { asAwsProfileExportCliErrorText } from '@src/domain.operations/keyrack/adapters/mechanisms/aws.sso/asAwsProfileExportCliErrorText';
+import { delAwsProfileExport } from '@src/domain.operations/keyrack/adapters/mechanisms/aws.sso/delAwsProfileExport';
+import { genAwsProfileExport } from '@src/domain.operations/keyrack/adapters/mechanisms/aws.sso/genAwsProfileExport';
 import { mechAdapterAwsSso } from '@src/domain.operations/keyrack/adapters/mechanisms/aws.sso/mechAdapterAwsSso';
 import {
   getAwsSsoProfileConfig,
@@ -50,6 +57,13 @@ const getMechAdapter = (
 };
 
 const execAsync = promisify(exec);
+
+/**
+ * .what = how long the per-unlock `aws sts get-caller-identity` may run before it is killed
+ * .why = two minutes, the export's own hang guard; a healthy call takes seconds even on a loaded
+ *   box, and an unbounded stall would hold the unlock forever
+ */
+const STS_IDENTITY_HANG_GUARD_MS = 120_000;
 
 /**
  * .what = check if a profile exists in ~/.aws/config
@@ -184,6 +198,20 @@ const validateSsoSession = async (
       await validateSsoTokenWithAwsSdk(profileName);
       // SDK validated token with AWS SSO servers — session is valid
     } catch (error) {
+      // a profile with no sso config is no expired session: a re-login cannot cure it, so the
+      //   caller is told to pick an sso profile, never sent to `aws sso login`
+      if (
+        error instanceof Error &&
+        error.message.includes('is not configured with SSO credentials')
+      )
+        throw new ConstraintError(
+          'aws profile is not an sso profile; the aws.config vault needs one',
+          {
+            profileName,
+            hint: `point the key at a profile with sso_session or sso_start_url in its aws config, or store '${profileName}' in os.direct`,
+          },
+        );
+
       // CredentialsProviderError = SSO expired or revoked remotely
       if (
         error instanceof Error &&
@@ -204,14 +232,20 @@ const validateSsoSession = async (
 
   // refresh STS cache — ensures CLI has fresh credentials for subsequent commands
   // .note = fromSSO validated SSO token, but STS cache may still be stale
-  // .note = this pre-warms the credential cache for CLI use
+  // .note = through the single-flight export, so a burst of unlocks runs the cli once
+  // .note = a warm export cache answers with no cli run, so this gate only re-checks the sts
+  //         session on a cold or near-expiry cache; fromSSO above and sts below still run on
+  //         every call. a session revoked mid-life passes here until its cached entry nears
+  //         expiry or a relock drops it
   try {
-    await execAsync(
-      `aws configure export-credentials --profile "${profileName}" --format env-no-export`,
-    );
+    await genAwsProfileExport({ profile: profileName, refresh: false });
   } catch (error) {
+    // a peer held the export past the wait bound; the caller retries, so it stays a constraint
+    if (error instanceof ConstraintError) throw error;
+
     // export-credentials failed after SSO validated — STS refresh issue
-    const message = error instanceof Error ? error.message.toLowerCase() : '';
+    // .note = sort on the cli's own words only, never on the profile name or a hint
+    const message = asAwsProfileExportCliErrorText({ error });
     const isExpiredError =
       message.includes('expired') ||
       message.includes('invalid') ||
@@ -229,6 +263,10 @@ const validateSsoSession = async (
       return { valid: false };
     }
 
+    // our own export fault (a hang, a short export, a cache disk fault) already names the
+    // profile, the cause and the fix; pass it through rather than bury it under a wrapper
+    if (error instanceof HelpfulError) throw error;
+
     // unknown error - fail fast
     throw new MalfunctionError(
       'aws configure export-credentials failed with unexpected error',
@@ -238,9 +276,13 @@ const validateSsoSession = async (
 
   // sts call — only needed for username extraction, not validation
   // .note = fromSSO + export-credentials already validated, this extracts username from ARN
+  // .note = the profile rides as one single-quoted shell word, so a `$(…)` in a manifest's profile
+  //         name stays text; `exec` makes the shell replace itself with the cli, so the hang
+  //         guard's kill reaches the cli itself and no orphan holds the pipe open
   try {
     const { stdout } = await execAsync(
-      `aws sts get-caller-identity --profile "${profileName}"`,
+      `exec aws sts get-caller-identity --profile '${profileName.split("'").join(`'\\''`)}'`,
+      { timeout: STS_IDENTITY_HANG_GUARD_MS },
     );
     // .cast = aws sts json shape at external boundary; only Arn is consumed
     // .removal = drop the cast once an aws sdk typed client replaces the cli call
@@ -251,6 +293,16 @@ const validateSsoSession = async (
     // rethrow our own error types (code defects, invalid requests)
     if (error instanceof MalfunctionError) throw error;
     if (error instanceof ConstraintError) throw error;
+
+    // a hang is no expired session: fail loud, never send the human to a re-login
+    if ((error as { killed?: unknown })?.killed === true)
+      throw new MalfunctionError('aws sts get-caller-identity hung', {
+        profileName,
+        hangGuardMs: STS_IDENTITY_HANG_GUARD_MS,
+        hint: `run \`aws sts get-caller-identity --profile '${profileName}'\` by hand to see where it stalls`,
+        // the unlock row names the retry first, then this hint for a recurrence, as the export's hang does
+        hintAfterRetry: true,
+      });
 
     // allow expected errors: command failed = session expired or profile invalid
     // .note = aws cli exits non-zero for expired sessions and invalid profiles
@@ -557,13 +609,13 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<
     // force STS credential refresh after SSO login
     // .note = aws sso login refreshes SSO token but not STS cache
     // .note = export-credentials forces botocore to fetch fresh STS creds
+    // .note = `refresh: true` reads no cached export and drops it, so creds minted before
+    //         this login are never served after it
     try {
-      await execAsync(
-        `aws configure export-credentials --profile "${profileName}" --format env-no-export`,
-      );
+      await genAwsProfileExport({ profile: profileName, refresh: true });
     } catch (error) {
       // if export-credentials still fails after fresh SSO login, clear the CLI cache and retry
-      const message = error instanceof Error ? error.message.toLowerCase() : '';
+      const message = asAwsProfileExportCliErrorText({ error });
       const isStillExpired = message.includes('expired');
 
       if (isStillExpired) {
@@ -578,9 +630,7 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<
         }
 
         // retry export-credentials after cache clear
-        await execAsync(
-          `aws configure export-credentials --profile "${profileName}" --format env-no-export`,
-        );
+        await genAwsProfileExport({ profile: profileName, refresh: true });
       } else {
         throw error;
       }
@@ -781,7 +831,7 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<
 
   /**
    * .what = clear aws sso cached credentials for a profile
-   * .why = enables true relock; clears sso token and cli credential caches
+   * .why = enables true relock; clears sso token, cli credential caches, and keyrack's export cache
    *
    * .note = uses exid (profile name) from the host manifest
    * .note = uses targeted cache deletion to preserve other domains
@@ -789,6 +839,10 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<
   relock: async (input) => {
     const profileName = input.exid;
     if (!profileName) return;
+
+    // drop keyrack's cached exports of this profile first, so no creds rest on disk after relock
+    // .note = before the sso lookup, so a profile with no sso config still leaves no export
+    delAwsProfileExport({ profile: profileName });
 
     // get the sso start url for this profile
     const profileConfig = await getAwsSsoProfileConfig({ profileName });

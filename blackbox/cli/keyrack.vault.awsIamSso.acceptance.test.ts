@@ -1,4 +1,13 @@
-import { chmodSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { given, then, useBeforeAll, when } from 'test-fns';
@@ -8,8 +17,10 @@ import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import {
   asSnapshotSafe,
   invokeRhachetCliBinary,
+  invokeRhachetCliBinaryAsync,
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';
+import { maskKeyrackGrantVolatiles } from '@/blackbox/.test/infra/maskKeyrackGrantVolatiles';
 
 /**
  * .what = path to mock aws CLI executable
@@ -33,6 +44,10 @@ const PTY_WITH_ANSWERS = resolve(__dirname, '../.test/assets/pty-with-answers.js
  * .what = env vars with mock aws CLI on PATH
  * .why = acceptance tests must be fully portable without real AWS credentials
  *
+ * .mock = the aws cli binary at the far end of PATH
+ * .why = a real export needs a live sso session, which no ci runner holds
+ * .real = genAwsProfileExport.awscli.integration.test.ts runs the real aws cli against hermetic
+ *   config files, for its output shape, its `+00:00` expiry, and its failure path
  * .note = mock aws responds to known subcommands (sts get-caller-identity, sso login, etc.)
  * .note = cases that call `set` need this because vaultAdapterAwsIamSso.set validates the profile
  */
@@ -41,6 +56,95 @@ const envWithMockAws = (home: string) => ({
   PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}`,
   AWS_SDK_MOCK: '1', // skip SDK validation in mock mode
 });
+
+/**
+ * .what = the dir keyrack caches aws exports in, under a given HOME
+ * .why = the acceptance cases count and inspect the cache the cli leaves on disk
+ */
+const cacheDirOf = (home: string): string =>
+  `${home}/.rhachet/keyrack/cache/aws.export`;
+
+/**
+ * .what = a temp repo whose keyrack holds one aws.config key, `AWS_PROFILE` → `testorg.dev`, with a
+ *   cold export cache
+ * .why = the export cases ([case20], [case21]) each start from the same setup, in their own HOME
+ */
+const genAwsExportRepo = async (): Promise<{ path: string }> => {
+  const r = await genTestTempRepo({ fixture: 'minimal' });
+  invokeRhachetCliBinary({
+    args: ['keyrack', 'init'],
+    cwd: r.path,
+    env: { HOME: r.path },
+  });
+  const agentDir = `${r.path}/.agent`;
+  if (!existsSync(agentDir)) mkdirSync(agentDir, { recursive: true });
+  writeFileSync(
+    `${agentDir}/keyrack.yml`,
+    'org: testorg\n\nenv.test:\n  - AWS_PROFILE\n',
+    'utf-8',
+  );
+  const awsDir = `${r.path}/.aws`;
+  mkdirSync(awsDir, { recursive: true });
+  writeFileSync(
+    `${awsDir}/config`,
+    [
+      '[profile testorg.dev]',
+      'sso_session = testorg-sso',
+      'sso_account_id = 123456789012',
+      'sso_role_name = AdministratorAccess',
+      '',
+      '[sso-session testorg-sso]',
+      'sso_start_url = https://d-12345abcde.awsapps.com/start',
+      'sso_region = us-east-1',
+      '',
+    ].join('\n'),
+    'utf-8',
+  );
+  invokeRhachetCliBinary({
+    args: [
+      'keyrack',
+      'set',
+      '--key',
+      'AWS_PROFILE',
+      '--env',
+      'test',
+      '--vault',
+      'aws.config',
+      '--exid',
+      'testorg.dev',
+    ],
+    cwd: r.path,
+    env: { ...envWithMockAws(r.path), MOCK_AWS_IDENTITY: 'alice' },
+  });
+
+  // the set roundtrip ends in a vault relock, which drops the export it made; the rm pins a cold
+  //   cache for every count regardless of that relock
+  rmSync(cacheDirOf(r.path), { recursive: true, force: true });
+  return r;
+};
+
+/**
+ * .what = the env of an export case: the mock aws on PATH, a live identity, and an export log
+ * .why = the export log lets a case count how many exports the cli ran
+ */
+const asEnvExportCounted = (input: {
+  home: string;
+  mode?: 'fail';
+}): Record<string, string | undefined> => ({
+  ...envWithMockAws(input.home),
+  MOCK_AWS_IDENTITY: 'alice',
+  MOCK_AWS_EXPORT_CALLS: `${input.home}/.mock-aws-export-calls`,
+  ...(input.mode ? { MOCK_AWS_EXPORT_MODE: input.mode } : {}),
+});
+
+/**
+ * .what = how many exports the mock aws ran under a HOME
+ */
+const getAwsExportCallCount = (input: { home: string }): number => {
+  const path = `${input.home}/.mock-aws-export-calls`;
+  if (!existsSync(path)) return 0;
+  return readFileSync(path, 'utf-8').split('\n').filter(Boolean).length;
+};
 
 /**
  * .what = sanitize unlock result for snapshot comparison
@@ -1799,6 +1903,29 @@ describe('keyrack vault aws.config', () => {
       return r;
     });
 
+    // warm the export cache with one unlock as alice, then drop the daemon so the unlock under
+    //   test runs the whole vault flow again
+    // .note = the set's roundtrip ends in a vault relock, which drops the cache, so the set alone
+    //   leaves it cold
+    const exportsWarm = useBeforeAll(async () => {
+      invokeRhachetCliBinary({
+        args: ['keyrack', 'unlock', '--env', 'test', '--key', 'AWS_PROFILE'],
+        cwd: repo.path,
+        env: {
+          ...envIsolated(repo.path),
+          PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}`,
+          AWS_SDK_MOCK: '1',
+          MOCK_AWS_IDENTITY: 'alice',
+          MOCK_AWS_EXPORT_CALLS: `${repo.path}/.mock-aws-export-calls`,
+        },
+      });
+      killKeyrackDaemonForTests({ owner: null });
+      return {
+        count: getAwsExportCallCount({ home: repo.path }),
+        cacheFiles: readdirSync(cacheDirOf(repo.path)).filter((name) => name.endsWith('.json')),
+      };
+    });
+
     when('[t0] keyrack unlock with invalid session that recovers to alice', () => {
       const result = useBeforeAll(async () =>
         invokeRhachetCliBinary({
@@ -1811,12 +1938,27 @@ describe('keyrack vault aws.config', () => {
             // sts@login0 invalid → login → sts@login1 alice
             MOCK_AWS_IDENTITY_STAGES: 'invalid,alice',
             MOCK_AWS_STATE_FILE: `${repo.path}/.mock-aws-stages`,
+            MOCK_AWS_EXPORT_CALLS: `${repo.path}/.mock-aws-export-calls`,
           },
         }),
       );
 
       then('exits with status 0', () => {
         expect(result.status).toEqual(0);
+      });
+
+      then('the warm-up unlock left one export cached', () => {
+        expect(exportsWarm.count).toEqual(1);
+        expect(exportsWarm.cacheFiles).toHaveLength(1);
+      });
+
+      then('each re-login replaces the warm cached creds with exactly one fresh export (case 7)', () => {
+        // .note = the pre-login check reads the warm cache (no export); each login's refresh drops
+        //   that entry and exports anew, so the creds served are the post-login ones. the mock
+        //   appends one char to its state file per login
+        const logins = readFileSync(`${repo.path}/.mock-aws-stages`, 'utf-8').length;
+        expect(logins).toBeGreaterThanOrEqual(1);
+        expect(getAwsExportCallCount({ home: repo.path })).toEqual(exportsWarm.count + logins);
       });
 
       then('output renders the no-prior-session recovery tree', () => {
@@ -1925,6 +2067,601 @@ describe('keyrack vault aws.config', () => {
 
       then('stdout matches snapshot', () => {
         expect(result.stdout).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case20] repeated unlocks of one profile share one export (ehmpathy/rhachet#656)', () => {
+    // .what = the aws export runs once per profile per box, then a disk cache serves it
+    // .why = a jest env that unlocks one profile many times ran `aws configure export-credentials`
+    //        per unlock; the export is now single-flight behind an owner-only cache
+
+    beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
+    afterAll(() => killKeyrackDaemonForTests({ owner: null }));
+
+    const repo = useBeforeAll(async () => genAwsExportRepo());
+    const envCounted = () => asEnvExportCounted({ home: repo.path });
+    const getExportCallCount = () =>
+      getAwsExportCallCount({ home: repo.path });
+
+    when('[t0] keyrack unlock runs twice for one profile', () => {
+      const results = useBeforeAll(async () => {
+        const first = invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'test', '--key', 'AWS_PROFILE'],
+          cwd: repo.path,
+          env: envCounted(),
+        });
+        const second = invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'test', '--key', 'AWS_PROFILE'],
+          cwd: repo.path,
+          env: envCounted(),
+        });
+        return { first, second };
+      });
+
+      then('both exit 0', () => {
+        expect(results.first.status).toEqual(0);
+        expect(results.second.status).toEqual(0);
+      });
+
+      then('the aws cli exported once across both unlocks', () => {
+        expect(getExportCallCount()).toEqual(1);
+      });
+
+      then('the cache file is readable only by its owner, in an owner-only dir', () => {
+        const dir = cacheDirOf(repo.path);
+        const files = readdirSync(dir).filter((name) => name.endsWith('.json'));
+        expect(files).toHaveLength(1);
+        expect(statSync(dir).mode & 0o777).toEqual(0o700);
+        expect(statSync(`${dir}/${files[0]}`).mode & 0o777).toEqual(0o600);
+      });
+
+      then('no credential value reaches stdout or stderr', () => {
+        for (const result of [results.first, results.second]) {
+          const output = result.stdout + result.stderr;
+          expect(output).not.toContain('MockSecretAccessKey');
+          expect(output).not.toContain('AKIA_MOCK_ACCESS_KEY_123');
+          expect(output).not.toContain('MockSessionToken');
+        }
+      });
+
+      then('the two unlock rows match snapshot: the cached unlock renders the same row as the cold one', () => {
+        expect({
+          first: maskKeyrackGrantVolatiles({ stdout: asSnapshotSafe(results.first.stdout) }),
+          second: maskKeyrackGrantVolatiles({ stdout: asSnapshotSafe(results.second.stdout) }),
+        }).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] keyrack relock, then keyrack unlock again', () => {
+      // .note = runs after [t0], so the daemon holds the grant and the cache holds its export
+      const results = useBeforeAll(async () => {
+        const filesBefore = readdirSync(cacheDirOf(repo.path)).filter((name) =>
+          name.endsWith('.json'),
+        );
+        const relock = invokeRhachetCliBinary({
+          args: ['keyrack', 'relock'],
+          cwd: repo.path,
+          env: envCounted(),
+        });
+        const filesAfterRelock = readdirSync(cacheDirOf(repo.path)).filter(
+          (name) => name.endsWith('.json'),
+        );
+        const unlock = invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--env', 'test', '--key', 'AWS_PROFILE'],
+          cwd: repo.path,
+          env: envCounted(),
+        });
+        return { filesBefore, relock, filesAfterRelock, unlock };
+      });
+
+      then('the relock exits 0 and prunes the key', () => {
+        expect(results.relock.status).toEqual(0);
+        expect(results.relock.stdout).toContain('testorg.test.AWS_PROFILE: pruned 🔒');
+      });
+
+      then('the relock drops the cached export of the profile', () => {
+        expect(results.filesBefore).toHaveLength(1);
+        expect(results.filesAfterRelock).toEqual([]);
+      });
+
+      then('the next unlock exports anew', () => {
+        expect(results.unlock.status).toEqual(0);
+        expect(getExportCallCount()).toEqual(2);
+      });
+    });
+
+    /**
+     * .what = relock one key by slug, then by env, each over a held grant and a warm cache
+     * .why = a relock narrowed by `--key` or `--env` must still drop the export of the aws.config
+     *   grant it prunes, or owner-only creds outlive the relock on disk
+     */
+    const relockThenUnlock = async (input: { relockArgs: string[] }) => {
+      const filesBefore = readdirSync(cacheDirOf(repo.path)).filter((name) =>
+        name.endsWith('.json'),
+      );
+      const relock = invokeRhachetCliBinary({
+        args: ['keyrack', 'relock', ...input.relockArgs],
+        cwd: repo.path,
+        env: envCounted(),
+      });
+      const filesAfterRelock = readdirSync(cacheDirOf(repo.path)).filter(
+        (name) => name.endsWith('.json'),
+      );
+      const unlock = invokeRhachetCliBinary({
+        args: ['keyrack', 'unlock', '--env', 'test', '--key', 'AWS_PROFILE'],
+        cwd: repo.path,
+        env: envCounted(),
+      });
+      return {
+        filesBefore,
+        relock,
+        filesAfterRelock,
+        unlock,
+        count: getExportCallCount(),
+      };
+    };
+
+    when('[t2] keyrack relock --key on the held slug, then keyrack unlock again', () => {
+      // .note = runs after [t1], whose unlock left the grant held and its export cached
+      const results = useBeforeAll(async () =>
+        relockThenUnlock({ relockArgs: ['--key', 'testorg.test.AWS_PROFILE'] }),
+      );
+
+      then('the relock exits 0 and drops the cached export', () => {
+        expect(results.relock.status).toEqual(0);
+        expect(results.filesBefore).toHaveLength(1);
+        expect(results.filesAfterRelock).toEqual([]);
+      });
+
+      then('the relock stdout names the pruned key, and matches snapshot', () => {
+        expect(results.relock.stdout).toContain('testorg.test.AWS_PROFILE: pruned 🔒');
+        expect(asSnapshotSafe(results.relock.stdout)).toMatchSnapshot();
+      });
+
+      then('the next unlock exports anew', () => {
+        expect(results.unlock.status).toEqual(0);
+        expect(results.count).toEqual(3);
+      });
+    });
+
+    when('[t3] keyrack relock --env test, then keyrack unlock again', () => {
+      // .note = runs after [t2], whose unlock left the grant held and its export cached
+      const results = useBeforeAll(async () =>
+        relockThenUnlock({ relockArgs: ['--env', 'test'] }),
+      );
+
+      then('the relock exits 0 and drops the cached export', () => {
+        expect(results.relock.status).toEqual(0);
+        expect(results.filesBefore).toHaveLength(1);
+        expect(results.filesAfterRelock).toEqual([]);
+      });
+
+      then('the relock stdout names the pruned key, and matches snapshot', () => {
+        expect(results.relock.stdout).toContain('testorg.test.AWS_PROFILE: pruned 🔒');
+        expect(asSnapshotSafe(results.relock.stdout)).toMatchSnapshot();
+      });
+
+      then('the next unlock exports anew', () => {
+        expect(results.unlock.status).toEqual(0);
+        expect(results.count).toEqual(4);
+      });
+    });
+  });
+
+  given('[case21] the export under a burst and under faults, via rhx keyrack unlock (ehmpathy/rhachet#656)', () => {
+    // .what = the unlock a human runs: parallel callers share one export, and each export fault
+    //         reaches the unlock row with its own fix and exit code
+    // .note = each `when` prunes the daemon and drops the cache first, so its unlock meets the vault cold
+
+    beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
+    afterAll(() => killKeyrackDaemonForTests({ owner: null }));
+
+    const repo = useBeforeAll(async () => genAwsExportRepo());
+    const unlockArgs = ['keyrack', 'unlock', '--env', 'test', '--key', 'AWS_PROFILE'];
+    const setColdStart = () => {
+      invokeRhachetCliBinary({
+        args: ['keyrack', 'relock'],
+        cwd: repo.path,
+        env: asEnvExportCounted({ home: repo.path }),
+      });
+      rmSync(cacheDirOf(repo.path), { recursive: true, force: true });
+      rmSync(`${repo.path}/.mock-aws-export-calls`, { force: true });
+    };
+
+    when('[t0] three unlocks of one profile run at once', () => {
+      // .note = the results sit under a key, since useBeforeAll hands back an object proxy
+      const burst = useBeforeAll(async () => {
+        setColdStart();
+        const results = await Promise.all(
+          [0, 1, 2].map(() =>
+            invokeRhachetCliBinaryAsync({
+              args: unlockArgs,
+              cwd: repo.path,
+              // a 4s export outlasts the spread of three cli startups, so the peers wait on it
+              env: { ...asEnvExportCounted({ home: repo.path }), MOCK_AWS_EXPORT_SLEEP: '4' },
+            }),
+          ),
+        );
+        return { results };
+      });
+
+      then('all three exit 0', () => {
+        expect(burst.results.map((result) => result.status)).toEqual([0, 0, 0]);
+      });
+
+      then('the aws cli exported once across all three', () => {
+        expect(getAwsExportCallCount({ home: repo.path })).toEqual(1);
+      });
+
+      then('a wait notice, if any, is on stderr, never stdout', () => {
+        for (const result of burst.results) {
+          expect(result.stdout).not.toContain('another process exports aws credentials');
+          expect(result.stdout + result.stderr).not.toContain('MockSecretAccessKey');
+          expect(result.stdout + result.stderr).not.toContain('AKIA_MOCK_ACCESS_KEY_123');
+        }
+      });
+
+      then('a peer that waits prints the one wait notice on stderr', () => {
+        const notices = burst.results
+          .map((result) => result.stderr)
+          .filter((stderr) => stderr.includes('another process exports aws credentials'));
+        expect(notices.length).toBeGreaterThanOrEqual(1);
+        for (const notice of notices)
+          expect(notice).toContain(
+            "ℹ another process exports aws credentials for profile testorg.dev; this one will wait for it, up to 5 minutes (if the other process was killed, the wait ends on its own within 3 minutes)",
+          );
+      });
+
+      then('the distinct stdout and stderr across the burst match snapshot', () => {
+        // .note = which caller exports varies run to run, so the set of distinct outputs is pinned
+        expect({
+          stdouts: [
+            ...new Set(
+              burst.results.map((result) =>
+                maskKeyrackGrantVolatiles({ stdout: asSnapshotSafe(result.stdout) }),
+              ),
+            ),
+          ].sort(),
+          // .note = only non-empty stderrs: each unlock asks more than once, so whether any caller
+          //   stays silent turns on the race; the notice text is what a human reads
+          stderrsDistinct: [
+            ...new Set(
+              burst.results
+                .map((result) => asSnapshotSafe(result.stderr))
+                .filter((stderr) => stderr !== ''),
+            ),
+          ].sort(),
+        }).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] the aws cli fails the export', () => {
+      const result = useBeforeAll(async () => {
+        setColdStart();
+        return invokeRhachetCliBinary({
+          args: unlockArgs,
+          cwd: repo.path,
+          env: asEnvExportCounted({ home: repo.path, mode: 'fail' }),
+          logOnError: false,
+        });
+      });
+
+      then('it exits 1, a malfunction a retry may cure', () => {
+        expect(result.status).toEqual(1);
+      });
+
+      then('the row names the cli fault and the retry, never a value', () => {
+        const output = result.stdout + result.stderr;
+        expect(output).toContain('aws configure export-credentials failed');
+        expect(output).toContain('— retry: rhx keyrack unlock');
+        expect(output).not.toContain('MockSecretAccessKey');
+          expect(output).not.toContain('AKIA_MOCK_ACCESS_KEY_123');
+      });
+
+      then('no export is cached', () => {
+        const dir = cacheDirOf(repo.path);
+        const files = existsSync(dir)
+          ? readdirSync(dir).filter((name) => name.endsWith('.json'))
+          : [];
+        expect(files).toEqual([]);
+      });
+
+      then('stdout and stderr match snapshot', () => {
+        expect({
+          stdout: asSnapshotSafe(result.stdout),
+          stderr: asSnapshotSafe(result.stderr),
+        }).toMatchSnapshot();
+      });
+    });
+
+    when('[t2] a file sits at the cache dir path', () => {
+      const result = useBeforeAll(async () => {
+        setColdStart();
+        mkdirSync(`${repo.path}/.rhachet/keyrack/cache`, { recursive: true });
+        writeFileSync(cacheDirOf(repo.path), 'not a dir', 'utf-8');
+        return invokeRhachetCliBinary({
+          args: unlockArgs,
+          cwd: repo.path,
+          env: asEnvExportCounted({ home: repo.path }),
+          logOnError: false,
+        });
+      });
+      afterAll(() => rmSync(cacheDirOf(repo.path), { force: true }));
+
+      then('it exits 2, a constraint the human fixes', () => {
+        expect(result.status).toEqual(2);
+      });
+
+      then('the row names the path and the move that cures it, never a retry', () => {
+        const output = result.stdout + result.stderr;
+        expect(output).toContain('a file blocks the aws export cache dir');
+        expect(output).toContain('— fix: move aside the file at');
+        expect(output).not.toContain('readable and writable');
+        expect(output).toContain('.rhachet/keyrack/cache/aws.export');
+        expect(output).not.toContain('— retry');
+      });
+
+      then('the aws cli ran no export', () => {
+        expect(getAwsExportCallCount({ home: repo.path })).toEqual(0);
+      });
+
+      then('stdout and stderr match snapshot', () => {
+        expect({
+          stdout: asSnapshotSafe(result.stdout),
+          stderr: asSnapshotSafe(result.stderr),
+        }).toMatchSnapshot();
+      });
+    });
+
+    // .note = the title says "offset form", never the literal offset: the snap name carries it, and the
+    //         commit hook reads a literal offset as a clock time
+    when('[t3] the credentials expire in 20 minutes, in the utc offset form the real cli prints', () => {
+      // .note = the grant follows the creds' own expiry, as it did on main for the `…Z` form; the
+      //         `+00:00` form once fell to a flat 55 min (fulcrum F17)
+      const result = useBeforeAll(async () => {
+        setColdStart();
+        const expiration = new Date(Date.now() + 20 * 60 * 1000)
+          .toISOString()
+          .replace(/\.\d{3}Z$/, '+00:00');
+        return invokeRhachetCliBinary({
+          args: unlockArgs,
+          cwd: repo.path,
+          env: {
+            ...asEnvExportCounted({ home: repo.path }),
+            MOCK_AWS_EXPORT_EXPIRATION: expiration,
+          },
+        });
+      });
+
+      then('it exits 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('the grant expires with the creds, in about 20 minutes', () => {
+        expect(result.stdout).toMatch(/expires in: (19|20)m/);
+      });
+
+      then('the unlock row matches snapshot, the minute count pinned to ~20m', () => {
+        // .note = the minute count ticks 19 or 20 run to run; the snap shows it as `~20m`
+        const stdout = asSnapshotSafe(result.stdout).replace(/expires in: (19|20)m/, 'expires in: ~20m');
+        expect(stdout).toContain('expires in: ~20m');
+        expect(maskKeyrackGrantVolatiles({ stdout })).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case22] keyrack set at a profile with no sso config', () => {
+    // .what = set an aws.config key whose profile holds static config, no sso_session
+    // .why = a re-login cannot cure a profile with no sso config; the caller is told to pick an
+    //   sso profile or os.direct, never sent to `aws sso login`
+
+    // cleanup daemon between cases
+    beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
+    afterAll(() => killKeyrackDaemonForTests({ owner: null }));
+
+    const repo = useBeforeAll(async () => {
+      const r = await genTestTempRepo({ fixture: 'minimal' });
+
+      // keyrack init
+      invokeRhachetCliBinary({
+        args: ['keyrack', 'init'],
+        cwd: r.path,
+        env: { HOME: r.path },
+      });
+
+      // write repo manifest
+      const agentDir = `${r.path}/.agent`;
+      if (!existsSync(agentDir)) mkdirSync(agentDir, { recursive: true });
+      writeFileSync(
+        `${agentDir}/keyrack.yml`,
+        'org: testorg\n\nenv.test:\n  - AWS_PROFILE\n',
+        'utf-8',
+      );
+
+      // a profile with static config only: no sso_session, no sso_start_url
+      const awsDir = `${r.path}/.aws`;
+      mkdirSync(awsDir, { recursive: true });
+      writeFileSync(
+        `${awsDir}/config`,
+        ['[profile testorg.static]', 'region = us-east-1', ''].join('\n'),
+        'utf-8',
+      );
+
+      return r;
+    });
+
+    when('[t0] keyrack set --vault aws.config --exid testorg.static', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: [
+            'keyrack',
+            'set',
+            '--key',
+            'AWS_PROFILE',
+            '--env',
+            'test',
+            '--vault',
+            'aws.config',
+            '--exid',
+            'testorg.static',
+          ],
+          cwd: repo.path,
+          env: {
+            ...envIsolated(repo.path),
+            PATH: `${MOCK_AWS_CLI_DIR}:${process.env.PATH}`,
+            // .note = the real sdk check runs: it reads the profile from HOME's aws config and
+            //   refuses a profile with no sso config before any network call
+            AWS_SDK_MOCK: undefined,
+            AWS_CONFIG_FILE: undefined,
+            AWS_SHARED_CREDENTIALS_FILE: undefined,
+          },
+        }),
+      );
+
+      then('it exits 2, a constraint the caller fixes', () => {
+        expect(result.status).toEqual(2);
+      });
+
+      then('the output names the profile as no sso profile', () => {
+        expect(result.stdout + result.stderr).toContain(
+          'aws profile is not an sso profile; the aws.config vault needs one',
+        );
+      });
+
+      then('the output names the cure, an sso profile or os.direct', () => {
+        expect(result.stdout + result.stderr).toContain('os.direct');
+      });
+
+      then('the output never sends the caller to aws sso login', () => {
+        expect(result.stdout + result.stderr).not.toContain('aws sso login');
+      });
+
+      then('stdout and stderr match snapshot', () => {
+        expect({
+          stdout: asSnapshotSafe(result.stdout),
+          stderr: asSnapshotSafe(result.stderr),
+        }).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case23] a cached export that no longer fits, via rhx keyrack unlock (ehmpathy/rhachet#656)', () => {
+    // .what = the cache serves an export only while it has life left past the margin, and only to
+    //         the profile config it was exported under (catalog cases 3 and 8)
+    // .note = the daemon is killed between the two unlocks of a `when`, so the second meets the vault
+    //         and its cache, never a grant the daemon still holds
+
+    beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
+    afterAll(() => killKeyrackDaemonForTests({ owner: null }));
+
+    const repo = useBeforeAll(async () => genAwsExportRepo());
+    const unlockArgs = ['keyrack', 'unlock', '--env', 'test', '--key', 'AWS_PROFILE'];
+    const setColdStart = () => {
+      killKeyrackDaemonForTests({ owner: null });
+      rmSync(cacheDirOf(repo.path), { recursive: true, force: true });
+      rmSync(`${repo.path}/.mock-aws-export-calls`, { force: true });
+    };
+    const asExpirationIn = (input: { minutes: number }): string =>
+      new Date(Date.now() + input.minutes * 60 * 1000)
+        .toISOString()
+        .replace(/\.\d{3}Z$/, 'Z');
+
+    /**
+     * .what = two unlocks of one profile, the daemon killed between them, with a hook between
+     * .why = each `when` varies only what changes between the two unlocks
+     */
+    const unlockTwice = async (input: {
+      env: Record<string, string | undefined>;
+      between: () => void;
+    }) => {
+      const first = invokeRhachetCliBinary({ args: unlockArgs, cwd: repo.path, env: input.env });
+      const countAfterFirst = getAwsExportCallCount({ home: repo.path });
+      killKeyrackDaemonForTests({ owner: null });
+      input.between();
+      const second = invokeRhachetCliBinary({ args: unlockArgs, cwd: repo.path, env: input.env });
+      return {
+        first,
+        second,
+        countAfterFirst,
+        count: getAwsExportCallCount({ home: repo.path }),
+      };
+    };
+
+    when('[t0] the cached credentials expire in 10 minutes, inside the 15 minute margin', () => {
+      const results = useBeforeAll(async () => {
+        setColdStart();
+        return unlockTwice({
+          env: {
+            ...asEnvExportCounted({ home: repo.path }),
+            MOCK_AWS_EXPORT_EXPIRATION: asExpirationIn({ minutes: 10 }),
+          },
+          between: () => undefined,
+        });
+      });
+
+      then('both unlocks exit 0', () => {
+        expect(results.first.status).toEqual(0);
+        expect(results.second.status).toEqual(0);
+      });
+
+      then('the second unlock exports anew, since the cached credentials near their expiry', () => {
+        // .note = an unlock asks for the export more than once, and an export inside the margin is
+        //   never served from the cache, so each ask exports; the claim is that the second unlock does
+        expect(results.countAfterFirst).toBeGreaterThanOrEqual(1);
+        expect(results.count).toBeGreaterThan(results.countAfterFirst);
+      });
+    });
+
+    when('[t1] the cached credentials expire in 20 minutes, past the margin', () => {
+      const results = useBeforeAll(async () => {
+        setColdStart();
+        return unlockTwice({
+          env: {
+            ...asEnvExportCounted({ home: repo.path }),
+            MOCK_AWS_EXPORT_EXPIRATION: asExpirationIn({ minutes: 20 }),
+          },
+          between: () => undefined,
+        });
+      });
+
+      then('both unlocks exit 0', () => {
+        expect(results.first.status).toEqual(0);
+        expect(results.second.status).toEqual(0);
+      });
+
+      then('the second unlock reads the cache and exports none', () => {
+        expect(results.countAfterFirst).toEqual(1);
+        expect(results.count).toEqual(1);
+      });
+    });
+
+    when('[t2] the profile config changes between the two unlocks', () => {
+      const results = useBeforeAll(async () => {
+        setColdStart();
+        const configPath = `${repo.path}/.aws/config`;
+        return unlockTwice({
+          env: asEnvExportCounted({ home: repo.path }),
+          between: () =>
+            writeFileSync(
+              configPath,
+              readFileSync(configPath, 'utf-8').replace(
+                'sso_role_name = AdministratorAccess',
+                'sso_role_name = AdministratorAccess\nregion = us-east-1',
+              ),
+              'utf-8',
+            ),
+        });
+      });
+
+      then('both unlocks exit 0', () => {
+        expect(results.first.status).toEqual(0);
+        expect(results.second.status).toEqual(0);
+      });
+
+      then('the second unlock exports anew, since the cache keys on the config it was exported under', () => {
+        expect(results.countAfterFirst).toEqual(1);
+        expect(results.count).toEqual(2);
       });
     });
   });

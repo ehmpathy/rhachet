@@ -1,0 +1,19 @@
+{
+  "key": "ffa33bcebabda31e",
+  "kind": "create",
+  "repo": {
+    "owner": "ehmpathy",
+    "name": "rhachet-roles-ehmpathy"
+  },
+  "exid": null,
+  "title": "git.repo.test: the unscoped run (--changedSince) stalls where the same files by path pass",
+  "description": "# 🌙 dream: git.repo.test's unscoped acceptance run stalls where the same files by path pass\n\n- kind = reseed\n- owner = ehmpathy/rhachet-roles-ehmpathy (role=mechanic, skill=git.repo.test)\n- caught 2026-11-08\n\n## .the cue that fired\n\n`rhx git.repo.test --what acceptance --against local --env test --mode apply`, with no scope, in\nehmpathy/rhachet on `beav/fix-keyrack-export-single-flight`, ran past 36 min and then, on a rerun, past\n10 min. Neither run reached a result. The plan showed `matched: 5 files`. The same 5 files, passed as\n`--scope 'path://(…)'`, pass together in 135s (229 tests). Each file passes alone, and every pair of\nthem passes.\n\n## .the gap, precisely\n\n- the unscoped mode adds `--changedSince=<ref>` (git.repo.test.sh ~L306, ~L390). the scoped mode passes\n  `--testPathPatterns` instead\n- the stall shows only in the `--changedSince` mode, so the mode itself changes how jest runs these files\n- while it runs, the skill prints only `💤 inflight (Ns)`, and it writes no log until jest exits. a stall\n  leaves no trace of which test or which phase hung\n\n## .the shape of the fix\n\n1. find what `--changedSince` changes: is the file set the same, or how workers are scheduled, or the\n   haste crawl over a large untracked tree?\n2. for the unscoped form, pass the file list the plan already computed (`--runTestsByPath <files>`), so\n   plan and apply run the same set the same way\n3. stream jest's output to the log while it runs, so a stall can be read\n4. add a no-progress bound that fails loud and names the last test that started\n\n## .why it is not done in this round\n\nthe skill belongs to another repo. in this repo the files it picks pass when run by path, which is the\nproof this route's verification needs.",
+  "status": null,
+  "via": "gh.issues",
+  "auth": null,
+  "idem": null,
+  "heldSeq": 1,
+  "recordStatus": "QUEUED",
+  "reason": "radio.uses:blocked — global",
+  "deliveredExid": null
+}
