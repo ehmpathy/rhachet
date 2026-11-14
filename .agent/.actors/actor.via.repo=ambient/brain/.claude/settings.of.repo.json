@@ -570,5 +570,9 @@
   "claudeMdExcludes": [
     "/home/camper/.claude/CLAUDE.md",
     "**/CLAUDE.local.md"
-  ]
+  ],
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  }
 }

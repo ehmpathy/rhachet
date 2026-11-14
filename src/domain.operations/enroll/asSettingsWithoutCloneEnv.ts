@@ -1,4 +1,4 @@
-import type { ClaudeCodeSettings } from '@src/_topublish/rhachet-brains-anthropic/src/hooks/config.dao';
+import type { ClaudeCodeSettings } from '@src/domain.operations/brains/claudeCodeSettings';
 import {
   CLONE_ENV_KEYS_HANDOFF,
   CLONE_ENV_KEYS_IDENTITY,
@@ -37,10 +37,12 @@ export const asSettingsWithoutCloneEnv = (input: {
     Object.entries(env).filter(([key]) => !identityKeys.includes(key)),
   );
 
-  // drop the map once it is empty, else keep what is left
+  // drop the map once it is empty
   const { env: _envPrior, ...settingsRest } = input.settings;
   if (Object.keys(envKept).length === 0) return settingsRest;
-  return { ...settingsRest, env: envKept };
+
+  // else replace it in place, so a rewrite keeps the key order of a tracked file
+  return { ...input.settings, env: envKept };
 };
 
 /**
