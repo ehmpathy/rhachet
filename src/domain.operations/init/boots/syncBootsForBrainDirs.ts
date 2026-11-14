@@ -1,15 +1,20 @@
 import type { ContextCli } from '@src/domain.objects/ContextCli';
-import type { BrainDirSyncSymlink } from '@src/domain.operations/boot/asBrainDirSyncReportLines';
+import type { BrainDirSettingsLayout } from '@src/domain.operations/actor/enrolled/setBrainDirSettingsLayout';
 import type {
   BrainDirBootFailure,
   BrainDirBootRender,
 } from '@src/domain.operations/boot/BrainDirBootRender';
+import type {
+  BrainDirSyncSettingsReplaced,
+  BrainDirSyncSymlink,
+} from '@src/domain.operations/boot/BrainDirLayoutOutcome';
 import { setDeltaActorsOndisk } from '@src/domain.operations/enroll/setDeltaActorsOndisk';
 import { getAllLinkedRoleRefs } from '@src/domain.operations/init/roles/link/getAllLinkedRoleRefs';
 
 import { asBrainDirSyncResult } from './asBrainDirSyncResult';
 import { asRepoActorBrainDirOutcome } from './asRepoActorBrainDirOutcome';
 import { asRoleSlugsOfRefs } from './asRoleSlugsOfRefs';
+import { asSettingsReplacedOfLayout } from './asSettingsReplacedOfLayout';
 import { setRepoActorBrainDir } from './setRepoActorBrainDir';
 import { syncActiveActorBrainDirs } from './syncActiveActorBrainDirs';
 
@@ -25,18 +30,23 @@ import { syncActiveActorBrainDirs } from './syncActiveActorBrainDirs';
  *         moved and dropped. it is null on a repo actor failure, where no link was made
  * .note = `settings` names what the repo actor's settings layout findsert did; null on a
  *         repo actor failure
- * .note = `symlinkPrior` is what an earlier layout step of this same run did to the link
- *         (`setRepoActorBrainDirLayout`, before the role inits). this sync then finds the
- *         link in place, so the earlier effect is the one the report names
+ * .note = `symlink` and `settingsReplaced` name what THIS sync's layout step did. a layout step
+ *         that ran before the role inits reports its own change at once
+ *         (`setRepoActorBrainDirLayoutBeforeInits`), so this sync finds it in place and names
+ *         naught twice
  */
 export const syncBootsForBrainDirs = async (
-  input: { repoPath: string; symlinkPrior?: BrainDirSyncSymlink | null },
+  input: {
+    repoPath: string;
+  },
   context: ContextCli,
 ): Promise<{
   renders: BrainDirBootRender[];
   failures: BrainDirBootFailure[];
   symlink: BrainDirSyncSymlink | null;
-  settings: ReturnType<typeof asRepoActorBrainDirOutcome>['settings'];
+  settings: BrainDirSettingsLayout | null;
+  settingsReplaced: BrainDirSyncSettingsReplaced[];
+  excludesDropped: string[];
 }> => {
   const refsLinked = getAllLinkedRoleRefs({}, context);
 
@@ -74,29 +84,13 @@ export const syncBootsForBrainDirs = async (
         ...actorOutcome.failures,
       ],
     }),
-    symlink: asSymlinkOfRun({
-      prior: input.symlinkPrior ?? null,
-      now: repoActorOutcome.symlink,
-    }),
+    symlink: repoActorOutcome.symlink,
     settings: repoActorOutcome.settings,
+    settingsReplaced: asSettingsReplacedOfLayout({
+      settings: repoActorOutcome.settings,
+    }),
+    excludesDropped: repoActorOutcome.excludesDropped,
   };
-};
-
-/**
- * .what = what this run did to `<repo>/.claude`, across its two layout steps
- * .why = when the step before the role inits made or moved the link, the sync after them
- *   finds it in place; the report must still say what the run did
- * .note = a failed sync (null) stays null: the failure is what the report names
- */
-const asSymlinkOfRun = (input: {
-  prior: BrainDirSyncSymlink | null;
-  now: BrainDirSyncSymlink | null;
-}): BrainDirSyncSymlink | null => {
-  if (input.now === null) return null;
-  if (input.prior === null) return input.now;
-  if (input.prior.effect === 'FOUND') return input.now;
-  if (input.now.effect !== 'FOUND') return input.now;
-  return input.prior;
 };
 
 /**

@@ -1,0 +1,287 @@
+
+🔧 init 14 role(s)...
+
+📚 link role repo=ehmpathy/role=mechanic
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=ehmpathy/readme.md (updated)
+   │  ├─ ✓ .agent/repo=ehmpathy/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=ehmpathy/role=mechanic/readme.md (updated)
+   │  ├─ ↻ .agent/repo=ehmpathy/role=mechanic/boot.yml (updated)
+   │  ├─ ↻ .agent/repo=ehmpathy/role=mechanic/keyrack.yml (updated)
+   │  ├─ ↻ .agent/repo=ehmpathy/role=mechanic/briefs (updated)
+   │  ├─ ↻ .agent/repo=ehmpathy/role=mechanic/skills (updated)
+   │  └─ ↻ .agent/repo=ehmpathy/role=mechanic/inits (updated)
+   └─ stats
+      ├─ 273 brief(s)
+      ├─ 91 skill(s)
+      └─ 51 init(s)
+
+💪 init role repo=ehmpathy/role=mechanic
+   └─ node_modules/.pnpm/rhachet-roles-ehmpathy@1.39.5_@huggingface+transformers@3.8.1_@tensorflow+tfjs@4.22.0_seedrandom@3.0.5_/node_modules/rhachet-roles-ehmpathy/dist/domain.roles/mechanic/inits/init.claude.sh
+      ├─
+      │
+      │ 🔧 init claude config for mechanic role...
+      │
+      │ 👌 mechanic permissions already configured
+      │    .claude/settings.of.repo.json
+      │
+      │ 👌 claude config ready
+      │
+      └─
+
+📚 link role repo=bhuild/role=behaver
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=bhuild/readme.md (updated)
+   │  ├─ ✓ .agent/repo=bhuild/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=bhuild/role=behaver/readme.md (updated)
+   │  ├─ ↻ .agent/repo=bhuild/role=behaver/boot.yml (updated)
+   │  ├─ ↻ .agent/repo=bhuild/role=behaver/briefs (updated)
+   │  ├─ ↻ .agent/repo=bhuild/role=behaver/skills (updated)
+   │  └─ ↻ .agent/repo=bhuild/role=behaver/inits (updated)
+   └─ stats
+      ├─ 46 brief(s)
+      ├─ 9 skill(s)
+      └─ 4 init(s)
+
+📚 link role repo=bhrain/role=driver
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=bhrain/readme.md (updated)
+   │  ├─ ✓ .agent/repo=bhrain/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=bhrain/role=driver/readme.md (updated)
+   │  ├─ ↻ .agent/repo=bhrain/role=driver/boot.yml (updated)
+   │  ├─ ↻ .agent/repo=bhrain/role=driver/keyrack.yml (updated)
+   │  ├─ ↻ .agent/repo=bhrain/role=driver/briefs (updated)
+   │  ├─ ↻ .agent/repo=bhrain/role=driver/skills (updated)
+   │  └─ ↻ .agent/repo=bhrain/role=driver/inits (updated)
+   └─ stats
+      ├─ 62 brief(s)
+      ├─ 22 skill(s)
+      └─ 4 init(s)
+
+💪 init role repo=bhrain/role=driver
+   ├─ node_modules/.pnpm/rhachet-roles-bhrain@0.39.3_@huggingface+transformers@3.8.1_@tensorflow+tfjs@4.22.0_see_09a0e2e31b7fff5ad3bb0a60ce29ec9a/node_modules/rhachet-roles-bhrain/dist/domain.roles/driver/inits/init.claude.status-line.sh
+      ├─
+      │
+      │ ❌ init.claude.status-line.sh failed at line 106
+      │ 🦉 the path is clear
+      │
+      │ 🗿 init.claude.status-line
+      │    ├─ status = configured
+      │    ├─ settings = .claude/settings.json
+      │    └─ backup = .claude/settings.2026-10-19T23-37-06Z.12118.bak.json
+      │
+      └─
+   │
+   └─ node_modules/.pnpm/rhachet-roles-bhrain@0.39.3_@huggingface+transformers@3.8.1_@tensorflow+tfjs@4.22.0_see_09a0e2e31b7fff5ad3bb0a60ce29ec9a/node_modules/rhachet-roles-bhrain/dist/domain.roles/driver/inits/init.claude.permissions.route.sh
+      ├─
+      │
+      │ ❌ init.claude.permissions.route.sh failed at line 73
+      │ 🦉 the path is clear
+      │
+      │ 🗿 init.claude.permissions.route
+      │    ├─ status = healed
+      │    ├─ what = .route/ is the driver's workspace, no longer denied
+      │    ├─ guard = rhx route.mutate.guard --mode hook still protects passed stones
+      │    ├─ settings = .claude/settings.json
+      │    └─ backup = .claude/settings.2026-10-19T23-37-06Z.12156.bak.json
+      │
+      └─
+
+📚 link role repo=bhrain/role=reviewer
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=bhrain/readme.md (updated)
+   │  ├─ ✓ .agent/repo=bhrain/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=bhrain/role=reviewer/readme.md (updated)
+   │  ├─ ↻ .agent/repo=bhrain/role=reviewer/boot.yml (updated)
+   │  ├─ ↻ .agent/repo=bhrain/role=reviewer/keyrack.yml (updated)
+   │  ├─ ↻ .agent/repo=bhrain/role=reviewer/briefs (updated)
+   │  └─ ↻ .agent/repo=bhrain/role=reviewer/skills (updated)
+   └─ stats
+      ├─ 23 brief(s)
+      └─ 3 skill(s)
+
+📚 link role repo=bhrain/role=librarian
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=bhrain/readme.md (updated)
+   │  ├─ ✓ .agent/repo=bhrain/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=bhrain/role=librarian/readme.md (updated)
+   │  ├─ ↻ .agent/repo=bhrain/role=librarian/boot.yml (updated)
+   │  └─ ↻ .agent/repo=bhrain/role=librarian/briefs (updated)
+   └─ stats
+      └─ 18 brief(s)
+
+📚 link role repo=ehmpathy/role=ergonomist
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=ehmpathy/readme.md (updated)
+   │  ├─ ✓ .agent/repo=ehmpathy/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=ehmpathy/role=ergonomist/readme.md (updated)
+   │  ├─ ↻ .agent/repo=ehmpathy/role=ergonomist/boot.yml (updated)
+   │  └─ ↻ .agent/repo=ehmpathy/role=ergonomist/briefs (updated)
+   └─ stats
+      └─ 17 brief(s)
+
+📚 link role repo=ehmpathy/role=architect
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=ehmpathy/readme.md (updated)
+   │  ├─ ✓ .agent/repo=ehmpathy/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=ehmpathy/role=architect/readme.md (updated)
+   │  ├─ ↻ .agent/repo=ehmpathy/role=architect/boot.yml (updated)
+   │  └─ ↻ .agent/repo=ehmpathy/role=architect/briefs (updated)
+   └─ stats
+      └─ 45 brief(s)
+
+📚 link role repo=bhuild/role=dispatcher
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=bhuild/readme.md (updated)
+   │  ├─ ✓ .agent/repo=bhuild/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=bhuild/role=dispatcher/readme.md (updated)
+   │  ├─ ↻ .agent/repo=bhuild/role=dispatcher/keyrack.yml (updated)
+   │  └─ ↻ .agent/repo=bhuild/role=dispatcher/skills (updated)
+   └─ stats
+      └─ 9 skill(s)
+
+📚 link role repo=bhrain/role=learner
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=bhrain/readme.md (updated)
+   │  ├─ ✓ .agent/repo=bhrain/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=bhrain/role=learner/readme.md (updated)
+   │  ├─ ↻ .agent/repo=bhrain/role=learner/boot.yml (updated)
+   │  ├─ ↻ .agent/repo=bhrain/role=learner/briefs (updated)
+   │  └─ ↻ .agent/repo=bhrain/role=learner/skills (updated)
+   └─ stats
+      ├─ 62 brief(s)
+      └─ 3 skill(s)
+
+📚 link role repo=ghlitch/role=operator
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=ghlitch/readme.md (updated)
+   │  ├─ ✓ .agent/repo=ghlitch/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=ghlitch/role=operator/readme.md (updated)
+   │  ├─ ↻ .agent/repo=ghlitch/role=operator/boot.yml (updated)
+   │  ├─ ↻ .agent/repo=ghlitch/role=operator/keyrack.yml (updated)
+   │  ├─ ↻ .agent/repo=ghlitch/role=operator/briefs (updated)
+   │  └─ ↻ .agent/repo=ghlitch/role=operator/skills (updated)
+   └─ stats
+      ├─ 3 brief(s)
+      └─ 14 skill(s)
+
+📚 link role repo=ghlitch/role=observer
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=ghlitch/readme.md (updated)
+   │  ├─ ✓ .agent/repo=ghlitch/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=ghlitch/role=observer/readme.md (updated)
+   │  ├─ ↻ .agent/repo=ghlitch/role=observer/boot.yml (updated)
+   │  ├─ ↻ .agent/repo=ghlitch/role=observer/keyrack.yml (updated)
+   │  └─ ↻ .agent/repo=ghlitch/role=observer/skills (updated)
+   └─ stats
+      └─ 14 skill(s)
+
+📚 link role repo=ghlitch/role=deployer
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=ghlitch/readme.md (updated)
+   │  ├─ ✓ .agent/repo=ghlitch/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=ghlitch/role=deployer/readme.md (updated)
+   │  ├─ ↻ .agent/repo=ghlitch/role=deployer/boot.yml (updated)
+   │  ├─ ↻ .agent/repo=ghlitch/role=deployer/briefs (updated)
+   │  └─ ↻ .agent/repo=ghlitch/role=deployer/skills (updated)
+   └─ stats
+      ├─ 2 brief(s)
+      └─ 27 skill(s)
+
+📚 link role repo=bhrowser/role=playwright
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=bhrowser/readme.md (updated)
+   │  ├─ ✓ .agent/repo=bhrowser/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=bhrowser/role=playwright/readme.md (updated)
+   │  ├─ ↻ .agent/repo=bhrowser/role=playwright/boot.yml (updated)
+   │  ├─ ↻ .agent/repo=bhrowser/role=playwright/briefs (updated)
+   │  └─ ↻ .agent/repo=bhrowser/role=playwright/skills (updated)
+   └─ stats
+      ├─ 26 brief(s)
+      └─ 54 skill(s)
+
+📚 link role repo=rhachet/role=enroller
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=rhachet/readme.md (updated)
+   │  ├─ ✓ .agent/repo=rhachet/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=rhachet/role=enroller/readme.md (updated)
+   │  ├─ ↻ .agent/repo=rhachet/role=enroller/boot.yml (updated)
+   │  ├─ ↻ .agent/repo=rhachet/role=enroller/briefs (updated)
+   │  └─ ↻ .agent/repo=rhachet/role=enroller/skills (updated)
+   └─ stats
+      ├─ 27 brief(s)
+      └─ 1 skill(s)
+
+✨ 14 role(s) linked
+✨ 14 role(s) initialized
+
+🔑 keyrack init
+   ├─ org: ehmpathy
+   ├─ extends:
+   │  ├─ .agent/repo=.this/role=test/keyrack.yml
+   │  ├─ .agent/repo=bhrain/role=driver/keyrack.yml
+   │  ├─ .agent/repo=bhrain/role=reviewer/keyrack.yml
+   │  ├─ .agent/repo=bhuild/role=dispatcher/keyrack.yml
+   │  ├─ .agent/repo=ehmpathy/role=mechanic/keyrack.yml
+   │  ├─ .agent/repo=ghlitch/role=observer/keyrack.yml
+   │  └─ .agent/repo=ghlitch/role=operator/keyrack.yml
+   └─ found .agent/keyrack.yml (no changes)
+
+🧠 brain://repo=ambient
+   └─ replaced
+      └─ .claude/settings.json → settings.of.grove.json — a real file was here; its content is gone, rhachet owns this name (keep durable allows in a role or ~/.claude/settings.json)
+
+🔭 search for linked roles with hooks...
+   ├─ bhrain/driver
+   ├─ bhrain/learner
+   ├─ bhrain/librarian
+   ├─ bhrain/reviewer
+   ├─ bhrowser/playwright
+   ├─ bhuild/behaver
+   ├─ bhuild/dispatcher
+   ├─ ehmpathy/architect
+   ├─ ehmpathy/ergonomist
+   ├─ ehmpathy/mechanic
+   ├─ ghlitch/deployer
+   ├─ ghlitch/observer
+   ├─ ghlitch/operator
+   ├─ rhachet/enroller
+   └─ .this/any
+
+🪝 apply hooks to brains...
+   └─ ehmpathy/mechanic → anthropic/claude/code: ~1
+
+✨ hooks
+   └─ 1 updated
+
+🧢 apply hooks to enrolled actors...
+   ├─ hash=9366365e
+   └─ repo=ambient

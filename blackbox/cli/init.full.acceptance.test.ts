@@ -1,5 +1,6 @@
-import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
+import { given, then, useBeforeAll, when } from 'test-fns';
 
+import { genHomeWithGroveState } from '@/blackbox/.test/infra/genHomeWithGroveState';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import {
   asSnapshotSafe,
@@ -17,11 +18,13 @@ describe('rhachet init (full output)', () => {
         invokeRhachetCliBinary({
           args: ['init', '--roles', 'tester', 'reviewer', '--hooks'],
           cwd: repo.path,
-          // a fresh HOME with no `.claude/settings.json`, so the brain dir holds no grove
-          //   arrows: the fixture's test brain writes `<repo>/.claude/settings.json` in place,
-          //   and with a grove on the host that name is an arrow to `~/.claude/settings.json`,
-          //   so the write would land in the host's own settings
-          env: { HOME: genTempDir({ slug: 'init-full-home' }) },
+          // a fresh HOME with no grove, as a fact of the case: the brain dir holds no grove
+          //   arrows, so the `replaced` row reads "this box has no ~/.claude/settings.json" on
+          //   every box. the fixture's test brain writes `<repo>/.claude/settings.json` in place,
+          //   and with a grove that name is an arrow to `~/.claude/settings.json`, so the write
+          //   would land in the home settings. the grove-present row is snapped in
+          //   `upgrade.acceptance` [case12.1] and `init.hooks.boot-guard`
+          env: genHomeWithGroveState({ slug: 'init-full-home', grove: 'absent' }),
         }),
       );
 

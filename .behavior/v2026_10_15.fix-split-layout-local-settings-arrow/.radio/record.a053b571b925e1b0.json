@@ -1,0 +1,19 @@
+{
+  "key": "a053b571b925e1b0",
+  "kind": "create",
+  "repo": {
+    "owner": "ehmpathy",
+    "name": "rhachet"
+  },
+  "exid": null,
+  "title": "feat(init): a checkout before its first install says rhx init is owed",
+  "description": "## .what\n\na plain `claude` in a checkout before its first install (or a ci run where `prepare` skips) meets\nhook errors that name an absent path (`./node_modules/.bin/rhx`, `.agent/repo=*/…`), never the cause.\n`rhx init` is mandatory before any actor is usable (`define.invariant.rendered-boot-stays-out-of-git`),\nand naught says so.\n\n## .bounded diff\n\n1. measure: a real `claude -p` in an uninstalled temp clone, isolated HOME; record the screen\n2. pick the check with the wisher:\n   - a line beside `@boot.md` in `AGENTS.md` — every actor, every consumer repo; one AGENTS.md reset\n     report on the next upgrade\n   - or a role-declared hook — never a framework-owned one (`rule.forbid.framework-owned-hooks`)\n3. `setBrainDirPointerFiles` and its pointer-file tests, if the `AGENTS.md` line is chosen\n4. clamp: an acceptance test in an uninstalled temp repo asserts the human is told to run `rhx init`\n\n## .origin\n\nrhachet route `v2026_10_15.fix-split-layout-local-settings-arrow`, fulcrum F4",
+  "status": null,
+  "via": "gh.issues",
+  "auth": "as-human",
+  "idem": "findsert",
+  "heldSeq": 5,
+  "recordStatus": "DELIVERED",
+  "reason": null,
+  "deliveredExid": "625"
+}

@@ -39,6 +39,9 @@ const REPO_ACTOR_BRAIN_DIR = join(
 /** .what = the allow the tester init adds */
 const INIT_ALLOW = 'Bash(npx rhachet run:*)';
 
+/** .what = a per-box grant in a real settings.local.json the layout must replace */
+const LOCAL_GRANT = 'Bash(echo role-inits-local-grant)';
+
 /** .what = the grove content: the human's home settings */
 const GROVE_CONTENT = `${JSON.stringify({ theme: 'dark' }, null, 2)}\n`;
 
@@ -125,6 +128,41 @@ const getRepoSettings = (input: {
       'utf8',
     ),
   );
+
+/**
+ * .what = the `🧠` layout report block from a `roles init` stdout: its header, the `replaced`
+ *   label, and the rows under it — never the init output that follows
+ */
+const asLayoutReportBlock = (input: { stdout: string }): string => {
+  const lines = input.stdout.split('\n');
+  const start = lines.findIndex((line) => line.startsWith('🧠 '));
+  if (start === -1) return '';
+  const rest = lines.slice(start + 1);
+  const end = rest.findIndex(
+    (line) => !/^ {3}└─ replaced$|^ {6}[├└]─ /.test(line),
+  );
+  return [lines[start], ...rest.slice(0, end === -1 ? rest.length : end)].join(
+    '\n',
+  );
+};
+
+/** .what = a hand claudeMdExcludes entry rhachet does not derive */
+const HAND_EXCLUDE = '**/docs/CLAUDE.md';
+
+/**
+ * .what = the first `🧠` tree from a stdout: its header and every branch line under it, up to
+ *   the blank line that ends the tree
+ */
+const asBrainTreeBlock = (input: { stdout: string }): string => {
+  const lines = input.stdout.split('\n');
+  const start = lines.findIndex((line) => line.startsWith('🧠 '));
+  if (start === -1) return '';
+  const rest = lines.slice(start + 1);
+  const end = rest.findIndex((line) => line.trim() === '');
+  return [lines[start], ...rest.slice(0, end === -1 ? rest.length : end)].join(
+    '\n',
+  );
+};
 
 describe('role inits meet the split brain dir layout', () => {
   given('[case1] a legacy repo whose role init writes allows', () => {
@@ -237,11 +275,22 @@ describe('role inits meet the split brain dir layout', () => {
         expect(result.status).toEqual(0);
       });
 
-      then('settings.of.repo.json is a real file, findserted empty', () => {
-        const path = join(scene.repo.path, REPO_ACTOR_BRAIN_DIR, 'settings.of.repo.json');
-        expect(lstatSync(path).isFile()).toBe(true);
-        expect(readFileSync(path, 'utf8')).toEqual('{}\n');
-      });
+      then(
+        'settings.of.repo.json is a real file, findserted with only the claudeMdExcludes (case=11)',
+        () => {
+          const path = join(scene.repo.path, REPO_ACTOR_BRAIN_DIR, 'settings.of.repo.json');
+          expect(lstatSync(path).isFile()).toBe(true);
+          expect(JSON.parse(readFileSync(path, 'utf8'))).toEqual({
+            claudeMdExcludes: [
+              '**/home/*/.claude/CLAUDE.md',
+              '**/Users/*/.claude/CLAUDE.md',
+              '/root/.claude/CLAUDE.md',
+              '/github/home/.claude/CLAUDE.md',
+              '**/CLAUDE.local.md',
+            ],
+          });
+        },
+      );
     });
   });
 
@@ -302,6 +351,191 @@ describe('role inits meet the split brain dir layout', () => {
         expect(
           readFileSync(join(scene.home, '.claude', 'settings.json'), 'utf8'),
         ).toEqual(GROVE_CONTENT);
+      });
+    });
+  });
+
+  given('[case4] a split-layout repo with a real settings.local.json', () => {
+    const scene = useBeforeAll(async () => {
+      const repo = await genRepoWithPermissionInit();
+      const home = genHomeWithGrove({ slug: 'role-inits-roles-init-home' });
+
+      // link the tester role, which lays the split layout
+      invokeRhachetCliBinary({
+        args: ['init', '--roles', 'tester'],
+        cwd: repo.path,
+        env: { HOME: home },
+      });
+
+      // a human's per-box grants, as a real file where the local arrow belongs
+      const localPath = join(repo.path, REPO_ACTOR_BRAIN_DIR, 'settings.local.json');
+      rmSync(localPath, { force: true });
+      writeFileSync(
+        localPath,
+        `${JSON.stringify({ permissions: { allow: [LOCAL_GRANT] } }, null, 2)}\n`,
+      );
+      return { repo, home };
+    });
+
+    when('[t0] rhx roles init --role tester', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['roles', 'init', '--role', 'tester'],
+          cwd: scene.repo.path,
+          env: { HOME: scene.home },
+          logOnError: false,
+        }),
+      );
+
+      then('exits 0: the init ran', () => {
+        expect({ status: result.status, stderr: result.stderr }).toMatchObject({
+          status: 0,
+        });
+        expect(result.stdout).toContain('tester init: allow written');
+      });
+
+      then('settings.local.json is the arrow again', () => {
+        expect(
+          readlinkSync(
+            join(scene.repo.path, REPO_ACTOR_BRAIN_DIR, 'settings.local.json'),
+          ),
+        ).toEqual('settings.of.repo.json');
+      });
+
+      then('the per-box grant rode nowhere', () => {
+        expect(
+          getRepoSettings({ repoPath: scene.repo.path }).permissions?.allow,
+        ).not.toContain(LOCAL_GRANT);
+      });
+
+      then('stdout names the replaced file, and says its content is gone', () => {
+        expect(result.stdout).toContain(
+          '.claude/settings.local.json → settings.of.repo.json — a real file was here; its content is gone',
+        );
+      });
+
+      then('the replaced report is locked to a snapshot', () => {
+        expect(asLayoutReportBlock({ stdout: result.stdout })).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case5] a split-layout repo with a hand claudeMdExcludes entry', () => {
+    const scene = useBeforeAll(async () => {
+      const repo = await genRepoWithPermissionInit();
+      const home = genHomeWithGrove({ slug: 'role-inits-unexcluded-home' });
+
+      // link the tester role, which lays the split layout
+      invokeRhachetCliBinary({
+        args: ['init', '--roles', 'tester'],
+        cwd: repo.path,
+        env: { HOME: home },
+      });
+
+      // a human adds an exclude rhachet does not derive
+      const settings = getRepoSettings({ repoPath: repo.path });
+      writeFileSync(
+        join(repo.path, REPO_ACTOR_BRAIN_DIR, 'settings.of.repo.json'),
+        `${JSON.stringify(
+          {
+            ...settings,
+            claudeMdExcludes: [
+              ...((settings as { claudeMdExcludes?: string[] })
+                .claudeMdExcludes ?? []),
+              HAND_EXCLUDE,
+            ],
+          },
+          null,
+          2,
+        )}\n`,
+      );
+      return { repo, home };
+    });
+
+    when('[t0] rhx init --roles tester', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['init', '--roles', 'tester'],
+          cwd: scene.repo.path,
+          env: { HOME: scene.home },
+          logOnError: false,
+        }),
+      );
+
+      then('exits 0', () => {
+        expect({ status: result.status, stderr: result.stderr }).toMatchObject({
+          status: 0,
+        });
+      });
+
+      then('the hand exclude is gone from settings.of.repo.json', () => {
+        expect(
+          (
+            getRepoSettings({ repoPath: scene.repo.path }) as {
+              claudeMdExcludes?: string[];
+            }
+          ).claudeMdExcludes,
+        ).not.toContain(HAND_EXCLUDE);
+      });
+
+      then('stdout names the dropped entry under unexcluded', () => {
+        expect(result.stdout).toContain('└─ unexcluded');
+        expect(result.stdout).toContain(
+          `${HAND_EXCLUDE} — a claudeMdExcludes entry rhachet does not derive; rhachet owns this key, so it was dropped`,
+        );
+      });
+
+      then('the unexcluded report is locked to a snapshot', () => {
+        expect(asBrainTreeBlock({ stdout: result.stdout })).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case6] a repo whose <repo>/.claude is a plain file', () => {
+    const scene = useBeforeAll(async () => {
+      const repo = await genTestTempRepo({ fixture: 'with-roles-full' });
+      const home = genHomeWithGrove({ slug: 'role-inits-layout-fault-home' });
+
+      // link the tester role, then put a plain file where the brain dir link belongs
+      invokeRhachetCliBinary({
+        args: ['init', '--roles', 'tester'],
+        cwd: repo.path,
+        env: { HOME: home },
+      });
+      rmSync(join(repo.path, '.claude'), { recursive: true, force: true });
+      writeFileSync(join(repo.path, '.claude'), 'not a dir\n');
+      return { repo, home };
+    });
+
+    when('[t0] rhx roles init --role tester', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['roles', 'init', '--role', 'tester'],
+          cwd: scene.repo.path,
+          env: { HOME: scene.home },
+          logOnError: false,
+        }),
+      );
+
+      then('exits 0: the init still ran', () => {
+        expect({ status: result.status, stderr: result.stderr }).toMatchObject({
+          status: 0,
+        });
+        expect(result.stdout).toContain('tester init complete');
+      });
+
+      then('<repo>/.claude is still the plain file: naught was forced', () => {
+        expect(lstatSync(join(scene.repo.path, '.claude')).isFile()).toBe(true);
+      });
+
+      then('stdout names that the layout did not land, and how to see why', () => {
+        expect(result.stdout).toContain(
+          '   └─ 🟡 the layout did not land; run `rhx init` to see why',
+        );
+      });
+
+      then('the warn tree is locked to a snapshot', () => {
+        expect(asBrainTreeBlock({ stdout: result.stdout })).toMatchSnapshot();
       });
     });
   });

@@ -45,6 +45,7 @@ export const invokeRolesLink = (
 
       // re-render every corpus the linked set feeds, after the link lands
       const { exitCode } = await syncAndReportBrainDirBoots(
+        // a link runs no layout step before it, so the sync alone names the layout effect
         { repoPath: contextCli.gitroot, env: process.env },
         contextCli,
       );
