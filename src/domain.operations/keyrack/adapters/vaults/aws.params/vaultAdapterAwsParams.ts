@@ -2,7 +2,9 @@ import { ConstraintError, MalfunctionError } from 'helpful-errors';
 
 import type { KeyrackHostVaultAdapter } from '@src/domain.objects/keyrack';
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack';
+import { asKeyrackGithubAppSetCommand } from '@src/domain.operations/keyrack/adapters/mechanisms/asKeyrackGithubAppSetCommand';
 import { getOneKeyrackMechAdapter } from '@src/domain.operations/keyrack/adapters/mechanisms/getOneKeyrackMechAdapter';
+import { getOneKeyrackMechSecretDelivered } from '@src/domain.operations/keyrack/adapters/mechanisms/getOneKeyrackMechSecretDelivered';
 import { asKeyrackSlugParts } from '@src/domain.operations/keyrack/asKeyrackSlugParts';
 import { inferKeyGrade } from '@src/domain.operations/keyrack/grades/inferKeyGrade';
 import { assertKeyrackReachAddressable } from '@src/domain.operations/keyrack/reach/assertKeyrackReachAddressable';
@@ -40,6 +42,7 @@ export const vaultAdapterAwsParams: KeyrackHostVaultAdapter<
   mechs: {
     supported: [...KEYRACK_AWS_PARAM_MECHS],
   },
+  isSourcePipedAccepted: false,
 
   /**
    * .what = pre-SSM readiness prechecks (gates 0 + 1 + 3); NO aws call
@@ -111,10 +114,20 @@ export const vaultAdapterAwsParams: KeyrackHostVaultAdapter<
       });
 
     // replica: the decrypted value IS the secret; github-app: mint a ~1h token
-    const { secret, expiresAt } = await getOneKeyrackMechAdapter(
-      mech,
-    ).deliverForGet({
+    // .note = a github-app mint refusal gains aws.params' own cure: re-set the param, so the key's
+    //         home stays aws.params (never a re-file into another vault). no reach: the read
+    //         above refused any reach-ask
+    const { secret, expiresAt } = await getOneKeyrackMechSecretDelivered({
+      mechAdapter: getOneKeyrackMechAdapter(mech),
       source: value,
+      cure: () =>
+        asKeyrackGithubAppSetCommand({
+          vault: 'aws.params',
+          owner: input.owner ?? null,
+          slug: input.slug,
+          reach: null,
+          form: { kind: 'guided' },
+        }),
     });
     const grade = inferKeyGrade({ vault: 'aws.params', mech });
     const { env, org } = asKeyrackSlugParts({ slug: input.slug });

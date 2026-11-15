@@ -79,6 +79,7 @@ import { isCloneSpawnCallerLeaf } from '@src/domain.operations/spawn/isCloneSpaw
 import { isCloneSpawnChildLeaf } from '@src/domain.operations/spawn/isCloneSpawnChildLeaf';
 import { getFileContentOrNull } from '@src/infra/filesystem/getFileContentOrNull';
 import { getHomeDir } from '@src/infra/getHomeDir';
+import { getStdinContent } from '@src/infra/getStdinContent';
 import { getOneRepoPath } from '@src/infra/host/getOneRepoPath';
 import { CLONE_ACCRUAL_THRESHOLD } from '@src/utils/cloneAccrualThreshold';
 import {
@@ -146,18 +147,9 @@ const asActorFormSlugOrNull = (input: {
  * .what = read all of stdin as one string (for `--reason @stdin`)
  * .why = a payload-heavy or multi-line motive has a clean CLI path, the same as
  *   `say --what @stdin`
- * .note = WET twin of invokeCloneSay's readStdin — this one trims (a motive reads
- *   cleaner without stray edge whitespace), that one preserves a message verbatim.
- *   rule-of-three tripwire: a THIRD invoker that reads @stdin earns a shared
- *   readStdinString({ trim }) transformer; until then the two-site WET is deliberate
+ * .note = trimmed: a motive reads cleaner without stray edge whitespace
  */
-const readStdin = async (): Promise<string> => {
-  // .note = deliberate mutation — a bounded accumulator local to this read; the
-  //   array never escapes readStdin, so no external reader observes the mutation
-  const chunks: Buffer[] = [];
-  for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
-  return Buffer.concat(chunks).toString('utf-8').trim();
-};
+const readStdin = (): Promise<string> => getStdinContent({ trim: true });
 
 /**
  * .what = the enroll motive: read off stdin for `@stdin`, null when absent, else the text

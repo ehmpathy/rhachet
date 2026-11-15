@@ -1,0 +1,139 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack github-app key on a box with no aws identity given: [case1] the blob lives only in aws.params (the clamp, red half) when: [t0] the box unlocks the key then: output matches snapshot 1`] = `
+"🔓 keyrack unlock
+   └─ @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
+      ├─ status: errored 💥
+      └─ tip: aws.params found no AWS identity — fix: for --org @all run on a box whose instance role can read this param; off ec2 (no instance role), for a github-app key, file its blob into os.secure on this box — from a box that can read the param, pipe it in: \`aws ssm get-parameter --name /keyrack/infra/vault/aws.params/v1/mechanic/_all_/all/EHMPATH_BEAVER_GITHUB_TOKEN --region us-east-1 --with-decryption --query Parameter.Value --output text | ssh <this box> rhx keyrack set --owner <owner> --key <full slug> --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin\`; for a specific org, unlock that org's AWS_PROFILE first — run \`rhx keyrack unlock --owner <owner> --env <env>\` (declare the AWS_PROFILE key first if unset), never a cached SSO session; why (raw AWS): CredentialsProviderError — Could not load credentials from any providers"
+`;
+
+exports[`keyrack github-app key on a box with no aws identity given: [case2] the blob is piped into os.secure (the clamp, green half) when: [t0] the commander pipes the blob into keyrack set then: output matches snapshot 1`] = `
+"🔐 keyrack set @all.all.EHMPATH_BEAVER_GITHUB_TOKEN via EPHEMERAL_VIA_GITHUB_APP
+   │
+   ├─ source piped from stdin
+   │  └─ shape ok ✓
+   │
+   └─ perfect, now let's verify...
+      └─ ✓ roundtrip verified
+
+🔐 keyrack set (org: @all, env: all)
+   └─ @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
+      ├─ mech: EPHEMERAL_VIA_GITHUB_APP
+      └─ vault: os.secure"
+`;
+
+exports[`keyrack github-app key on a box with no aws identity given: [case2] the blob is piped into os.secure (the clamp, green half) when: [t2] the box unlocks the key then: output matches snapshot 1`] = `
+"🔓 keyrack unlock
+   └─ @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
+      ├─ status: errored 💥
+      └─ tip: failed to mint github app token — the stored private key (.pem) is not a valid rsa key — fix: re-file a blob that holds a valid github app private key (.pem): <the current blob> | rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin (or, at a terminal with gh login, the guided set: rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP)"
+`;
+
+exports[`keyrack github-app key on a box with no aws identity given: [case2] the blob is piped into os.secure (the clamp, green half) when: [t3] keyrack get --unlock after the piped set then: output matches snapshot 1`] = `
+"🔐 keyrack
+   └─ @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
+      ├─ status: locked 🔒
+      └─ tip: failed to mint github app token — the stored private key (.pem) is not a valid rsa key — fix: re-file a blob that holds a valid github app private key (.pem): <the current blob> | rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin (or, at a terminal with gh login, the guided set: rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP)"
+`;
+
+exports[`keyrack github-app key on a box with no aws identity given: [case3] a malformed blob is piped in when: [t0] keyrack set --source @stdin then: output matches snapshot 1`] = `
+"🔐 keyrack set
+   └─ ✋ ConstraintError: --source @stdin is not a valid source for its mech
+      ├─ machine: @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
+      ├─ mech: EPHEMERAL_VIA_GITHUB_APP
+      ├─ reasons: github_app: json lacks privateKey or private_key field
+      ├─ ran: keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin
+      └─ hint:
+         ├─ check the upstream read
+         └─ the blob was not stored"
+`;
+
+exports[`keyrack github-app key on a box with no aws identity given: [case4] the pipe is empty when: [t0] keyrack set --source @stdin then: output matches snapshot 1`] = `
+"🔐 keyrack set
+   └─ ✋ ConstraintError: --source @stdin received an empty value
+      ├─ ran: keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin
+      └─ hint:
+         ├─ check the upstream read
+         └─ it wrote no bytes to the pipe"
+`;
+
+exports[`keyrack github-app key on a box with no aws identity given: [case5] --source carries a literal value, not @stdin when: [t0] keyrack set --source <value> then: output matches snapshot 1`] = `
+"🔐 keyrack set
+   └─ ✋ ConstraintError: --source accepts only @stdin
+      ├─ ran: keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source __REDACTED__
+      └─ hint: pipe the source in: \`<upstream read> | rhx keyrack set ... --source @stdin\`"
+`;
+
+exports[`keyrack github-app key on a box with no aws identity given: [case6] --source with a vault other than os.secure when: [t0] keyrack set --vault aws.params --source @stdin then: output matches snapshot 1`] = `
+"🔐 keyrack set
+   └─ ✋ ConstraintError: vault aws.params takes no piped source
+      ├─ machine: @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
+      ├─ vault: aws.params
+      ├─ ran: keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault aws.params --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin
+      └─ hint: set into a vault that accepts a piped source (os.secure), or drop the source to run the guided setup"
+`;
+
+exports[`keyrack github-app key on a box with no aws identity given: [case7] --source @stdin at a terminal when: [t0] keyrack set --source @stdin under a pseudo-tty then: output matches snapshot 1`] = `
+"🔐 keyrack set
+   └─ ✋ ConstraintError: --source @stdin found a terminal, not a pipe
+      ├─ ran: keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin
+      └─ hint: pipe the source in: \`<upstream read> | rhx keyrack set ... --source @stdin\`, or drop --source to run the guided setup"
+`;
+
+exports[`keyrack github-app key on a box with no aws identity given: [case8] a replica value is piped into os.secure when: [t0] keyrack set --mech PERMANENT_VIA_REPLICA --source @stdin then: output matches snapshot 1`] = `
+"🔐 keyrack set @all.all.PIPED_REPLICA_KEY via PERMANENT_VIA_REPLICA
+   │
+   ├─ source piped from stdin
+   │  └─ shape ok ✓
+   │
+   └─ perfect, now let's verify...
+      └─ ✓ roundtrip verified
+
+🔐 keyrack set (org: @all, env: all)
+   └─ @all.all.PIPED_REPLICA_KEY
+      ├─ mech: PERMANENT_VIA_REPLICA
+      └─ vault: os.secure"
+`;
+
+exports[`keyrack github-app key on a box with no aws identity given: [case9] a source is piped under a mech os.secure does not hold when: [t0] keyrack set --mech EPHEMERAL_VIA_AWS_SSO --source @stdin then: output matches snapshot 1`] = `
+"🔐 keyrack set
+   └─ ✋ ConstraintError: os.secure does not support mech: EPHEMERAL_VIA_AWS_SSO
+      ├─ mech: EPHEMERAL_VIA_AWS_SSO
+      ├─ supported: PERMANENT_VIA_REPLICA, EPHEMERAL_VIA_GITHUB_APP
+      ├─ ran: keyrack set --owner mechanic --key @all.all.AWS_PROFILE --vault os.secure --mech EPHEMERAL_VIA_AWS_SSO --source @stdin
+      └─ hint: try --vault aws.config for aws sso"
+`;
+
+exports[`keyrack github-app key on a box with no aws identity given: [case11] the real box: no git repo at the cwd, as \`ssh <box> rhx …\` lands in $HOME when: [t4] the commander pipes under a short key with no --org then: output matches snapshot 1`] = `
+"🔐 keyrack set
+   └─ ✋ ConstraintError: this keyrack ask names a repo key, but the cwd is not a git repo
+      ├─ why: a repo key is declared by the repo keyrack.yml, so it can be named only from inside that repo
+      ├─ cwd: /TMP_REPO
+      ├─ ran: keyrack set --owner mechanic --key EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin --env prep
+      └─ hint: run from inside the repo, or name a machine-wide key with --org @all (it needs no repo at all)"
+`;
+
+exports[`keyrack github-app key on a box with no aws identity given: [case11] the real box: no git repo at the cwd, as \`ssh <box> rhx …\` lands in $HOME when: [t5] the crew gets the short key, --env prep, with no --org then: output matches snapshot 1`] = `
+"🔐 keyrack get
+   └─ ✋ ConstraintError: cannot construct slug for key 'EHMPATH_BEAVER_GITHUB_TOKEN' without keyrack.yml. use full slug format (org.env.KEY) or add keyrack.yml to repo.
+      ├─ ran: keyrack get --owner mechanic --env prep --key EHMPATH_BEAVER_GITHUB_TOKEN --unlock
+      └─ hint: for a machine-wide key, pass --org @all, or the full slug: --key @all.prep.EHMPATH_BEAVER_GITHUB_TOKEN"
+`;
+
+exports[`keyrack github-app key on a box with no aws identity given: [case11] the real box: no git repo at the cwd, as \`ssh <box> rhx …\` lands in $HOME when: [t6] the crew gets the short key, --env prep --org @all then: output matches snapshot 1`] = `
+"🔐 keyrack
+   └─ @all.prep.EHMPATH_BEAVER_GITHUB_TOKEN
+      ├─ status: locked 🔒
+      └─ tip: failed to mint github app token — the stored private key (.pem) is not a valid rsa key — fix: re-file a blob that holds a valid github app private key (.pem): <the current blob> | rhx keyrack set --owner mechanic --key @all.prep.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin (or, at a terminal with gh login, the guided set: rhx keyrack set --owner mechanic --key @all.prep.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP)"
+`;
+
+exports[`keyrack github-app key on a box with no aws identity given: [case12] a value is piped with no --mech when: [t0] ciphertext is piped then: output matches snapshot 1`] = `
+"🔐 keyrack set
+   └─ ✋ ConstraintError: --source @stdin names no mech; pass --mech
+      ├─ machine: @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
+      ├─ ran: keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --source @stdin
+      └─ hint:
+         ├─ for a github-app blob, pass --mech EPHEMERAL_VIA_GITHUB_APP
+         ├─ the value was not stored
+         └─ if it came from aws ssm, check --with-decryption"
+`;

@@ -1,0 +1,23 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asGithubAppMintFaultRefusal given: [case1] github refuses the key (401) when: [t0] mapped then: the refusal a human reads matches snapshot 1`] = `
+"✋ ConstraintError: failed to mint github app token — github refused the stored private key (401)
+
+{
+  "appId": "123456",
+  "status": 401,
+  "fault": "key-refused",
+  "hint": "the stored blob is stale or belongs to another app, or this box's clock is off (a skewed jwt also draws a 401; check the box's time sync first). if the app key was rotated, re-file the current blob"
+}"
+`;
+
+exports[`asGithubAppMintFaultRefusal given: [case4] github refuses the installation (404 or 403) when: [t0] a 404 then: the refusal a human reads matches snapshot 1`] = `
+"✋ ConstraintError: failed to mint github app token — github refused the stored installation (404)
+
+{
+  "appId": "123456",
+  "status": 404,
+  "fault": "installation-refused",
+  "hint": "the blob's installationId names no installation this app may use: the app was uninstalled, suspended, or the blob names another org. check the app's install, then re-file the current blob"
+}"
+`;

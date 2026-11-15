@@ -35,6 +35,69 @@ describe('setKeyrackKeyHost', () => {
   beforeEach(() => {
     daoKeyrackInventory.set.mockClear();
   });
+  given('[case0] a piped source into a vault that does not accept one', () => {
+    const vaultSetSpy = jest.fn();
+    const context: ContextKeyrack = {
+      owner: null,
+      identity: {
+        getOne: async () => 'test-identity',
+        getAll: { discovered: async () => ['test-identity'], prescribed: [] },
+      },
+      hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
+      repoManifest: genMockKeyrackRepoManifest({ org: 'ehmpathy' }),
+      vaultAdapters: {
+        'os.envvar': genMockVaultAdapter(),
+        'os.direct': genMockVaultAdapter(),
+        'os.secure': genMockVaultAdapter({ isSourcePipedAccepted: true }),
+        'os.daemon': genMockVaultAdapter(),
+        '1password': genMockVaultAdapter(),
+        'aws.config': genMockVaultAdapter(),
+        'aws.params': { ...genMockVaultAdapter(), set: vaultSetSpy },
+        'github.secrets': genMockVaultAdapter(),
+      },
+    };
+
+    when('[t0] set called with a source and vault aws.params', () => {
+      then(
+        'refuses before the vault is called, and names the vault fix',
+        async () => {
+          const error = await getError(
+            setKeyrackKeyHost(
+              {
+                slug: 'ehmpathy.all.PIPED_KEY',
+                mech: 'EPHEMERAL_VIA_GITHUB_APP',
+                vault: 'aws.params',
+                source: '{"appId":"1"}',
+              },
+              context,
+            ),
+          );
+          expect(error.message).toContain(
+            'vault aws.params takes no piped source',
+          );
+          expect(error.message).toContain('os.secure');
+          expect(error.message).not.toContain('appId');
+          expect(vaultSetSpy).not.toHaveBeenCalled();
+        },
+      );
+    });
+
+    when('[t1] set called with a source and vault os.secure', () => {
+      then('passes the source through to the vault', async () => {
+        const result = await setKeyrackKeyHost(
+          {
+            slug: 'ehmpathy.all.PIPED_KEY',
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.secure',
+            source: 'token-fake',
+          },
+          context,
+        );
+        expect(result.vault).toEqual('os.secure');
+      });
+    });
+  });
+
   given('[case1] new key to configure with @this org', () => {
     const context: ContextKeyrack = {
       owner: null,

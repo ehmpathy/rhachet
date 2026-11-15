@@ -389,6 +389,7 @@ export const vaultAdapterAwsConfig: KeyrackHostVaultAdapter<
   mechs: {
     supported: ['EPHEMERAL_VIA_AWS_SSO'],
   },
+  isSourcePipedAccepted: false,
 
   /**
    * .what = check if sso session is valid for the given profile and user

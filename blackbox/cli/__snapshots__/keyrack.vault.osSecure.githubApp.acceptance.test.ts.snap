@@ -128,7 +128,7 @@ exports[`keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP given: [case8] ma
 "🔓 keyrack unlock
    └─ testorg.test.GITHUB_TOKEN
       ├─ status: errored 💥
-      └─ tip: failed to mint github app token — the stored private key (.pem) is not a valid rsa key — fix: re-set the key with a valid github app private key (.pem) file"
+      └─ tip: failed to mint github app token — the stored private key (.pem) is not a valid rsa key — fix: re-file a blob that holds a valid github app private key (.pem): <the current blob> | rhx keyrack set --key testorg.test.GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin (or, at a terminal with gh login, the guided set: rhx keyrack set --key testorg.test.GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP)"
 `;
 
 exports[`keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP given: [case9] vault inference impossible when: [t0] keyrack set GITHUB_TOKEN without --vault then: error output matches snapshot 1`] = `

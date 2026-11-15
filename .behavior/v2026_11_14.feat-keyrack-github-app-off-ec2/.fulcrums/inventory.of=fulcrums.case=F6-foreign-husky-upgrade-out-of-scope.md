@@ -1,0 +1,9 @@
+# F6 — the foreign uncommitted husky upgrade is out of scope
+
+- **fork** — review and repair the uncommitted declapract/husky upgrade (`.husky/*`, `.gitattributes`, `.gitignore`, `package.json`, `pnpm-lock.yaml`, the brain settings, `boot.yml`) as part of this change · leave it to its owner and keep this change to the keyrack work
+- **taken** — leave it to its owner. no stone or wish line asks for a husky upgrade; this branch did not author those edits; a repair of them here would ship an unasked behavior change inside a keyrack pr. peer concerns about those files are disputed, not conceded
+- **evidence** — `.husky/check.secrets.sh` scans every staged file for `-----BEGIN [A-Z ]*PRIVATE KEY-----` with no fixture skip. main already tracks 30+ files with that exact shape (`mechAdapterGithubApp.test.ts`, `vaultAdapterOsEnvvar.test.ts`, `keyrack.vault.osSecure.githubApp.acceptance.test.ts`, `blackbox/.test/assets/**/mock-app.pem`, and more), so the hook as written refuses any commit that stages one of them. the defect is the hook's fixture discernment; a split header string in this change's two fixtures would quiet it for two files while it stands for the rest
+- **rework** — clean. those files sit outside every path this change touches; a human can fold them in, drop them, or commit them apart with no ripple to the keyrack work
+- **confidence** — 80%. the human may want the upgrade to ride along, but that is a scope call for the human to make, and it does not alter any keyrack file
+- **where** — the peer round i001 on `5.1.execution.from_vision`: r007 blocker.2 (`check.secrets.sh`) and the husky nitpicks r001.n1, r002.n1, r005.n1, r006.n1; the commit checkpoint in `5.1.execution.from_vision.yield.md` `.open`
+- **verdict** — open; the human rules at the commit checkpoint

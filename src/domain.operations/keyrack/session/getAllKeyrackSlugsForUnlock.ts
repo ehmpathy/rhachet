@@ -10,6 +10,7 @@ import { getAllKeyrackSlugsForEnv } from '../getAllKeyrackSlugsForEnv';
 import { getAllKeyrackSlugsForOrg } from '../getAllKeyrackSlugsForOrg';
 import { getAllMachineWideSlugsForEnv } from '../getAllMachineWideSlugsForEnv';
 import { getAllSudoSlugsForKeyAsk } from '../getAllSudoSlugsForKeyAsk';
+import { asKeyrackMachineWideAsk } from './asKeyrackMachineWideAsk';
 
 /**
  * .what = the exact set of slugs one `keyrack unlock` ask sweeps, across all three of its
@@ -106,10 +107,16 @@ export const getAllKeyrackSlugsForUnlock = (input: {
   // bootstrap-to-clone credential path, where the github-app install token is vaulted under
   // `@all` precisely so it can be fetched before any repo is cloned
   if (!input.repoManifest) {
-    // env comes from the ask directly, since there is no manifest to default it from
+    // env comes from the ask directly, since there is no manifest to default it from — the
+    // --env flag, else the env a full-slug --key already names (`@all.all.X` names `all`), read by
+    // the same decoder `get`, `set`, and `del` use
     // .note = a ConstraintError, never a parent word — an absent --env is the caller's to fix,
     //         so it owes a blocked render + exit 2 rather than a stack trace (term=blocked)
-    if (!input.env)
+    const { env, slugAsked } = asKeyrackMachineWideAsk({
+      keyAsk: input.keyAsk,
+      envFlag: input.env,
+    });
+    if (!env)
       throw new ConstraintError(
         'unlock without a repo manifest requires --env',
         {
@@ -123,7 +130,7 @@ export const getAllKeyrackSlugsForUnlock = (input: {
     //        `@all`, so a filter for a real org honestly selects an empty set rather than a
     //        silent yield of every machine-wide key under that org's name
     const machineWideSlugsHeld = getAllMachineWideSlugsForEnv({
-      env: input.env,
+      env,
       keyAsk: input.keyAsk,
       hostManifest: input.hostManifest,
     });
@@ -143,9 +150,9 @@ export const getAllKeyrackSlugsForUnlock = (input: {
     // fail-fast when a specific machine-wide key was asked but is absent from the host manifest
     if (input.keyAsk && machineWideSlugs.length === 0)
       throw new ConstraintError(`machine-wide key not found: ${input.keyAsk}`, {
-        env: input.env,
-        note: `no @all.${input.env}.${input.keyAsk} key in the host manifest (and no repo keyrack.yml to declare a repo-scoped one)`,
-        fix: `rhx keyrack set --key ${input.keyAsk} --env ${input.env} --org @all --vault ...`,
+        env,
+        note: `no ${slugAsked} key in the host manifest (and no repo keyrack.yml to declare a repo-scoped one)`,
+        fix: `rhx keyrack set --key ${input.keyAsk} --env ${env} --org @all --vault ...`,
       });
 
     return machineWideSlugs;

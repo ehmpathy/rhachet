@@ -64,7 +64,7 @@ describe('setKeyrackKey', () => {
               org: 'testorg',
               vault: 'os.direct',
               mech: 'PERMANENT_VIA_REPLICA',
-              secret: 'test-secret',
+              source: null,
             },
             context,
           );
@@ -117,6 +117,7 @@ describe('setKeyrackKey', () => {
             vault: 'aws.config',
             mech: 'EPHEMERAL_VIA_AWS_SSO',
             exid: 'test-profile',
+            source: null,
           },
           context,
         );
@@ -166,8 +167,8 @@ describe('setKeyrackKey', () => {
             org: 'customorg',
             vault: 'os.direct',
             mech: 'PERMANENT_VIA_REPLICA',
-            secret: 'test-secret',
             at: 'custom/role/keyrack.yml',
+            source: null,
           },
           context,
         );
@@ -228,7 +229,7 @@ describe('setKeyrackKey', () => {
               org: 'ehmpathy',
               vault: 'os.direct',
               mech: 'PERMANENT_VIA_REPLICA',
-              secret: 'test-secret',
+              source: null,
               repoManifest,
             },
             context,
