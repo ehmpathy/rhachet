@@ -71,6 +71,9 @@ Options:
                              github://org=ehmpathy)
   --exid <exid>              external id (vault-specific reference)
   --max-duration <duration>  max TTL for this key (e.g., 5m, 1h)
+  --source <@stdin>          read the source credential from a pipe, no guided
+                             setup; accepts only the literal @stdin (os.secure
+                             only; e.g., a github-app blob)
   --at <path>                custom keyrack.yml path (for role-level keyracks)
   --prikey <path>            ssh private key for manifest decryption
   --json                     output as json (robot mode)

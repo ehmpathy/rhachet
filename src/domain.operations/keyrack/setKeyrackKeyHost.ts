@@ -52,7 +52,17 @@ export const setKeyrackKeyHost = async (
 
     meta?: Record<string, unknown> | null;
     maxDuration?: string | null;
-    secret?: string | null;
+
+    /**
+     * .what = a source credential piped in by the caller (`--source @stdin`)
+     * .why = lets a box with no tty and no gh file a source the vault stores as-is
+     * .note = OPTIONAL, a deliberate exception to `rule.forbid.undefined-inputs`: the one
+     *         producer of a piped source is `setKeyrackKey`, where `source` is required, so a
+     *         forgotten source fails at compile time there. the other callers of this
+     *         operation (the sdk, which has no pipe) never carry one, and absent reads as null
+     */
+    source?: string | null;
+
     at?: string | null;
   },
   context: ContextKeyrack,
@@ -64,6 +74,16 @@ export const setKeyrackKeyHost = async (
       { slug: input.slug },
     );
   const hostManifest = context.hostManifest;
+
+  // refuse a piped source the vault cannot store, before aught is written; a drop would
+  // discard the caller's credential with no error
+  const adapter = context.vaultAdapters[input.vault];
+  if ((input.source ?? null) !== null && !adapter.isSourcePipedAccepted)
+    throw new ConstraintError(`vault ${input.vault} takes no piped source`, {
+      slug: input.slug,
+      vault: input.vault,
+      hint: 'set into a vault that accepts a piped source (os.secure), or drop the source to run the guided setup',
+    });
 
   const now = new Date().toISOString();
 
@@ -96,13 +116,13 @@ export const setKeyrackKeyHost = async (
 
   // store secret in vault
   // .note = vault encapsulates mech calls: infers mech if absent, checks compat, calls mech.acquireForSet
-  const adapter = context.vaultAdapters[input.vault];
   const setResult = await adapter.set(
     {
       slug: input.slug,
       mech: input.mech ?? null,
       exid: input.exid ?? null,
       reach: input.reach,
+      source: input.source ?? null,
     },
     context,
   );

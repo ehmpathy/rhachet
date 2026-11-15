@@ -11,6 +11,8 @@ import {
   decryptWithIdentity,
   encryptToRecipients,
 } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
+import { asKeyrackGithubAppSetCommand } from '@src/domain.operations/keyrack/adapters/mechanisms/asKeyrackGithubAppSetCommand';
+import { getOneKeyrackMechSecretDelivered } from '@src/domain.operations/keyrack/adapters/mechanisms/getOneKeyrackMechSecretDelivered';
 import { mechAdapterGithubApp } from '@src/domain.operations/keyrack/adapters/mechanisms/mechAdapterGithubApp';
 import { mechAdapterReplica } from '@src/domain.operations/keyrack/adapters/mechanisms/mechAdapterReplica';
 import { asKeyrackOwnerDir } from '@src/domain.operations/keyrack/asKeyrackOwnerDir';
@@ -18,21 +20,22 @@ import { asKeyrackSlugHash } from '@src/domain.operations/keyrack/asKeyrackSlugH
 import { asKeyrackSlugParts } from '@src/domain.operations/keyrack/asKeyrackSlugParts';
 import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
 import { inferKeyGrade } from '@src/domain.operations/keyrack/grades/inferKeyGrade';
-import { inferKeyrackMechForGet } from '@src/domain.operations/keyrack/inferKeyrackMechForGet';
 import { inferKeyrackMechForSet } from '@src/domain.operations/keyrack/inferKeyrackMechForSet';
+import { asKeyrackKeyReachExid } from '@src/domain.operations/keyrack/reach/asKeyrackKeyReachExid';
 import { asKeyrackKeyReachField } from '@src/domain.operations/keyrack/reach/asKeyrackKeyReachField';
 import { asKeyrackKeySlugAtReach } from '@src/domain.operations/keyrack/reach/asKeyrackKeySlugAtReach';
 import { verifyRoundtripDecryption } from '@src/domain.operations/keyrack/verifyRoundtripDecryption';
 import { getHomeDir } from '@src/infra/getHomeDir';
+import { setFileAtomic } from '@src/infra/setFileAtomic';
 
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  unlinkSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
+import { asKeyrackMechOfSource } from './asKeyrackMechOfSource';
+import { asOsSecureSetTreeHead } from './asOsSecureSetTreeHead';
+import { asOsSecureSourcePipedValid } from './asOsSecureSourcePipedValid';
+import { assertOsSecureMechAgreesWithSource } from './assertOsSecureMechAgreesWithSource';
+import { getOneOsSecureMechOfSourcePiped } from './getOneOsSecureMechOfSourcePiped';
+import { getOneOsSecureSourceForSet } from './getOneOsSecureSourceForSet';
 
 /**
  * .what = directory for encrypted credential files
@@ -67,6 +70,23 @@ const getCredentialPath = (input: {
 };
 
 /**
+ * .what = the mech os.secure infers for a set with no --mech
+ * .why = a piped source must name its mech by its shape, or be refused; with no pipe, the
+ *        human picks via the guided prompt
+ */
+const getOneOsSecureMechInferred = async (input: {
+  sourcePiped: string | null;
+  slug: string;
+}): Promise<KeyrackGrantMechanism> => {
+  if (input.sourcePiped !== null)
+    return getOneOsSecureMechOfSourcePiped({
+      source: input.sourcePiped,
+      slug: input.slug,
+    });
+  return inferKeyrackMechForSet({ vault: vaultAdapterOsSecure });
+};
+
+/**
  * .what = lookup mech adapter by mechanism name
  * .why = vault needs to call mech.acquireForSet for guided setup
  */
@@ -97,6 +117,7 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter<'readwrite'> = {
   mechs: {
     supported: ['PERMANENT_VIA_REPLICA', 'EPHEMERAL_VIA_GITHUB_APP'],
   },
+  isSourcePipedAccepted: true,
 
   /**
    * .what = unlock the vault for the current session
@@ -157,32 +178,42 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter<'readwrite'> = {
       identity,
     });
 
-    // detect mech from value (JSON blob or plain string)
-    const inferredMech = inferKeyrackMechForGet({ value: source });
+    // detect mech from value: the mech the blob declares, else github-app by shape, else replica
+    const inferredMech = asKeyrackMechOfSource({ source });
 
     // validate mech consistency when both sources specify
-    if (
-      input.mech &&
-      inferredMech !== 'PERMANENT_VIA_REPLICA' &&
-      input.mech !== inferredMech
-    ) {
-      throw new ConstraintError(
-        'mech mismatch: host manifest and blob disagree',
-        {
-          hostManifestMech: input.mech,
-          blobMech: inferredMech,
-          slug: input.slug,
-          hint: 'update host manifest or blob to match',
-        },
-      );
-    }
+    assertOsSecureMechAgreesWithSource({
+      mech: input.mech ?? null,
+      source,
+      slug: input.slug,
+    });
 
     // determine mech: input.mech takes precedence, else use inferred
     const mech = input.mech ?? inferredMech;
 
     // transform source → usable secret via mech
+    // .note = a github-app mint refusal gains os.secure's own cure, at this key's reach: a
+    //         pipe of the current blob, or the guided set where gh and a tty exist
     const mechAdapter = getMechAdapter(mech);
-    const { secret, expiresAt } = await mechAdapter.deliverForGet({ source });
+    const setVia = (form: 'pipe' | 'guided'): string =>
+      asKeyrackGithubAppSetCommand({
+        vault: 'os.secure',
+        owner,
+        slug: input.slug,
+        reach: input.reach
+          ? asKeyrackKeyReachExid({ reach: input.reach })
+          : null,
+        form:
+          form === 'pipe'
+            ? { kind: 'pipe', readSide: null, host: null }
+            : { kind: 'guided' },
+      });
+    const { secret, expiresAt } = await getOneKeyrackMechSecretDelivered({
+      mechAdapter,
+      source,
+      cure: () =>
+        `${setVia('pipe')} (or, at a terminal with gh login, the guided set: ${setVia('guided')})`,
+    });
 
     // compute grade from vault + mech
     const grade = inferKeyGrade({ vault: 'os.secure', mech });
@@ -210,12 +241,15 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter<'readwrite'> = {
    *         2. checks mech compat
    *         3. calls mech.acquireForSet for guided setup
    *         4. stores source credential
+   * .note = a piped source (input.source) skips the guided setup: the mech validates it and
+   *         the vault stores it as-is. the mech is inferred from the blob when not supplied
    */
   set: async (input, context?: ContextKeyrack) => {
-    // infer mech if not supplied
+    // infer mech if not supplied — from the piped blob, else via the guided prompt
+    const sourcePiped = input.source ?? null;
     const mech =
       input.mech ??
-      (await inferKeyrackMechForSet({ vault: vaultAdapterOsSecure }));
+      (await getOneOsSecureMechInferred({ sourcePiped, slug: input.slug }));
 
     // check mech compat
     // .note = caller-fixable (the caller chose an incompatible --vault/--mech pair; the hint
@@ -229,20 +263,53 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter<'readwrite'> = {
       });
     }
 
-    // acquire source credential via mech guided setup
+    // validate a piped source before any tree opens, so a refusal prints alone
     const mechAdapter = getMechAdapter(mech);
+    const sourcePipedValid = asOsSecureSourcePipedValid({
+      source: sourcePiped,
+      mech,
+      slug: input.slug,
+      mechAdapter,
+    });
 
-    // emit vault header for ephemeral mechs (they have guided setup)
-    if (mech === 'EPHEMERAL_VIA_GITHUB_APP') {
-      console.log(`🔐 keyrack set ${input.slug} via ${mech}`);
+    // refuse a piped source whose own mech contradicts --mech, as `get` would
+    if (sourcePipedValid !== null)
+      assertOsSecureMechAgreesWithSource({
+        mech,
+        source: sourcePipedValid,
+        slug: input.slug,
+      });
+
+    // refuse a host with no recipients before any tree opens, so the refusal prints alone
+    const recipients = context?.hostManifest?.recipients;
+    if (!recipients || recipients.length === 0) {
+      throw new MalfunctionError(
+        'os.secure set requires recipients from host manifest',
+        {
+          slug: input.slug,
+          hint: 'run keyrack init to add recipients',
+        },
+      );
     }
 
-    // mech guided setup continues the tree
-    // .note = context.mech injects the gh runner + prompt (composition root / tests);
-    //         absent in prod, where the mech falls back to the real gh cli + terminal
-    const { source: secret } = await mechAdapter.acquireForSet(
-      { keySlug: input.slug, reach: input.reach, mech },
-      context?.mech,
+    // open the tree the roundtrip result closes
+    const treeHead = asOsSecureSetTreeHead({
+      slug: input.slug,
+      mech,
+      isSourcePiped: sourcePipedValid !== null,
+    });
+    for (const line of treeHead) console.log(line);
+
+    // take the source: the piped one, else the mech's guided setup
+    const secret = await getOneOsSecureSourceForSet(
+      {
+        slug: input.slug,
+        mech,
+        reach: input.reach,
+        sourcePipedValid,
+        mechAdapter,
+      },
+      context,
     );
 
     // ensure directory exists
@@ -259,31 +326,17 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter<'readwrite'> = {
     });
 
     // encrypt with recipients from context.hostManifest
-    const recipients = context?.hostManifest?.recipients;
-    if (!recipients || recipients.length === 0) {
-      throw new MalfunctionError(
-        'os.secure set requires recipients from host manifest',
-        {
-          slug: input.slug,
-          hint: 'run keyrack init to add recipients',
-        },
-      );
-    }
     const ciphertext = await encryptToRecipients({
       plaintext: secret,
       recipients,
     });
 
-    // write encrypted credential
-    writeFileSync(path, ciphertext, 'utf8');
-
-    // roundtrip verification
+    // roundtrip verification, in memory, before any write
+    // .why = a re-file is the advertised rotation path; a failed verify must leave the prior
+    //        good credential in place, never a bad ciphertext over it
     const { verified } = await verifyRoundtripDecryption(
       {
-        expected: {
-          ciphertext: readFileSync(path, 'utf8'),
-          plaintext: secret,
-        },
+        expected: { ciphertext, plaintext: secret },
         owner,
       },
       context,
@@ -291,17 +344,20 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter<'readwrite'> = {
     if (!verified) {
       throw new MalfunctionError('os.secure roundtrip verification failed', {
         slug: input.slug,
-        hint: 'no identity could decrypt the credential',
+        hint: 'no identity could decrypt the credential; the prior file, if any, is unchanged',
       });
     }
 
-    // emit verification success for ephemeral mech tree output
+    // write the verified ciphertext whole, so a crash mid-write never truncates the prior file
+    setFileAtomic({ path, content: ciphertext });
+
+    // close the tree, if one opened, with the roundtrip result
     // .note = every vault's guided setup shares one rhythm: a `perfect, now let's verify...`
     //         narration parent, then the roundtrip result as its child. the single blank
     //         separator before the summary header is emitted once by the set-command boundary
-    //         (invokeKeyrack, for any EPHEMERAL mech), NOT here — a second blank here would
-    //         double-space the tree from the header
-    if (mech === 'EPHEMERAL_VIA_GITHUB_APP') {
+    //         (invokeKeyrack, for any EPHEMERAL mech or a piped source), NOT here — a second
+    //         blank here would double-space the tree from the header
+    if (treeHead.length > 0) {
       console.log('   │');
       console.log("   └─ perfect, now let's verify...");
       console.log('      └─ ✓ roundtrip verified');

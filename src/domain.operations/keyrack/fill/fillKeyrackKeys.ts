@@ -372,6 +372,8 @@ export const fillKeyrackKeys = async (
                 org: asKeyrackKeyOrg({ slug }),
                 vault,
                 mech,
+                // fill runs each key's guided setup; it never pipes a source
+                source: null,
                 reach: target.reach,
                 repoManifest,
               },

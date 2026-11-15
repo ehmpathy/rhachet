@@ -471,4 +471,251 @@ describe('vaultAdapterOsSecure', () => {
       );
     });
   });
+
+  given(
+    '[case6] a github-app blob piped in as the source (off-ec2 grove)',
+    () => {
+      const vaultDir = () =>
+        join(
+          tempHome.path,
+          '.rhachet',
+          'keyrack',
+          'vault',
+          'os.secure',
+          'owner=default',
+        );
+      const slug = 'testorg.all.EHMPATH_BEAVER_GITHUB_TOKEN';
+
+      // a blob of the shape `asGithubAppSource` writes, whose pem is NOT a valid rsa key: the mint
+      // reaches crypto and fails there, before any network call — so the route to the mint is
+      // proven with no github and no aws
+      // .note = a fixture, never a credential: the pem body is a placeholder string
+      const blobFixture = JSON.stringify({
+        appId: '123456',
+        installationId: '78901234',
+        privateKey:
+          '-----BEGIN RSA PRIVATE KEY-----\nnot-a-real-rsa-key\n-----END RSA PRIVATE KEY-----',
+        mech: 'EPHEMERAL_VIA_GITHUB_APP',
+      });
+
+      when('[t0] set with the piped source and no --mech', () => {
+        then(
+          'the blob is stored as-is, with the mech inferred from it',
+          async () => {
+            const result = await vaultAdapterOsSecure.set(
+              { slug, source: blobFixture },
+              genTestContext({
+                identity: testIdentity,
+                recipient: testRecipient,
+              }),
+            );
+            expect(result.mech).toEqual('EPHEMERAL_VIA_GITHUB_APP');
+            expect(readdirSync(vaultDir()).length).toBe(1);
+          },
+        );
+      });
+
+      when('[t1] get after the piped set (the clamp, green half)', () => {
+        then(
+          'unlock reaches the github-app mint — no aws identity, no tty, no gh',
+          async () => {
+            await vaultAdapterOsSecure.set(
+              { slug, mech: 'EPHEMERAL_VIA_GITHUB_APP', source: blobFixture },
+              genTestContext({
+                identity: testIdentity,
+                recipient: testRecipient,
+              }),
+            );
+
+            // the fixture pem fails in crypto, which is only reached once the vault decrypted the
+            // blob and handed it to the mint: that refusal IS the proof the route lands there
+            const error = await getError(
+              vaultAdapterOsSecure.get({
+                slug,
+                mech: 'EPHEMERAL_VIA_GITHUB_APP',
+                identity: testIdentity,
+              }),
+            );
+            expect(error.message).toContain('failed to mint github app token');
+          },
+        );
+      });
+
+      when('[t2] set with a malformed piped blob', () => {
+        then('refuses with the mech reasons, and writes no file', async () => {
+          const error = await getError(
+            vaultAdapterOsSecure.set(
+              {
+                slug,
+                mech: 'EPHEMERAL_VIA_GITHUB_APP',
+                source: JSON.stringify({
+                  appId: '123456',
+                  installationId: '78901234',
+                }),
+              },
+              genTestContext({
+                identity: testIdentity,
+                recipient: testRecipient,
+              }),
+            ),
+          );
+          expect(error.message).toContain('not a valid source for its mech');
+          expect(existsSync(vaultDir())).toBe(false);
+        });
+      });
+
+      when(
+        '[t3] set with a non-json piped value under the github-app mech',
+        () => {
+          then('refuses and never echoes the value', async () => {
+            const error = await getError(
+              vaultAdapterOsSecure.set(
+                {
+                  slug,
+                  mech: 'EPHEMERAL_VIA_GITHUB_APP',
+                  source: 'ghs_fixture_plain',
+                },
+                genTestContext({
+                  identity: testIdentity,
+                  recipient: testRecipient,
+                }),
+              ),
+            );
+            expect(error.message).toContain('not a valid source for its mech');
+            expect(JSON.stringify(error)).not.toContain('ghs_fixture_plain');
+            expect(existsSync(vaultDir())).toBe(false);
+          });
+        },
+      );
+    },
+  );
+
+  given('[case7] a replica value piped in as the source', () => {
+    const slug = 'testorg.all.PIPED_REPLICA_KEY';
+
+    // edge whitespace and an inner newline: a piped replica must store every byte it was handed
+    // .note = a fixture, never a credential
+    const valueFixture = '  replica-fixture\nline-two  ';
+
+    when('[t0] set with the piped value under --mech replica, then get', () => {
+      then(
+        'the value is stored byte-identical as a replica, no prompt asked',
+        async () => {
+          const result = await vaultAdapterOsSecure.set(
+            { slug, mech: 'PERMANENT_VIA_REPLICA', source: valueFixture },
+            genTestContext({
+              identity: testIdentity,
+              recipient: testRecipient,
+            }),
+          );
+          expect(result.mech).toEqual('PERMANENT_VIA_REPLICA');
+
+          const got = await vaultAdapterOsSecure.get({
+            slug,
+            identity: testIdentity,
+          });
+          expect(got?.key.secret).toEqual(valueFixture);
+        },
+      );
+    });
+
+    // .why = a pipe with no --mech never falls back to a replica: ciphertext from an
+    //        `aws ssm get-parameter` with no `--with-decryption` would be stored as a secret
+    when('[t1] set with a plain piped value and no --mech', () => {
+      then('refuses, names --mech, and writes no file', async () => {
+        const error = await getError(
+          vaultAdapterOsSecure.set(
+            { slug: 'testorg.all.PIPED_NO_MECH_KEY', source: valueFixture },
+            genTestContext({
+              identity: testIdentity,
+              recipient: testRecipient,
+            }),
+          ),
+        );
+        expect(error.message).toContain('pass --mech');
+        expect(JSON.stringify(error)).not.toContain('replica-fixture');
+        expect(
+          existsSync(
+            join(
+              tempHome.path,
+              '.rhachet',
+              'keyrack',
+              'vault',
+              'os.secure',
+              'owner=default',
+            ),
+          ),
+        ).toBe(false);
+      });
+    });
+
+    when('[t2] set a github-app blob under --mech replica', () => {
+      then('refuses with the mech mismatch, as get would', async () => {
+        const error = await getError(
+          vaultAdapterOsSecure.set(
+            {
+              slug: 'testorg.all.PIPED_MISMATCH_KEY',
+              mech: 'PERMANENT_VIA_REPLICA',
+              source: JSON.stringify({
+                appId: '1',
+                installationId: '2',
+                privateKey: 'fixture-pem-body',
+                mech: 'EPHEMERAL_VIA_GITHUB_APP',
+              }),
+            },
+            genTestContext({
+              identity: testIdentity,
+              recipient: testRecipient,
+            }),
+          ),
+        );
+        expect(error.message).toContain('mech mismatch');
+      });
+    });
+  });
+
+  given(
+    '[case8] a source piped in under a mech os.secure does not hold',
+    () => {
+      when(
+        '[t0] set with --mech EPHEMERAL_VIA_AWS_SSO and a piped source',
+        () => {
+          then(
+            'refuses with the vault mech check, names the mech, writes no file',
+            async () => {
+              const error = await getError(
+                vaultAdapterOsSecure.set(
+                  {
+                    slug: 'testorg.test.AWS_PROFILE',
+                    mech: 'EPHEMERAL_VIA_AWS_SSO',
+                    source: 'sso-fixture',
+                  },
+                  genTestContext({
+                    identity: testIdentity,
+                    recipient: testRecipient,
+                  }),
+                ),
+              );
+              expect(error.message).toContain(
+                'os.secure does not support mech: EPHEMERAL_VIA_AWS_SSO',
+              );
+              expect(JSON.stringify(error)).not.toContain('sso-fixture');
+              expect(
+                existsSync(
+                  join(
+                    tempHome.path,
+                    '.rhachet',
+                    'keyrack',
+                    'vault',
+                    'os.secure',
+                    'owner=default',
+                  ),
+                ),
+              ).toBe(false);
+            },
+          );
+        },
+      );
+    },
+  );
 });

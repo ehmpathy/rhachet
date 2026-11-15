@@ -1,3 +1,6 @@
+import { asTextWithFinalNewlineDropped } from './asTextWithFinalNewlineDropped';
+import { getStdinContent } from './getStdinContent';
+
 /**
  * .what = prompts user for input with hidden echo (for passwords)
  * .why = enables secure passphrase entry without exposure to shell history or process lists
@@ -66,13 +69,8 @@ export const promptHiddenInput = async (input: {
     });
   }
 
-  // non-TTY mode: read ALL stdin content for multiline secrets (e.g., PEM files)
-  const chunks: string[] = [];
-  process.stdin.setEncoding('utf8');
-  for await (const chunk of process.stdin) {
-    chunks.push(chunk as string);
-  }
-  const content = chunks.join('');
-  // trim final newline if present (stdin often ends with \n)
-  return content.endsWith('\n') ? content.slice(0, -1) : content;
+  // non-TTY mode: read ALL stdin content for multiline secrets (e.g., PEM files), then drop the
+  // one final newline a pipe adds — the same read and the same rule as `keyrack set --source`
+  const content = await getStdinContent({ trim: false });
+  return asTextWithFinalNewlineDropped({ text: content });
 };

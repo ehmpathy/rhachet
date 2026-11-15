@@ -23,10 +23,22 @@ import {
  *
  * .note = the `CLAUDE.md` findsert never clobbers: a file there, or a symlink elsewhere,
  *         is a ConstraintError that names the path
+ * .note = the `CLAUDE.md` findsert is safe under concurrency: two enrolls of one actor (e.g.
+ *         two review lanes with the same roles) may race to create it, so the create runs
+ *         first and an EEXIST is read as found, then verified, never as a fault
  */
-export const setBrainDirPointerFiles = (input: {
-  brainDir: string;
-}): { agentsMdReset: boolean } => {
+export const setBrainDirPointerFiles = (
+  input: {
+    brainDir: string;
+  },
+  context?: {
+    /**
+     * .what = the symlink create, injectable
+     * .why = lets a test play the concurrent enroll that wins the race to create the link
+     */
+    symlinkSync?: typeof symlinkSync;
+  },
+): { agentsMdReset: boolean } => {
   const agentsMdPath = join(input.brainDir, BRAIN_DIR_BOOT_FILENAMES.agentsMd);
   const claudeMdPath = join(input.brainDir, BRAIN_DIR_BOOT_FILENAMES.claudeMd);
 
@@ -39,19 +51,21 @@ export const setBrainDirPointerFiles = (input: {
   if (agentsMdPrior !== BRAIN_DIR_AGENTS_MD_CONTENT)
     setFileAtomic({ path: agentsMdPath, content: BRAIN_DIR_AGENTS_MD_CONTENT });
 
-  // findsert CLAUDE.md -> AGENTS.md, relative
-  const claudeMdStat = (() => {
+  // findsert CLAUDE.md -> AGENTS.md, relative: create first; EEXIST means it is already there
+  const createSymlink = context?.symlinkSync ?? symlinkSync;
+  const isClaudeMdCreated = (() => {
     try {
-      return lstatSync(claudeMdPath);
+      createSymlink(BRAIN_DIR_BOOT_FILENAMES.agentsMd, claudeMdPath, 'file');
+      return true;
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+      if ((error as NodeJS.ErrnoException).code === 'EEXIST') return false;
       throw error;
     }
   })();
-  if (!claudeMdStat) {
-    symlinkSync(BRAIN_DIR_BOOT_FILENAMES.agentsMd, claudeMdPath, 'file');
-    return { agentsMdReset };
-  }
+  if (isClaudeMdCreated) return { agentsMdReset };
+
+  // found: it must be the rhachet symlink
+  const claudeMdStat = lstatSync(claudeMdPath);
   if (
     claudeMdStat.isSymbolicLink() &&
     readlinkSync(claudeMdPath) === BRAIN_DIR_BOOT_FILENAMES.agentsMd
