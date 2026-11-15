@@ -4,6 +4,7 @@ import { given, then, when } from 'test-fns';
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
 import { KeyrackKeyReach } from '@src/domain.objects/keyrack/KeyrackKeyReach';
 import { createDaemonKeyStore } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonKeyStore';
+import { createDaemonRenewRecord } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonRenewRecord';
 import { asKeyrackKeyReachField } from '@src/domain.operations/keyrack/reach/asKeyrackKeyReachField';
 
 import { handleRelockCommand } from './handleRelockCommand';
@@ -70,7 +71,10 @@ describe('handleRelockCommand', () => {
     when('[t1] relocked by env (a sweep path)', () => {
       then('it reports ONE key, not three (e12)', () => {
         const keyStore = genStoreWithThreeReachesOfOneSlug();
-        const result = handleRelockCommand({ env: 'prep' }, { keyStore });
+        const result = handleRelockCommand(
+          { env: 'prep' },
+          { keyStore, renewRecord: createDaemonRenewRecord() },
+        );
 
         expect(result.relocked).toEqual(['ahbode.prep.TOKEN']);
         expect(result.relocked).toHaveLength(1);
@@ -78,7 +82,10 @@ describe('handleRelockCommand', () => {
 
       then('every reach is purged — to lock a key locks all of it (q1)', () => {
         const keyStore = genStoreWithThreeReachesOfOneSlug();
-        handleRelockCommand({ env: 'prep' }, { keyStore });
+        handleRelockCommand(
+          { env: 'prep' },
+          { keyStore, renewRecord: createDaemonRenewRecord() },
+        );
 
         expect(keyStore.size()).toEqual(0);
       });
@@ -89,7 +96,10 @@ describe('handleRelockCommand', () => {
       () => {
         then('it reports ONE key, not three (e12)', () => {
           const keyStore = genStoreWithThreeReachesOfOneSlug();
-          const result = handleRelockCommand({}, { keyStore });
+          const result = handleRelockCommand(
+            {},
+            { keyStore, renewRecord: createDaemonRenewRecord() },
+          );
 
           expect(result.relocked).toEqual(['ahbode.prep.TOKEN']);
           expect(result.relocked).toHaveLength(1);
@@ -102,7 +112,7 @@ describe('handleRelockCommand', () => {
         const keyStore = genStoreWithThreeReachesOfOneSlug();
         const result = handleRelockCommand(
           { slugs: ['ahbode.prep.TOKEN'] },
-          { keyStore },
+          { keyStore, renewRecord: createDaemonRenewRecord() },
         );
 
         expect(result.relocked).toEqual(['ahbode.prep.TOKEN']);
@@ -125,7 +135,7 @@ describe('handleRelockCommand', () => {
             slugs: ['ahbode.prep.TOKEN'],
             reach: new KeyrackKeyReach({ exid: 'github://org=ehmpathy' }),
           },
-          { keyStore },
+          { keyStore, renewRecord: createDaemonRenewRecord() },
         );
 
         expect(result.relocked).toEqual(['ahbode.prep.TOKEN']);
@@ -139,7 +149,7 @@ describe('handleRelockCommand', () => {
             slugs: ['ahbode.prep.TOKEN'],
             reach: new KeyrackKeyReach({ exid: 'github://org=ehmpathy' }),
           },
-          { keyStore },
+          { keyStore, renewRecord: createDaemonRenewRecord() },
         );
 
         expect(keyStore.get({ slug: 'ahbode.prep.TOKEN' })).not.toBeNull();
@@ -168,7 +178,10 @@ describe('handleRelockCommand', () => {
       //         both pass a single-slug test and fail here
       then('it reports both keys, once each', () => {
         const keyStore = genStore();
-        const result = handleRelockCommand({ env: 'prep' }, { keyStore });
+        const result = handleRelockCommand(
+          { env: 'prep' },
+          { keyStore, renewRecord: createDaemonRenewRecord() },
+        );
 
         expect(result.relocked).toEqual([
           'ahbode.prep.ALPHA',

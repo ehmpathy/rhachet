@@ -2494,6 +2494,7 @@ export const invokeKeyrack = ({
                 for (const line of asKeyrackStatusKeyBranch({
                   key,
                   isLast: i === filteredKeys.length - 1,
+                  owner: status.owner,
                 }))
                   console.log(line);
               }

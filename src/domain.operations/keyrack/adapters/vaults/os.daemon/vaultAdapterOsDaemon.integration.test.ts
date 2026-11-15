@@ -57,6 +57,7 @@ describe('vaultAdapterOsDaemon integration', () => {
 
         // store key directly via daemon sdk
         await daemonAccessUnlock({
+          renewals: [],
           keys: [
             {
               slug: testSlug,
@@ -92,6 +93,7 @@ describe('vaultAdapterOsDaemon integration', () => {
 
         // store via daemon sdk with os.daemon source
         await daemonAccessUnlock({
+          renewals: [],
           keys: [
             {
               slug: testSlug,

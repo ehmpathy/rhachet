@@ -1,0 +1,108 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t0] the key is unlocked while the portal session is live then: status stdout matches snapshot 1`] = `
+"
+🔐 keyrack status
+   ├─ owner: (default)
+   ├─ recipients:
+   │  └─ default (age)
+   ├─ daemon: active ✨
+   └─ testorg.test.AWS_PROFILE
+      ├─ env: test
+      ├─ org: testorg
+      ├─ expires in: __N__m
+      └─ renewed = __N__x
+
+"
+`;
+
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t1] the renew faults every tick then: status --json matches snapshot 1`] = `
+[
+  {
+    "env": "test",
+    "expiresAt": "__TIMESTAMP__",
+    "org": "testorg",
+    "renew": {
+      "mark": {
+        "error": "💥 MalfunctionError: aws configure export-credentials failed with unexpected error
+
+{
+  "profileName": "testorg-test",
+  "error": {
+    "code": 1,
+    "killed": false,
+    "signal": null,
+    "cmd": "aws configure export-credentials --profile \\"testorg-test\\" --format env-no-export",
+    "stdout": "",
+    "stderr": "mock aws: connection reset by peer\\n"
+  }
+}",
+        "kind": "halted",
+      },
+      "renewedCount": -1,
+    },
+    "slug": "testorg.test.AWS_PROFILE",
+    "ttlLeftMs": -1,
+  },
+]
+`;
+
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t1] the renew faults every tick then: status stdout matches snapshot 1`] = `
+"
+🔐 keyrack status
+   ├─ owner: (default)
+   ├─ recipients:
+   │  └─ default (age)
+   ├─ daemon: active ✨
+   └─ testorg.test.AWS_PROFILE
+      ├─ env: test
+      ├─ org: testorg
+      ├─ expires in: __N__m
+      ├─ renewed = __N__x
+      └─ halted
+         ├─ renew failed 10 ticks in a row
+         ├─ 💥 MalfunctionError: aws configure export-credentials failed with unexpected error
+         └─ fix
+            └─ rhx keyrack unlock --env test
+
+"
+`;
+
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t3] the portal session ends then: status --json matches snapshot 1`] = `
+[
+  {
+    "env": "test",
+    "expiresAt": "__TIMESTAMP__",
+    "org": "testorg",
+    "renew": {
+      "mark": {
+        "error": null,
+        "kind": "lapsed",
+      },
+      "renewedCount": -1,
+    },
+    "slug": "testorg.test.AWS_PROFILE",
+    "ttlLeftMs": -1,
+  },
+]
+`;
+
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t3] the portal session ends then: status stdout matches snapshot 1`] = `
+"
+🔐 keyrack status
+   ├─ owner: (default)
+   ├─ recipients:
+   │  └─ default (age)
+   ├─ daemon: active ✨
+   └─ testorg.test.AWS_PROFILE
+      ├─ env: test
+      ├─ org: testorg
+      ├─ expires in: __N__m
+      ├─ renewed = __N__x
+      └─ lapsed
+         ├─ sso session ended, renew halted
+         └─ fix
+            └─ rhx keyrack unlock --env test
+
+"
+`;

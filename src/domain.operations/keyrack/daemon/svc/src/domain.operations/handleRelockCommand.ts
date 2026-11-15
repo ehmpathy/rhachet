@@ -3,6 +3,7 @@ import { MalfunctionError } from 'helpful-errors';
 import type { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
 import type { KeyrackKeyReach } from '@src/domain.objects/keyrack/KeyrackKeyReach';
 import type { DaemonKeyStore } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonKeyStore';
+import type { DaemonRenewRecord } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonRenewRecord';
 
 /**
  * .what = the distinct slugs a set of grants covers, in the order first seen
@@ -38,6 +39,7 @@ export const handleRelockCommand = (
   },
   context: {
     keyStore: DaemonKeyStore;
+    renewRecord: DaemonRenewRecord;
   },
 ): { relocked: string[] } => {
   // ⚠️ a reach is read ONLY by the slug branch below — the env sweep and the clear-all purge
@@ -60,25 +62,39 @@ export const handleRelockCommand = (
   // if slugs provided, delete specific keys
   // .note = with no reach, ONE del sweeps every reach of the slug, and the human sees
   //         the one slug they named — so this path needs no dedupe
+  // .note = the renew record is purged on every path, beside the store: a relock always
+  //         wins over a renew, and a marked entry that outlived its grant still counts
+  //         as a key the human locked
   if (input.slugs && input.slugs.length > 0) {
-    const relockedSlugs = input.slugs.filter((slug) =>
-      context.keyStore.del({ slug, reach: input.reach }),
-    );
+    const relockedSlugs = input.slugs.filter((slug) => {
+      const isStorePurged = context.keyStore.del({ slug, reach: input.reach });
+      const isRenewPurged = context.renewRecord.del({
+        slug,
+        reach: input.reach,
+      });
+      return isStorePurged || isRenewPurged;
+    });
     return { relocked: relockedSlugs };
   }
 
   // if env provided, delete only keys with that env
   if (input.env) {
     const keysForEnv = context.keyStore.entries({ env: input.env });
-    for (const key of keysForEnv) {
+    const renewsForEnv = context.renewRecord.grants({ env: input.env });
+    for (const key of [...keysForEnv, ...renewsForEnv]) {
       context.keyStore.del({ slug: key.slug });
+      context.renewRecord.del({ slug: key.slug });
     }
-    return { relocked: asDedupedSlugs({ grants: keysForEnv }) };
+    return {
+      relocked: asDedupedSlugs({ grants: [...keysForEnv, ...renewsForEnv] }),
+    };
   }
 
   // otherwise, clear all keys
   const allKeys = context.keyStore.entries();
+  const allRenews = context.renewRecord.grants();
   context.keyStore.clear();
+  context.renewRecord.clear();
 
-  return { relocked: asDedupedSlugs({ grants: allKeys }) };
+  return { relocked: asDedupedSlugs({ grants: [...allKeys, ...allRenews] }) };
 };

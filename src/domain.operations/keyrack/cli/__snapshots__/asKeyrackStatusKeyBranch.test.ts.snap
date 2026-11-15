@@ -36,3 +36,55 @@ exports[`asKeyrackStatusKeyBranch given: [case3] a key held with no expiry when:
   "      └─ expires in: never",
 ]
 `;
+
+exports[`asKeyrackStatusKeyBranch given: [case4] an sso key the daemon has renewed when: [t0] it is rendered then: it renders the renewed shape 1`] = `
+[
+  "   └─ ahbode.camp.AWS_PROFILE",
+  "      ├─ env: camp",
+  "      ├─ org: ahbode",
+  "      ├─ expires in: 52m",
+  "      └─ renewed = 4x",
+]
+`;
+
+exports[`asKeyrackStatusKeyBranch given: [case6] an sso key whose portal session lapsed when: [t0] the grant still lives then: it renders the lapsed shape 1`] = `
+[
+  "   └─ ahbode.camp.AWS_PROFILE",
+  "      ├─ env: camp",
+  "      ├─ org: ahbode",
+  "      ├─ expires in: 8m",
+  "      └─ lapsed",
+  "         ├─ sso session ended, renew halted",
+  "         └─ fix",
+  "            └─ rhx keyrack unlock --owner ehmpath --env camp",
+]
+`;
+
+exports[`asKeyrackStatusKeyBranch given: [case6] an sso key whose portal session lapsed when: [t1] the grant has expired then: it renders the lapsed-and-expired shape 1`] = `
+[
+  "   └─ ahbode.camp.AWS_PROFILE",
+  "      ├─ env: camp",
+  "      ├─ org: ahbode",
+  "      ├─ expired",
+  "      ├─ renewed = 6x",
+  "      └─ lapsed",
+  "         ├─ sso session ended, renew halted",
+  "         └─ fix",
+  "            └─ rhx keyrack unlock --owner ehmpath --env camp",
+]
+`;
+
+exports[`asKeyrackStatusKeyBranch given: [case7] an sso key whose renew halted on a persistent fault when: [t0] the grant has expired then: it renders the halted shape 1`] = `
+[
+  "   └─ ahbode.camp.AWS_PROFILE",
+  "      ├─ env: camp",
+  "      ├─ org: ahbode",
+  "      ├─ expired",
+  "      ├─ renewed = 2x",
+  "      └─ halted",
+  "         ├─ renew failed 10 ticks in a row",
+  "         ├─ aws configure export-credentials failed with unexpected error",
+  "         └─ fix",
+  "            └─ rhx keyrack unlock --owner ehmpath --env camp",
+]
+`;
