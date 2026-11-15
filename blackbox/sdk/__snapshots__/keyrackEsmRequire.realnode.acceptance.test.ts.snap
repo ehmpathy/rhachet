@@ -2,7 +2,7 @@
 
 exports[`keyrackEsmRequire.realnode.acceptance given: [case1] the built keyrack dist, require()d in a real node child when: [t3] the SECOND landmine (@octokit/auth-app) loads via the real adapter path then: the caller-visible bad-pem ConstraintError shape (headline + hint) is pinned 1`] = `
 {
-  "hint": "re-set the key with a valid github app private key (.pem) file",
+  "hint": "re-file a blob that holds a valid github app private key (.pem)",
   "messageHeadline": "✋ ConstraintError: failed to mint github app token — the stored private key (.pem) is not a valid rsa key",
 }
 `;
