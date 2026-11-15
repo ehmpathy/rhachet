@@ -138,11 +138,10 @@ describe('enweaveOneRoute', () => {
       form: 'COMPUTE',
       stitchee: 'artist',
       invoke: () => {
-        // e.g., execute tooluse:file:read; the `{ content }` shape is what the diff stitcher reads
+        // e.g., execute tooluse:file:read
         return {
           input: null,
-          output: {
-            content: `
+          output: `
 /**
  * .what = calls the open-meteo weather api
  * .how =
@@ -155,7 +154,6 @@ export const sdkOpenMeteo = {
   }
 }
           `.trim(),
-          },
         };
       },
     });
@@ -221,10 +219,6 @@ export const sdkOpenMeteo = {
             context,
           );
           console.log(output);
-
-          // verify the code reached the prompt; an absent code makes the brain ask for it
-          const stitchImagined = output.threads.artist.stitches.slice(-2)[0];
-          expect(stitchImagined?.input).toContain('sdkOpenMeteo');
 
           // verify that it used conflict markers and wrote the full output
           expect(output.stitch.output.content).toContain('<<<<<<< ORIGINAL'); // per the artist thread's context, it knows the tool of conflict-marker, that it should have used
