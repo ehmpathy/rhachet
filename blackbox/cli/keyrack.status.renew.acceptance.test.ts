@@ -292,7 +292,10 @@ describe('keyrack status: sso renew', () => {
         pollStatusRowUntil({
           cwd: scene.repo.path,
           env: scene.env,
-          until: (r) => !!r.renew && r.renew.mark === null,
+          // .why = the unlock resets the count to 0; wait for a renew to land after it,
+          //        so the cure is proven and the next step starts from a renewed key
+          until: (r) =>
+            !!r.renew && r.renew.mark === null && r.renew.renewedCount >= 1,
           label: 'cured',
         }),
       );
@@ -303,6 +306,7 @@ describe('keyrack status: sso renew', () => {
 
       then('the mark is cured and the renew resumes', () => {
         expect(row.renew?.mark).toEqual(null);
+        expect(row.renew?.renewedCount).toBeGreaterThanOrEqual(1);
       });
     });
 
