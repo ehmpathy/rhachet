@@ -1,11 +1,12 @@
 import { MalfunctionError } from 'helpful-errors';
-import { addDuration, asIsoTimeStamp, isIsoTimeStamp } from 'iso-time';
+import { addDuration, asIsoTimeStamp } from 'iso-time';
 
 import type { KeyrackGrantMechanismAdapter } from '@src/domain.objects/keyrack';
 import { assertKeyrackReachAbsent } from '@src/domain.operations/keyrack/reach/assertKeyrackReachAbsent';
 
 import { exec, execSync } from 'node:child_process';
 import { promisify } from 'node:util';
+import { asIsoTimeStampFromAwsExpiration } from './asIsoTimeStampFromAwsExpiration';
 import { setupAwsSsoWithGuide } from './setupAwsSsoWithGuide';
 
 const execAsync = promisify(exec);
@@ -167,11 +168,11 @@ export const mechAdapterAwsSso: KeyrackGrantMechanismAdapter = {
       }
 
       // use AWS_CREDENTIAL_EXPIRATION if available, else default to 55 min from now
-      const awsExpiration = credentials.AWS_CREDENTIAL_EXPIRATION;
+      // .why = the cli writes an offset form (`+00:00`); cast it, never swap it for a guess
       const expiresAt =
-        awsExpiration && isIsoTimeStamp(awsExpiration)
-          ? awsExpiration
-          : addDuration(asIsoTimeStamp(new Date()), { minutes: 55 });
+        asIsoTimeStampFromAwsExpiration({
+          raw: credentials.AWS_CREDENTIAL_EXPIRATION ?? null,
+        }) ?? addDuration(asIsoTimeStamp(new Date()), { minutes: 55 });
 
       return { secret: JSON.stringify(credentials), expiresAt };
     } catch (error) {

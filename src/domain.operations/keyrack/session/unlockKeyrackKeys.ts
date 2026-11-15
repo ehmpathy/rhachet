@@ -2,6 +2,7 @@ import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import { now } from 'iso-time';
 
 import { daoKeyrackInventory } from '@src/access/daos/daoKeyrackInventory';
+import type { KeyrackDaemonUnlockRenewal } from '@src/domain.objects/keyrack/KeyrackDaemonUnlockRenewal';
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
 import type { KeyrackKeyOmission } from '@src/domain.objects/keyrack/KeyrackKeyOmission';
 import type { KeyrackKeyReach } from '@src/domain.objects/keyrack/KeyrackKeyReach';
@@ -170,6 +171,7 @@ export const unlockKeyrackKeys = async (
   //         scope — the arrays never escape as shared state — which is exactly the isolated-mutation
   //         zone the rule sanctions with this note
   const keysToUnlock: KeyrackKeyGrant[] = [];
+  const renewalsToSend: KeyrackDaemonUnlockRenewal[] = []; // sso keys the daemon may renew, with caps
   const keysOmitted: KeyrackKeyOmission[] = [];
   const addressesUnlocked = new Set<string>(); // dedupe by ADDRESS — see the .note below
   const slugsHeldAtReach = new Set<string>(); // slugs the rack holds at SOME reach
@@ -473,6 +475,24 @@ export const unlockKeyrackKeys = async (
           expiresAt,
         }),
       );
+
+      // opt an sso key into renew, capped at the human's bound
+      // .why = the daemon renews an sso grant before its role creds expire, but never past
+      //        min(requested duration, maxDuration) from now — the same bound computeExpiresAt
+      //        gives with no grant clamp. the stored `expiresAt` folds that bound into the
+      //        role creds' expiry, so the cap must cross the socket on its own
+      if (grant.source.mech === 'EPHEMERAL_VIA_AWS_SSO')
+        renewalsToSend.push({
+          slug: effectiveSlug,
+          ...asKeyrackKeyReachField({ reach: hostConfig.reach }),
+          capAt: computeExpiresAt({
+            now: now(),
+            requestedDurationMs,
+            maxDurationMs: hostConfig.maxDuration
+              ? asDurationMs({ duration: hostConfig.maxDuration })
+              : null,
+          }).expiresAt,
+        });
     } catch (cause) {
       // allowlist boundary (rule.forbid.failhide): the per-key fault isolation exists ONLY for the
       // LIVE, OPERATIONAL faults a vault adapter raises as a classed domain error — a ConstraintError
@@ -521,6 +541,7 @@ export const unlockKeyrackKeys = async (
     await daemonAccessUnlock({
       socketPath,
       keys: keysToUnlock,
+      renewals: renewalsToSend,
     });
   }
 

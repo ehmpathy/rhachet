@@ -52,6 +52,18 @@ export interface DaemonStatusRow {
    *         `expires in: 0m`, which a human reads as ALREADY DEAD
    */
   ttlLeftMs: number | null;
+
+  /**
+   * .what = the renew state of an sso key the daemon renews before expiry
+   * .note = OPTIONAL, never nullable — absent for every key the daemon does not renew,
+   *         so the json of every other key stays as it was
+   * .note = `mark` names why renews stopped: `lapsed` (the sso portal session ended) or
+   *         `halted` (a fault held for 10 ticks in a row, with its last error)
+   */
+  renew?: {
+    renewedCount: number;
+    mark: { kind: 'lapsed' | 'halted'; error: string | null } | null;
+  };
 }
 
 /**

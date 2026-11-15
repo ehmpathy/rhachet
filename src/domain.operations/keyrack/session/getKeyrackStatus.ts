@@ -50,6 +50,7 @@ export const getKeyrackStatus = async (input?: {
       ...asKeyrackKeyReachField({ reach: k.reach }),
       expiresAt: k.expiresAt,
       ttlLeftMs: k.ttlLeftMs,
+      ...(k.renew ? { renew: k.renew } : {}),
     })),
     recipients: hostManifestResult?.manifest.recipients ?? [],
     owner,

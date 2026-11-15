@@ -1,6 +1,4 @@
-import { fromSSO } from '@aws-sdk/credential-provider-sso';
 import { ConstraintError, MalfunctionError } from 'helpful-errors';
-import { genLogMethods } from 'sdk-logs';
 
 import type {
   KeyrackGrantMechanism,
@@ -28,6 +26,8 @@ import { existsSync, readdirSync, readFileSync, unlinkSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
+import { emitSsoGateInvalid } from './emitSsoGateInvalid';
+import { getOneAwsSsoSessionProof } from './getOneAwsSsoSessionProof';
 
 /**
  * .what = lookup mech adapter by mechanism name
@@ -70,32 +70,6 @@ const checkProfileExists = (profileName: string): boolean => {
 };
 
 /**
- * .what = validate SSO token with AWS SSO servers via SDK
- * .why = fromSSO is opaque — wrapper clarifies its purpose:
- *        - creates credential provider that contacts AWS SSO
- *        - validates token is still valid on AWS servers
- *        - throws CredentialsProviderError if expired or revoked
- *
- * .note = this makes a network call to AWS SSO (not local cache)
- * .note = fromSSO validates per-profile credentials, not domain session
- * .note = call `aws sso login --profile X` BEFORE this function:
- *         - domain session may be valid even if profile credentials are not
- *         - sso login reuses domain session to generate profile credentials
- *         - only then can fromSSO find the cached profile credentials
- */
-const validateSsoTokenWithAwsSdk = async (
-  profileName: string,
-): Promise<void> => {
-  // .note = ignoreCache forces a fresh read of ~/.aws/config
-  //         the @smithy/core config loader caches file contents in a
-  //         process-lifetime module-level map (filePromises), keyed by path.
-  //         a profile written earlier this same run would otherwise be served
-  //         from the stale cache → CredentialsProviderError "Profile X not found",
-  //         even though the cli (a fresh subprocess) sees it fine.
-  await fromSSO({ profile: profileName, ignoreCache: true })();
-};
-
-/**
  * .what = extract the sso username from an aws caller-identity arn
  * .why = the username is the last segment of an assumed-role arn
  *        e.g. arn:aws:sts::123456789012:assumed-role/RoleName/username@domain
@@ -118,55 +92,6 @@ const extractUsernameFromArn = (input: { arn: string }): string => {
  *
  * .returns = { valid: true, username } if session valid, { valid: false } if expired or invalid
  */
-/**
- * .what = list the filenames cached in ~/.aws/sso/cache (not contents)
- * .why = sso token files are named sha1(session_name).json; the set of
- *        filenames reveals whether a token landed under the real profile's
- *        session vs the temp guided-setup session — key to diagnose the
- *        cli-vs-sdk divergence
- *
- * .note = filenames only; never logs token contents (secrets)
- */
-const getAwsSsoCacheFileNames = (): string[] => {
-  const cacheDir = join(homedir(), '.aws', 'sso', 'cache');
-  if (!existsSync(cacheDir)) return [];
-  return readdirSync(cacheDir);
-};
-
-const log = genLogMethods();
-
-/**
- * .what = emit which validateSsoSession gate returned invalid
- * .why = pinpoints which of the three validation gates returns invalid,
- *        so cli-vs-sdk divergence can be diagnosed without guesswork
- *
- * .note = level depends on caller context:
- *         - info on the error path (set), where invalid → ConstraintError,
- *           so the failure surfaces by default
- *         - debug on the normal path (unlock/isUnlocked), where an expired
- *           session is expected and triggers a re-login, not a failure
- */
-const emitSsoGateInvalid = (input: {
-  gate: 'fromSSO' | 'export-credentials' | 'sts';
-  profileName: string;
-  error: unknown;
-  level: 'info' | 'debug';
-}): void => {
-  log[input.level](
-    '🐈 keyrack.vaultAdapterAwsConfig.validateSsoSession: gate invalid',
-    {
-      gate: input.gate,
-      valid: false,
-      profileName: input.profileName,
-      ssoCacheFiles: getAwsSsoCacheFileNames(),
-      error:
-        input.error instanceof Error
-          ? { name: input.error.name, message: input.error.message }
-          : input.error,
-    },
-  );
-};
-
 const validateSsoSession = async (
   profileName: string,
   options?: { onInvalidLevel?: 'info' | 'debug' },
@@ -175,66 +100,14 @@ const validateSsoSession = async (
   // normal re-login trigger), info when the caller treats invalid as a failure
   const level = options?.onInvalidLevel ?? 'debug';
 
-  // validate SSO via AWS SDK — cache cannot be trusted
-  // .note = skip SDK validation in mock mode (AWS_SDK_MOCK=1)
-  //         SDK reads cache files directly and makes network calls to AWS
-  //         mock CLI cannot intercept SDK behavior, only CLI commands
-  if (!process.env.AWS_SDK_MOCK) {
-    try {
-      await validateSsoTokenWithAwsSdk(profileName);
-      // SDK validated token with AWS SSO servers — session is valid
-    } catch (error) {
-      // CredentialsProviderError = SSO expired or revoked remotely
-      if (
-        error instanceof Error &&
-        (error.name === 'CredentialsProviderError' ||
-          error.message.includes('expired') ||
-          error.message.includes('invalid'))
-      ) {
-        emitSsoGateInvalid({ gate: 'fromSSO', profileName, error, level });
-        return { valid: false };
-      }
-      // unknown error - fail fast
-      throw new MalfunctionError(
-        'validateSsoTokenWithAwsSdk failed with unexpected error',
-        { profileName, error },
-      );
-    }
-  }
-
-  // refresh STS cache — ensures CLI has fresh credentials for subsequent commands
-  // .note = fromSSO validated SSO token, but STS cache may still be stale
-  // .note = this pre-warms the credential cache for CLI use
-  try {
-    await execAsync(
-      `aws configure export-credentials --profile "${profileName}" --format env-no-export`,
-    );
-  } catch (error) {
-    // export-credentials failed after SSO validated — STS refresh issue
-    const message = error instanceof Error ? error.message.toLowerCase() : '';
-    const isExpiredError =
-      message.includes('expired') ||
-      message.includes('invalid') ||
-      message.includes('unauthorized') ||
-      message.includes('does not exist') ||
-      message.includes('refreshed credentials are still expired');
-
-    if (isExpiredError) {
-      emitSsoGateInvalid({
-        gate: 'export-credentials',
-        profileName,
-        error,
-        level,
-      });
-      return { valid: false };
-    }
-
-    // unknown error - fail fast
-    throw new MalfunctionError(
-      'aws configure export-credentials failed with unexpected error',
-      { profileName, error },
-    );
-  }
+  // prove the portal session live: the sdk gate, then the cli's role-cred refresh
+  // .note = the same proof the daemon's renew runs, held in one operation so the two
+  //         can never disagree on what "lapsed" means
+  const proof = await getOneAwsSsoSessionProof({
+    profileName,
+    onInvalidLevel: level,
+  });
+  if (!proof.live) return { valid: false };
 
   // sts call — only needed for username extraction, not validation
   // .note = fromSSO + export-credentials already validated, this extracts username from ARN
