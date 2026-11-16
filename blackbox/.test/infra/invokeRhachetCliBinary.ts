@@ -88,6 +88,11 @@ export const asSnapshotSafe = (output: string): string => {
         /\/tmp\/test-fns\/[^/\s]+\/\.temp\/\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.\d{3}Z\.[^/\s]*\.[0-9a-f]{8}/gi,
         '/TMP_TEST_DIR',
       )
+      // strip the bare test-fns temp root, which a path that walks up out of a test repo
+      //   reaches (`../escaped` lands in `.temp/escaped`). its repo-dirname differs per
+      //   checkout, so unmasked it pins the worktree name. it runs after the full-dir masks
+      //   above, so only a root with no per-run dir below it is left to match
+      .replace(/\/tmp\/test-fns\/[^/\s]+\/\.temp(?=[/"\s]|$)/gm, '/TMP_TEST_ROOT')
       // strip the say debug log's calendar day (`debug.2026-09-16.log`). the ISO mask
       // below cannot reach it — that one demands COLONS, and a filename-safe day carries
       // dashes only. the mask keeps the `debug.` / `.log` literals, so the snapshot still

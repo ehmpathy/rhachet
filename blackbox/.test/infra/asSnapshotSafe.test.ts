@@ -206,6 +206,19 @@ describe('asSnapshotSafe path mask', () => {
           ),
         ).toEqual('/TMP_TEST_DIR/x');
       });
+
+      then('a path that walks up out of a test repo masks its checkout name', () => {
+        // `../escaped` from a test repo lands in the bare temp root, whose repo-dirname is
+        // the checkout's own name; a worktree and ci must render the same snapshot
+        expect(
+          asSnapshotSafe(
+            '"/tmp/test-fns/rhachet.beav.some-worktree/.temp/escaped/boot.yml"',
+          ),
+        ).toEqual('"/TMP_TEST_ROOT/escaped/boot.yml"');
+        expect(
+          asSnapshotSafe('"/tmp/test-fns/rhachet/.temp/escaped/boot.yml"'),
+        ).toEqual('"/TMP_TEST_ROOT/escaped/boot.yml"');
+      });
     });
   });
 
