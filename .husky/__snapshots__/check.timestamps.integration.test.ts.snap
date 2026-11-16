@@ -1,0 +1,35 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`check.timestamps given: [case2] a stage that holds a stamp when: [t0] the line is a stamp then: it halts with exit 2, and names the file and the line 1`] = `
+"✋ ConstraintError: timestamps are forbidden in tracked files, prose and docs included. remove them, zero exceptions
+   ├─ why: a timestamp is a privacy leak, and churns every diff
+   └─ notes.md:2:logged at 2026-01-02T<CLOCK>Z
+"
+`;
+
+exports[`check.timestamps given: [case2] a stage that holds a stamp when: [t1] the line is a stamp-beside-duration then: it halts with exit 2, and names the file and the line 1`] = `
+"✋ ConstraintError: timestamps are forbidden in tracked files, prose and docs included. remove them, zero exceptions
+   ├─ why: a timestamp is a privacy leak, and churns every diff
+   └─ notes.md:2: to run, done at 2026-01-02T<CLOCK>Z
+"
+`;
+
+exports[`check.timestamps given: [case2] a stage that holds a stamp when: [t2] the line is a dash-clock-stamp then: it halts with exit 2, and names the file and the line 1`] = `
+"✋ ConstraintError: timestamps are forbidden in tracked files, prose and docs included. remove them, zero exceptions
+   ├─ why: a timestamp is a privacy leak, and churns every diff
+   └─ notes.md:2:see settings.2026-01-02T<CLOCK>Z.bak.json
+"
+`;
+
+exports[`check.timestamps given: [case2] a stage that holds a stamp when: [t3] the line is a clock-with-no-seconds then: it halts with exit 2, and names the file and the line 1`] = `
+"✋ ConstraintError: timestamps are forbidden in tracked files, prose and docs included. remove them, zero exceptions
+   ├─ why: a timestamp is a privacy leak, and churns every diff
+   └─ notes.md:2:standup at <CLOCK> daily
+"
+`;
+
+exports[`check.timestamps given: [case3] a staged blob git cannot read when: [t0] the hook runs then: it halts with exit 1, as a malfunction, and names the file 1`] = `
+"💥 MalfunctionError: check.timestamps could not read the staged blob
+   └─ notes.md
+"
+`;
