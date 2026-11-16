@@ -50,3 +50,7 @@ seed names it. a human may want them in a pr of their own.
 ## .where
 
 the commit stage of this route.
+
+## .verdict
+
+confirmed (director, 2026-11-16) — the bumps ride the pr, in a commit of their own.

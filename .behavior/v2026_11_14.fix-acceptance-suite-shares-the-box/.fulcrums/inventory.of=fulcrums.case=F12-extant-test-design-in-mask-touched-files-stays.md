@@ -37,3 +37,7 @@ touched file breaks would pull the whole keyrack test design into #748.
 - `blackbox/cli/keyrack.aws-params.githubApp.acceptance.test.ts` (`MOCK_GH_CLI_DIR`)
 - `blackbox/cli/install.age.acceptance.test.ts` (`genOnePathWithStubs`)
 - the dream: `.dream/v2026_11_16.dirt.keyrack-github-app-suites-stub-the-gh-binary.md`
+
+## .verdict
+
+confirmed (director, 2026-11-16) — the extant stubs stay out of this pr; the dream stands as a followup.

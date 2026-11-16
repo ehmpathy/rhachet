@@ -29,3 +29,7 @@ a reader may hold that a trim of a block in a touched file is in scope.
 ## .where
 
 the five files above.
+
+## .verdict
+
+confirmed (director, 2026-11-16) — the extant essays stay; this pr trims only its own.

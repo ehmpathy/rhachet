@@ -30,3 +30,7 @@ neutral home both import.
 
 `.agent/repo=.this/role=any/skills/measure.acceptance.share.ts`,
 `.agent/repo=.this/role=any/skills/measure.acceptance.share/asMeasureTree.ts`.
+
+## .verdict
+
+confirmed (director, 2026-11-16) — the measure skill imports the suite's own box reader.
