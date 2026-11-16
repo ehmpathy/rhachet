@@ -1,0 +1,55 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asAcceptanceBoxHeader given: [case1] a shared box when: [t0] at its default width then: it names the box, why it is not ci, the width as the default, the nice, and the way to go wide 1`] = `
+"ℹ acceptance width
+   ├─ box = shared (no GITHUB_ACTIONS host signal; CI=true alone does not widen)
+   ├─ workers = 3 of 12 cores (shared-box default)
+   ├─ priority = nice 10
+   └─ to go wide, pass --maxWorkers 100%
+"
+`;
+
+exports[`asAcceptanceBoxHeader given: [case1] a shared box when: [t1] the runner asked for a width then: it reads the width as asked, and names the way back, not the way to go wide 1`] = `
+"ℹ acceptance width
+   ├─ box = shared (no GITHUB_ACTIONS host signal; CI=true alone does not widen)
+   ├─ workers = 12 of 12 cores (asked)
+   ├─ priority = nice 10
+   └─ the width you asked; drop --maxWorkers for the shared-box default
+"
+`;
+
+exports[`asAcceptanceBoxHeader given: [case1] a shared box when: [t2] the runner was already niced below the target then: it names the deeper nice it kept, since the suite never raises its priority 1`] = `
+"ℹ acceptance width
+   ├─ box = shared (no GITHUB_ACTIONS host signal; CI=true alone does not widen)
+   ├─ workers = 3 of 12 cores (shared-box default)
+   ├─ priority = nice 19
+   └─ to go wide, pass --maxWorkers 100%
+"
+`;
+
+exports[`asAcceptanceBoxHeader given: [case2] ci when: [t0] at its default width then: it names ci, the percent jest resolved as the default, and normal priority 1`] = `
+"ℹ acceptance width
+   ├─ box = ci
+   ├─ workers = 2 of 4 cores (ci default)
+   ├─ priority = nice 0
+   └─ ci keeps its full width, at normal priority
+"
+`;
+
+exports[`asAcceptanceBoxHeader given: [case2] ci when: [t1] on a 2-core runner, where half the cores floors to one then: one worker still reads as the default 1`] = `
+"ℹ acceptance width
+   ├─ box = ci
+   ├─ workers = 1 of 2 cores (ci default)
+   ├─ priority = nice 0
+   └─ ci keeps its full width, at normal priority
+"
+`;
+
+exports[`asAcceptanceBoxHeader given: [case2] ci when: [t2] the runner asked for a width then: it names ci and reads the width as asked 1`] = `
+"ℹ acceptance width
+   ├─ box = ci
+   ├─ workers = 4 of 4 cores (asked)
+   ├─ priority = nice 0
+   └─ the width this ci step asked, at normal priority
+"
+`;

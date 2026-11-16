@@ -1,0 +1,145 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`measure.acceptance.share given: [case1] a human who asks how to use it when: [t0] --help is passed then: it prints the header, the usage, and the options, and exits 0 1`] = `
+"🧮 measure.acceptance.share — what a peer feels beside a live acceptance run
+
+.what = runs a fixed peer workload alone, then beside a scoped
+        acceptance run at each width, and reports the peer's slowdown
+        with peak load and cpu psi
+
+.why  = the suite's bound on a shared box is the peer's slowdown over
+        its own baseline; this is the reproducible measure of it
+
+usage:
+  rhx measure.acceptance.share --scope blackbox/cli/enroll.reach.acceptance.test.ts
+  rhx measure.acceptance.share --scope <file> --scope <file> --widths 25%,50%
+  rhx measure.acceptance.share --scope <file> --peer 'pnpm exec tsc --noEmit' --peer-runs 5
+
+options:
+  --scope       required, repeatable. a jest path regex for the acceptance files to run;
+                a file path works, its dots match any char (escape them to be exact)
+  --widths      jest --maxWorkers values, comma-joined (default 25%,50%)
+  --peer        the peer shell command (default a fixed single-thread cpu loop)
+  --peer-runs   peer runs per measure, a positive integer, median taken (default 3)
+
+guarantee:
+  - exit 0 = measured; the record lands in .log/role=any/skill=measure.acceptance.share/
+  - exit 1 = malfunction (the peer failed)
+  - exit 2 = constraint (absent --scope, an unknown flag)
+  - reads quiet = no when the baseline box is busy; a busy-box number is not the bound
+"
+`;
+
+exports[`measure.acceptance.share given: [case2] a call it must refuse when: [t0] --scope is absent then: it refuses with exit 2 and names the flag and an example 1`] = `
+"✋ ConstraintError: absent required arg: --scope
+   └─ name the acceptance files to run, e.g. --scope blackbox/cli/enroll.reach.acceptance.test.ts
+"
+`;
+
+exports[`measure.acceptance.share given: [case2] a call it must refuse when: [t1] an unknown arg is passed then: it refuses with exit 2, names the arg, and points at help 1`] = `
+"✋ ConstraintError: unknown argument: --bogus
+   └─ rhx measure.acceptance.share help
+"
+`;
+
+exports[`measure.acceptance.share given: [case2] a call it must refuse when: [t2.1] --widths is passed with no value then: it refuses with exit 2, names the flag, and points at help 1`] = `
+"✋ ConstraintError: absent value for --widths
+   └─ rhx measure.acceptance.share help
+"
+`;
+
+exports[`measure.acceptance.share given: [case2] a call it must refuse when: [t2.2] --peer is passed with no value then: it refuses with exit 2, names the flag, and points at help 1`] = `
+"✋ ConstraintError: absent value for --peer
+   └─ rhx measure.acceptance.share help
+"
+`;
+
+exports[`measure.acceptance.share given: [case2] a call it must refuse when: [t2.3] --peer-runs is passed with no value then: it refuses with exit 2, names the flag, and points at help 1`] = `
+"✋ ConstraintError: absent value for --peer-runs
+   └─ rhx measure.acceptance.share help
+"
+`;
+
+exports[`measure.acceptance.share given: [case2] a call it must refuse when: [t2] a flag is passed with no value then: it refuses with exit 2 and names the flag 1`] = `
+"✋ ConstraintError: absent value for --scope
+   └─ rhx measure.acceptance.share help
+"
+`;
+
+exports[`measure.acceptance.share given: [case2] a call it must refuse when: [t3] --peer-runs is not a positive integer then: it refuses with exit 2, names the value, and shows a valid one 1`] = `
+"✋ ConstraintError: --peer-runs must be a positive integer, got: three
+   └─ e.g. --peer-runs 3
+"
+`;
+
+exports[`measure.acceptance.share given: [case3] a measure on a 12-core box at two widths when: [t0] the tree is rendered then: it reads the box as quiet, and each width with its slowdown and peak 1`] = `
+"🧮 measure.acceptance.share
+   ├─ box = 12 cores, baseline load 1.4, baseline cpu psi 2%
+   ├─ quiet = yes
+   ├─ peer solo = 2.00s (median of 3)
+   ├─ beside a live suite
+   │  ├─ width 25%
+   │  │  ├─ peer = 2.30s (median of 3), slowdown 15%
+   │  │  ├─ peak load = 5.2, peak cpu psi = 31%
+   │  │  └─ suite = 94s, exit 0
+   │  └─ width 50%
+   │     ├─ peer = 3.10s (median of 3), slowdown 55%
+   │     ├─ peak load = 9.8, peak cpu psi = 58%
+   │     └─ suite = 61s, exit 0
+   │
+   └─ record = .log/role=any/skill=measure.acceptance.share/20000101T000000000Z.json"
+`;
+
+exports[`measure.acceptance.share given: [case5] a measure on a busy box with no psi, where one width ran too short when: [t0] the tree is rendered then: it reads quiet = no, psi as n/a, and the short width as n/a with the fix 1`] = `
+"🧮 measure.acceptance.share
+   ├─ box = 8 cores, baseline load 6.2, baseline cpu psi n/a
+   ├─ quiet = no (baseline psi ≥ 10% or load ≥ half the cores)
+   │  └─ numbers from a busy box are no measure of the bound; re-run on a quiet box
+   ├─ peer solo = 2.00s (median of 3)
+   ├─ beside a live suite
+   │  └─ width 25%
+   │     ├─ peer = n/a, the suite ended before a peer run finished; widen --scope
+   │     ├─ peak load = 7.9, peak cpu psi = n/a
+   │     └─ suite = 12s, exit 0
+   │
+   └─ record = .log/role=any/skill=measure.acceptance.share/20000101T000000001Z.json"
+`;
+
+exports[`measure.acceptance.share given: [case7] a measure that fails when: [t0] the peer command fails, a system-fix error with a hint then: it reads 💥 MalfunctionError once, names the hint, and exits 1 1`] = `
+"💥 MalfunctionError: the peer command failed
+   └─ run the --peer command alone in a shell; it must exit 0 within the cap
+"
+`;
+
+exports[`measure.acceptance.share given: [case7] a measure that fails when: [t1] the scope matches no acceptance file, live then: it refuses with ✋ ConstraintError and exit 2, before any measure begins 1`] = `
+"✋ ConstraintError: no acceptance file matched the scope
+   └─ each --scope is a jest path regex, e.g. --scope 'blackbox/cli/acceptance\\.shares-the-box'
+"
+`;
+
+exports[`measure.acceptance.share given: [case7] a measure that fails when: [t3] the repo has no tsx installed then: it fails with exit 1 and names the install 1`] = `
+"💥 MalfunctionError: tsx is not installed in this repo
+   └─ pnpm install
+"
+`;
+
+exports[`measure.acceptance.share given: [case8] a live measure of one fast acceptance file, at one width, beside a light peer when: [t0] the skill runs end to end then: the whole stdout, its box-bound values masked, reads as a human meets it 1`] = `
+"🧮 measure.acceptance.share, at work (one full suite per width, so minutes, not seconds)
+   ├─ the peer alone, 1 run
+   ├─ width <N>%, the suite and the peer at work
+   ├─ width <N>%, done in <N>s
+   └─ measured
+
+🧮 measure.acceptance.share
+   ├─ box = <N> cores, baseline load <N>, baseline cpu psi <PSI>
+   ├─ quiet = <QUIET>
+   ├─ peer solo = <N>s (median of <N>)
+   ├─ beside a live suite
+   │  └─ width <N>%
+   │     ├─ peer = <PEER>
+   │     ├─ peak load = <N>, peak cpu psi = <PSI>
+   │     └─ suite = <N>s, exit 0
+   │
+   └─ record = .log/role=any/skill=measure.acceptance.share/<STAMP>.json
+"
+`;

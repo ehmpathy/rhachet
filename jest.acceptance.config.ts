@@ -2,6 +2,9 @@
  * @jest-config-loader esbuild-register
  */
 import type { Config } from 'jest';
+import { availableParallelism } from 'node:os';
+
+import { getOneAcceptanceBox } from './blackbox/.test/infra/getOneAcceptanceBox';
 
 // ensure tests run in utc, like they will on cicd and on server; https://stackoverflow.com/a/56277249/15593329
 process.env.TZ = 'UTC';
@@ -12,7 +15,6 @@ process.env.FORCE_COLOR = 'true';
 // https://jestjs.io/docs/configuration
 const config: Config = {
   verbose: true,
-  reporters: [['default', { summaryThreshold: 0 }]], // ensure we always get a failure summary at the bottom, to avoid the hunt
   testEnvironment: 'node',
   moduleFileExtensions: ['js', 'ts'],
   moduleNameMapper: {
@@ -60,8 +62,18 @@ const config: Config = {
   globalSetup: './jest.acceptance.globalSetup.ts',
   globalTeardown: 'test-fns/autoprune.teardown.jest',
 
-  // use 50% of threads to leave headroom for other processes
-  maxWorkers: '50%', // https://stackoverflow.com/questions/71287710/why-does-jest-run-faster-with-maxworkers-50
+  // fail the run on a process this run leaked, and name a starved box on a timeout red.
+  // a reporter, never a teardown throw: jest reads a reporter's error after the summary prints
+  reporters: [
+    ['default', { summaryThreshold: 0 }],
+    './blackbox/.test/infra/ReporterAcceptanceBox.jest.cjs',
+  ],
+
+  // width by box: full width on ci, a bounded share on a shared box. `--maxWorkers` wins
+  maxWorkers: getOneAcceptanceBox({
+    env: process.env,
+    cores: availableParallelism(),
+  }).maxWorkersDefault,
 };
 
 // eslint-disable-next-line import/no-default-export

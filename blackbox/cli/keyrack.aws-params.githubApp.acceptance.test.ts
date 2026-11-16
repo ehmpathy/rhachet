@@ -6,6 +6,7 @@ import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genFakeSsmServerDetached } from '@/blackbox/.test/infra/genFakeSsmServerDetached';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
+import { TEST_REPO_PATH_PATTERN } from '@/blackbox/.test/infra/testRepoPath';
 import {
   asSnapshotSafe,
   invokeRhachetCliBinary,
@@ -70,7 +71,7 @@ const cleanPtyOutput = (str: string): string => {
     .replace(/[ \t]+$/gm, '')
     // mask the volatile temp-repo path (a per-run uuid) so the snapshot stays deterministic —
     // mirrors the os.secure github-app suite's mask (rule.forbid.friction-hazards)
-    .replace(/\/tmp\/rhachet-test-\d+-[a-z0-9]+/g, '/tmp/rhachet-test-XXXXX')
+    .replace(TEST_REPO_PATH_PATTERN, '/TMP_REPO')
     // strip the AWS SDK's multiple-credential-source advisory — environmental noise emitted when
     // the org-profile overlay (AWS_PROFILE) coexists with the env static keys the test supplies.
     // it is not keyrack output, so it must not lock into the caller-tree snapshot
@@ -153,7 +154,7 @@ describe('keyrack vault aws.params with EPHEMERAL_VIA_GITHUB_APP', () => {
       writeFileSync(
         `${repo.path}/mock-app.pem`,
         [
-          '-----BEGIN RSA PRIVATE KEY-----',
+          '-----BEGIN RSA PRIVATE KEY-----', // check.secrets:allow (a fake fixture key)
           `${PEM_BODY_MARKER}/ygWyF8PbnGy0AHB7MaXBkvQRkz0Pj/Gx`,
           'KJELGl0FooHx7tXfWnj4TjB1kqR8xBzK3K3L3HqHbCh9XV4nlluTLArdB0JDcrPN',
           '-----END RSA PRIVATE KEY-----',
@@ -409,7 +410,7 @@ describe('keyrack vault aws.params with EPHEMERAL_VIA_GITHUB_APP', () => {
       writeFileSync(
         `${repo.path}/mock-app.pem`,
         [
-          '-----BEGIN RSA PRIVATE KEY-----',
+          '-----BEGIN RSA PRIVATE KEY-----', // check.secrets:allow (a fake fixture key)
           `${PEM_BODY_MARKER}/ygWyF8PbnGy0AHB7MaXBkvQRkz0Pj/Gx`,
           'KJELGl0FooHx7tXfWnj4TjB1kqR8xBzK3K3L3HqHbCh9XV4nlluTLArdB0JDcrPN',
           '-----END RSA PRIVATE KEY-----',

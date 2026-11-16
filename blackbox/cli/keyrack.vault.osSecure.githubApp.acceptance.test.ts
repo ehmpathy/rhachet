@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
+import { TEST_REPO_PATH_PATTERN } from '@/blackbox/.test/infra/testRepoPath';
 import {
   asSnapshotSafe,
   invokeRhachetCliBinary,
@@ -54,7 +55,7 @@ const cleanPtyOutput = (str: string): string => {
     // strip only end-of-line spaces/tabs — NOT \s+, whose \n match would eat a
     // blank line's own newline and collapse an intentional stdout/stderr separator
     .replace(/[ \t]+$/gm, '') // strip end-of-line spaces + tabs
-    .replace(/\/tmp\/rhachet-test-\d+-[a-z0-9]+/g, '/tmp/rhachet-test-XXXXX') // temp paths
+    .replace(TEST_REPO_PATH_PATTERN, '/TMP_REPO') // temp paths
     .replace(/node:events:[\s\S]*?Node\.js v[\d.]+/g, ''); // EPIPE stack noise from PTY
 
   // trim pty echo noise up to the keyrack lock root glyph (🔐) — keyrack roots both success
@@ -113,7 +114,7 @@ describe('keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP', () => {
       writeFileSync(
         `${r.path}/mock-app.pem`,
         [
-          '-----BEGIN RSA PRIVATE KEY-----',
+          '-----BEGIN RSA PRIVATE KEY-----', // check.secrets:allow (a fake fixture key)
           'MIIEpQIBAAKCAQEA0Z3VS5JJcds3xfn/ygWyF8PbnGy0AHB7MaXBkvQRkz0Pj/Gx',
           'KJELGl0FooHx7tXfWnj4TjB1kqR8xBzK3K3L3HqHbCh9XV4nlluTLArdB0JDcrPN',
           'N6VOJB3Bz3B3L3gB7epYcKpf1KJCi2Vl3qT3L3L3L3L3L3L3L3L3L3L3L3L3L3L3',
@@ -272,7 +273,7 @@ describe('keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP', () => {
       writeFileSync(
         `${r.path}/mock-app.pem`,
         [
-          '-----BEGIN RSA PRIVATE KEY-----',
+          '-----BEGIN RSA PRIVATE KEY-----', // check.secrets:allow (a fake fixture key)
           'MIIEpQIBAAKCAQEA0Z3VS5JJcds3xfn/ygWyF8PbnGy0AHB7MaXBkvQRkz0Pj/Gx',
           '-----END RSA PRIVATE KEY-----',
         ].join('\n'),
@@ -445,7 +446,7 @@ describe('keyrack vault os.secure with EPHEMERAL_VIA_GITHUB_APP', () => {
       writeFileSync(
         `${r.path}/mock-app.pem`,
         [
-          '-----BEGIN RSA PRIVATE KEY-----',
+          '-----BEGIN RSA PRIVATE KEY-----', // check.secrets:allow (a fake fixture key)
           'MIIEpQIBAAKCAQEA0Z3VS5JJcds3xfn/ygWyF8PbnGy0AHB7MaXBkvQRkz0Pj/Gx',
           '-----END RSA PRIVATE KEY-----',
         ].join('\n'),

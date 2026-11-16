@@ -9,6 +9,7 @@ import {
   genFakeGithubApiServer,
 } from '@/blackbox/.test/infra/genFakeGithubApiServer';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
+import { TEST_REPO_PATH_PATTERN } from '@/blackbox/.test/infra/testRepoPath';
 import {
   asSnapshotSafe,
   invokeRhachetCliBinary,
@@ -148,7 +149,7 @@ const cleanPtyOutput = (str: string): string => {
     .replace(/\r/g, '') // carriage returns from PTY
     .replace(/·/g, '') // middle dots from PTY
     .replace(/\s+$/gm, '') // trim end-of-line whitespace
-    .replace(/\/tmp\/rhachet-test-\d+-[a-z0-9]+/g, '/tmp/rhachet-test-XXXXX') // sanitize temp paths
+    .replace(TEST_REPO_PATH_PATTERN, '/TMP_REPO') // sanitize temp paths
     .replace(/node:events:[\s\S]*?Node\.js v[\d.]+/g, ''); // strip EPIPE stack trace noise from PTY
 
   // trim PTY echo noise before tree header

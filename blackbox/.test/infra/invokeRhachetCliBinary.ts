@@ -2,6 +2,8 @@ import { spawn, spawnSync, type SpawnSyncReturns } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 
+import { TEST_REPO_PATH_PATTERN } from './testRepoPath';
+
 /**
  * .what = strip machine-specific content from CLI output for snapshots
  * .why = paths and pids vary by machine — strip them so snapshots work across environments
@@ -63,8 +65,10 @@ export const asSnapshotSafe = (output: string): string => {
         /\/(?:home\/[^/]+|Users\/[^/]+|runner\/work)\/[^)\s"]+/g,
         '/PATH_STRIPPED',
       )
-      // strip temp test repo paths (vary by run)
-      .replace(/\/tmp\/rhachet-test-[a-z0-9-]+/g, '/TMP_REPO')
+      // strip a test repo's root (varies by run). `genTestTempRepo` mints it through
+      // `genTempDir` with a `rhachet-test` slug, so it renders `/TMP_REPO` apart from a bare
+      // `genTempDir` dir below. it must run first: the bare mask would also consume it
+      .replace(TEST_REPO_PATH_PATTERN, '/TMP_REPO')
       // strip a `genTempDir` root. its shape is fixed by test-fns —
       // `/tmp/test-fns/<repo-dirname>/.temp/<stamp>.<slug>.<8hex>` — and BOTH of its
       // variable segments move: the repo-dirname differs per checkout (a worktree
