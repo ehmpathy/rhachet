@@ -55,7 +55,7 @@ export const asGithubAppMintFaultRefusal = (input: {
         appId: input.appId,
         status,
         fault: 'installation-refused',
-        hint: "the blob's installationId names no installation this app may use: the app was uninstalled, suspended, or the blob names another org. check the app's install, then re-file the current blob",
+        hint: "the blob's appId or installationId names none github will serve: the app was uninstalled or suspended, the blob names another org, or its appId names no app. check the app's id and install, then re-file the current blob",
       },
     );
 

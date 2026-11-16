@@ -32,6 +32,9 @@ export const asGithubAppMintFaultTransient = (input: {
   const cause = input.error instanceof Error ? input.error : undefined;
 
   // a fetch that never reached github: octokit wraps it as a 500 whose cause is the TypeError
+  // .note = measured, not assumed: `keyrack.githubApp.mint.integration` [case2] runs the real
+  //         octokit in a cli process whose fetch rejects with a TypeError, as undici's does on a
+  //         dns, refused, or reset fault; this branch is what renders its "could not be reached"
   const isUnreached =
     status === 500 &&
     input.error instanceof Error &&

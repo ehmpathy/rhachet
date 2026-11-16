@@ -6,4 +6,4 @@
 - **rework** — clean. those files sit outside every path this change touches; a human can fold them in, drop them, or commit them apart with no ripple to the keyrack work
 - **confidence** — 80%. the human may want the upgrade to ride along, but that is a scope call for the human to make, and it does not alter any keyrack file
 - **where** — the peer round i001 on `5.1.execution.from_vision`: r007 blocker.2 (`check.secrets.sh`) and the husky nitpicks r001.n1, r002.n1, r005.n1, r006.n1; the commit checkpoint in `5.1.execution.from_vision.yield.md` `.open`
-- **verdict** — open; the human rules at the commit checkpoint
+- **verdict** — ruled 2026-11-15 by the director: out of #757. the box husky upgrade was reset out of the tree (backups as `.local.bak`), so the pre-commit no longer refuses (S2)

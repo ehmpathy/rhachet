@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { generateKeyPairSync } from 'node:crypto';
 import { chmodSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
@@ -18,16 +19,20 @@ import { seedHostManifestEntries } from '@/blackbox/.test/infra/seedHostManifest
  *        - red: the blob lives only in aws.params → unlock is refused, and the refusal names the
  *          off-ec2 cure
  *        - green: the blob is piped into os.secure via `keyrack set --source @stdin` → unlock
- *          reaches the github-app mint
+ *          reads it, signs the jwt, and calls the real api.github.com, with no aws identity asked
  *        plus every refusal `--source @stdin` owns (malformed, empty, literal, wrong vault, tty,
  *        a mech os.secure does not hold), and a piped replica value, the other pipeable mech
  *
  * .box = no aws identity: every AWS_* credential var unset, shared config + credentials files
  *        pointed at absent paths, IMDS disabled. a `gh` that always fails sits first on PATH, so
  *        a pass proves the piped set never called gh
- * .blob = a fixture whose pem is not a valid rsa key. the green unlock fails in crypto, reached
- *        only once os.secure decrypted the blob and handed it to the mint — the proof, with no
- *        github call. no credential value lives in this file
+ * .blob = two shapes. the green halves pipe a blob whose rsa key is generated at test time, for
+ *         an app id no github app holds: the jwt is signed with it for real, and the real github
+ *         refuses it (404). the refusal and cure cases pipe a fixture whose pem is not a valid rsa
+ *         key, so the mint fails in crypto and its cure renders. no credential value lives here
+ * .real = no fake stands in for github: the green halves reach the live api.github.com. a token
+ *         github returns needs the real app's key, which no test may hold (fulcrum F5); the
+ *         token-to-`get` route is proven in `keyrack.githubApp.mint.integration`
  * .grain = the red half runs here, not in jest: the aws sdk's credential chain lazy-imports its
  *          providers, which jest's vm refuses, so a real node process is the one place the
  *          no-identity refusal can be observed end to end
@@ -49,6 +54,23 @@ const BLOB_FIXTURE = JSON.stringify({
   privateKey: `-----BEGIN RSA PRIVATE KEY-----\n${PEM_BODY_MARKER}\n-----END RSA PRIVATE KEY-----`,
   mech: MECH,
 });
+
+// a real rsa key, made for this run; its body line is asserted absent from every output
+const PEM_VALID = generateKeyPairSync('rsa', {
+  modulusLength: 2048,
+  privateKeyEncoding: { type: 'pkcs1', format: 'pem' },
+  publicKeyEncoding: { type: 'spki', format: 'pem' },
+}).privateKey;
+const PEM_VALID_BODY_LINE = PEM_VALID.split('\n')[1]!;
+
+// an app id and installation id no github app holds, so the real github refuses the mint (404)
+const BLOB_VALID = JSON.stringify({
+  appId: '999999999',
+  installationId: '999999999',
+  privateKey: PEM_VALID,
+  mech: MECH,
+});
+const REFUSAL_REAL_GITHUB = 'github refused the stored installation (404)';
 
 /**
  * .what = the env of a box with no aws identity and a gh that always fails
@@ -133,7 +155,10 @@ const invokePipedSet = (input: {
   });
 
 const cleanCliOutput = (str: string): string =>
-  asSnapshotSafe(str).replace(/[ \t]+$/gm, '').trim();
+  asSnapshotSafe(str)
+    .replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z/g, '__ISO_TIMESTAMP__')
+    .replace(/[ \t]+$/gm, '')
+    .trim();
 
 describe('keyrack github-app key on a box with no aws identity', () => {
   given('[case1] the blob lives only in aws.params (the clamp, red half)', () => {
@@ -200,7 +225,7 @@ describe('keyrack github-app key on a box with no aws identity', () => {
 
     when('[t0] the commander pipes the blob into keyrack set', () => {
       const result = useBeforeAll(async () =>
-        invokePipedSet({ repoPath: repo.path, stdin: `${BLOB_FIXTURE}\n` }),
+        invokePipedSet({ repoPath: repo.path, stdin: `${BLOB_VALID}\n` }),
       );
 
       then('the set exits with status 0', () => {
@@ -208,7 +233,7 @@ describe('keyrack github-app key on a box with no aws identity', () => {
       });
 
       then('the blob is never echoed back', () => {
-        expect(result.stdout + result.stderr).not.toContain(PEM_BODY_MARKER);
+        expect(result.stdout + result.stderr).not.toContain(PEM_VALID_BODY_LINE);
       });
 
       then('output matches snapshot', () => {
@@ -232,7 +257,11 @@ describe('keyrack github-app key on a box with no aws identity', () => {
       });
 
       then('the manifest entry holds no part of the blob', () => {
-        expect(result.stdout).not.toContain(PEM_BODY_MARKER);
+        expect(result.stdout).not.toContain(PEM_VALID_BODY_LINE);
+      });
+
+      then('output matches snapshot', () => {
+        expect(cleanCliOutput(result.stdout + result.stderr)).toMatchSnapshot();
       });
     });
 
@@ -244,21 +273,21 @@ describe('keyrack github-app key on a box with no aws identity', () => {
           cwd: repo.path,
           env: envOffEc2(repo.path),
           logOnError: false,
+          timeoutMs: 30_000,
         }),
       );
 
-      then('it reaches the github-app mint (the fixture pem fails in crypto)', () => {
-        expect(result.stdout + result.stderr).toContain(
-          'failed to mint github app token',
+      then('it reaches the real github from os.secure, with no aws identity asked', () => {
+        const output = result.stdout + result.stderr;
+        expect(output).toContain(REFUSAL_REAL_GITHUB);
+        expect(output).toContain(
+          `rhx keyrack set --owner ${OWNER} --key ${SLUG} --vault os.secure`,
         );
-      });
-
-      then('no aws identity was asked for', () => {
-        expect(result.stdout + result.stderr).not.toContain('AWS identity');
+        expect(output).not.toContain('AWS identity');
       });
 
       then('the blob is never echoed back', () => {
-        expect(result.stdout + result.stderr).not.toContain(PEM_BODY_MARKER);
+        expect(result.stdout + result.stderr).not.toContain(PEM_VALID_BODY_LINE);
       });
 
       then('output matches snapshot', () => {
@@ -273,19 +302,18 @@ describe('keyrack github-app key on a box with no aws identity', () => {
           cwd: repo.path,
           env: envOffEc2(repo.path),
           logOnError: false,
+          timeoutMs: 30_000,
         }),
       );
 
-      // .note = the key stays locked, and its tip names the mint fault, never "run unlock"
-      then('the tip names the mint fault, not a bare unlock', () => {
+      then('the real github refuses the unregistered app, a cure the caller runs (exit 2)', () => {
         expect(result.status).toEqual(2);
-        expect(result.stdout + result.stderr).toContain(
-          'failed to mint github app token',
-        );
+        expect(result.stdout + result.stderr).toContain(REFUSAL_REAL_GITHUB);
+        expect(result.stdout + result.stderr).not.toContain('AWS identity');
       });
 
       then('the blob is never echoed back', () => {
-        expect(result.stdout + result.stderr).not.toContain(PEM_BODY_MARKER);
+        expect(result.stdout + result.stderr).not.toContain(PEM_VALID_BODY_LINE);
       });
 
       then('output matches snapshot', () => {
@@ -335,15 +363,23 @@ describe('keyrack github-app key on a box with no aws identity', () => {
           expect(result.status).toEqual(2);
           expect(result.stdout + result.stderr).toContain('found no AWS identity');
         });
+
+        then('output matches snapshot', () => {
+          expect(cleanCliOutput(result.stdout + result.stderr)).toMatchSnapshot();
+        });
       });
 
       when('[t1] the commander pipes the blob into keyrack set', () => {
         const result = useBeforeAll(async () =>
-          invokePipedSet({ repoPath: repo.path, stdin: `${BLOB_FIXTURE}\n` }),
+          invokePipedSet({ repoPath: repo.path, stdin: `${BLOB_VALID}\n` }),
         );
 
         then('the set exits with status 0', () => {
           expect(result.status).toEqual(0);
+        });
+
+        then('output matches snapshot', () => {
+          expect(cleanCliOutput(result.stdout + result.stderr)).toMatchSnapshot();
         });
       });
 
@@ -361,6 +397,10 @@ describe('keyrack github-app key on a box with no aws identity', () => {
           expect(entry.vault).toEqual('os.secure');
           expect(entry.exid).toEqual(null);
         });
+
+        then('output matches snapshot', () => {
+          expect(cleanCliOutput(result.stdout + result.stderr)).toMatchSnapshot();
+        });
       });
 
       when('[t3] the box unlocks the key after the pipe', () => {
@@ -370,18 +410,22 @@ describe('keyrack github-app key on a box with no aws identity', () => {
             cwd: repo.path,
             env: envOffEc2(repo.path),
             logOnError: false,
+            timeoutMs: 30_000,
           }),
         );
 
-        then('it reaches the github-app mint, with no aws identity asked', () => {
-          expect(result.stdout + result.stderr).toContain(
-            'failed to mint github app token',
-          );
-          expect(result.stdout + result.stderr).not.toContain('AWS identity');
+        then('it reaches the real github from os.secure, with no aws identity asked', () => {
+          const output = result.stdout + result.stderr;
+          expect(output).toContain(REFUSAL_REAL_GITHUB);
+          expect(output).not.toContain('AWS identity');
         });
 
         then('the blob is never echoed back', () => {
-          expect(result.stdout + result.stderr).not.toContain(PEM_BODY_MARKER);
+          expect(result.stdout + result.stderr).not.toContain(PEM_VALID_BODY_LINE);
+        });
+
+        then('output matches snapshot', () => {
+          expect(cleanCliOutput(result.stdout + result.stderr)).toMatchSnapshot();
         });
       });
 
@@ -405,6 +449,10 @@ describe('keyrack github-app key on a box with no aws identity', () => {
           expect(result.status).toEqual(0);
           expect(JSON.parse(listed.stdout)[SLUG].vault).toEqual('os.secure');
         });
+
+        then('output matches snapshot', () => {
+          expect(cleanCliOutput(result.stdout + result.stderr)).toMatchSnapshot();
+        });
       });
     },
   );
@@ -424,6 +472,10 @@ describe('keyrack github-app key on a box with no aws identity', () => {
 
         then('the set exits with status 0', () => {
           expect(result.status).toEqual(0);
+        });
+
+        then('output matches snapshot', () => {
+          expect(cleanCliOutput(result.stdout + result.stderr)).toMatchSnapshot();
         });
       });
 
@@ -445,6 +497,10 @@ describe('keyrack github-app key on a box with no aws identity', () => {
           );
           expect(output).not.toContain(PEM_BODY_MARKER);
         });
+
+        then('output matches snapshot', () => {
+          expect(cleanCliOutput(result.stdout + result.stderr)).toMatchSnapshot();
+        });
       });
 
       when('[t2] the commander pipes under a short key, --env prep --org @all', () => {
@@ -459,6 +515,10 @@ describe('keyrack github-app key on a box with no aws identity', () => {
 
         then('the set exits with status 0', () => {
           expect(result.status).toEqual(0);
+        });
+
+        then('output matches snapshot', () => {
+          expect(cleanCliOutput(result.stdout + result.stderr)).toMatchSnapshot();
         });
       });
 
@@ -479,6 +539,10 @@ describe('keyrack github-app key on a box with no aws identity', () => {
           const output = result.stdout + result.stderr;
           expect(output).toContain('@all.prep.EHMPATH_BEAVER_GITHUB_TOKEN');
           expect(output).toContain('failed to mint github app token');
+        });
+
+        then('output matches snapshot', () => {
+          expect(cleanCliOutput(result.stdout + result.stderr)).toMatchSnapshot();
         });
       });
 
@@ -604,6 +668,10 @@ describe('keyrack github-app key on a box with no aws identity', () => {
         expect(result.status).toEqual(0);
         expect(JSON.parse(listed.stdout)[SLUG].mech).toEqual(MECH);
       });
+
+      then('output matches snapshot', () => {
+        expect(cleanCliOutput(result.stdout + result.stderr)).toMatchSnapshot();
+      });
     });
   });
 
@@ -621,6 +689,10 @@ describe('keyrack github-app key on a box with no aws identity', () => {
         expect(result.status).toEqual(2);
         expect(result.stdout + result.stderr).toContain('rhx keyrack init');
         expect(result.stdout + result.stderr).not.toContain(PEM_BODY_MARKER);
+      });
+
+      then('output matches snapshot', () => {
+        expect(cleanCliOutput(result.stdout + result.stderr)).toMatchSnapshot();
       });
     });
   });

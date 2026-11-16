@@ -26,7 +26,7 @@ describe('asArgsEchoMasked', () => {
     });
   });
 
-  given('[case4] argv of another command with a --source path', () => {
+  given('[case3] argv of another command with a --source path', () => {
     when('[t0] masked', () => {
       then(
         'the path is kept, since --source carries no credential there',
@@ -46,7 +46,7 @@ describe('asArgsEchoMasked', () => {
     });
   });
 
-  given('[case3] argv with no credential-carry flag', () => {
+  given('[case4] argv with no credential-carry flag', () => {
     when('[t0] masked', () => {
       then('it is echoed as given', () => {
         const argv = asArgsEchoMasked({

@@ -1,3 +1,5 @@
+import { given, then, when } from 'test-fns';
+
 import { asKeyrackMachineWideAsk } from './asKeyrackMachineWideAsk';
 
 const TEST_CASES: {
@@ -33,11 +35,15 @@ const TEST_CASES: {
 ];
 
 describe('asKeyrackMachineWideAsk', () => {
-  TEST_CASES.map((thisCase) =>
-    test(thisCase.description, () => {
-      expect(asKeyrackMachineWideAsk(thisCase.given)).toEqual(
-        thisCase.expect.output,
-      );
+  TEST_CASES.map((thisCase, index) =>
+    given(`[case${index + 1}] ${thisCase.description}`, () => {
+      when('[t0] the ask is read', () => {
+        then('it reads as expected', () => {
+          expect(asKeyrackMachineWideAsk(thisCase.given)).toEqual(
+            thisCase.expect.output,
+          );
+        });
+      });
     }),
   );
 });

@@ -1,3 +1,5 @@
+import { given, then, when } from 'test-fns';
+
 import { asArgsFlagValuesMasked } from './asArgsFlagValuesMasked';
 
 const FLAGS = ['--source'];
@@ -43,15 +45,19 @@ const TEST_CASES: {
 ];
 
 describe('asArgsFlagValuesMasked', () => {
-  TEST_CASES.map((thisCase) =>
-    test(thisCase.description, () => {
-      expect(
-        asArgsFlagValuesMasked({
-          args: thisCase.given.args,
-          flags: FLAGS,
-          valuesKept: KEPT,
-        }),
-      ).toEqual(thisCase.expect.args);
+  TEST_CASES.map((thisCase, index) =>
+    given(`[case${index + 1}] ${thisCase.description}`, () => {
+      when('[t0] the args are masked', () => {
+        then('they read as expected', () => {
+          expect(
+            asArgsFlagValuesMasked({
+              args: thisCase.given.args,
+              flags: FLAGS,
+              valuesKept: KEPT,
+            }),
+          ).toEqual(thisCase.expect.args);
+        });
+      });
     }),
   );
 });

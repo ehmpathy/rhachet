@@ -252,4 +252,57 @@ describe('setKeyrackKey', () => {
       },
     );
   });
+
+  given('[case4] a piped source into os.secure', () => {
+    when('[t0] called with a source value', () => {
+      then('the vault receives the source value as given', async () => {
+        // .note = a spy over the injected fake vault, so the value the vault received is read
+        const adapterBase = genMockVaultAdapter({
+          isSourcePipedAccepted: true,
+        });
+        const vaultSetSpy = jest.fn(adapterBase.set);
+
+        const context: ContextKeyrack = {
+          owner: null,
+          identity: {
+            getOne: async () => 'test-identity',
+            getAll: {
+              discovered: async () => ['test-identity'],
+              prescribed: [],
+            },
+          },
+          hostManifest: genMockKeyrackHostManifest({ hosts: {} }),
+          vaultAdapters: {
+            'os.envvar': genMockVaultAdapter(),
+            'os.direct': genMockVaultAdapter(),
+            'os.secure': { ...adapterBase, set: vaultSetSpy },
+            'os.daemon': genMockVaultAdapter(),
+            '1password': genMockVaultAdapter(),
+            'aws.config': genMockVaultAdapter(),
+            'aws.params': genMockVaultAdapter(),
+            'github.secrets': genMockVaultAdapter(),
+          },
+        };
+
+        const result = await setKeyrackKey(
+          {
+            key: 'PIPED_KEY',
+            env: 'all',
+            org: 'testorg',
+            vault: 'os.secure',
+            mech: 'PERMANENT_VIA_REPLICA',
+            source: 'piped-fixture-value',
+          },
+          context,
+        );
+
+        expect(result[0]!.slug).toEqual('testorg.all.PIPED_KEY');
+        expect(vaultSetSpy).toHaveBeenCalledTimes(1);
+        expect(vaultSetSpy.mock.calls[0]![0]).toMatchObject({
+          slug: 'testorg.all.PIPED_KEY',
+          source: 'piped-fixture-value',
+        });
+      });
+    });
+  });
 });

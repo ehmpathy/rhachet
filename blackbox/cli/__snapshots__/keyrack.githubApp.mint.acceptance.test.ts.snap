@@ -1,32 +1,8 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`keyrack github-app mint that returns a token given: [case1] off ec2: the blob piped into os.secure (c1, c2) when: [t1] the crew asks with get --unlock, cold (c1) then: output matches snapshot 1`] = `
-"🔐 keyrack
-   └─ @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
-      ├─ vault: os.secure
-      ├─ mech: EPHEMERAL_VIA_GITHUB_APP
-      └─ status: granted 🔑"
-`;
-
-exports[`keyrack github-app mint that returns a token given: [case2] off ec2: github cannot be reached at the mint when: [t0] the crew asks with get --unlock then: output matches snapshot 1`] = `
+exports[`keyrack github-app mint against the real github given: [case1] off ec2: a blob for an app the real github does not hold when: [t0] the crew asks with get --unlock then: output matches snapshot 1`] = `
 "🔐 keyrack
    └─ @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
       ├─ status: locked 🔒
-      └─ tip: failed to mint github app token — github could not be reached (check that this box reaches api.github.com) — retry: rhx keyrack unlock --owner mechanic --env all --key EHMPATH_BEAVER_GITHUB_TOKEN --org @all"
-`;
-
-exports[`keyrack github-app mint that returns a token given: [case3] on ec2: the blob in aws.params (c10, c11) when: [t0] the crew unlocks the key, cold (c10) then: output matches snapshot 1`] = `
-"🔓 keyrack unlock
-   └─ @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
-      ├─ env: all
-      ├─ org: @all
-      ├─ vault: aws.params
-      └─ expires in: 55m"
-`;
-
-exports[`keyrack github-app mint that returns a token given: [case4] on ec2: the aws.params blob holds a pem that is not an rsa key when: [t0] the crew unlocks the key then: output matches snapshot 1`] = `
-"🔓 keyrack unlock
-   └─ @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
-      ├─ status: errored 💥
-      └─ tip: failed to mint github app token — the stored private key (.pem) is not a valid rsa key — fix: re-file a blob that holds a valid github app private key (.pem): rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault aws.params --mech EPHEMERAL_VIA_GITHUB_APP"
+      └─ tip: failed to mint github app token — github refused the stored installation (404) — fix: the blob's appId or installationId names none github will serve: the app was uninstalled or suspended, the blob names another org, or its appId names no app. check the app's id and install, then re-file the current blob: <the current blob> | rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin (or, at a terminal with gh login, the guided set: rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP)"
 `;
