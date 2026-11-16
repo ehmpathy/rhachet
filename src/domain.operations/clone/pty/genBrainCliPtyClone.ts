@@ -24,6 +24,13 @@ import type { PtyModule } from './getPtyModuleOrNull';
  *   - each subscribe returns its own unsubscribe, so the clone tears every wire
  *     down on exit and never leaks a listener across runs
  */
+/**
+ * .what = how long a brain may outlive a hangup from its host before it is killed
+ * .why = a hangup leaves no human to ask twice; a brain deaf to it would hold its pty, its
+ *   socket, and its heap for good
+ */
+export const CLONE_HANGUP_ESCALATION_MS = 5000;
+
 export interface PtyCloneHost {
   /**
    * .what = mirror one chunk of the child's output to the human
@@ -273,8 +280,19 @@ export const genBrainCliPtyClone = async (
     screenFeed?.resize(next);
   });
 
-  // forward an interrupt/terminate to the child, not the wrapper
-  const offSignal = context.host.onSignal((signal) => child.kill(signal));
+  // forward an interrupt/terminate/hangup to the child, not the wrapper. a hangup means the
+  //   host is gone, so no human remains to ask twice: a child that outlives it is killed
+  // .note = deliberate mutation — one escalation timer for this child, cleared on its exit
+  let hangupEscalation: NodeJS.Timeout | null = null;
+  const offSignal = context.host.onSignal((signal) => {
+    child.kill(signal);
+    if (signal !== 'SIGHUP' || hangupEscalation) return;
+    hangupEscalation = setTimeout(
+      () => child.kill('SIGKILL'),
+      CLONE_HANGUP_ESCALATION_MS,
+    );
+    hangupEscalation.unref();
+  });
 
   // put the host tty in raw mode so the brain's own prompts drive the keys
   const restoreRaw = context.host.enterRawMode();
@@ -317,6 +335,7 @@ export const genBrainCliPtyClone = async (
     // the brain-cli is gone — flip the latch FIRST, so any say still in flight is
     // NACK'd by the liveness gate before finalize closes the socket
     brainCliAlive = false;
+    if (hangupEscalation) clearTimeout(hangupEscalation);
     void finalize().then(() => settleExit(exitCode));
   });
 

@@ -1,5 +1,6 @@
 import { asPtyGeometry } from './asPtyGeometry';
 import type { PtyCloneHost } from './genBrainCliPtyClone';
+import { genHostLossWatch } from './genHostLossWatch';
 
 /**
  * .what = the prod PtyCloneHost — the real process's stdin/stdout + signals,
@@ -68,14 +69,26 @@ export const genPtyCloneHostFromProcess = (): PtyCloneHost => ({
     return () => process.stdout.off('resize', fn);
   },
 
+  // 🔴 every loss of the host ends the brain, not only an interrupt or a terminate. a hangup
+  //   (the terminal closed), an input that ended (the terminal's tty went away), or a parent
+  //   that died each leave no human at this brain — and a brain with no human, parked on a
+  //   dead input, lived for hours (measured 2026-11-13). each forwards as a hangup
   onSignal: (fn) => {
     const onInt = (): void => fn('SIGINT');
     const onTerm = (): void => fn('SIGTERM');
+    const onHup = (): void => fn('SIGHUP');
     process.on('SIGINT', onInt);
     process.on('SIGTERM', onTerm);
+    process.on('SIGHUP', onHup);
+    const offHostLoss = genHostLossWatch(
+      { onLoss: onHup },
+      { stdin: process.stdin, getPpid: () => process.ppid, intervalMs: 2000 },
+    );
     return () => {
       process.off('SIGINT', onInt);
       process.off('SIGTERM', onTerm);
+      process.off('SIGHUP', onHup);
+      offHostLoss();
     };
   },
 

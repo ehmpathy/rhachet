@@ -1,0 +1,26 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asResidueNotice given: [case1] a box that earlier runs left when: [t0] they left dirs and stubs then: the render is pinned 1`] = `
+"ℹ leftovers from earlier runs on this box, which no run of this checkout adds to
+   ├─ 225 rhachet-test-* test repo dirs in /tmp, left by runs from before the cleanup of rhachet#748
+   │  └─ to clear those a day old or more, run once
+   │     └─ find /tmp -maxdepth 1 -name 'rhachet-test-*' -mmin +1440 -exec rm -rf {} +
+   └─ 310 stubBrainCli.cjs processes of this checkout (the fake brain tests spawn), started before today
+      └─ a reboot clears them
+"
+`;
+
+exports[`asResidueNotice given: [case1] a box that earlier runs left when: [t1] they left dirs alone then: it shows the dirs and their delete, and closes the tree there 1`] = `
+"ℹ leftovers from earlier runs on this box, which no run of this checkout adds to
+   └─ 4 rhachet-test-* test repo dirs in /tmp, left by runs from before the cleanup of rhachet#748
+      └─ to clear those a day old or more, run once
+         └─ find /tmp -maxdepth 1 -name 'rhachet-test-*' -mmin +1440 -exec rm -rf {} +
+"
+`;
+
+exports[`asResidueNotice given: [case1] a box that earlier runs left when: [t2] they left stubs alone then: it shows the stubs, and no delete for dirs it did not find 1`] = `
+"ℹ leftovers from earlier runs on this box, which no run of this checkout adds to
+   └─ 2 stubBrainCli.cjs processes of this checkout (the fake brain tests spawn), started before today
+      └─ a reboot clears them
+"
+`;

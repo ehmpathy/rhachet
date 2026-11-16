@@ -302,23 +302,46 @@ process.stdin.on('data', (chunk) => {
   }
 });
 
+// stay alive until an `exit` command, the loss of its host, or the hard cap
+process.stdin.resume();
+
+// end on the loss of the host, the way a real brain-cli does: its input ends (a pipe closed, or a
+// pty master gone, which reads as an error on linux) or its terminal hangs up. a stub that parked
+// on a dead input lived for hours and held a heap each (measured 2026-11-13: 310 on one laptop)
+//
+// RHACHET_STUB_BRAIN_DEAF=1 models a brain that hears none of it: it ignores the hangup and its
+// dead input, so only its host's SIGKILL escalation can end it. a test of that escalation needs a
+// brain that would otherwise outlive its host
+const isDeaf = process.env.RHACHET_STUB_BRAIN_DEAF === '1';
+if (isDeaf) {
+  process.stdin.on('end', () => undefined);
+  process.stdin.on('error', () => undefined);
+  process.on('SIGHUP', () => undefined);
+  setInterval(() => undefined, 60_000);
+}
+if (!isDeaf) {
+  process.stdin.on('end', () => {
+    // a last line with no break still lands, so `exit <code>` keeps its parity on a closed pipe
+    if (buffer.trim() !== '') handleOne(buffer);
+    process.exit(0);
+  });
+  process.stdin.on('close', () => process.exit(0));
+  process.stdin.on('error', () => process.exit(0));
+  process.on('SIGHUP', () => process.exit(129));
+}
+
 /**
- * 🔴 .exit once the parent is gone.
+ * 🔴 .exit once the parent is gone, even where the pty is held open elsewhere.
  *
- * .why = a stub whose parent dies (a test torn down, a jest worker killed) used to park on
- *   stdin forever — reparented to init, never read again. one suite left 310 of them alive
- *   (measured 2026-11-14, ~18G heap). a real brain-cli exits when its pty closes; so must this
- * .how = stdin end/close/error means the pty master is gone. a short unref()d interval
- *   catches a parent that died with the pty held open elsewhere: a changed ppid (reparented)
- *   or an ESRCH from a signal-0 probe of the start ppid. the same interval exits once the
- *   cwd is deleted — the test repo was pruned, so the stub is unreachable even where its
- *   detached host still lives
+ * .why = a stub whose parent dies (a test torn down, a jest worker killed) can be reparented
+ *   to init with its input still open, so no input end ever fires. a short unref()d interval
+ *   catches it: a changed ppid (reparented) or an ESRCH from a signal-0 probe of the start
+ *   ppid. the same interval exits once the cwd is deleted — the test repo was pruned, so the
+ *   stub is unreachable even where its detached host still lives
+ * .note = a deaf stub skips it: it models a brain that hears none of this, so only its host's
+ *   SIGKILL escalation may end it
  */
 const ppidStart = process.ppid;
-const exitOnParentLoss = () => process.exit(0);
-process.stdin.on('end', exitOnParentLoss);
-process.stdin.on('close', exitOnParentLoss);
-process.stdin.on('error', exitOnParentLoss);
 const isParentGone = () => {
   if (process.ppid !== ppidStart) return true;
   try {
@@ -337,9 +360,15 @@ const isCwdGone = () => {
     return true;
   }
 };
-setInterval(() => {
-  if (isParentGone() || isCwdGone()) exitOnParentLoss();
-}, 500).unref();
+if (!isDeaf)
+  setInterval(() => {
+    if (isParentGone() || isCwdGone()) process.exit(0);
+  }, 500).unref();
 
-// stay alive until an `exit` command, a signal, or the parent is gone
-process.stdin.resume();
+// the hard cap: a stub whose host never told it to end still ends. no case keeps one alive this
+// long; the cap only bounds a leak. unref'd, so it never holds the stub alive on its own
+const stubMaxMs = Number(process.env.RHACHET_STUB_BRAIN_MAX_MS || 20 * 60 * 1000);
+setTimeout(() => {
+  process.stderr.write(`stubBrainCli: hard cap of ${stubMaxMs}ms reached, exit\n`);
+  process.exit(124);
+}, stubMaxMs).unref();
