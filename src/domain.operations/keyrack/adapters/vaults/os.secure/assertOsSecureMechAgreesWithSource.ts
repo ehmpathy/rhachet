@@ -24,11 +24,11 @@ export const assertOsSecureMechAgreesWithSource = (input: {
   if (mechOfSource === 'PERMANENT_VIA_REPLICA') return;
   if (input.mech === mechOfSource) return;
 
-  // the two disagree
+  // the two disagree; the blob's own mech is the one a set can honor
   throw new ConstraintError('mech mismatch: host manifest and blob disagree', {
     hostManifestMech: input.mech,
     blobMech: mechOfSource,
     slug: input.slug,
-    hint: 'update host manifest or blob to match',
+    hint: `the blob is ${mechOfSource}: set the key with --mech ${mechOfSource}, or drop --mech to read it from the blob`,
   });
 };

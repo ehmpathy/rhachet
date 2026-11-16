@@ -39,8 +39,8 @@ const REFUSALS = [
 
 describe('asGithubAppMintFaultWithCure', () => {
   given('[case1] each mint refusal, under each vault cure', () => {
-    REFUSALS.map((thisCase) =>
-      when(`[t0] ${thisCase.description}`, () => {
+    REFUSALS.map((thisCase, index) =>
+      when(`[t${index}] ${thisCase.description}`, () => {
         const refusal = asGithubAppMintFaultRefusal({
           error: thisCase.error,
           appId: '123456',

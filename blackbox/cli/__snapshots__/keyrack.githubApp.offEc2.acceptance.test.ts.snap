@@ -4,7 +4,10 @@ exports[`keyrack github-app key on a box with no aws identity given: [case1] the
 "🔓 keyrack unlock
    └─ @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
       ├─ status: errored 💥
-      └─ tip: aws.params found no AWS identity — fix: for --org @all run on a box whose instance role can read this param; off ec2 (no instance role), for a github-app key, file its blob into os.secure on this box — from a box that can read the param, pipe it in: \`aws ssm get-parameter --name /keyrack/infra/vault/aws.params/v1/mechanic/_all_/all/EHMPATH_BEAVER_GITHUB_TOKEN --region us-east-1 --with-decryption --query Parameter.Value --output text | ssh <this box> rhx keyrack set --owner <owner> --key <full slug> --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin\`; for a specific org, unlock that org's AWS_PROFILE first — run \`rhx keyrack unlock --owner <owner> --env <env>\` (declare the AWS_PROFILE key first if unset), never a cached SSO session; why (raw AWS): CredentialsProviderError — Could not load credentials from any providers"
+      └─ tip: aws.params found no AWS identity — fix: for --org @all run on a box whose instance role can read this param
+         ├─ off ec2 (no instance role), for a github-app key, file its blob into os.secure on this box — from a box that can read the param, pipe it in: \`aws ssm get-parameter --name /keyrack/infra/vault/aws.params/v1/mechanic/_all_/all/EHMPATH_BEAVER_GITHUB_TOKEN --region us-east-1 --with-decryption --query Parameter.Value --output text | ssh <this box> rhx keyrack set --owner <owner> --key <full slug> --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin\`
+         ├─ for a specific org, unlock that org's AWS_PROFILE first — run \`rhx keyrack unlock --owner <owner> --env <env>\` (declare the AWS_PROFILE key first if unset), never a cached SSO session
+         └─ why (raw AWS): CredentialsProviderError — Could not load credentials from any providers"
 `;
 
 exports[`keyrack github-app key on a box with no aws identity given: [case2] the blob is piped into os.secure (the clamp, green half) when: [t0] the commander pipes the blob into keyrack set then: output matches snapshot 1`] = `
@@ -43,14 +46,16 @@ exports[`keyrack github-app key on a box with no aws identity given: [case2] the
 "🔓 keyrack unlock
    └─ @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
       ├─ status: errored 💥
-      └─ tip: failed to mint github app token — github refused the stored installation (404) — fix: the blob's appId or installationId names none github will serve: the app was uninstalled or suspended, the blob names another org, or its appId names no app. check the app's id and install, then re-file the current blob: <the current blob> | rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin (or, at a terminal with gh login, the guided set: rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP)"
+      └─ tip: failed to mint github app token — github refused the stored installation (404) — fix: the blob's appId or installationId names none github will serve: the app was uninstalled or suspended, the blob names another org, or its appId names no app. check the app's id and install, then re-file the current blob: <the current blob> | rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin
+         └─ or, at a terminal with gh login, the guided set: rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP"
 `;
 
 exports[`keyrack github-app key on a box with no aws identity given: [case2] the blob is piped into os.secure (the clamp, green half) when: [t3] keyrack get --unlock after the piped set then: output matches snapshot 1`] = `
 "🔐 keyrack
    └─ @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
       ├─ status: locked 🔒
-      └─ tip: failed to mint github app token — github refused the stored installation (404) — fix: the blob's appId or installationId names none github will serve: the app was uninstalled or suspended, the blob names another org, or its appId names no app. check the app's id and install, then re-file the current blob: <the current blob> | rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin (or, at a terminal with gh login, the guided set: rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP)"
+      └─ tip: failed to mint github app token — github refused the stored installation (404) — fix: the blob's appId or installationId names none github will serve: the app was uninstalled or suspended, the blob names another org, or its appId names no app. check the app's id and install, then re-file the current blob: <the current blob> | rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin
+         └─ or, at a terminal with gh login, the guided set: rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP"
 `;
 
 exports[`keyrack github-app key on a box with no aws identity given: [case3] a malformed blob is piped in when: [t0] keyrack set --source @stdin then: output matches snapshot 1`] = `
@@ -125,7 +130,10 @@ exports[`keyrack github-app key on a box with no aws identity given: [case10] on
 "🔓 keyrack unlock
    └─ @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
       ├─ status: errored 💥
-      └─ tip: aws.params found no AWS identity — fix: for --org @all run on a box whose instance role can read this param; off ec2 (no instance role), for a github-app key, file its blob into os.secure on this box — from a box that can read the param, pipe it in: \`aws ssm get-parameter --name /keyrack/infra/vault/aws.params/v1/mechanic/_all_/all/EHMPATH_BEAVER_GITHUB_TOKEN --region us-east-1 --with-decryption --query Parameter.Value --output text | ssh <this box> rhx keyrack set --owner <owner> --key <full slug> --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin\`; for a specific org, unlock that org's AWS_PROFILE first — run \`rhx keyrack unlock --owner <owner> --env <env>\` (declare the AWS_PROFILE key first if unset), never a cached SSO session; why (raw AWS): CredentialsProviderError — Could not load credentials from any providers"
+      └─ tip: aws.params found no AWS identity — fix: for --org @all run on a box whose instance role can read this param
+         ├─ off ec2 (no instance role), for a github-app key, file its blob into os.secure on this box — from a box that can read the param, pipe it in: \`aws ssm get-parameter --name /keyrack/infra/vault/aws.params/v1/mechanic/_all_/all/EHMPATH_BEAVER_GITHUB_TOKEN --region us-east-1 --with-decryption --query Parameter.Value --output text | ssh <this box> rhx keyrack set --owner <owner> --key <full slug> --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin\`
+         ├─ for a specific org, unlock that org's AWS_PROFILE first — run \`rhx keyrack unlock --owner <owner> --env <env>\` (declare the AWS_PROFILE key first if unset), never a cached SSO session
+         └─ why (raw AWS): CredentialsProviderError — Could not load credentials from any providers"
 `;
 
 exports[`keyrack github-app key on a box with no aws identity given: [case10] one box moves from aws.params to os.secure (the clamp, red then green) when: [t1] the commander pipes the blob into keyrack set then: output matches snapshot 1`] = `
@@ -164,7 +172,8 @@ exports[`keyrack github-app key on a box with no aws identity given: [case10] on
 "🔓 keyrack unlock
    └─ @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
       ├─ status: errored 💥
-      └─ tip: failed to mint github app token — github refused the stored installation (404) — fix: the blob's appId or installationId names none github will serve: the app was uninstalled or suspended, the blob names another org, or its appId names no app. check the app's id and install, then re-file the current blob: <the current blob> | rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin (or, at a terminal with gh login, the guided set: rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP)"
+      └─ tip: failed to mint github app token — github refused the stored installation (404) — fix: the blob's appId or installationId names none github will serve: the app was uninstalled or suspended, the blob names another org, or its appId names no app. check the app's id and install, then re-file the current blob: <the current blob> | rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin
+         └─ or, at a terminal with gh login, the guided set: rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP"
 `;
 
 exports[`keyrack github-app key on a box with no aws identity given: [case10] one box moves from aws.params to os.secure (the clamp, red then green) when: [t4] the commander re-pipes a new blob over the os.secure entry then: output matches snapshot 1`] = `
@@ -201,7 +210,8 @@ exports[`keyrack github-app key on a box with no aws identity given: [case11] th
 "🔓 keyrack unlock
    └─ @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
       ├─ status: errored 💥
-      └─ tip: failed to mint github app token — the stored private key (.pem) is not a valid rsa key — fix: re-file a blob that holds a valid github app private key (.pem): <the current blob> | rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin (or, at a terminal with gh login, the guided set: rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP)"
+      └─ tip: failed to mint github app token — the stored private key (.pem) is not a valid rsa key — fix: re-file a blob that holds a valid github app private key (.pem): <the current blob> | rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin
+         └─ or, at a terminal with gh login, the guided set: rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP"
 `;
 
 exports[`keyrack github-app key on a box with no aws identity given: [case11] the real box: no git repo at the cwd, as \`ssh <box> rhx …\` lands in $HOME when: [t2] the commander pipes under a short key, --env prep --org @all then: output matches snapshot 1`] = `
@@ -223,7 +233,8 @@ exports[`keyrack github-app key on a box with no aws identity given: [case11] th
 "🔓 keyrack unlock
    └─ @all.prep.EHMPATH_BEAVER_GITHUB_TOKEN
       ├─ status: errored 💥
-      └─ tip: failed to mint github app token — the stored private key (.pem) is not a valid rsa key — fix: re-file a blob that holds a valid github app private key (.pem): <the current blob> | rhx keyrack set --owner mechanic --key @all.prep.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin (or, at a terminal with gh login, the guided set: rhx keyrack set --owner mechanic --key @all.prep.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP)"
+      └─ tip: failed to mint github app token — the stored private key (.pem) is not a valid rsa key — fix: re-file a blob that holds a valid github app private key (.pem): <the current blob> | rhx keyrack set --owner mechanic --key @all.prep.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin
+         └─ or, at a terminal with gh login, the guided set: rhx keyrack set --owner mechanic --key @all.prep.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP"
 `;
 
 exports[`keyrack github-app key on a box with no aws identity given: [case11] the real box: no git repo at the cwd, as \`ssh <box> rhx …\` lands in $HOME when: [t4] the commander pipes under a short key with no --org then: output matches snapshot 1`] = `
@@ -246,7 +257,8 @@ exports[`keyrack github-app key on a box with no aws identity given: [case11] th
 "🔐 keyrack
    └─ @all.prep.EHMPATH_BEAVER_GITHUB_TOKEN
       ├─ status: locked 🔒
-      └─ tip: failed to mint github app token — the stored private key (.pem) is not a valid rsa key — fix: re-file a blob that holds a valid github app private key (.pem): <the current blob> | rhx keyrack set --owner mechanic --key @all.prep.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin (or, at a terminal with gh login, the guided set: rhx keyrack set --owner mechanic --key @all.prep.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP)"
+      └─ tip: failed to mint github app token — the stored private key (.pem) is not a valid rsa key — fix: re-file a blob that holds a valid github app private key (.pem): <the current blob> | rhx keyrack set --owner mechanic --key @all.prep.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin
+         └─ or, at a terminal with gh login, the guided set: rhx keyrack set --owner mechanic --key @all.prep.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP"
 `;
 
 exports[`keyrack github-app key on a box with no aws identity given: [case12] a value is piped with no --mech when: [t0] ciphertext is piped then: output matches snapshot 1`] = `
@@ -280,4 +292,14 @@ exports[`keyrack github-app key on a box with no aws identity given: [case13] a 
    └─ ✋ ConstraintError: host manifest not found. run: rhx keyrack init --owner mechanic
       ├─ owner: mechanic
       └─ ran: keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin"
+`;
+
+exports[`keyrack github-app key on a box with no aws identity given: [case14] a github-app blob is piped under the replica mech when: [t0] keyrack set --mech PERMANENT_VIA_REPLICA --source @stdin then: output matches snapshot 1`] = `
+"🔐 keyrack set
+   └─ ✋ ConstraintError: mech mismatch: host manifest and blob disagree
+      ├─ machine: @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
+      ├─ hostManifestMech: PERMANENT_VIA_REPLICA
+      ├─ blobMech: EPHEMERAL_VIA_GITHUB_APP
+      ├─ ran: keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech PERMANENT_VIA_REPLICA --source @stdin
+      └─ hint: the blob is EPHEMERAL_VIA_GITHUB_APP: set the key with --mech EPHEMERAL_VIA_GITHUB_APP, or drop --mech to read it from the blob"
 `;

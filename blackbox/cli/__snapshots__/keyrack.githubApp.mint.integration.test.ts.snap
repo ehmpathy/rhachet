@@ -89,3 +89,10 @@ exports[`keyrack github-app mint that returns a token given: [case4] on ec2: the
       ├─ status: errored 💥
       └─ tip: failed to mint github app token — the stored private key (.pem) is not a valid rsa key — fix: re-file a blob that holds a valid github app private key (.pem): rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault aws.params --mech EPHEMERAL_VIA_GITHUB_APP"
 `;
+
+exports[`keyrack github-app mint that returns a token given: [case5] off ec2: github answers, but cannot mint now (502) when: [t0] the crew asks with get --unlock then: output matches snapshot 1`] = `
+"🔐 keyrack
+   └─ @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
+      ├─ status: locked 🔒
+      └─ tip: failed to mint github app token — github could not mint now (502) — retry: rhx keyrack unlock --owner mechanic --env all --key EHMPATH_BEAVER_GITHUB_TOKEN --org @all"
+`;

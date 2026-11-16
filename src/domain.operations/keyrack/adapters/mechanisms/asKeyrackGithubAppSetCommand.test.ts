@@ -62,8 +62,8 @@ const TEST_CASES: Array<{
 ];
 
 describe('asKeyrackGithubAppSetCommand', () => {
-  TEST_CASES.map((thisCase) =>
-    given(thisCase.description, () => {
+  TEST_CASES.map((thisCase, index) =>
+    given(`[case${index + 1}] ${thisCase.description}`, () => {
       when('[t0] rendered', () => {
         then('it names every flag the set needs', () => {
           expect(asKeyrackGithubAppSetCommand(thisCase.given)).toEqual(

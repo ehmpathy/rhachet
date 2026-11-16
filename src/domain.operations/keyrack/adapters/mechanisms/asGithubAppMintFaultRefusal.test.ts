@@ -58,6 +58,46 @@ describe('asGithubAppMintFaultRefusal', () => {
     });
   });
 
+  given('[case3] a fault the blob did not cause', () => {
+    when('[t0] a 5xx from github', () => {
+      then('it maps to null, so the caller re-throws it untouched', () => {
+        expect(
+          asGithubAppMintFaultRefusal({
+            error: genErrorWithStatus({ status: 502 }),
+            appId: '123456',
+          }),
+        ).toBeNull();
+      });
+    });
+
+    when('[t1] a network fault', () => {
+      then('it maps to null', () => {
+        expect(
+          asGithubAppMintFaultRefusal({
+            error: new Error('getaddrinfo ENOTFOUND api.github.com'),
+            appId: '123456',
+          }),
+        ).toBeNull();
+      });
+    });
+
+    when(
+      '[t2] a fault that merely says "unsupported" or names a .pem path',
+      () => {
+        then('it maps to null, never to the bad-key cure', () => {
+          expect(
+            asGithubAppMintFaultRefusal({
+              error: new Error(
+                'unsupported api version for /home/x/.keys/app.pem request',
+              ),
+              appId: '123456',
+            }),
+          ).toBeNull();
+        });
+      },
+    );
+  });
+
   given('[case4] github refuses the installation (404 or 403)', () => {
     when('[t0] a 404', () => {
       const refusal = asGithubAppMintFaultRefusal({
@@ -126,46 +166,6 @@ describe('asGithubAppMintFaultRefusal', () => {
         );
         expect(
           asGithubAppMintFaultRefusal({ error, appId: '123456' }),
-        ).toBeNull();
-      });
-    });
-  });
-
-  given('[case3] a fault the blob did not cause', () => {
-    when('[t0] a 5xx from github', () => {
-      then('it maps to null, so the caller re-throws it untouched', () => {
-        expect(
-          asGithubAppMintFaultRefusal({
-            error: genErrorWithStatus({ status: 502 }),
-            appId: '123456',
-          }),
-        ).toBeNull();
-      });
-    });
-
-    when(
-      '[t2] a fault that merely says "unsupported" or names a .pem path',
-      () => {
-        then('it maps to null, never to the bad-key cure', () => {
-          expect(
-            asGithubAppMintFaultRefusal({
-              error: new Error(
-                'unsupported api version for /home/x/.keys/app.pem request',
-              ),
-              appId: '123456',
-            }),
-          ).toBeNull();
-        });
-      },
-    );
-
-    when('[t1] a network fault', () => {
-      then('it maps to null', () => {
-        expect(
-          asGithubAppMintFaultRefusal({
-            error: new Error('getaddrinfo ENOTFOUND api.github.com'),
-            appId: '123456',
-          }),
         ).toBeNull();
       });
     });

@@ -12,5 +12,5 @@
 | F8-enroll-symlink-race-fixed-in-this-pr | the enroll pointer-file race is fixed in this pr | clean | open; to commander at pr | 80% |
 | F9-stdin-read-has-no-timeout | `--source @stdin` reads to eof, with no timeout | clean | open; to commander at pr | 85% |
 | F10-os-secure-set-stays-one-linear-flow | the os.secure `set` stays one linear flow, not a pipe flow and a guide flow | clean | open; to commander at pr | 75% |
-| F11-errored-key-tip-stays-one-leaf | the errored-key tip stays one leaf in this pr; the hint-as-tree render is its own change | clean | open; to commander at pr | 70% |
-| F12-extant-module-mocks-out-of-scope | the module mocks that predate this pr stay; the cases this pr added sit where no module mock reaches them | clean | open; to commander at pr | 80% |
+| F11-errored-key-tip-stays-one-leaf | the errored-key tip renders its hint as a tree, in this pr | clean | landed in this pr, per peer rounds i001–i002 | 85% |
+| F12-extant-module-mocks-out-of-scope | the keyrack set tests leave their module mocks, in this pr; the os.secure prompt mock stays, documented | clean | landed in this pr, per peer rounds i001–i002 | 85% |

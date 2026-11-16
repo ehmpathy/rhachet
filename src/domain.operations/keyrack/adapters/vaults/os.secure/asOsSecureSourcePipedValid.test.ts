@@ -67,6 +67,20 @@ describe('asOsSecureSourcePipedValid', () => {
     });
   });
 
+  given('[case4] a plain token against the replica mech', () => {
+    when('[t0] checked', () => {
+      then('returns the token as-is', () => {
+        const source = asOsSecureSourcePipedValid({
+          source: 'plain-token-fake',
+          mech: 'PERMANENT_VIA_REPLICA',
+          slug: 'testorg.test.SOME_TOKEN',
+          mechAdapter: mechAdapterReplica,
+        });
+        expect(source).toEqual('plain-token-fake');
+      });
+    });
+  });
+
   given(
     '[case5] an empty source, as an sdk caller with no cli guard may pass',
     () => {
@@ -87,18 +101,4 @@ describe('asOsSecureSourcePipedValid', () => {
       });
     },
   );
-
-  given('[case4] a plain token against the replica mech', () => {
-    when('[t0] checked', () => {
-      then('returns the token as-is', () => {
-        const source = asOsSecureSourcePipedValid({
-          source: 'plain-token-fake',
-          mech: 'PERMANENT_VIA_REPLICA',
-          slug: 'testorg.test.SOME_TOKEN',
-          mechAdapter: mechAdapterReplica,
-        });
-        expect(source).toEqual('plain-token-fake');
-      });
-    });
-  });
 });

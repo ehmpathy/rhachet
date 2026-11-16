@@ -43,8 +43,8 @@ const TEST_CASES_REFUSED = [
 
 describe('getOneOsSecureMechOfSourcePiped', () => {
   given('[case1] a source whose mech can be read', () => {
-    TEST_CASES_INFERRED.map((thisCase) =>
-      when(`[t0] ${thisCase.description}`, () => {
+    TEST_CASES_INFERRED.map((thisCase, index) =>
+      when(`[t${index}] ${thisCase.description}`, () => {
         then('the mech is returned', () => {
           expect(
             getOneOsSecureMechOfSourcePiped({
@@ -58,8 +58,8 @@ describe('getOneOsSecureMechOfSourcePiped', () => {
   });
 
   given('[case2] a source whose mech cannot be read', () => {
-    TEST_CASES_REFUSED.map((thisCase) =>
-      when(`[t0] ${thisCase.description}`, () => {
+    TEST_CASES_REFUSED.map((thisCase, index) =>
+      when(`[t${index}] ${thisCase.description}`, () => {
         then(
           'it is refused, names --mech, and never echoes the value',
           async () => {

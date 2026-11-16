@@ -50,8 +50,8 @@ describe('asGithubAppMintFaultTransient', () => {
         headers: { 'x-ratelimit-remaining': '0' },
       },
     ];
-    cases.forEach((thisCase) =>
-      when(`[t0] ${thisCase.label}`, () => {
+    cases.forEach((thisCase, index) =>
+      when(`[t${index}] ${thisCase.label}`, () => {
         then('it is a malfunction that carries the status', () => {
           const error = genRequestError({
             status: thisCase.status,
