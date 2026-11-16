@@ -87,7 +87,8 @@ exports[`keyrack github-app mint that returns a token given: [case4] on ec2: the
 "🔓 keyrack unlock
    └─ @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
       ├─ status: errored 💥
-      └─ tip: failed to mint github app token — the stored private key (.pem) is not a valid rsa key — fix: re-file a blob that holds a valid github app private key (.pem): rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault aws.params --mech EPHEMERAL_VIA_GITHUB_APP"
+      └─ tip: failed to mint github app token — the stored private key (.pem) is not a valid rsa key — fix: re-set the key with a valid github app private key (.pem) file
+         └─ rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault aws.params --mech EPHEMERAL_VIA_GITHUB_APP"
 `;
 
 exports[`keyrack github-app mint that returns a token given: [case5] off ec2: github answers, but cannot mint now (502) when: [t0] the crew asks with get --unlock then: output matches snapshot 1`] = `
@@ -95,4 +96,110 @@ exports[`keyrack github-app mint that returns a token given: [case5] off ec2: gi
    └─ @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
       ├─ status: locked 🔒
       └─ tip: failed to mint github app token — github could not mint now (502) — retry: rhx keyrack unlock --owner mechanic --env all --key EHMPATH_BEAVER_GITHUB_TOKEN --org @all"
+`;
+
+exports[`keyrack github-app mint that returns a token given: [case6] off ec2: the token goes stale and is minted fresh (c3) when: [t0] the crew unlocks the key for 3s then: output matches snapshot 1`] = `
+"🔓 keyrack unlock
+   └─ @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
+      ├─ env: all
+      ├─ org: @all
+      ├─ vault: os.secure
+      └─ expires in: 0m"
+`;
+
+exports[`keyrack github-app mint that returns a token given: [case6] off ec2: the token goes stale and is minted fresh (c3) when: [t1] the crew reads it warm, reads it once it lapsed, then asks with get --unlock then: the lapsed read matches snapshot 1`] = `
+"{
+  "status": "locked",
+  "slug": "@all.all.EHMPATH_BEAVER_GITHUB_TOKEN",
+  "message": "credential '@all.all.EHMPATH_BEAVER_GITHUB_TOKEN' is locked. unlock it first.",
+  "fix": "rhx keyrack unlock --owner mechanic --env all --key EHMPATH_BEAVER_GITHUB_TOKEN --org @all"
+}"
+`;
+
+exports[`keyrack github-app mint that returns a token given: [case6] off ec2: the token goes stale and is minted fresh (c3) when: [t1] the crew reads it warm, reads it once it lapsed, then asks with get --unlock then: the re-minted read matches snapshot (token and expiry masked) 1`] = `
+"{
+  "status": "granted",
+  "grant": {
+    "slug": "@all.all.EHMPATH_BEAVER_GITHUB_TOKEN",
+    "key": {
+      "secret": "ghs___CANNED__",
+      "grade": {
+        "protection": "encrypted",
+        "duration": "ephemeral"
+      }
+    },
+    "source": {
+      "vault": "os.secure",
+      "mech": "EPHEMERAL_VIA_GITHUB_APP"
+    },
+    "env": "all",
+    "org": "@all"
+  }
+}"
+`;
+
+exports[`keyrack github-app mint that returns a token given: [case6] off ec2: the token goes stale and is minted fresh (c3) when: [t1] the crew reads it warm, reads it once it lapsed, then asks with get --unlock then: the warm read matches snapshot (token and expiry masked) 1`] = `
+"{
+  "status": "granted",
+  "grant": {
+    "slug": "@all.all.EHMPATH_BEAVER_GITHUB_TOKEN",
+    "key": {
+      "secret": "ghs___CANNED__",
+      "grade": {
+        "protection": "encrypted",
+        "duration": "ephemeral"
+      }
+    },
+    "source": {
+      "vault": "os.secure",
+      "mech": "EPHEMERAL_VIA_GITHUB_APP"
+    },
+    "env": "all",
+    "org": "@all"
+  }
+}"
+`;
+
+exports[`keyrack github-app mint that returns a token given: [case7] on ec2: the token goes stale and is minted fresh (c12) when: [t0] the crew unlocks for 3s, reads warm, waits it out, and unlocks again then: the re-minted read matches snapshot (token and expiry masked) 1`] = `
+"{
+  "status": "granted",
+  "grant": {
+    "slug": "@all.all.EHMPATH_BEAVER_GITHUB_TOKEN",
+    "key": {
+      "secret": "ghs___CANNED__",
+      "grade": {
+        "protection": "encrypted",
+        "duration": "ephemeral"
+      }
+    },
+    "source": {
+      "vault": "aws.params",
+      "mech": "EPHEMERAL_VIA_GITHUB_APP"
+    },
+    "env": "all",
+    "org": "@all"
+  }
+}"
+`;
+
+exports[`keyrack github-app mint that returns a token given: [case7] on ec2: the token goes stale and is minted fresh (c12) when: [t0] the crew unlocks for 3s, reads warm, waits it out, and unlocks again then: the warm read matches snapshot (token and expiry masked) 1`] = `
+"{
+  "status": "granted",
+  "grant": {
+    "slug": "@all.all.EHMPATH_BEAVER_GITHUB_TOKEN",
+    "key": {
+      "secret": "ghs___CANNED__",
+      "grade": {
+        "protection": "encrypted",
+        "duration": "ephemeral"
+      }
+    },
+    "source": {
+      "vault": "aws.params",
+      "mech": "EPHEMERAL_VIA_GITHUB_APP"
+    },
+    "env": "all",
+    "org": "@all"
+  }
+}"
 `;

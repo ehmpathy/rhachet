@@ -84,7 +84,7 @@ export const asGithubAppMintFaultRefusal = (input: {
       {
         appId: input.appId,
         fault: 'key-invalid',
-        hint: 're-file a blob that holds a valid github app private key (.pem)',
+        hint: 're-set the key with a valid github app private key (.pem) file',
         reason: text,
       },
     );

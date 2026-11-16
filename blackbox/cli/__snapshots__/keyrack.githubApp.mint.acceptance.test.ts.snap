@@ -4,6 +4,7 @@ exports[`keyrack github-app mint against the real github given: [case1] off ec2:
 "🔐 keyrack
    └─ @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
       ├─ status: locked 🔒
-      └─ tip: failed to mint github app token — github refused the stored installation (404) — fix: the blob's appId or installationId names none github will serve: the app was uninstalled or suspended, the blob names another org, or its appId names no app. check the app's id and install, then re-file the current blob: <the current blob> | rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin
+      └─ tip: failed to mint github app token — github refused the stored installation (404) — fix: the blob's appId or installationId names none github will serve: the app was uninstalled or suspended, the blob names another org, or its appId names no app. check the app's id and install, then re-file the current blob
+         ├─ <the current blob> | rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin
          └─ or, at a terminal with gh login, the guided set: rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP"
 `;

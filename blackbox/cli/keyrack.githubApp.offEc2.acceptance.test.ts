@@ -1,11 +1,11 @@
 import { spawnSync } from 'node:child_process';
-import { generateKeyPairSync } from 'node:crypto';
 import { resolve } from 'node:path';
 
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { asKeyrackCliOutputClean } from '@/blackbox/.test/infra/asKeyrackCliOutputClean';
 import { asKeyrackOffEc2Env } from '@/blackbox/.test/infra/asKeyrackOffEc2Env';
+import { genGithubAppBlobFixture } from '@/blackbox/.test/infra/genGithubAppBlobFixture';
 import { genKeyrackOffEc2Box } from '@/blackbox/.test/infra/genKeyrackOffEc2Box';
 import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';
@@ -45,28 +45,18 @@ const EXID =
   '/keyrack/infra/vault/aws.params/v1/mechanic/_all_/all/EHMPATH_BEAVER_GITHUB_TOKEN';
 
 // the pem body line — asserted ABSENT from every output, so the blob never leaks back
-const PEM_BODY_MARKER = 'not-a-real-rsa-key-fixture';
-const BLOB_FIXTURE = JSON.stringify({
+const { blob: BLOB_FIXTURE, pemBodyLine: PEM_BODY_MARKER } = genGithubAppBlobFixture({
   appId: '123456',
   installationId: '78901234',
-  privateKey: `-----BEGIN RSA PRIVATE KEY-----\n${PEM_BODY_MARKER}\n-----END RSA PRIVATE KEY-----`,
-  mech: MECH,
+  privateKey: 'junk',
 });
 
-// a real rsa key, made for this run; its body line is asserted absent from every output
-const PEM_VALID = generateKeyPairSync('rsa', {
-  modulusLength: 2048,
-  privateKeyEncoding: { type: 'pkcs1', format: 'pem' },
-  publicKeyEncoding: { type: 'spki', format: 'pem' },
-}).privateKey;
-const PEM_VALID_BODY_LINE = PEM_VALID.split('\n')[1]!;
-
-// an app id and installation id no github app holds, so the real github refuses the mint (404)
-const BLOB_VALID = JSON.stringify({
+// a real rsa key, made for this run, for an app id and installation id no github app holds,
+// so the real github refuses the mint (404); its body line is asserted absent from every output
+const { blob: BLOB_VALID, pemBodyLine: PEM_VALID_BODY_LINE } = genGithubAppBlobFixture({
   appId: '999999999',
   installationId: '999999999',
-  privateKey: PEM_VALID,
-  mech: MECH,
+  privateKey: 'generated',
 });
 const REFUSAL_REAL_GITHUB = 'github refused the stored installation (404)';
 
@@ -921,6 +911,39 @@ describe('keyrack github-app key on a box with no aws identity', () => {
 
       then('no entry was written for the key', () => {
         expect(JSON.parse(result.stdout)[SLUG]).toBeUndefined();
+      });
+    });
+  });
+
+  given('[case15] the box holds no such machine-wide key', () => {
+    beforeAll(() => killKeyrackDaemonForTests({ owner: OWNER }));
+    afterAll(() => killKeyrackDaemonForTests({ owner: OWNER }));
+
+    const box = useBeforeAll(async () => genKeyrackOffEc2Box({ owner: OWNER, git: false }));
+
+    when('[t0] the crew unlocks a full slug the host manifest lacks', () => {
+      const slugAbsent = '@all.prep.EHMPATH_BEAVER_ABSENT_TOKEN';
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--owner', OWNER, '--key', slugAbsent],
+          cwd: box.path,
+          env: asKeyrackOffEc2Env({ repoPath: box.path }),
+          logOnError: false,
+        }),
+      );
+
+      then('it is refused as a constraint (exit 2)', () => {
+        expect(result.status).toEqual(2);
+      });
+
+      then('the refusal names the slug once, as asked, never doubled', () => {
+        const output = result.stdout + result.stderr;
+        expect(output).toContain(`no ${slugAbsent} key in the host manifest`);
+        expect(output).not.toContain('@all.prep.@all.prep.');
+      });
+
+      then('output matches snapshot', () => {
+        expect(asKeyrackCliOutputClean({ output: result.stdout + result.stderr })).toMatchSnapshot();
       });
     });
   });

@@ -14,3 +14,4 @@
 | F10-os-secure-set-stays-one-linear-flow | the os.secure `set` stays one linear flow, not a pipe flow and a guide flow | clean | open; to commander at pr | 75% |
 | F11-errored-key-tip-stays-one-leaf | the errored-key tip renders its hint as a tree, in this pr | clean | landed in this pr, per peer rounds i001–i002 | 85% |
 | F12-extant-module-mocks-out-of-scope | the keyrack set tests leave their module mocks, in this pr; the os.secure prompt mock stays, documented | clean | landed in this pr, per peer rounds i001–i002 | 85% |
+| F13-key-row-tip-header-stays-extant | the key row's `tip:` header stays as main renders it; the `💡 tip` header lands in a dedicated pr | dirty | disputed at i003; to commander at pr | 70% |

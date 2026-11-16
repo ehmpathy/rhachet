@@ -1,5 +1,4 @@
 import { spawnSync } from 'node:child_process';
-import { generateKeyPairSync } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -7,6 +6,7 @@ import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { asKeyrackCliOutputClean } from '@/blackbox/.test/infra/asKeyrackCliOutputClean';
 import { asKeyrackOffEc2Env } from '@/blackbox/.test/infra/asKeyrackOffEc2Env';
+import { genGithubAppBlobFixture } from '@/blackbox/.test/infra/genGithubAppBlobFixture';
 import { genKeyrackOffEc2Box } from '@/blackbox/.test/infra/genKeyrackOffEc2Box';
 import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';
@@ -23,6 +23,11 @@ import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDae
  * .note = a token github returns needs the real app's private key, which no test may hold
  *         (fulcrum F5); the rsa key here is generated at test time, for an app id no github
  *         app holds
+ * .bound = the no-identity red half (cli `keyrack.githubApp.offEc2` case1) has no sdk twin.
+ *          `with: { unlock: true }` unlocks only a key the inventory records as set, and an
+ *          aws.params key is recorded only by a real aws.params set, which needs gh and an aws
+ *          identity this box lacks by design. the cli drives that half via `unlock`, which the sdk
+ *          does not expose
  */
 const OWNER = 'mechanic';
 const SLUG = '@all.all.EHMPATH_BEAVER_GITHUB_TOKEN';
@@ -31,21 +36,45 @@ const MECH = 'EPHEMERAL_VIA_GITHUB_APP';
 // the built sdk, imported by path from the node child
 const RHACHET_SDK_KEYRACK = join(process.cwd(), 'dist', 'contract', 'sdk.keyrack.js');
 
-// a real rsa key, made for this run; its body line is asserted absent from every output
-const PEM_VALID = generateKeyPairSync('rsa', {
-  modulusLength: 2048,
-  privateKeyEncoding: { type: 'pkcs1', format: 'pem' },
-  publicKeyEncoding: { type: 'spki', format: 'pem' },
-}).privateKey;
-const PEM_BODY_LINE = PEM_VALID.split('\n')[1]!;
-
-// an app id and installation id no github app holds, so the real github refuses the mint (404)
-const BLOB_UNREGISTERED = JSON.stringify({
+// a real rsa key, made for this run, for an app id and installation id no github app holds,
+// so the real github refuses the mint (404); its body line is asserted absent from every output
+const { blob: BLOB_UNREGISTERED, pemBodyLine: PEM_BODY_LINE } = genGithubAppBlobFixture({
   appId: '999999999',
   installationId: '999999999',
-  privateKey: PEM_VALID,
-  mech: MECH,
+  privateKey: 'generated',
 });
+
+/**
+ * .what = run `keyrack.get({ with: { unlock: true } })` in a node child that imports the built sdk
+ * .why = a consumer imports the sdk in its own process; the child holds the off-ec2 env, so the
+ *        aws sdk's credential chain runs for real, outside jest's vm
+ */
+const invokeSdkGetWithUnlock = (input: {
+  boxPath: string;
+}): { status: number | null; stdout: string; stderr: string } => {
+  const modulePath = join(input.boxPath, 'get-github-app.mjs');
+  writeFileSync(
+    modulePath,
+    [
+      `import { keyrack } from '${RHACHET_SDK_KEYRACK}';`,
+      `const result = await keyrack.get({ for: { key: '${SLUG}' }, with: { unlock: true }, owner: '${OWNER}' });`,
+      'console.log(JSON.stringify(result));',
+      '',
+    ].join('\n'),
+  );
+  const spawned = spawnSync('node', [modulePath], {
+    cwd: input.boxPath,
+    encoding: 'utf-8',
+    timeout: 60_000,
+    env: Object.fromEntries(
+      Object.entries({
+        ...process.env,
+        ...asKeyrackOffEc2Env({ repoPath: input.boxPath }),
+      }).filter((entry): entry is [string, string] => entry[1] !== undefined),
+    ),
+  });
+  return { status: spawned.status, stdout: spawned.stdout, stderr: spawned.stderr };
+};
 
 describe('keyrack.get of a github-app key against the real github', () => {
   given('[case1] off ec2: a blob in os.secure for an app the real github does not hold', () => {
@@ -65,35 +94,7 @@ describe('keyrack.get of a github-app key against the real github', () => {
     });
 
     when('[t0] the sdk caller asks with keyrack.get({ with: { unlock: true } })', () => {
-      const result = useBeforeAll(async () => {
-        // a node child that imports the built sdk, as a consumer does
-        const modulePath = join(box.path, 'get-github-app.mjs');
-        writeFileSync(
-          modulePath,
-          [
-            `import { keyrack } from '${RHACHET_SDK_KEYRACK}';`,
-            `const result = await keyrack.get({ for: { key: '${SLUG}' }, with: { unlock: true }, owner: '${OWNER}' });`,
-            'console.log(JSON.stringify(result));',
-            '',
-          ].join('\n'),
-        );
-        const spawned = spawnSync('node', [modulePath], {
-          cwd: box.path,
-          encoding: 'utf-8',
-          timeout: 60_000,
-          env: Object.fromEntries(
-            Object.entries({
-              ...process.env,
-              ...asKeyrackOffEc2Env({ repoPath: box.path }),
-            }).filter((entry): entry is [string, string] => entry[1] !== undefined),
-          ),
-        });
-        return {
-          status: spawned.status,
-          stdout: spawned.stdout,
-          stderr: spawned.stderr,
-        };
-      });
+      const result = useBeforeAll(async () => invokeSdkGetWithUnlock({ boxPath: box.path }));
 
       then('the call returns, never throws (exit 0)', () => {
         expect(result.status).toEqual(0);
@@ -129,4 +130,5 @@ describe('keyrack.get of a github-app key against the real github', () => {
       });
     });
   });
+
 });

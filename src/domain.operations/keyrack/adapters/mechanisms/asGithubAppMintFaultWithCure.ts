@@ -22,9 +22,10 @@ export const asGithubAppMintFaultWithCure = (input: {
   if (!refusal) return input.error;
 
   // the same refusal, with the vault's cure after the mech's hint
+  // .note = joined by `;`, so a tree render puts the copyable command on its own leaf
   const hint = refusal.metadata?.hint;
   return new ConstraintError(asErrorBareMessage({ error: refusal }), {
     ...refusal.metadata,
-    hint: typeof hint === 'string' ? `${hint}: ${input.cure}` : input.cure,
+    hint: typeof hint === 'string' ? `${hint}; ${input.cure}` : input.cure,
   });
 };

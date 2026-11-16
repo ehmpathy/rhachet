@@ -1,9 +1,8 @@
-import { generateKeyPairSync } from 'node:crypto';
-
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { asKeyrackCliOutputClean } from '@/blackbox/.test/infra/asKeyrackCliOutputClean';
 import { asKeyrackOffEc2Env } from '@/blackbox/.test/infra/asKeyrackOffEc2Env';
+import { genGithubAppBlobFixture } from '@/blackbox/.test/infra/genGithubAppBlobFixture';
 import { genKeyrackOffEc2Box } from '@/blackbox/.test/infra/genKeyrackOffEc2Box';
 import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';
@@ -26,20 +25,12 @@ const OWNER = 'mechanic';
 const SLUG = '@all.all.EHMPATH_BEAVER_GITHUB_TOKEN';
 const MECH = 'EPHEMERAL_VIA_GITHUB_APP';
 
-// a real rsa key, made for this run; its body line is asserted absent from every output
-const PEM_VALID = generateKeyPairSync('rsa', {
-  modulusLength: 2048,
-  privateKeyEncoding: { type: 'pkcs1', format: 'pem' },
-  publicKeyEncoding: { type: 'spki', format: 'pem' },
-}).privateKey;
-const PEM_BODY_LINE = PEM_VALID.split('\n')[1]!;
-
-// an app id and installation id no github app holds, so the real github refuses the mint (404)
-const BLOB_UNREGISTERED = JSON.stringify({
+// a real rsa key, made for this run, for an app id and installation id no github app holds,
+// so the real github refuses the mint (404); its body line is asserted absent from every output
+const { blob: BLOB_UNREGISTERED, pemBodyLine: PEM_BODY_LINE } = genGithubAppBlobFixture({
   appId: '999999999',
   installationId: '999999999',
-  privateKey: PEM_VALID,
-  mech: MECH,
+  privateKey: 'generated',
 });
 
 describe('keyrack github-app mint against the real github', () => {
