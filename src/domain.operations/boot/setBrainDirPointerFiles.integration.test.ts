@@ -87,6 +87,28 @@ describe('setBrainDirPointerFiles', () => {
     });
   });
 
+  given('[case4] a CLAUDE.md symlink to a foreign target', () => {
+    when('[t0] the pointer files are set', () => {
+      then(
+        'a ConstraintError names the foreign target, and the link is untouched',
+        async () => {
+          const brainDir = genTempDir({ slug: 'setBrainDirPointerFiles-c4t0' });
+          symlinkSync('elsewhere.md', join(brainDir, 'CLAUDE.md'));
+
+          const error = await getError(async () =>
+            setBrainDirPointerFiles({ brainDir }),
+          );
+
+          expect(error).toBeInstanceOf(ConstraintError);
+          expect(JSON.stringify(error)).toContain('a symlink to elsewhere.md');
+          expect(readlinkSync(join(brainDir, 'CLAUDE.md'))).toEqual(
+            'elsewhere.md',
+          );
+        },
+      );
+    });
+  });
+
   given('[case5] a concurrent enroll creates CLAUDE.md first', () => {
     when('[t0] the race is lost at the create', () => {
       then('the link made by the peer reads as found; no fault', () => {
@@ -110,28 +132,6 @@ describe('setBrainDirPointerFiles', () => {
         expect(result.agentsMdReset).toEqual(false);
         expect(readlinkSync(join(brainDir, 'CLAUDE.md'))).toEqual('AGENTS.md');
       });
-    });
-  });
-
-  given('[case4] a CLAUDE.md symlink to a foreign target', () => {
-    when('[t0] the pointer files are set', () => {
-      then(
-        'a ConstraintError names the foreign target, and the link is untouched',
-        async () => {
-          const brainDir = genTempDir({ slug: 'setBrainDirPointerFiles-c4t0' });
-          symlinkSync('elsewhere.md', join(brainDir, 'CLAUDE.md'));
-
-          const error = await getError(async () =>
-            setBrainDirPointerFiles({ brainDir }),
-          );
-
-          expect(error).toBeInstanceOf(ConstraintError);
-          expect(JSON.stringify(error)).toContain('a symlink to elsewhere.md');
-          expect(readlinkSync(join(brainDir, 'CLAUDE.md'))).toEqual(
-            'elsewhere.md',
-          );
-        },
-      );
     });
   });
 });

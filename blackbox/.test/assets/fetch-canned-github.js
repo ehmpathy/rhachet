@@ -14,6 +14,7 @@
  *   CANNED_GITHUB_FETCH_LOG   path; one line is appended per mint call, so a test counts them
  *   CANNED_GITHUB_FETCH_MODE  `mint` (default): 201 with a canned `ghs_` token
  *                             `unreachable`: the fetch rejects as a dns failure would
+ *                             `unavailable`: github answers 502, a fault a retry may cure
  *
  * .note = any other api.github.com path is refused loud, so an unexpected call never passes
  *         silently; a host that is not github passes through to the real fetch
@@ -43,6 +44,13 @@ globalThis.fetch = async (resource, init) => {
       cause: Object.assign(new Error('getaddrinfo ENOTFOUND api.github.com'), {
         code: 'ENOTFOUND',
       }),
+    });
+
+  // a github that answers, but cannot mint now
+  if (process.env.CANNED_GITHUB_FETCH_MODE === 'unavailable')
+    return new Response(JSON.stringify({ message: 'Bad Gateway' }), {
+      status: 502,
+      headers: { 'content-type': 'application/json' },
     });
 
   // the one endpoint the mint calls

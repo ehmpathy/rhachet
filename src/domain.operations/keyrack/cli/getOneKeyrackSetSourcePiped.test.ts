@@ -67,7 +67,7 @@ describe('getOneKeyrackSetSourcePiped', () => {
     });
   });
 
-  given('[case5] --source @stdin at a terminal', () => {
+  given('[case4] --source @stdin at a terminal', () => {
     when('[t0] read', () => {
       then('refuses rather than waits', async () => {
         const error = await getError(
@@ -82,7 +82,7 @@ describe('getOneKeyrackSetSourcePiped', () => {
     });
   });
 
-  given('[case6] --source @stdin with an empty pipe', () => {
+  given('[case5] --source @stdin with an empty pipe', () => {
     when('[t0] read', () => {
       then('refuses and names the upstream read', async () => {
         const error = await getError(

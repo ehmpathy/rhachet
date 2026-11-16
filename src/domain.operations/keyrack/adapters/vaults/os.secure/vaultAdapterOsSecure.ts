@@ -194,6 +194,7 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter<'readwrite'> = {
     // transform source → usable secret via mech
     // .note = a github-app mint refusal gains os.secure's own cure, at this key's reach: a
     //         pipe of the current blob, or the guided set where gh and a tty exist
+    // .note = the two commands are `;`-joined, so the tip render gives each its own branch
     const mechAdapter = getMechAdapter(mech);
     const setVia = (form: 'pipe' | 'guided'): string =>
       asKeyrackGithubAppSetCommand({
@@ -212,7 +213,7 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter<'readwrite'> = {
       mechAdapter,
       source,
       cure: () =>
-        `${setVia('pipe')} (or, at a terminal with gh login, the guided set: ${setVia('guided')})`,
+        `${setVia('pipe')}; or, at a terminal with gh login, the guided set: ${setVia('guided')}`,
     });
 
     // compute grade from vault + mech

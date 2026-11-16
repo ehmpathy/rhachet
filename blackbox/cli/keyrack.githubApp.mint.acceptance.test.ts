@@ -1,13 +1,11 @@
 import { generateKeyPairSync } from 'node:crypto';
-import { join } from 'node:path';
 
 import { given, then, useBeforeAll, when } from 'test-fns';
 
-import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
-import {
-  asSnapshotSafe,
-  invokeRhachetCliBinary,
-} from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import { asKeyrackCliOutputClean } from '@/blackbox/.test/infra/asKeyrackCliOutputClean';
+import { asKeyrackOffEc2Env } from '@/blackbox/.test/infra/asKeyrackOffEc2Env';
+import { genKeyrackOffEc2Box } from '@/blackbox/.test/infra/genKeyrackOffEc2Box';
+import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';
 
 /**
@@ -22,6 +20,7 @@ import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDae
  *         (fulcrum F5). the token-to-`get` route is proven in `keyrack.githubApp.mint.integration`
  *         against a canned github; the live mint of a real token is the commander's run on the
  *         grove, named in the pr
+ * .twin = `blackbox/sdk/keyrack.githubApp.acceptance.test.ts` drives the same refusal via the sdk
  */
 const OWNER = 'mechanic';
 const SLUG = '@all.all.EHMPATH_BEAVER_GITHUB_TOKEN';
@@ -43,54 +42,17 @@ const BLOB_UNREGISTERED = JSON.stringify({
   mech: MECH,
 });
 
-/**
- * .what = the env of a box with no aws identity, where api.github.com is the real github
- */
-const envOffEc2 = (input: {
-  repoPath: string;
-}): Record<string, string | undefined> => ({
-  HOME: input.repoPath,
-  AWS_ACCESS_KEY_ID: undefined,
-  AWS_SECRET_ACCESS_KEY: undefined,
-  AWS_SESSION_TOKEN: undefined,
-  AWS_PROFILE: undefined,
-  AWS_DEFAULT_PROFILE: undefined,
-  AWS_CONFIG_FILE: join(input.repoPath, '.aws', 'config.absent'),
-  AWS_SHARED_CREDENTIALS_FILE: join(input.repoPath, '.aws', 'credentials.absent'),
-  AWS_EC2_METADATA_DISABLED: 'true',
-  NODE_OPTIONS: undefined,
-});
-
-/**
- * .what = a temp repo with keyrack init for the owner
- */
-const genBox = async () => {
-  const repo = await genTestTempRepo({ fixture: 'minimal' });
-  invokeRhachetCliBinary({
-    args: ['keyrack', 'init', '--owner', OWNER],
-    cwd: repo.path,
-    env: { HOME: repo.path },
-    logOnError: false,
-  });
-  return repo;
-};
-
-const cleanCliOutput = (str: string): string =>
-  asSnapshotSafe(str)
-    .replace(/[ \t]+$/gm, '')
-    .trim();
-
 describe('keyrack github-app mint against the real github', () => {
   given('[case1] off ec2: a blob for an app the real github does not hold', () => {
     beforeAll(() => killKeyrackDaemonForTests({ owner: OWNER }));
     afterAll(() => killKeyrackDaemonForTests({ owner: OWNER }));
 
     const repo = useBeforeAll(async () => {
-      const r = await genBox();
+      const r = await genKeyrackOffEc2Box({ owner: OWNER });
       invokeRhachetCliBinary({
         args: ['keyrack', 'set', '--owner', OWNER, '--key', SLUG, '--vault', 'os.secure', '--mech', MECH, '--source', '@stdin'],
         cwd: r.path,
-        env: envOffEc2({ repoPath: r.path }),
+        env: asKeyrackOffEc2Env({ repoPath: r.path }),
         stdin: BLOB_UNREGISTERED,
         logOnError: false,
       });
@@ -102,7 +64,7 @@ describe('keyrack github-app mint against the real github', () => {
         invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--owner', OWNER, '--key', SLUG, '--unlock'],
           cwd: repo.path,
-          env: envOffEc2({ repoPath: repo.path }),
+          env: asKeyrackOffEc2Env({ repoPath: repo.path }),
           logOnError: false,
           timeoutMs: 30_000,
         }),
@@ -130,7 +92,9 @@ describe('keyrack github-app mint against the real github', () => {
       });
 
       then('output matches snapshot', () => {
-        expect(cleanCliOutput(result.stdout + result.stderr)).toMatchSnapshot();
+        expect(
+          asKeyrackCliOutputClean({ output: result.stdout + result.stderr }),
+        ).toMatchSnapshot();
       });
     });
   });

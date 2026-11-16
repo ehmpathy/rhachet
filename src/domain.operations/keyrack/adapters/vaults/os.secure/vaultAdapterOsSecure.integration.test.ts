@@ -19,8 +19,14 @@ import { existsSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
- * .note = mocks promptHiddenInput to simulate user secret input in tests
- * .why = integration tests need controlled input without real stdin
+ * .mock = `promptHiddenInput`, the hidden stdin prompt the replica mech's guided setup reads
+ * .why  = the replica mech reads the terminal directly, with no injected hidden-prompt seam (the
+ *         `context.mech.question` option is a visible prompt, which a secret must never use);
+ *         in-process, jest owns stdin, so a real secret cannot be typed to it
+ * .real = `src/infra/promptHiddenInput.integration.test.ts` drives the real prompt over a piped
+ *         stdin, and `blackbox/cli/keyrack.vault.osSecure.acceptance.test.ts` sets an os.secure
+ *         key with its secret on the real stdin of the built cli
+ * .note = the piped-source cases (`--source @stdin`) reach no prompt, so the mock never answers them
  * .note = no snapshot coverage because os.secure is internal vault adapter, not user-faced contract
  */
 jest.mock('@src/infra/promptHiddenInput', () => genMockPromptHiddenInput());

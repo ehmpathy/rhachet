@@ -4,12 +4,11 @@ import { join } from 'node:path';
 
 import { given, then, useBeforeAll, when } from 'test-fns';
 
+import { asKeyrackCliOutputClean } from '@/blackbox/.test/infra/asKeyrackCliOutputClean';
+import { asKeyrackOffEc2Env } from '@/blackbox/.test/infra/asKeyrackOffEc2Env';
 import { genFakeSsmServerDetached } from '@/blackbox/.test/infra/genFakeSsmServerDetached';
-import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
-import {
-  asSnapshotSafe,
-  invokeRhachetCliBinary,
-} from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import { genKeyrackOffEc2Box } from '@/blackbox/.test/infra/genKeyrackOffEc2Box';
+import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';
 import { seedHostManifestEntries } from '@/blackbox/.test/infra/seedHostManifestEntries';
 
@@ -17,9 +16,12 @@ import { seedHostManifestEntries } from '@/blackbox/.test/infra/seedHostManifest
  * .what = blackbox integration for a github-app mint that completes: the token reaches `get`
  * .why = the wish's own done-criterion is "returns an installation token". this suite proves the
  *        mint call returns a token to `get`, through the built cli, on both boxes:
- *        - off ec2: the blob in os.secure (catalog c1 cold, c2 warm), and github unreachable
- *        - on ec2: the blob in aws.params (catalog c10 cold, c11 warm), plus the aws.params mint
- *          refusal, whose cure must name aws.params and never os.secure
+ *        - off ec2: the blob in os.secure (catalog c1 cold, c2 warm, c3 stale), github
+ *          unreachable, and github that answers 502 (a retry may cure it)
+ *        - on ec2: the blob in aws.params (catalog c10 cold, c11 warm, c12 stale), plus the
+ *          aws.params mint refusal, whose cure must name aws.params and never os.secure
+ * .stale = a short `unlock --duration 3s` caps the daemon's copy; once it lapses, the next read
+ *          must mint a fresh token, never hand back the lapsed one. no clock fake: real seconds
  *
  * .grain = integration, not acceptance: github is canned here, and an acceptance test drives
  *          only the real external contract (rule.forbid.faked-or-quarantined-acceptance)
@@ -69,17 +71,9 @@ const BLOB_JUNK_PEM = asBlob({
  */
 const envOffEc2 = (input: {
   repoPath: string;
-  mode: 'mint' | 'unreachable';
+  mode: 'mint' | 'unreachable' | 'unavailable';
 }): Record<string, string | undefined> => ({
-  HOME: input.repoPath,
-  AWS_ACCESS_KEY_ID: undefined,
-  AWS_SECRET_ACCESS_KEY: undefined,
-  AWS_SESSION_TOKEN: undefined,
-  AWS_PROFILE: undefined,
-  AWS_DEFAULT_PROFILE: undefined,
-  AWS_CONFIG_FILE: join(input.repoPath, '.aws', 'config.absent'),
-  AWS_SHARED_CREDENTIALS_FILE: join(input.repoPath, '.aws', 'credentials.absent'),
-  AWS_EC2_METADATA_DISABLED: 'true',
+  ...asKeyrackOffEc2Env({ repoPath: input.repoPath }),
   NODE_OPTIONS: `--require ${FETCH_CANNED}`,
   CANNED_GITHUB_FETCH_LOG: join(input.repoPath, 'github-fetch.log'),
   CANNED_GITHUB_FETCH_MODE: input.mode,
@@ -105,20 +99,6 @@ const envEc2 = (input: {
 });
 
 /**
- * .what = a temp repo with keyrack init for the owner
- */
-const genBox = async () => {
-  const repo = await genTestTempRepo({ fixture: 'minimal' });
-  invokeRhachetCliBinary({
-    args: ['keyrack', 'init', '--owner', OWNER],
-    cwd: repo.path,
-    env: { HOME: repo.path },
-    logOnError: false,
-  });
-  return repo;
-};
-
-/**
  * .what = how many mint calls the canned github answered for this box
  */
 const getMintCount = (input: { repoPath: string }): number => {
@@ -129,19 +109,25 @@ const getMintCount = (input: { repoPath: string }): number => {
     .filter((line) => line.startsWith('POST /app/installations/')).length;
 };
 
-const cleanCliOutput = (str: string): string =>
-  asSnapshotSafe(str)
-    .replace(/ghs_canned\w+/g, 'ghs___CANNED__')
-    .replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z/g, '__ISO_TIMESTAMP__')
-    .replace(/[ \t]+$/gm, '')
-    .trim();
+/**
+ * .what = the token a `get --json` returned
+ * .why = a stale re-mint is proven by a token that differs from the one the warm read served
+ */
+const getTokenOfGetJson = (input: { stdout: string }): string =>
+  JSON.parse(input.stdout).grant.key.secret;
+
+/**
+ * .what = wait out a short unlock, so the daemon's copy of the token goes stale
+ */
+const waitPastExpiry = (input: { ms: number }): Promise<void> =>
+  new Promise((done) => setTimeout(done, input.ms));
 
 describe('keyrack github-app mint that returns a token', () => {
   given('[case1] off ec2: the blob piped into os.secure (c1, c2)', () => {
     beforeAll(() => killKeyrackDaemonForTests({ owner: OWNER }));
     afterAll(() => killKeyrackDaemonForTests({ owner: OWNER }));
 
-    const repo = useBeforeAll(async () => genBox());
+    const repo = useBeforeAll(async () => genKeyrackOffEc2Box({ owner: OWNER }));
 
     when('[t0] the commander pipes the blob in', () => {
       const result = useBeforeAll(async () =>
@@ -163,7 +149,7 @@ describe('keyrack github-app mint that returns a token', () => {
       });
 
       then('output matches snapshot', () => {
-        expect(cleanCliOutput(result.stdout + result.stderr)).toMatchSnapshot();
+        expect(asKeyrackCliOutputClean({ output: result.stdout + result.stderr })).toMatchSnapshot();
       });
     });
 
@@ -190,7 +176,7 @@ describe('keyrack github-app mint that returns a token', () => {
       });
 
       then('output matches snapshot', () => {
-        expect(cleanCliOutput(result.stdout + result.stderr)).toMatchSnapshot();
+        expect(asKeyrackCliOutputClean({ output: result.stdout + result.stderr })).toMatchSnapshot();
       });
     });
 
@@ -219,7 +205,7 @@ describe('keyrack github-app mint that returns a token', () => {
       });
 
       then('output matches snapshot (token and expiry masked)', () => {
-        expect(cleanCliOutput(result.stdout + result.stderr)).toMatchSnapshot();
+        expect(asKeyrackCliOutputClean({ output: result.stdout + result.stderr })).toMatchSnapshot();
       });
     });
   });
@@ -229,7 +215,7 @@ describe('keyrack github-app mint that returns a token', () => {
     afterAll(() => killKeyrackDaemonForTests({ owner: OWNER }));
 
     const repo = useBeforeAll(async () => {
-      const r = await genBox();
+      const r = await genKeyrackOffEc2Box({ owner: OWNER });
       invokeRhachetCliBinary({
         args: ['keyrack', 'set', '--owner', OWNER, '--key', SLUG, '--vault', 'os.secure', '--mech', MECH, '--source', '@stdin'],
         cwd: r.path,
@@ -266,7 +252,7 @@ describe('keyrack github-app mint that returns a token', () => {
       });
 
       then('output matches snapshot', () => {
-        expect(cleanCliOutput(result.stdout + result.stderr)).toMatchSnapshot();
+        expect(asKeyrackCliOutputClean({ output: result.stdout + result.stderr })).toMatchSnapshot();
       });
     });
   });
@@ -282,7 +268,7 @@ describe('keyrack github-app mint that returns a token', () => {
       const ssm = await genFakeSsmServerDetached({
         seed: [{ name: EXID, value: BLOB_VALID, type: 'SecureString' }],
       });
-      const repo = await genBox();
+      const repo = await genKeyrackOffEc2Box({ owner: OWNER });
       await seedHostManifestEntries({
         repoPath: repo.path,
         owner: OWNER,
@@ -315,7 +301,7 @@ describe('keyrack github-app mint that returns a token', () => {
       });
 
       then('output matches snapshot', () => {
-        expect(cleanCliOutput(result.stdout + result.stderr)).toMatchSnapshot();
+        expect(asKeyrackCliOutputClean({ output: result.stdout + result.stderr })).toMatchSnapshot();
       });
     });
 
@@ -342,7 +328,7 @@ describe('keyrack github-app mint that returns a token', () => {
       });
 
       then('output matches snapshot (token and expiry masked)', () => {
-        expect(cleanCliOutput(result.stdout + result.stderr)).toMatchSnapshot();
+        expect(asKeyrackCliOutputClean({ output: result.stdout + result.stderr })).toMatchSnapshot();
       });
     });
   });
@@ -358,7 +344,7 @@ describe('keyrack github-app mint that returns a token', () => {
       const ssm = await genFakeSsmServerDetached({
         seed: [{ name: EXID, value: BLOB_JUNK_PEM, type: 'SecureString' }],
       });
-      const repo = await genBox();
+      const repo = await genKeyrackOffEc2Box({ owner: OWNER });
       await seedHostManifestEntries({
         repoPath: repo.path,
         owner: OWNER,
@@ -395,9 +381,221 @@ describe('keyrack github-app mint that returns a token', () => {
       });
 
       then('output matches snapshot', () => {
-        expect(cleanCliOutput(result.stdout + result.stderr)).toMatchSnapshot();
+        expect(asKeyrackCliOutputClean({ output: result.stdout + result.stderr })).toMatchSnapshot();
       });
     });
   });
 
+  given('[case5] off ec2: github answers, but cannot mint now (502)', () => {
+    beforeAll(() => killKeyrackDaemonForTests({ owner: OWNER }));
+    afterAll(() => killKeyrackDaemonForTests({ owner: OWNER }));
+
+    const repo = useBeforeAll(async () => {
+      const r = await genKeyrackOffEc2Box({ owner: OWNER });
+      invokeRhachetCliBinary({
+        args: ['keyrack', 'set', '--owner', OWNER, '--key', SLUG, '--vault', 'os.secure', '--mech', MECH, '--source', '@stdin'],
+        cwd: r.path,
+        env: envOffEc2({ repoPath: r.path, mode: 'unavailable' }),
+        stdin: BLOB_VALID,
+        logOnError: false,
+      });
+      return r;
+    });
+
+    when('[t0] the crew asks with get --unlock', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--owner', OWNER, '--key', SLUG, '--unlock'],
+          cwd: repo.path,
+          env: envOffEc2({ repoPath: repo.path, mode: 'unavailable' }),
+          logOnError: false,
+        }),
+      );
+
+      then('the key stays locked (exit 2), isolated to its row, never a crash', () => {
+        expect(result.status).toEqual(2);
+      });
+
+      then('the key row names the transient fault and the retry, never a re-file', () => {
+        const output = result.stdout + result.stderr;
+        expect(output).toContain('github could not mint now (502)');
+        expect(output).toContain('retry: rhx keyrack unlock --owner');
+        expect(output).not.toContain('--source @stdin');
+      });
+
+      then('github was asked once', () => {
+        expect(getMintCount({ repoPath: repo.path })).toEqual(1);
+      });
+
+      then('no stack trace reaches the human', () => {
+        expect(result.stdout + result.stderr).not.toMatch(/\n\s+at \S+ \(/);
+      });
+
+      then('output matches snapshot', () => {
+        expect(asKeyrackCliOutputClean({ output: result.stdout + result.stderr })).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case6] off ec2: the token goes stale and is minted fresh (c3)', () => {
+    beforeAll(() => killKeyrackDaemonForTests({ owner: OWNER }));
+    afterAll(() => killKeyrackDaemonForTests({ owner: OWNER }));
+
+    const repo = useBeforeAll(async () => {
+      const r = await genKeyrackOffEc2Box({ owner: OWNER });
+      invokeRhachetCliBinary({
+        args: ['keyrack', 'set', '--owner', OWNER, '--key', SLUG, '--vault', 'os.secure', '--mech', MECH, '--source', '@stdin'],
+        cwd: r.path,
+        env: envOffEc2({ repoPath: r.path, mode: 'mint' }),
+        stdin: BLOB_VALID,
+        logOnError: false,
+      });
+      return r;
+    });
+
+    when('[t0] the crew unlocks the key for 3s', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--owner', OWNER, '--key', SLUG, '--duration', '3s'],
+          cwd: repo.path,
+          env: envOffEc2({ repoPath: repo.path, mode: 'mint' }),
+          logOnError: false,
+        }),
+      );
+
+      then('the key is unlocked (exit 0), one mint asked', () => {
+        expect(result.status).toEqual(0);
+        expect(getMintCount({ repoPath: repo.path })).toEqual(1);
+      });
+    });
+
+    when('[t1] the crew reads it warm, then again with get --unlock once it lapsed', () => {
+      const result = useBeforeAll(async () => {
+        const warm = invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--owner', OWNER, '--key', SLUG, '--json'],
+          cwd: repo.path,
+          env: envOffEc2({ repoPath: repo.path, mode: 'mint' }),
+          logOnError: false,
+        });
+        await waitPastExpiry({ ms: 4_000 });
+        const stale = invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--owner', OWNER, '--key', SLUG, '--unlock', '--json'],
+          cwd: repo.path,
+          env: envOffEc2({ repoPath: repo.path, mode: 'mint' }),
+          logOnError: false,
+        });
+        return { warm, stale };
+      });
+
+      then('the warm read served the first token, with no second mint', () => {
+        expect(result.warm.status).toEqual(0);
+        expect(getTokenOfGetJson({ stdout: result.warm.stdout })).toMatch(/^ghs_canned/);
+      });
+
+      then('the stale read is granted (exit 0)', () => {
+        expect(result.stale.status).toEqual(0);
+      });
+
+      then('the stale read minted again: two mints in all', () => {
+        expect(getMintCount({ repoPath: repo.path })).toEqual(2);
+      });
+
+      then('the stale read hands back a fresh token, never the lapsed one', () => {
+        const tokenFresh = getTokenOfGetJson({ stdout: result.stale.stdout });
+        expect(tokenFresh).toMatch(/^ghs_canned/);
+        expect(tokenFresh).not.toEqual(getTokenOfGetJson({ stdout: result.warm.stdout }));
+      });
+
+      then('the private key never reaches the output', () => {
+        expect(result.stale.stdout + result.stale.stderr).not.toContain(PEM_BODY_LINE);
+      });
+    });
+  });
+
+  given('[case7] on ec2: the token goes stale and is minted fresh (c12)', () => {
+    beforeAll(() => killKeyrackDaemonForTests({ owner: OWNER }));
+    afterAll(async () => {
+      await scene.ssm.close();
+      await killKeyrackDaemonForTests({ owner: OWNER });
+    });
+
+    const scene = useBeforeAll(async () => {
+      const ssm = await genFakeSsmServerDetached({
+        seed: [{ name: EXID, value: BLOB_VALID, type: 'SecureString' }],
+      });
+      const repo = await genKeyrackOffEc2Box({ owner: OWNER });
+      await seedHostManifestEntries({
+        repoPath: repo.path,
+        owner: OWNER,
+        entries: [
+          { slug: SLUG, vault: 'aws.params', mech: MECH, exid: EXID, env: 'all', org: '@all', meta: { region: REGION } },
+        ],
+      });
+      return { ssm, repo };
+    });
+
+    // .note = unlock, not `get --unlock`: the seed writes the host manifest entry alone, and `get`
+    //         reads the `.stocked` inventory a real `set` writes to tell locked from absent
+    when('[t0] the crew unlocks for 3s, reads warm, waits it out, and unlocks again', () => {
+      const result = useBeforeAll(async () => {
+        const env = envEc2({ repoPath: scene.repo.path, ssmUrl: scene.ssm.url });
+        const unlockFirst = invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--owner', OWNER, '--key', SLUG, '--duration', '3s'],
+          cwd: scene.repo.path,
+          env,
+          logOnError: false,
+          timeoutMs: 30_000,
+        });
+        const warm = invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--owner', OWNER, '--key', SLUG, '--json'],
+          cwd: scene.repo.path,
+          env,
+          logOnError: false,
+        });
+        await waitPastExpiry({ ms: 4_000 });
+        const lapsed = invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--owner', OWNER, '--key', SLUG, '--json'],
+          cwd: scene.repo.path,
+          env,
+          logOnError: false,
+        });
+        const unlockAgain = invokeRhachetCliBinary({
+          args: ['keyrack', 'unlock', '--owner', OWNER, '--key', SLUG],
+          cwd: scene.repo.path,
+          env,
+          logOnError: false,
+          timeoutMs: 30_000,
+        });
+        const fresh = invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--owner', OWNER, '--key', SLUG, '--json'],
+          cwd: scene.repo.path,
+          env,
+          logOnError: false,
+        });
+        return { unlockFirst, warm, lapsed, unlockAgain, fresh };
+      });
+
+      then('the first unlock and the warm read pass, on one mint', () => {
+        expect(result.unlockFirst.status).toEqual(0);
+        expect(getTokenOfGetJson({ stdout: result.warm.stdout })).toMatch(/^ghs_canned/);
+      });
+
+      then('the lapsed token is never served', () => {
+        expect(result.lapsed.status).not.toEqual(0);
+        expect(result.lapsed.stdout).not.toContain(getTokenOfGetJson({ stdout: result.warm.stdout }));
+      });
+
+      then('the second unlock mints again: two mints in all', () => {
+        expect(result.unlockAgain.status).toEqual(0);
+        expect(getMintCount({ repoPath: scene.repo.path })).toEqual(2);
+      });
+
+      then('the fresh read hands back a new token, sourced from aws.params', () => {
+        const grant = JSON.parse(result.fresh.stdout).grant;
+        expect(grant.source.vault).toEqual('aws.params');
+        expect(grant.key.secret).toMatch(/^ghs_canned/);
+        expect(grant.key.secret).not.toEqual(getTokenOfGetJson({ stdout: result.warm.stdout }));
+      });
+    });
+  });
 });
