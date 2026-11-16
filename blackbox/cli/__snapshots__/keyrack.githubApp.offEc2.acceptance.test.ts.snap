@@ -46,7 +46,8 @@ exports[`keyrack github-app key on a box with no aws identity given: [case2] the
 "🔓 keyrack unlock
    └─ @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
       ├─ status: errored 💥
-      └─ tip: failed to mint github app token — github refused the stored installation (404) — fix: the blob's appId or installationId names none github will serve: the app was uninstalled or suspended, the blob names another org, or its appId names no app. check the app's id and install, then re-file the current blob: <the current blob> | rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin
+      └─ tip: failed to mint github app token — github refused the stored installation (404) — fix: the blob's appId or installationId names none github will serve: the app was uninstalled or suspended, the blob names another org, or its appId names no app. check the app's id and install, then re-file the current blob
+         ├─ <the current blob> | rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin
          └─ or, at a terminal with gh login, the guided set: rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP"
 `;
 
@@ -54,7 +55,8 @@ exports[`keyrack github-app key on a box with no aws identity given: [case2] the
 "🔐 keyrack
    └─ @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
       ├─ status: locked 🔒
-      └─ tip: failed to mint github app token — github refused the stored installation (404) — fix: the blob's appId or installationId names none github will serve: the app was uninstalled or suspended, the blob names another org, or its appId names no app. check the app's id and install, then re-file the current blob: <the current blob> | rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin
+      └─ tip: failed to mint github app token — github refused the stored installation (404) — fix: the blob's appId or installationId names none github will serve: the app was uninstalled or suspended, the blob names another org, or its appId names no app. check the app's id and install, then re-file the current blob
+         ├─ <the current blob> | rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin
          └─ or, at a terminal with gh login, the guided set: rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP"
 `;
 
@@ -172,7 +174,8 @@ exports[`keyrack github-app key on a box with no aws identity given: [case10] on
 "🔓 keyrack unlock
    └─ @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
       ├─ status: errored 💥
-      └─ tip: failed to mint github app token — github refused the stored installation (404) — fix: the blob's appId or installationId names none github will serve: the app was uninstalled or suspended, the blob names another org, or its appId names no app. check the app's id and install, then re-file the current blob: <the current blob> | rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin
+      └─ tip: failed to mint github app token — github refused the stored installation (404) — fix: the blob's appId or installationId names none github will serve: the app was uninstalled or suspended, the blob names another org, or its appId names no app. check the app's id and install, then re-file the current blob
+         ├─ <the current blob> | rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin
          └─ or, at a terminal with gh login, the guided set: rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP"
 `;
 
@@ -210,7 +213,8 @@ exports[`keyrack github-app key on a box with no aws identity given: [case11] th
 "🔓 keyrack unlock
    └─ @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
       ├─ status: errored 💥
-      └─ tip: failed to mint github app token — the stored private key (.pem) is not a valid rsa key — fix: re-file a blob that holds a valid github app private key (.pem): <the current blob> | rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin
+      └─ tip: failed to mint github app token — the stored private key (.pem) is not a valid rsa key — fix: re-set the key with a valid github app private key (.pem) file
+         ├─ <the current blob> | rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin
          └─ or, at a terminal with gh login, the guided set: rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP"
 `;
 
@@ -233,7 +237,8 @@ exports[`keyrack github-app key on a box with no aws identity given: [case11] th
 "🔓 keyrack unlock
    └─ @all.prep.EHMPATH_BEAVER_GITHUB_TOKEN
       ├─ status: errored 💥
-      └─ tip: failed to mint github app token — the stored private key (.pem) is not a valid rsa key — fix: re-file a blob that holds a valid github app private key (.pem): <the current blob> | rhx keyrack set --owner mechanic --key @all.prep.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin
+      └─ tip: failed to mint github app token — the stored private key (.pem) is not a valid rsa key — fix: re-set the key with a valid github app private key (.pem) file
+         ├─ <the current blob> | rhx keyrack set --owner mechanic --key @all.prep.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin
          └─ or, at a terminal with gh login, the guided set: rhx keyrack set --owner mechanic --key @all.prep.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP"
 `;
 
@@ -257,7 +262,8 @@ exports[`keyrack github-app key on a box with no aws identity given: [case11] th
 "🔐 keyrack
    └─ @all.prep.EHMPATH_BEAVER_GITHUB_TOKEN
       ├─ status: locked 🔒
-      └─ tip: failed to mint github app token — the stored private key (.pem) is not a valid rsa key — fix: re-file a blob that holds a valid github app private key (.pem): <the current blob> | rhx keyrack set --owner mechanic --key @all.prep.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin
+      └─ tip: failed to mint github app token — the stored private key (.pem) is not a valid rsa key — fix: re-set the key with a valid github app private key (.pem) file
+         ├─ <the current blob> | rhx keyrack set --owner mechanic --key @all.prep.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin
          └─ or, at a terminal with gh login, the guided set: rhx keyrack set --owner mechanic --key @all.prep.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP"
 `;
 
@@ -302,4 +308,13 @@ exports[`keyrack github-app key on a box with no aws identity given: [case14] a 
       ├─ blobMech: EPHEMERAL_VIA_GITHUB_APP
       ├─ ran: keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault os.secure --mech PERMANENT_VIA_REPLICA --source @stdin
       └─ hint: the blob is EPHEMERAL_VIA_GITHUB_APP: set the key with --mech EPHEMERAL_VIA_GITHUB_APP, or drop --mech to read it from the blob"
+`;
+
+exports[`keyrack github-app key on a box with no aws identity given: [case15] the box holds no such machine-wide key when: [t0] the crew unlocks a full slug the host manifest lacks then: output matches snapshot 1`] = `
+"🔐 keyrack unlock
+   └─ ✋ ConstraintError: machine-wide key not found: @all.prep.EHMPATH_BEAVER_ABSENT_TOKEN
+      ├─ why: no @all.prep.EHMPATH_BEAVER_ABSENT_TOKEN key in the host manifest (and no repo keyrack.yml to declare a repo-scoped one)
+      ├─ env: prep
+      ├─ ran: keyrack unlock --owner mechanic --key @all.prep.EHMPATH_BEAVER_ABSENT_TOKEN
+      └─ hint: rhx keyrack set --key @all.prep.EHMPATH_BEAVER_ABSENT_TOKEN --env prep --org @all --vault ..."
 `;

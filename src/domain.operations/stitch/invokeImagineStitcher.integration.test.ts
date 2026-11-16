@@ -217,18 +217,7 @@ daily_units	Object	For each selected daily weather variable, the unit will be li
 
         // stitch should look right
         expect(stitch.output).toContain('sdkOpenMeteo');
-
-        // the output uses the context: it names at least one term only the context supplies
-        // .note = a live brain picks its own words; one fixed token (e.g. `temperature_2m`) flakes
-        //         on a run that used the context via its other terms (`fetchWeatherApi`)
-        const contextOnlyTerms = [
-          'temperature_2m',
-          'fetchWeatherApi',
-          'api.open-meteo.com',
-        ];
-        expect(
-          contextOnlyTerms.filter((term) => stitch.output.includes(term)),
-        ).not.toEqual([]);
+        expect(stitch.output).toContain('temperature_2m');
 
         // stitchee should be updated, too
         expect(threads.author.stitches.length).toEqual(

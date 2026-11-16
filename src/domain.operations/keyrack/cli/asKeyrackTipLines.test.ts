@@ -32,6 +32,18 @@ const TEST_CASES = [
     },
   },
   {
+    description: 'a `;` inside a parenthetical aside stays whole',
+    given: {
+      tip: 'fix: the clock is off (a skew draws a 401; check time sync first). re-file: cmd; or, guided: cmd2',
+    },
+    expect: {
+      lines: [
+        '   └─ \x1b[2mtip: fix: the clock is off (a skew draws a 401; check time sync first). re-file: cmd\x1b[0m',
+        '      └─ \x1b[2mor, guided: cmd2\x1b[0m',
+      ],
+    },
+  },
+  {
     description: 'blank branches are dropped',
     given: { tip: 'head;; ;tail' },
     expect: {

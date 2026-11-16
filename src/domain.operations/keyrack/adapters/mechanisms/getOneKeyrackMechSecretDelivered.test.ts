@@ -52,7 +52,7 @@ describe('getOneKeyrackMechSecretDelivered', () => {
           }),
         );
         expect(error).toBeInstanceOf(ConstraintError);
-        expect(error.message).toContain('re-file the current blob: the cure');
+        expect(error.message).toContain('re-file the current blob; the cure');
       });
     });
   });

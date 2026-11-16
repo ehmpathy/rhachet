@@ -23,27 +23,38 @@ export const asKeyrackTipLines = (input: {
 };
 
 /**
- * .what = split a tip on each `;` outside a backtick span, trimmed, blanks dropped
- * .why = a command in backticks may hold a `;` of its own, which must stay whole
+ * .what = split a tip on each `;` outside a backtick span and outside parens, trimmed, blanks dropped
+ * .why = a command in backticks may hold a `;` of its own, and a parenthetical aside may too
+ *        (`(a skewed jwt also draws a 401; check the time sync first)`); a split there would cut
+ *        the phrase and leave a `)` alone at the head of the next leaf
  */
 const asTipParts = (input: { tip: string }): string[] => {
-  const segments = input.tip.split('`');
-  const parts = segments.reduce<string[]>(
-    (acc, segment, index) => {
-      const prior = acc.slice(0, -1);
-      const last = acc[acc.length - 1] ?? '';
+  const scan = [...input.tip].reduce<{
+    parts: string[];
+    isInsideTicks: boolean;
+    parenDepth: number;
+  }>(
+    (state, char) => {
+      const prior = state.parts.slice(0, -1);
+      const last = state.parts[state.parts.length - 1] ?? '';
 
-      // inside ticks: keep whole, and restore the ticks the split removed
-      const isInsideTicks = index % 2 === 1;
-      const isTickClosed = index < segments.length - 1;
-      if (isInsideTicks)
-        return [...prior, `${last}\`${segment}${isTickClosed ? '`' : ''}`];
+      // a `;` at the top level starts a new part
+      const isSplit =
+        char === ';' && !state.isInsideTicks && state.parenDepth === 0;
+      if (isSplit) return { ...state, parts: [...state.parts, ''] };
 
-      // outside ticks: each `;` starts a new part
-      const [first, ...rest] = segment.split(';');
-      return [...prior, `${last}${first ?? ''}`, ...rest];
+      // any other char joins the current part, and moves the tick and paren state
+      const isTick = char === '`';
+      const parenStep = state.isInsideTicks
+        ? 0
+        : (char === '(' ? 1 : 0) - (char === ')' ? 1 : 0);
+      return {
+        parts: [...prior, `${last}${char}`],
+        isInsideTicks: isTick ? !state.isInsideTicks : state.isInsideTicks,
+        parenDepth: Math.max(0, state.parenDepth + parenStep),
+      };
     },
-    [''],
+    { parts: [''], isInsideTicks: false, parenDepth: 0 },
   );
-  return parts.map((part) => part.trim()).filter(Boolean);
+  return scan.parts.map((part) => part.trim()).filter(Boolean);
 };

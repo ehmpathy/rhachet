@@ -1,4 +1,3 @@
-import { generateKeyPairSync } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -7,6 +6,7 @@ import { given, then, useBeforeAll, when } from 'test-fns';
 import { asKeyrackCliOutputClean } from '@/blackbox/.test/infra/asKeyrackCliOutputClean';
 import { asKeyrackOffEc2Env } from '@/blackbox/.test/infra/asKeyrackOffEc2Env';
 import { genFakeSsmServerDetached } from '@/blackbox/.test/infra/genFakeSsmServerDetached';
+import { genGithubAppBlobFixture } from '@/blackbox/.test/infra/genGithubAppBlobFixture';
 import { genKeyrackOffEc2Box } from '@/blackbox/.test/infra/genKeyrackOffEc2Box';
 import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDaemonForTests';
@@ -47,23 +47,15 @@ const EXID =
 const REGION = 'us-east-1';
 
 // a real rsa key, made for this run; its body line is asserted absent from every output
-const PEM_VALID = generateKeyPairSync('rsa', {
-  modulusLength: 2048,
-  privateKeyEncoding: { type: 'pkcs1', format: 'pem' },
-  publicKeyEncoding: { type: 'spki', format: 'pem' },
-}).privateKey;
-const PEM_BODY_LINE = PEM_VALID.split('\n')[1]!;
-const asBlob = (input: { privateKey: string }): string =>
-  JSON.stringify({
-    appId: '123456',
-    installationId: '78901234',
-    privateKey: input.privateKey,
-    mech: MECH,
-  });
-const BLOB_VALID = asBlob({ privateKey: PEM_VALID });
-const BLOB_JUNK_PEM = asBlob({
-  privateKey:
-    '-----BEGIN RSA PRIVATE KEY-----\nnot-a-real-rsa-key-fixture\n-----END RSA PRIVATE KEY-----',
+const { blob: BLOB_VALID, pemBodyLine: PEM_BODY_LINE } = genGithubAppBlobFixture({
+  appId: '123456',
+  installationId: '78901234',
+  privateKey: 'generated',
+});
+const { blob: BLOB_JUNK_PEM } = genGithubAppBlobFixture({
+  appId: '123456',
+  installationId: '78901234',
+  privateKey: 'junk',
 });
 
 /**
@@ -467,9 +459,13 @@ describe('keyrack github-app mint that returns a token', () => {
         expect(result.status).toEqual(0);
         expect(getMintCount({ repoPath: repo.path })).toEqual(1);
       });
+
+      then('output matches snapshot', () => {
+        expect(asKeyrackCliOutputClean({ output: result.stdout + result.stderr })).toMatchSnapshot();
+      });
     });
 
-    when('[t1] the crew reads it warm, then again with get --unlock once it lapsed', () => {
+    when('[t1] the crew reads it warm, reads it once it lapsed, then asks with get --unlock', () => {
       const result = useBeforeAll(async () => {
         const warm = invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--owner', OWNER, '--key', SLUG, '--json'],
@@ -478,18 +474,32 @@ describe('keyrack github-app mint that returns a token', () => {
           logOnError: false,
         });
         await waitPastExpiry({ ms: 4_000 });
+        const lapsed = invokeRhachetCliBinary({
+          args: ['keyrack', 'get', '--owner', OWNER, '--key', SLUG, '--json'],
+          cwd: repo.path,
+          env: envOffEc2({ repoPath: repo.path, mode: 'mint' }),
+          logOnError: false,
+        });
         const stale = invokeRhachetCliBinary({
           args: ['keyrack', 'get', '--owner', OWNER, '--key', SLUG, '--unlock', '--json'],
           cwd: repo.path,
           env: envOffEc2({ repoPath: repo.path, mode: 'mint' }),
           logOnError: false,
         });
-        return { warm, stale };
+        return { warm, lapsed, stale };
       });
 
       then('the warm read served the first token, with no second mint', () => {
         expect(result.warm.status).toEqual(0);
         expect(getTokenOfGetJson({ stdout: result.warm.stdout })).toMatch(/^ghs_canned/);
+      });
+
+      then('the lapsed read is locked, and never serves the lapsed token', () => {
+        expect(result.lapsed.status).not.toEqual(0);
+        expect(JSON.parse(result.lapsed.stdout).status).toEqual('locked');
+        expect(result.lapsed.stdout).not.toContain(
+          getTokenOfGetJson({ stdout: result.warm.stdout }),
+        );
       });
 
       then('the stale read is granted (exit 0)', () => {
@@ -508,6 +518,18 @@ describe('keyrack github-app mint that returns a token', () => {
 
       then('the private key never reaches the output', () => {
         expect(result.stale.stdout + result.stale.stderr).not.toContain(PEM_BODY_LINE);
+      });
+
+      then('the warm read matches snapshot (token and expiry masked)', () => {
+        expect(asKeyrackCliOutputClean({ output: result.warm.stdout + result.warm.stderr })).toMatchSnapshot();
+      });
+
+      then('the lapsed read matches snapshot', () => {
+        expect(asKeyrackCliOutputClean({ output: result.lapsed.stdout + result.lapsed.stderr })).toMatchSnapshot();
+      });
+
+      then('the re-minted read matches snapshot (token and expiry masked)', () => {
+        expect(asKeyrackCliOutputClean({ output: result.stale.stdout + result.stale.stderr })).toMatchSnapshot();
       });
     });
   });
@@ -595,6 +617,17 @@ describe('keyrack github-app mint that returns a token', () => {
         expect(grant.source.vault).toEqual('aws.params');
         expect(grant.key.secret).toMatch(/^ghs_canned/);
         expect(grant.key.secret).not.toEqual(getTokenOfGetJson({ stdout: result.warm.stdout }));
+      });
+
+      // .note = the lapsed read is asserted, never snapped: the seed writes no `.stocked` inventory,
+      //         so its render reads "absent", which a box filed by a real set never shows. case6
+      //         snaps the lapsed read a real set leaves
+      then('the warm read matches snapshot (token and expiry masked)', () => {
+        expect(asKeyrackCliOutputClean({ output: result.warm.stdout + result.warm.stderr })).toMatchSnapshot();
+      });
+
+      then('the re-minted read matches snapshot (token and expiry masked)', () => {
+        expect(asKeyrackCliOutputClean({ output: result.fresh.stdout + result.fresh.stderr })).toMatchSnapshot();
       });
     });
   });
