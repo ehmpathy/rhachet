@@ -3,19 +3,20 @@ import { now } from 'iso-time';
 import type { DaemonKeyStore } from '../domain.objects/daemonKeyStore';
 import type { DaemonRenewRecord } from '../domain.objects/daemonRenewRecord';
 import { getOneDurationMsFromEnv } from './getOneDurationMsFromEnv';
-import type { getOneSsoGrantRenewal } from './getOneSsoGrantRenewal';
+import type { getOneGrantRenewal } from './getOneGrantRenewal';
 import { renewDaemonGrantsDue } from './renewDaemonGrantsDue';
 
 /**
  * .what = run the renew tick on an interval, for the daemon's whole life
- * .why = the daemon is the one process alive across an sso grant's expiry, so it is
- *        the one that can renew it before the consumer feels the gap
+ * .why = the daemon is the one process alive across a grant's expiry, so it is the
+ *        one that can renew it before the consumer feels the gap. how a grant renews
+ *        is its mech adapter's concern; the daemon only keeps the schedule
  *
  * .note = tick = 1m and window = 10m by default. the keyrack already treats < 5m as
  *         expired, so a 10m window leaves several ticks of margin before that line
  * .note = KEYRACK_DAEMON_RENEW_TICK_MS / KEYRACK_DAEMON_RENEW_WINDOW_MS /
  *         KEYRACK_DAEMON_RENEW_TIMEOUT_MS allow shorter values for tests
- * .note = each renew try is bounded by the renew timeout, so a hung aws call counts as
+ * .note = each renew try is bounded by the renew timeout, so a hung upstream call counts as
  *         a fault and can never hold its key's in-flight slot forever
  * .note = a tick never throws out of the interval: every per-key outcome is handled
  *         inside renewDaemonGrantsDue, and a defect there is logged, so one bad tick
@@ -24,7 +25,7 @@ import { renewDaemonGrantsDue } from './renewDaemonGrantsDue';
 export const scheduleDaemonRenewTick = (input: {
   keyStore: DaemonKeyStore;
   renewRecord: DaemonRenewRecord;
-  getOneRenewal: typeof getOneSsoGrantRenewal;
+  getOneRenewal: typeof getOneGrantRenewal;
 }): NodeJS.Timeout => {
   const tickMs = getOneDurationMsFromEnv({
     envVar: 'KEYRACK_DAEMON_RENEW_TICK_MS',

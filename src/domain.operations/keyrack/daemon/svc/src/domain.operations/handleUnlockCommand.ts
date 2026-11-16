@@ -10,7 +10,7 @@ import { getOneUnlockRenewalForGrant } from './getOneUnlockRenewalForGrant';
  * .what = handle UNLOCK command to store grants with TTL
  * .why = caches credentials in daemon memory for session-time access
  *
- * .note = an sso grant that arrives with a renewal is filed in the renew record, which
+ * .note = a grant that arrives with a renewal is filed in the renew record, which
  *         replaces any prior entry at its address: a hand unlock cures a lapse or halt
  *         mark and restarts the renew count
  * .note = a grant that arrives with no renewal drops any entry at its exact address,

@@ -6,7 +6,7 @@ import {
   type DaemonKeyStore,
 } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonKeyStore';
 import { createDaemonRenewRecord } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonRenewRecord';
-import { getOneSsoGrantRenewal } from '@src/domain.operations/keyrack/daemon/svc/src/domain.operations/getOneSsoGrantRenewal';
+import { getOneGrantRenewal } from '@src/domain.operations/keyrack/daemon/svc/src/domain.operations/getOneGrantRenewal';
 import { handleKeyrackDaemonConnection } from '@src/domain.operations/keyrack/daemon/svc/src/domain.operations/handleKeyrackDaemonConnection';
 import { scheduleAutoTermination } from '@src/domain.operations/keyrack/daemon/svc/src/domain.operations/scheduleAutoTermination';
 import { scheduleDaemonRenewTick } from '@src/domain.operations/keyrack/daemon/svc/src/domain.operations/scheduleDaemonRenewTick';
@@ -39,7 +39,7 @@ export const createKeyrackDaemonServer = (input: {
   // create the key store
   const keyStore = createDaemonKeyStore();
 
-  // create the renew record, which outlives each sso grant it renews
+  // create the renew record, which outlives each grant it renews
   const renewRecord = createDaemonRenewRecord();
 
   // start the demand clock; born here so this function's signature stays fixed
@@ -51,11 +51,11 @@ export const createKeyrackDaemonServer = (input: {
   // serves no demand
   scheduleAutoTermination({ keyStore, activity, renewRecord });
 
-  // renew each sso grant before it expires, from the live portal session
+  // renew each opted-in grant before it expires, via its mech adapter
   scheduleDaemonRenewTick({
     keyStore,
     renewRecord,
-    getOneRenewal: getOneSsoGrantRenewal,
+    getOneRenewal: getOneGrantRenewal,
   });
 
   // cleanup stale socket file if present

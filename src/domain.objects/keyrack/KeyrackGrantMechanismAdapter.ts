@@ -23,6 +23,15 @@ export interface KeyrackMechAcquireOptions {
 }
 
 /**
+ * .what = the outcome of one silent renew try for a grant
+ * .why = a renew has exactly two answers a host may act on; every other outcome is a
+ *        thrown fault, which the host counts and retries — never a lapse
+ */
+export type KeyrackGrantRenewal =
+  | { status: 'renewed'; expiresAt: IsoTimeStamp }
+  | { status: 'lapsed' };
+
+/**
  * .what = interface for mechanism-specific credential acquisition and delivery
  * .why = adapter pattern enables support for different credential types
  *
@@ -83,4 +92,16 @@ export interface KeyrackGrantMechanismAdapter {
   deliverForGet: (input: {
     source: string;
   }) => Promise<{ secret: string; expiresAt?: IsoTimeStamp }>;
+
+  /**
+   * .what = renew a held grant from its stored source, silently, before it expires
+   * .why = the mech owns how its credential renews; a host (the daemon) only asks,
+   *        on a schedule, and never names a vendor
+   *
+   * .note = optional: a mech with no silent renew path omits it, and its grants are
+   *         never opted into renew
+   * .note = must never prompt (no browser, no tty). a source whose upstream session
+   *         has ended answers `lapsed`; any other failure throws
+   */
+  renewForDaemon?: (input: { source: string }) => Promise<KeyrackGrantRenewal>;
 }

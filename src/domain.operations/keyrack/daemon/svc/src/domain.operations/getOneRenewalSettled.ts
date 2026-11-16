@@ -1,12 +1,11 @@
 import { ConstraintError, MalfunctionError } from 'helpful-errors';
 
+import type { KeyrackGrantRenewal } from '@src/domain.objects/keyrack/KeyrackGrantMechanismAdapter';
 import type { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
-
-import type { SsoGrantRenewal } from './getOneSsoGrantRenewal';
 
 /**
  * .what = one renew try, settled into a renewal or an operational fault, within a bound
- * .why = the renew calls the aws sdk and cli, which can hang. a hang that never settles
+ * .why = the renew calls out to the mech's upstream, which can hang. a hang that never settles
  *        would hold the key's in-flight slot forever, and the key would die with no mark.
  *        the bound turns a hang into a counted fault, so it can halt and be named
  *
@@ -19,11 +18,11 @@ export const getOneRenewalSettled = async (
   context: {
     getOneRenewal: (input: {
       grant: KeyrackKeyGrant;
-    }) => Promise<SsoGrantRenewal>;
+    }) => Promise<KeyrackGrantRenewal>;
     timeoutMs: number;
   },
 ): Promise<
-  | { renewal: SsoGrantRenewal; fault: null }
+  | { renewal: KeyrackGrantRenewal; fault: null }
   | { renewal: null; fault: ConstraintError | MalfunctionError }
 > => {
   // bound the try; a hang becomes a MalfunctionError
@@ -32,7 +31,7 @@ export const getOneRenewalSettled = async (
     timer.handle = setTimeout(
       () =>
         reject(
-          new MalfunctionError('sso renew timed out', {
+          new MalfunctionError('renew timed out', {
             slug: input.grant.slug,
             timeoutMs: context.timeoutMs,
           }),
