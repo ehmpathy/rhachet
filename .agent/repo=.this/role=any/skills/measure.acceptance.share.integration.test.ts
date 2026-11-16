@@ -7,6 +7,7 @@ import { genTempDir, given, then, useBeforeAll, useThen, when } from 'test-fns';
 import { asMeasureArgs } from './measure.acceptance.share/asMeasureArgs';
 import { asMeasureErrorRender } from './measure.acceptance.share/asMeasureErrorRender';
 import { asMeasureRecordName } from './measure.acceptance.share/asMeasureRecordName';
+import { asMeasureSuiteLogName } from './measure.acceptance.share/asMeasureSuiteLogName';
 import { asMeasureTree } from './measure.acceptance.share/asMeasureTree';
 
 /**
@@ -161,6 +162,7 @@ describe('measure.acceptance.share', () => {
             peak: { cpuPsiSomeAvg10: 31, load1: 5.2, cores: 12 },
             suiteWallMs: 94_000,
             suiteExitCode: 0,
+            suiteLogPath: '.log/role=any/skill=measure.acceptance.share/20000101T000000000Z.width=25pct.suite.log',
           },
           {
             width: '50%',
@@ -169,6 +171,7 @@ describe('measure.acceptance.share', () => {
             peak: { cpuPsiSomeAvg10: 58, load1: 9.8, cores: 12 },
             suiteWallMs: 61_000,
             suiteExitCode: 0,
+            suiteLogPath: '.log/role=any/skill=measure.acceptance.share/20000101T000000000Z.width=50pct.suite.log',
           },
         ],
         recordPath: '.log/role=any/skill=measure.acceptance.share/20000101T000000000Z.json',
@@ -179,6 +182,34 @@ describe('measure.acceptance.share', () => {
         expect(tree).toContain('slowdown 15%');
         expect(tree).toContain('└─ width 50%');
         expect(tree).toContain('slowdown 55%');
+        expect(tree).not.toContain('read its log');
+        expect(tree).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] the suite at one width went red', () => {
+      const tree = asMeasureTree({
+        baseline: { cpuPsiSomeAvg10: 2, load1: 1.4, cores: 12 },
+        peerSoloMs: 2000,
+        peerSoloRuns: 3,
+        rows: [
+          {
+            width: '25%',
+            peerBesideMs: 2300,
+            peerRunsBeside: 3,
+            peak: { cpuPsiSomeAvg10: 31, load1: 5.2, cores: 12 },
+            suiteWallMs: 94_000,
+            suiteExitCode: 1,
+            suiteLogPath: '.log/role=any/skill=measure.acceptance.share/20000101T000000002Z.width=25pct.suite.log',
+          },
+        ],
+        recordPath: '.log/role=any/skill=measure.acceptance.share/20000101T000000002Z.json',
+      });
+      then('the red width names its suite log, where the cause is', () => {
+        expect(tree).toContain('suite = 94s, exit 1');
+        expect(tree).toContain(
+          '└─ red, so read its log = .log/role=any/skill=measure.acceptance.share/20000101T000000002Z.width=25pct.suite.log',
+        );
         expect(tree).toMatchSnapshot();
       });
     });
@@ -198,6 +229,7 @@ describe('measure.acceptance.share', () => {
             peak: { cpuPsiSomeAvg10: null, load1: 7.9, cores: 8 },
             suiteWallMs: 12_000,
             suiteExitCode: 0,
+            suiteLogPath: '.log/role=any/skill=measure.acceptance.share/20000101T000000001Z.width=25pct.suite.log',
           },
         ],
         recordPath: '.log/role=any/skill=measure.acceptance.share/20000101T000000001Z.json',
@@ -221,6 +253,14 @@ describe('measure.acceptance.share', () => {
         expect(asMeasureRecordName({ at: new Date('2026-11-16T01:01:20.132Z') })).toEqual(
           '20261116T010120132Z.json',
         );
+      });
+    });
+
+    when('[t1] a width suite log is named', () => {
+      then('it shares the record stamp, names the width, and spells % as pct', () => {
+        expect(
+          asMeasureSuiteLogName({ at: new Date('2026-11-16T01:01:20.132Z'), width: '25%' }),
+        ).toEqual('20261116T010120132Z.width=25pct.suite.log');
       });
     });
   });
@@ -314,11 +354,22 @@ describe('measure.acceptance.share', () => {
         const recordPathRel = /record = (\S+\.json)/.exec(ran.stdout)?.[1] ?? null;
         const record = recordPathRel
           ? (JSON.parse(readFileSync(join(REPO_ROOT, recordPathRel), 'utf-8')) as {
-              rows: { width: string; suiteExitCode: number | null }[];
+              rows: { width: string; suiteExitCode: number | null; suiteLogPath: string }[];
             })
           : null;
         return { status: ran.status, stdout: ran.stdout, stderr: ran.stderr, record };
       });
+
+      /**
+       * .what = the last lines of the suite log, where a red suite's cause is
+       * .why = this run's suite is nested two processes down; its log is the only place a red
+       *   names why, so the assertion below carries it into the failure a reader meets
+       */
+      const getSuiteLogTail = (): string | null => {
+        const logPathRel = result.record?.rows[0]?.suiteLogPath ?? null;
+        if (!logPathRel) return null;
+        return readFileSync(join(REPO_ROOT, logPathRel), 'utf-8').split('\n').slice(-60).join('\n');
+      };
       then('it exits 0, with a progress line per phase', () => {
         expect(result.stderr).toEqual('');
         expect(result.status).toEqual(0);
@@ -330,7 +381,18 @@ describe('measure.acceptance.share', () => {
       then('it writes a record with one row, where the suite passed', () => {
         expect(result.record?.rows).toHaveLength(1);
         expect(result.record?.rows[0]?.width).toEqual('25%');
-        expect(result.record?.rows[0]?.suiteExitCode).toEqual(0);
+
+        // on a red, the diff shows the suite log's tail beside the exit code
+        const suiteExitCode = result.record?.rows[0]?.suiteExitCode;
+        expect({ suiteExitCode, logTailOnRed: suiteExitCode === 0 ? null : getSuiteLogTail() }).toEqual(
+          { suiteExitCode: 0, logTailOnRed: null },
+        );
+      });
+      then('the suite log holds the run, from its width header on', () => {
+        expect(getSuiteLogTail()).not.toBeNull();
+        expect(
+          readFileSync(join(REPO_ROOT, result.record?.rows[0]?.suiteLogPath ?? ''), 'utf-8'),
+        ).toContain('ℹ acceptance width');
       });
       then('the whole stdout, its box-bound values masked, reads as a human meets it', () => {
         expect(asMeasureStdoutSafe({ stdout: result.stdout })).toMatchSnapshot();

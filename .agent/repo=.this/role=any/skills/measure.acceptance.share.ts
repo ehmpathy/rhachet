@@ -1,7 +1,7 @@
 import { ConstraintError, MalfunctionError } from 'helpful-errors';
 
 import { type ChildProcess, spawn, spawnSync } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { createWriteStream, mkdirSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 import { asPeakPressure } from '../../../../blackbox/.test/infra/asPeakPressure';
@@ -12,6 +12,7 @@ import {
 import { asMeasureArgs } from './measure.acceptance.share/asMeasureArgs';
 import { asMeasureErrorRender } from './measure.acceptance.share/asMeasureErrorRender';
 import { asMeasureRecordName } from './measure.acceptance.share/asMeasureRecordName';
+import { asMeasureSuiteLogName } from './measure.acceptance.share/asMeasureSuiteLogName';
 import { asMeasureTree } from './measure.acceptance.share/asMeasureTree';
 import type { MeasureAtWidth } from './measure.acceptance.share/MeasureAtWidth';
 
@@ -110,11 +111,13 @@ const asMedianOrNull = (input: { values: number[] }): number | null => {
 
 /**
  * .what = start the scoped suite at one width, as a human would locally, with a hard wall cap
- * .note = stderr is read for the header line; the rest is dropped, so the pipe never fills
+ * .note = both streams land in the suite log, read as they come so the pipes never fill; stderr is
+ *   also watched for the header line
  */
 const genSuiteRun = (input: {
   width: string;
   scope: string[];
+  logPath: string;
 }): {
   child: ChildProcess;
   exited: Promise<{ code: number | null }>;
@@ -124,10 +127,25 @@ const genSuiteRun = (input: {
   const child = spawn(
     'npx',
     ['jest', '-c', './jest.acceptance.config.ts', '--maxWorkers', input.width, '--forceExit', ...input.scope],
-    { env: { ...process.env, LOCALLY: 'true' }, stdio: ['ignore', 'ignore', 'pipe'] },
+    { env: { ...process.env, LOCALLY: 'true' }, stdio: ['ignore', 'pipe', 'pipe'] },
   );
+  const log = createWriteStream(input.logPath);
+  child.stdout?.on('data', (chunk: Buffer) => log.write(chunk));
+  child.stderr?.on('data', (chunk: Buffer) => log.write(chunk));
   const cap = setTimeout(() => child.kill('SIGTERM'), SUITE_WALL_MAX_MS);
-  const { exited, isLive } = genChildExit({ child });
+  const { exited: exitedRaw, isLive } = genChildExit({ child });
+
+  // the exit settles only once the log holds every byte, so a red row's log is whole when read
+  const exited = exitedRaw.then(
+    async (result) => {
+      await new Promise<void>((done) => log.end(done));
+      return result;
+    },
+    async (error: unknown) => {
+      await new Promise<void>((done) => log.end(done));
+      throw error;
+    },
+  );
   void exited.finally(() => clearTimeout(cap)).catch(() => undefined);
   const headed = new Promise<void>((settle, fail) => {
     const wait = setTimeout(
@@ -204,11 +222,12 @@ const getOneMeasureAtWidth = async (input: {
   scope: string[];
   peer: string;
   peerRuns: number;
+  logPath: string;
 }): Promise<MeasureAtWidth> => {
   // start the suite, and sample the box across its whole run
   const startedAt = performance.now();
   const sampler = genPressureSampler();
-  const suite = genSuiteRun({ width: input.width, scope: input.scope });
+  const suite = genSuiteRun({ width: input.width, scope: input.scope, logPath: input.logPath });
   try {
     // let the suite print its header, then fork its workers, before the peer starts
     await suite.headed;
@@ -229,6 +248,7 @@ const getOneMeasureAtWidth = async (input: {
       peak: sampler.stop(),
       suiteWallMs: performance.now() - startedAt,
       suiteExitCode: code,
+      suiteLogPath: relative(process.cwd(), input.logPath),
     };
   } finally {
     if (suite.isLive()) suite.child.kill('SIGTERM');
@@ -259,6 +279,11 @@ const main = async (): Promise<void> => {
     line: `🧮 measure.acceptance.share, at work (one full suite per width, so minutes, not seconds)`,
   });
 
+  // one stamp names the record and each width's suite log, so they sort together
+  const at = new Date();
+  const recordDir = join(process.cwd(), '.log/role=any/skill=measure.acceptance.share');
+  mkdirSync(recordDir, { recursive: true });
+
   // the baseline: the box as found, and the peer alone on it
   const baseline = getOneBoxPressureNow();
   emitProgress({
@@ -280,6 +305,7 @@ const main = async (): Promise<void> => {
       scope: args.scope,
       peer: args.peer,
       peerRuns: args.peerRuns,
+      logPath: join(recordDir, asMeasureSuiteLogName({ at, width })),
     });
     emitProgress({
       line: `   ├─ width ${width}, done in ${Math.round(row.suiteWallMs / 1000)}s`,
@@ -290,9 +316,7 @@ const main = async (): Promise<void> => {
   emitProgress({ line: '' });
 
   // the record, for the pr to cite
-  const recordDir = join(process.cwd(), '.log/role=any/skill=measure.acceptance.share');
-  mkdirSync(recordDir, { recursive: true });
-  const recordPath = join(recordDir, asMeasureRecordName({ at: new Date() }));
+  const recordPath = join(recordDir, asMeasureRecordName({ at }));
   writeFileSync(
     recordPath,
     JSON.stringify({ baseline, peerSoloMs, rows, scope: args.scope, peer: args.peer }, null, 2),
