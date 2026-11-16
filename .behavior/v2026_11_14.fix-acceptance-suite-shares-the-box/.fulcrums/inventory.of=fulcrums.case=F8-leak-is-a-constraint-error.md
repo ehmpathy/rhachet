@@ -27,3 +27,7 @@ child), where the system fixes it. the report's fix branch names the test-side c
 ## .where
 
 `blackbox/.test/infra/asLeakReport.ts` (`asLeakReport`), `ReporterAcceptanceBox.ts`.
+
+## .verdict
+
+confirmed (director, 2026-11-16) — a leak is a `ConstraintError`.

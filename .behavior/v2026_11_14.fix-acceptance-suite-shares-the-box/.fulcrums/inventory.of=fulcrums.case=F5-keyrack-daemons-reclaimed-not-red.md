@@ -6,4 +6,4 @@
 - **rework**: clean — the reclaim set is one predicate (`isProcessReclaimedByRun`); to make daemons red, drop it, then add a daemon teardown to each test that unlocks
 - **confidence**: 70% — a reviewer may prefer per-test teardown so a daemon leak in prod code paths is caught; this choice reclaims them at the run's end rather than the test's, so daemons pile up through a long run (a few per keyrack suite)
 - **where**: `blackbox/.test/infra/ReporterAcceptanceBox.ts`, `isProcessReclaimedByRun.ts`
-- **verdict**: open
+- **verdict**: confirmed (director, 2026-11-16) — a keyrack daemon is reclaimed by the sweep, not red

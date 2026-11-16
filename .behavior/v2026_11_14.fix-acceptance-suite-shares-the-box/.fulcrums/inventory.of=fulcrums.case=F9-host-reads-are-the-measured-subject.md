@@ -40,3 +40,7 @@ wisher may prefer the rule amended by name rather than a fulcrum that reads its 
 
 `blackbox/.test/infra/getOneBoxPressureNow.ts`, `getAllProcessesWithEnvMark.ts`,
 `getOneResidueFromBefore.ts`, `.agent/repo=.this/role=any/skills/measure.acceptance.share.ts`.
+
+## .verdict
+
+confirmed (director, 2026-11-16) — the host reads stay, as the measured subject.

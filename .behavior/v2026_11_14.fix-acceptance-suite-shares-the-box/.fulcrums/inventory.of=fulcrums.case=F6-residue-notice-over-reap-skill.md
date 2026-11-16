@@ -6,4 +6,4 @@
 - **rework**: clean — the notice is one file (`emitResidueNotice.ts`); a reap skill would sit beside it and the notice would name it
 - **confidence**: 80% — the wisher may still want the reap, if crews do not act on a notice
 - **where**: `blackbox/.test/infra/emitResidueNotice.ts`, `getOneResidueFromBefore.ts`; vision case 8, Q4
-- **verdict**: open
+- **verdict**: confirmed (director, 2026-11-16) — pre-fix residue gets a notice, not a reap skill

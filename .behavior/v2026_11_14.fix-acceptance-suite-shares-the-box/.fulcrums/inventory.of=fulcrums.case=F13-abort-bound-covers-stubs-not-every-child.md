@@ -27,3 +27,7 @@ rather than "no brain stub" would want it in this pr.
 ## .where
 
 `5.3.verification`, peer round i005, `enroll-verif-snapshot-coverage` blocker.1.
+
+## .verdict
+
+confirmed (director, 2026-11-16) — the abort bound covers brain stubs and dirs; the dream stands as a followup.
