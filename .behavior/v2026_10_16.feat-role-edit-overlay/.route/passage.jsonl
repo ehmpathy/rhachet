@@ -563,3 +563,4 @@
 {"stone":"5.3.verification","status":"absorbed","reason":"absorbed review.peer: enroll-verif-test-intent"}
 {"stone":"5.3.verification","status":"arrived","reason":"entered guard reviews"}
 {"stone":"5.3.verification","status":"passed"}
+{"stone":"6.adopt.mods.in.nheuron","status":"blocked"}

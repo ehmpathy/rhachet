@@ -13,5 +13,6 @@
 | [S7](./inventory.of=seeds.case=S7-nheuron-this-extensions-move-to-mods.md) | a last stone moves nheuron's foreign-role `repo=.this` extensions into `repo=.mods`, as a pr beside the overlay pr | `6.adopt.mods.in.nheuron.stone` |
 | [S8](./inventory.of=seeds.case=S8-no-blueprint-review-drive-the-nano-path.md) | a simple tree with no taste calls owes no blueprint review; execute, then the pr is what he reviews | blockers struck |
 | [S9](./inventory.of=seeds.case=S9-drop-the-mod-stop-hook-better-nitpicks-need-no-human.md) | F23 (b): a mod arms no stop hook, the drift pester lives in `roles boot` and `rhx upgrade`; a `better`-only nitpick tally needs no human | F23 + usecase 5 + the howto; the carrier removed |
+| [S10](./inventory.of=seeds.case=S10-nheuron-adopts-published-prioritizer-mods-its-extras.md) | F30 (b): nheuron adopts the published prioritizer and mods only its extra files; the diff names the mod set first; steps 2–5 from the director's seat after the release | F30 + the fulcrum index + the stone 6 blocker |
 
 gaps: none known.

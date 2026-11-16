@@ -2,7 +2,7 @@
 
 > best-guessed forks of the route. F1–F11 from the `1.vision` stone; F12–F18 from the
 > `3.3.1.blueprint.product` stone's open questions (Q1–Q7, in order); F19–F23 from the
-> `5.1.execution.from_vision` stone; F24–F29 from the `5.3.verification` stone. one entry per fulcrum,
+> `5.1.execution.from_vision` stone; F24–F29 from the `5.3.verification` stone; F30 from the `6.adopt.mods.in.nheuron` stone. one entry per fulcrum,
 > `case=F$n-$slug`. axis = `case` (occurrences, declared as they arise).
 
 `risk` = what ships if the best guess is wrong. **high**: a behavior harm reaches a clone or an extant repo · **medium**: a costly rework, no user harm · **low**: a clean swap. each entry names the harm behind its grade. **low (bar)**: graded on the director's bar for a vision fulcrum — risky only if it touches a credential or a prod write (ca-2675884743); a behavior harm under that bar is owed a blueprint test, never a halt.
@@ -38,5 +38,6 @@
 | [F27](./inventory.of=fulcrums.case=F27-a-transformer-caselist-keeps-the-data-driven-test-form.md) | a transformer caselist keeps the data-driven `test()` form | clean | low | open | 88% |
 | [F28](./inventory.of=fulcrums.case=F28-cross-surface-vocabulary-nitpicks-wait-for-a-dedicated-pr.md) | the cross-surface vocabulary nitpicks of the 5.3 l3 lanes wait for a dedicated pr | clean | low | open | 80% |
 | [F29](./inventory.of=fulcrums.case=F29-relink-and-print-mode-enroll-rest-on-their-clamps.md) | `roles link` and a print-mode `enroll` over a mod rest on their clamps | clean | low | open | 85% |
+| [F30](./inventory.of=fulcrums.case=F30-nheuron-prioritizer-is-a-fork-not-an-extension.md) | nheuron's foreign role is `prioritizer`, a fork rather than an extension; F15's learner premise is stale | clean | medium | ruled (b) — director, 2026-11-16; mod set named by the 45-vs-57 diff (3 adds, 0 shadows); steps 2–5 from the director's seat after #702 releases | 60% |
 
 gaps: none known — each best-guess in the vision and blueprint yields maps to a row above.
