@@ -90,11 +90,13 @@ command -v pnpm > /dev/null || {
 
 # resnap writes snapshots (the package command reads RESNAP); the default verifies them under
 #   CI=true, which jest reads as --ci, so an unwritten snapshot fails as it does in ci
+# .note = the scope rides a named flag, never a bare positional: after `--updateSnapshot`, jest
+#   reads a positional as that flag's value, drops the scope, and resnaps every suite
 set +e
 if [[ -n "$RESNAP" ]]; then
-  RESNAP=true pnpm run test:acceptance:locally "$SCOPE" > "$LOG_PATH" 2>&1
+  RESNAP=true pnpm run test:acceptance:locally --testPathPatterns "$SCOPE" > "$LOG_PATH" 2>&1
 else
-  CI=true pnpm run test:acceptance:locally "$SCOPE" > "$LOG_PATH" 2>&1
+  CI=true pnpm run test:acceptance:locally --testPathPatterns "$SCOPE" > "$LOG_PATH" 2>&1
 fi
 STATUS=$?
 set -e

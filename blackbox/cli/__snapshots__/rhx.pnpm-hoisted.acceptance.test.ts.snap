@@ -48,6 +48,7 @@ Commands:
                             latest versions
   update                    see "upgrade"
   keyrack [options]         manage credentials via keyrack
+  brains                    manage brain credentials — auth set, get, use
   help [command]            display help for command
 "
 `;

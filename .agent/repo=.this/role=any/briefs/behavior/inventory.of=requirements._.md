@@ -53,6 +53,9 @@ reviewer checks a change against it.
 | 24 | [a deleted mod returns the role to its published layout](./inventory.of=requirements.case=24.deleted-mod-returns-the-published-role.md) | proven |
 | 25 | [`roles cost` marks a modded role, and a mod arms the one stop sweep](./inventory.of=requirements.case=25.modded-role-marked-arms-the-stop-sweep.md) | proven 2026-11-17, as amended (F23 reversed to (a)) |
 | 26 | [a shadow skill runs beside its published peers](./inventory.of=requirements.case=26.shadow-skill-finds-its-published-peer.md) | proven |
+| 27 | [`rhx brains auth get` shows the windows `brains.auth.usage` shows, per account](./inventory.of=requirements.case=27.brains-auth-get-matches-usage.md) | owed |
+| 28 | [`rhx brains auth use` lands at clone, tree, and grove, proven by a before/after account compare](./inventory.of=requirements.case=28.brains-auth-use-proven-by-compare.md) | owed |
+| 29 | [`rhx brains auth set` keeps the credential in the keyrack, never printed or committed](./inventory.of=requirements.case=29.brains-auth-set-keeps-creds-in-keyrack.md) | owed |
 
 ## .how to add an entry
 

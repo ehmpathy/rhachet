@@ -4,22 +4,28 @@ import { genSampleBrainAuth } from '@src/.test/assets/genSampleBrainAuth';
 
 import { asBrainAuthOauth } from './asBrainAuthOauth';
 
+// the sample logins, and the exact oauth block each file holds
+const loginLive = genSampleBrainAuth({ state: 'live', expiresAt: 1 });
+const loginDead = genSampleBrainAuth({ state: 'dead', expiresAt: 1 });
+const blockLive = JSON.parse(loginLive).claudeAiOauth;
+const blockDead = JSON.parse(loginDead).claudeAiOauth;
+
 const TEST_CASES = [
   { description: 'no file', content: null, expected: null },
   {
     description: 'a live login',
-    content: genSampleBrainAuth({ state: 'live', expiresAt: 1 }),
-    expected: { refreshToken: expect.any(String) },
+    content: loginLive,
+    expected: { refreshToken: blockLive.refreshToken, block: blockLive },
   },
   {
     description: 'a dead login (refresh token emptied)',
-    content: genSampleBrainAuth({ state: 'dead', expiresAt: 1 }),
-    expected: { refreshToken: '' },
+    content: loginDead,
+    expected: { refreshToken: '', block: blockDead },
   },
   {
     description: 'an oauth block with no refresh token',
     content: JSON.stringify({ claudeAiOauth: { accessToken: 'a' } }),
-    expected: { refreshToken: null },
+    expected: { refreshToken: null, block: { accessToken: 'a' } },
   },
   {
     description: 'a file with no oauth block',

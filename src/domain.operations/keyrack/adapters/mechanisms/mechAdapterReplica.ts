@@ -80,12 +80,14 @@ export const mechAdapterReplica: KeyrackGrantMechanismAdapter = {
 
   /**
    * .what = acquire source credential via guided setup
-   * .why = prompts user for secret via stdin
+   * .why = prompts the human for the secret via stdin, or asks the caller's question when one is supplied
    *
    * .note = keySlug is fully qualified (org.env.name) for display in prompts
-   * .note = uses promptHiddenInput for secure password entry
+   * .note = uses promptHiddenInput for secure password entry when no question is supplied
+   * .note = a supplied `options.question` lets code set a secret it already holds (e.g., a
+   *         rotated brain auth token) without stdin
    */
-  acquireForSet: async (input) => {
+  acquireForSet: async (input, options) => {
     // .note = a replica honors a DECLARED reach: a human pastes a secret and asserts which
     //         reach it opens, so this mech carries the exid through untouched and the
     //         vault files the value under it. that is the whole of it — no scheme, no uri,
@@ -97,11 +99,12 @@ export const mechAdapterReplica: KeyrackGrantMechanismAdapter = {
     // extract key name from slug for user-friendly prompt
     const keyName = input.keySlug.split('.').pop() ?? input.keySlug;
 
-    // prompt for secret via hidden input (handles TTY and piped stdin)
+    // ask the caller's question if supplied, else prompt via hidden input (handles TTY and piped stdin)
     // .note = no manual prefix needed; withStdoutPrefix auto-prefixes when atLineStart
-    const source = await promptHiddenInput({
-      prompt: `enter secret for ${keyName}: `,
-    });
+    const prompt = `enter secret for ${keyName}: `;
+    const source = options?.question
+      ? await options.question(prompt)
+      : await promptHiddenInput({ prompt });
 
     return { source };
   },

@@ -1,31 +1,16 @@
 import { given, then, when } from 'test-fns';
 
+import { genMockKeyrackHostBoundaries } from '@src/.test/assets/genMockKeyrackHostBoundaries';
 import { genMockKeyrackHostManifest } from '@src/.test/assets/genMockKeyrackHostManifest';
 import { genMockKeyrackRepoManifest } from '@src/.test/assets/genMockKeyrackRepoManifest';
 import { genMockVaultAdapter } from '@src/.test/assets/genMockVaultAdapter';
 
-import type { ContextKeyrack } from './genContextKeyrack';
 import { setKeyrackKey } from './setKeyrackKey';
 
-// mock the daos to avoid filesystem access in unit tests
-jest.mock('../../access/daos/daoKeyrackHostManifest', () => ({
-  daoKeyrackHostManifest: {
-    set: jest.fn(),
-  },
-}));
+type ContextOfSetKeyrackKey = Parameters<typeof setKeyrackKey>[1];
 
-jest.mock('../../access/daos/daoKeyrackRepoManifest', () => ({
-  daoKeyrackRepoManifest: {
-    set: {
-      findsertKeyToEnv: jest.fn(),
-    },
-  },
-}));
-
-// mock daemon SDK to avoid real socket calls in unit tests
-jest.mock('./daemon/sdk', () => ({
-  daemonAccessRelock: jest.fn().mockResolvedValue(undefined),
-}));
+// host-state boundaries as in-memory fakes, injected via context: no host lock, fs, or daemon socket
+const boundaries = genMockKeyrackHostBoundaries();
 
 describe('setKeyrackKey', () => {
   given('[case1] single env key', () => {
@@ -35,8 +20,9 @@ describe('setKeyrackKey', () => {
         async () => {
           const mockAdapter = genMockVaultAdapter();
 
-          const context: ContextKeyrack = {
+          const context: ContextOfSetKeyrackKey = {
             owner: null,
+            boundaries,
             identity: {
               getOne: async () => 'test-identity',
               getAll: {
@@ -64,7 +50,6 @@ describe('setKeyrackKey', () => {
               org: 'testorg',
               vault: 'os.direct',
               mech: 'PERMANENT_VIA_REPLICA',
-              secret: 'test-secret',
             },
             context,
           );
@@ -87,8 +72,9 @@ describe('setKeyrackKey', () => {
           supportedMechs: ['EPHEMERAL_VIA_AWS_SSO'],
         });
 
-        const context: ContextKeyrack = {
+        const context: ContextOfSetKeyrackKey = {
           owner: null,
+          boundaries,
           identity: {
             getOne: async () => 'test-identity',
             getAll: {
@@ -136,8 +122,9 @@ describe('setKeyrackKey', () => {
       then('it should store under $org.all.$key only', async () => {
         const mockAdapter = genMockVaultAdapter();
 
-        const context: ContextKeyrack = {
+        const context: ContextOfSetKeyrackKey = {
           owner: null,
+          boundaries,
           identity: {
             getOne: async () => 'test-identity',
             getAll: {
@@ -166,7 +153,6 @@ describe('setKeyrackKey', () => {
             org: 'customorg',
             vault: 'os.direct',
             mech: 'PERMANENT_VIA_REPLICA',
-            secret: 'test-secret',
             at: 'custom/role/keyrack.yml',
           },
           context,
@@ -198,8 +184,9 @@ describe('setKeyrackKey', () => {
             },
           });
 
-          const context: ContextKeyrack = {
+          const context: ContextOfSetKeyrackKey = {
             owner: null,
+            boundaries,
             identity: {
               getOne: async () => 'test-identity',
               getAll: {
@@ -228,7 +215,6 @@ describe('setKeyrackKey', () => {
               org: 'ehmpathy',
               vault: 'os.direct',
               mech: 'PERMANENT_VIA_REPLICA',
-              secret: 'test-secret',
               repoManifest,
             },
             context,

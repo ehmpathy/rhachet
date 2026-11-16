@@ -1,17 +1,17 @@
 import { ConstraintError, MalfunctionError } from 'helpful-errors';
 
-import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
 import { daoKeyrackInventory } from '@src/access/daos/daoKeyrackInventory';
 import { daoKeyrackRepoManifest } from '@src/access/daos/daoKeyrackRepoManifest';
 import type { KeyrackKeyReach } from '@src/domain.objects/keyrack';
-import { KeyrackHostManifest } from '@src/domain.objects/keyrack';
 import { isEphemeralVault } from '@src/domain.operations/keyrack/isEphemeralVault';
 import { asKeyrackKeyReachField } from '@src/domain.operations/keyrack/reach/asKeyrackKeyReachField';
 import { asKeyrackKeySlugAtReach } from '@src/domain.operations/keyrack/reach/asKeyrackKeySlugAtReach';
 
+import { asKeyrackKeyHostsWithout } from './asKeyrackKeyHostsWithout';
 import { asKeyrackKeyName } from './asKeyrackKeyName';
 import { daemonAccessRelock } from './daemon/sdk';
 import type { ContextKeyrack } from './genContextKeyrack';
+import { setKeyrackHostManifestHosts } from './setKeyrackHostManifestHosts';
 
 /**
  * .what = remove a credential key from this host
@@ -42,13 +42,41 @@ export const delKeyrackKeyHost = async (
      */
     reach?: KeyrackKeyReach;
   },
-  context: ContextKeyrack,
+  context: ContextKeyrack & {
+    /**
+     * .what = the host-state boundaries this op writes through: manifest file, daemon socket,
+     *         inventory, keyrack.yml
+     * .why = injectable, so a unit test supplies in-memory fakes; absent in prod, where the real
+     *        ones serve
+     */
+    boundaries?: {
+      setKeyrackHostManifestHosts?: typeof setKeyrackHostManifestHosts;
+      daemonAccessRelock?: typeof daemonAccessRelock;
+      daoKeyrackInventory?: Pick<typeof daoKeyrackInventory, 'del'>;
+      daoKeyrackRepoManifest?: {
+        del: Pick<(typeof daoKeyrackRepoManifest)['del'], 'keyFromEnv'>;
+      };
+    };
+  },
 ): Promise<{
   effect: 'deleted' | 'not_found';
   // the remote secret keyrack destroyed, if the adapter owned one (aws.params owned mech) — so
   // the CLI can echo what changed; absent for every adapter that destroys no remote secret
   destroyed?: { exid: string } | null;
 }> => {
+  // bind each host-state boundary: the injected fake, else the real one
+  const boundaries = {
+    setKeyrackHostManifestHosts:
+      context.boundaries?.setKeyrackHostManifestHosts ??
+      setKeyrackHostManifestHosts,
+    daemonAccessRelock:
+      context.boundaries?.daemonAccessRelock ?? daemonAccessRelock,
+    daoKeyrackInventory:
+      context.boundaries?.daoKeyrackInventory ?? daoKeyrackInventory,
+    daoKeyrackRepoManifest:
+      context.boundaries?.daoKeyrackRepoManifest ?? daoKeyrackRepoManifest,
+  };
+
   // guard: host manifest required
   if (!context.hostManifest)
     throw new MalfunctionError(
@@ -95,23 +123,19 @@ export const delKeyrackKeyHost = async (
   // prune from daemon (in case key was unlocked in current session)
   // .note = scoped to THIS key's reach — absent it, a del at one reach would purge
   //         the live grants of every peer reach of the slug
-  await daemonAccessRelock({
+  await boundaries.daemonAccessRelock({
     slugs: [input.slug],
     ...asKeyrackKeyReachField({ reach: input.reach }),
     owner: context.owner,
   });
 
-  // remove from host manifest
-  const hostsUpdated = { ...hostManifest.hosts };
-  delete hostsUpdated[address];
-
-  const manifestUpdated = new KeyrackHostManifest({
-    ...hostManifest,
-    hosts: hostsUpdated,
-  });
-
-  // persist updated manifest
-  await daoKeyrackHostManifest.set({ upsert: manifestUpdated });
+  // remove from host manifest, under the host mutex, over a fresh read
+  await boundaries.setKeyrackHostManifestHosts(
+    {
+      mutate: ({ hosts }) => asKeyrackKeyHostsWithout({ hosts, address }),
+    },
+    context,
+  );
 
   // for non-sudo keys: also remove from keyrack.yml (if gitroot available)
   // .note = a REACH key was never written into keyrack.yml — `setKeyrackKeyHost` declines
@@ -121,7 +145,7 @@ export const delKeyrackKeyHost = async (
   //         at. to remove it would undeclare a key that still exists on the host
   if (!input.reach && hostFound.env !== 'sudo' && context.gitroot) {
     const keyName = asKeyrackKeyName({ slug: input.slug });
-    await daoKeyrackRepoManifest.del.keyFromEnv({
+    await boundaries.daoKeyrackRepoManifest.del.keyFromEnv({
       gitroot: context.gitroot,
       key: keyName,
       env: hostFound.env,
@@ -136,7 +160,10 @@ export const delKeyrackKeyHost = async (
   //         entry to tell "this reach was cut and is locked" from "never cut at all",
   //         so the leftover would report a deleted key as merely locked, forever
   if (!isEphemeralVault({ vault: hostFound.vault })) {
-    await daoKeyrackInventory.del({ slug: address, owner: context.owner });
+    await boundaries.daoKeyrackInventory.del({
+      slug: address,
+      owner: context.owner,
+    });
   }
 
   // an adapter that destroyed a remote secret returns { destroyed }; a void return (every other

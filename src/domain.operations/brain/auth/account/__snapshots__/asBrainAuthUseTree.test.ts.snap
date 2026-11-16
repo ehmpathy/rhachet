@@ -1,0 +1,55 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asBrainAuthUseTree given: [case1] a swap from one account to another when: [t0] the prior account was stowed, and naught else to warn then: the tree matches its snapshot 1`] = `
+"🧠 brains auth use --scope grove
+   ├─ owner = ehmpath
+   ├─ before = one@example.com (org org-one)
+   ├─ after = two@example.com (org unknown)
+   ├─ stowed in keyrack = one@example.com
+   ├─ live clones in this repo = none seen; claude terminals started outside rhx, and clones of other repos, are not scanned
+   └─ landed, read back from the grove"
+`;
+
+exports[`asBrainAuthUseTree given: [case1] a swap from one account to another when: [t1] the target is capped, and two clones live on the prior then: the tree matches its snapshot 1`] = `
+"🧠 brains auth use --scope grove
+   ├─ owner = ehmpath
+   ├─ before = one@example.com (org org-one)
+   ├─ after = two@example.com (org unknown)
+   ├─ stowed in keyrack = one@example.com
+   ├─ 🟡 two@example.com is capped until its reset
+   │  ├─ session reset unknown
+   │  └─ week resets in 4d
+   ├─ live clones in this repo, on one@example.com until their next login read
+   │  ├─ @:driver
+   │  └─ @:foreman
+   ├─ 🟡 one@example.com is at risk while they live; a refresh from memory rotates its parked copy
+   │  └─ if \`rhx brains auth get\` reads it dead, run \`rhx brains auth set --brain claude --account one@example.com\`
+   └─ landed, read back from the grove"
+`;
+
+exports[`asBrainAuthUseTree given: [case2] a swap from a grove with no signed-in account when: [t0] there was naught to stow then: the tree matches its snapshot 1`] = `
+"🧠 brains auth use --scope grove
+   ├─ owner = ehmpath
+   ├─ before = none
+   ├─ after = two@example.com (org unknown)
+   └─ landed, read back from the grove"
+`;
+
+exports[`asBrainAuthUseTree given: [case3] a use of the account the grove already holds when: [t0] the outcome is unchanged then: the tree matches its snapshot 1`] = `
+"🧠 brains auth use --scope grove
+   ├─ owner = ehmpath
+   ├─ after = one@example.com (org org-one)
+   └─ unchanged, the grove already uses this account"
+`;
+
+exports[`asBrainAuthUseTree given: [case4] a swap whose target usage could not be read when: [t0] the caps are unknown then: the tree matches its snapshot 1`] = `
+"🧠 brains auth use --scope grove
+   ├─ owner = ehmpath
+   ├─ before = one@example.com (org org-one)
+   ├─ after = two@example.com (org unknown)
+   ├─ stowed in keyrack = one@example.com
+   ├─ 🟡 two@example.com usage unread, so a full window cannot be named
+   │  └─ see \`rhx brains auth get\` once the use lands
+   ├─ live clones in this repo = none seen; claude terminals started outside rhx, and clones of other repos, are not scanned
+   └─ landed, read back from the grove"
+`;

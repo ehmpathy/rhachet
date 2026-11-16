@@ -1,43 +1,25 @@
 import { getError, given, then, when } from 'test-fns';
 
+import { genMockKeyrackHostBoundaries } from '@src/.test/assets/genMockKeyrackHostBoundaries';
 import { genMockKeyrackHostManifest } from '@src/.test/assets/genMockKeyrackHostManifest';
 import { genMockKeyrackRepoManifest } from '@src/.test/assets/genMockKeyrackRepoManifest';
 import { genMockVaultAdapter } from '@src/.test/assets/genMockVaultAdapter';
 
-import type { ContextKeyrack } from './genContextKeyrack';
 import { setKeyrackKeyHost } from './setKeyrackKeyHost';
 
-// mock the dao to avoid filesystem access in unit tests
-jest.mock('../../access/daos/daoKeyrackHostManifest', () => ({
-  daoKeyrackHostManifest: {
-    set: jest.fn(),
-  },
-}));
+type ContextOfSetKeyrackKeyHost = Parameters<typeof setKeyrackKeyHost>[1];
 
-// mock daemon SDK to avoid real socket calls in unit tests
-jest.mock('./daemon/sdk', () => ({
-  daemonAccessRelock: jest.fn().mockResolvedValue(undefined),
-}));
-
-// mock inventory dao to avoid filesystem access in unit tests
-jest.mock('../../access/daos/daoKeyrackInventory', () => ({
-  daoKeyrackInventory: {
-    set: jest.fn(),
-  },
-}));
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const {
-  daoKeyrackInventory,
-} = require('../../access/daos/daoKeyrackInventory');
+// host-state boundaries as in-memory fakes, injected via context: no host lock, fs, or daemon socket
+const boundaries = genMockKeyrackHostBoundaries();
 
 describe('setKeyrackKeyHost', () => {
   beforeEach(() => {
-    daoKeyrackInventory.set.mockClear();
+    boundaries.daoKeyrackInventory.set.mockClear();
   });
   given('[case1] new key to configure with @this org', () => {
-    const context: ContextKeyrack = {
+    const context: ContextOfSetKeyrackKeyHost = {
       owner: null,
+      boundaries,
       identity: {
         getOne: async () => 'test-identity',
         getAll: { discovered: async () => ['test-identity'], prescribed: [] },
@@ -129,7 +111,7 @@ describe('setKeyrackKeyHost', () => {
           },
           context,
         );
-        expect(daoKeyrackInventory.set).toHaveBeenCalledWith({
+        expect(boundaries.daoKeyrackInventory.set).toHaveBeenCalledWith({
           slug: 'NEW_KEY',
           owner: null,
         });
@@ -229,8 +211,9 @@ describe('setKeyrackKeyHost', () => {
   });
 
   given('[case2] key already exists with same attrs', () => {
-    const context: ContextKeyrack = {
+    const context: ContextOfSetKeyrackKeyHost = {
       owner: null,
+      boundaries,
       identity: {
         getOne: async () => 'test-identity',
         getAll: { discovered: async () => ['test-identity'], prescribed: [] },
@@ -277,8 +260,9 @@ describe('setKeyrackKeyHost', () => {
   });
 
   given('[case3] key exists with different attrs', () => {
-    const context: ContextKeyrack = {
+    const context: ContextOfSetKeyrackKeyHost = {
       owner: null,
+      boundaries,
       identity: {
         getOne: async () => 'test-identity',
         getAll: { discovered: async () => ['test-identity'], prescribed: [] },
@@ -337,8 +321,9 @@ describe('setKeyrackKeyHost', () => {
   });
 
   given('[case4] org validation', () => {
-    const context: ContextKeyrack = {
+    const context: ContextOfSetKeyrackKeyHost = {
       owner: null,
+      boundaries,
       identity: {
         getOne: async () => 'test-identity',
         getAll: { discovered: async () => ['test-identity'], prescribed: [] },
@@ -404,8 +389,9 @@ describe('setKeyrackKeyHost', () => {
   });
 
   given('[case5] @this without repoManifest', () => {
-    const context: ContextKeyrack = {
+    const context: ContextOfSetKeyrackKeyHost = {
       owner: null,
+      boundaries,
       identity: {
         getOne: async () => 'test-identity',
         getAll: { discovered: async () => ['test-identity'], prescribed: [] },
@@ -438,8 +424,9 @@ describe('setKeyrackKeyHost', () => {
   });
 
   given('[case6] os.daemon vault (ephemeral)', () => {
-    const context: ContextKeyrack = {
+    const context: ContextOfSetKeyrackKeyHost = {
       owner: null,
+      boundaries,
       identity: {
         getOne: async () => 'test-identity',
         getAll: { discovered: async () => ['test-identity'], prescribed: [] },
@@ -468,21 +455,10 @@ describe('setKeyrackKeyHost', () => {
           },
           context,
         );
-        expect(daoKeyrackInventory.set).not.toHaveBeenCalled();
+        expect(boundaries.daoKeyrackInventory.set).not.toHaveBeenCalled();
       });
     });
   });
 
-  /**
-   * ⚠️ .moved = the reach-vs-keyrack.yml A/B that lived here is now
-   *         `setKeyrackKeyHost.integration.test.ts` `[case11]`.
-   * .why = it observed the claim through a `jest.mock`ed `daoKeyrackRepoManifest` and
-   *        asserted `not.toHaveBeenCalled()`. that is a module mock across a remote boundary
-   *        inside a `.test.ts` (`rule.forbid.unit.remote-boundaries`), AND it proved the
-   *        weaker fact — that a function went uncalled, rather than that the FILE holds no
-   *        such line. the integration twin writes a real `keyrack.yml`, runs the same set
-   *        twice (with and without a reach), and reads the file back through `parseYaml`
-   * .note = kept as a note rather than deleted silently, so a reader who greps this file for
-   *         the q8 guarantee is sent to where it now lives
-   */
+  // .note = the q8 reach-vs-keyrack.yml guarantee is proven in setKeyrackKeyHost.integration.test.ts [case11]
 });

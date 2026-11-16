@@ -1,0 +1,68 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`setBrainAuthAccount given: [case1] an email the keyrack does not hold (case=1) when: [t0] the human logs in as b then: the result matches its snapshot, with no token in it 1`] = `
+{
+  "account": BrainAuthAccount {
+    "accountUuid": "uuid-b@example.com",
+    "brain": "claude",
+    "email": "b@example.com",
+    "orgId": "org-b",
+  },
+  "outcome": "stored",
+}
+`;
+
+exports[`setBrainAuthAccount given: [case4] an email the keyrack holds for an account in another org (a7) when: [t0] the human logs in as b in a new org then: it refuses as a constraint, and names both orgs 1`] = `
+[Error: ✋ ConstraintError: this email already holds a login for an account in another org
+
+{
+  "email": "b@example.com",
+  "orgHeld": "org-other",
+  "orgNew": "org-b",
+  "hint": "the held login was renewed and parked back, and the new one was not filed; log in to the org already held. one email holds one login today, whatever its org"
+}]
+`;
+
+exports[`setBrainAuthAccount given: [case5] the human exits the cli with no login when: [t0] set runs then: it refuses, and names the steps of a login 1`] = `
+[Error: ✋ ConstraintError: the login did not complete
+
+{
+  "hint": "run the command again, type /login in claude, finish the browser login, then /exit"
+}]
+`;
+
+exports[`setBrainAuthAccount given: [case6] the claude cli cannot be started when: [t0] set runs then: it fails as a malfunction, and names the install 1`] = `
+[Error: 💥 MalfunctionError: the claude cli could not be started
+
+{
+  "hint": "install claude code, then retry: rhx brains auth set --brain claude"
+}]
+`;
+
+exports[`setBrainAuthAccount given: [case7] the owner has no keyrack to file a login into when: [t0] set runs then: it refuses as a constraint, and names the keyrack init 1`] = `
+[Error: ✋ ConstraintError: no keyrack for this owner, so a login cannot be filed
+
+{
+  "hint": "rhx keyrack init --owner nokeyrack   # then retry"
+}]
+`;
+
+exports[`setBrainAuthAccount given: [case8] the human asked for one account, and logged in as another when: [t0] set runs with --account c then: it refuses before aught is filed, and names both 1`] = `
+[Error: ✋ ConstraintError: the login opened a different account than the one asked for
+
+{
+  "asked": "c@example.com",
+  "opened": "b@example.com",
+  "hint": "naught was filed; run the set again and log in as c@example.com"
+}]
+`;
+
+exports[`setBrainAuthAccount given: [case9] the keyrack write of the new login faults when: [t1] it faults on every try then: it fails loud as a malfunction that says naught was filed 1`] = `
+[Error: 💥 MalfunctionError: the new login could not be filed in the keyrack
+
+{
+  "email": "b@example.com",
+  "tries": 3,
+  "hint": "naught was filed. check \`rhx keyrack status --owner default\`, then run \`rhx brains auth set --brain claude\` again"
+}]
+`;

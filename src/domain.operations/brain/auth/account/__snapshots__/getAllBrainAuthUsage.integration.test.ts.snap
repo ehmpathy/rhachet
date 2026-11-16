@@ -1,0 +1,110 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`getAllBrainAuthUsage given: [case1] a grove on a, with b, c and d parked (case=2) when: [t0] every account is read then: the json rows match their snapshot, with no token in them 1`] = `
+[
+  BrainAuthUsage {
+    "account": BrainAuthAccount {
+      "accountUuid": "uuid-a@example.com",
+      "brain": "claude",
+      "email": "a@example.com",
+      "orgId": null,
+    },
+    "email": "a@example.com",
+    "renewed": false,
+    "savedResets": null,
+    "signedIn": true,
+    "status": "read",
+    "windows": [
+      BrainAuthUsageWindow {
+        "capped": false,
+        "resetsAt": null,
+        "slug": "session",
+        "usedShare": 0.2,
+      },
+      BrainAuthUsageWindow {
+        "capped": false,
+        "resetsAt": null,
+        "slug": "week",
+        "usedShare": 0.4,
+      },
+    ],
+  },
+  BrainAuthUsage {
+    "account": BrainAuthAccount {
+      "accountUuid": "uuid-b@example.com",
+      "brain": "claude",
+      "email": "b@example.com",
+      "orgId": null,
+    },
+    "email": "b@example.com",
+    "renewed": true,
+    "savedResets": null,
+    "signedIn": false,
+    "status": "read",
+    "windows": [
+      BrainAuthUsageWindow {
+        "capped": false,
+        "resetsAt": null,
+        "slug": "session",
+        "usedShare": 0.2,
+      },
+      BrainAuthUsageWindow {
+        "capped": false,
+        "resetsAt": null,
+        "slug": "week",
+        "usedShare": 0.4,
+      },
+    ],
+  },
+  BrainAuthUsage {
+    "account": null,
+    "email": "c@example.com",
+    "renewed": false,
+    "savedResets": null,
+    "signedIn": false,
+    "status": "rate-limited",
+    "windows": [],
+  },
+  BrainAuthUsage {
+    "account": null,
+    "email": "d@example.com",
+    "renewed": false,
+    "savedResets": null,
+    "signedIn": false,
+    "status": "dead",
+    "windows": [],
+  },
+]
+`;
+
+exports[`getAllBrainAuthUsage given: [case1] a grove on a, with b, c and d parked (case=2) when: [t0] every account is read then: the populated tree matches its snapshot 1`] = `
+"🧠 brains auth get
+   ├─ owner = ehmpath
+   ├─ a@example.com (signed in)
+   │  ├─ session = ██░░░░░░░░ 20% used, reset unknown
+   │  ├─ week = ████░░░░░░ 40% used, reset unknown
+   │  └─ saved resets = unknown
+   ├─ b@example.com (renewed)
+   │  ├─ session = ██░░░░░░░░ 20% used, reset unknown
+   │  ├─ week = ████░░░░░░ 40% used, reset unknown
+   │  └─ saved resets = unknown
+   ├─ c@example.com
+   │  └─ rate-limited — the provider asked to wait; not dead, retry later
+   ├─ d@example.com
+   │  └─ dead — the stored login no longer opens it; run \`rhx brains auth set --brain claude --account d@example.com\`
+   └─ note = each (renewed) login was rotated by this read; its new token is parked back in the keyrack"
+`;
+
+exports[`getAllBrainAuthUsage given: [case1] a grove on a, with b, c and d parked (case=2) when: [t3] an account the keyrack does not hold is asked for then: it refuses, with the accounts held, and naught is minted 1`] = `
+[Error: ✋ ConstraintError: no stored credential for z@example.com
+
+{
+  "held": [
+    "b@example.com",
+    "c@example.com",
+    "d@example.com"
+  ],
+  "signedIn": "a@example.com",
+  "hint": "rhx brains auth set --brain claude --account z@example.com"
+}]
+`;

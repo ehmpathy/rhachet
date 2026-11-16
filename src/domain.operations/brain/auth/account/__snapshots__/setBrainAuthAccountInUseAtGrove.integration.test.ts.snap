@@ -1,0 +1,148 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`setBrainAuthAccountInUseAtGrove given: [case1] a grove on a, with b parked (case=3) when: [t0] b is put to use then: the result matches its snapshot, with no token in it 1`] = `
+{
+  "after": BrainAuthAccount {
+    "accountUuid": "uuid-b@example.com",
+    "brain": "claude",
+    "email": "b@example.com",
+    "orgId": "org-b",
+  },
+  "before": BrainAuthAccount {
+    "accountUuid": "uuid-a@example.com",
+    "brain": "claude",
+    "email": "a@example.com",
+    "orgId": "org-a",
+  },
+  "outcome": "swapped",
+  "stowed": "a@example.com",
+  "windowsCapped": [],
+}
+`;
+
+exports[`setBrainAuthAccountInUseAtGrove given: [case3] an env credential outranks the grove login (case=8 [t0]) when: [t0] b is put to use then: it refuses as a constraint, and names the env key to unset 1`] = `
+[Error: ✋ ConstraintError: an env credential outranks the grove login
+
+{
+  "target": "b@example.com",
+  "outrankers": [
+    "CLAUDE_CODE_OAUTH_TOKEN"
+  ],
+  "hint": "unset CLAUDE_CODE_OAUTH_TOKEN   # in the env where clones spawn"
+}]
+`;
+
+exports[`setBrainAuthAccountInUseAtGrove given: [case3] an env credential outranks the grove login (case=8 [t0]) when: [t1] two env credentials are set then: the hint is one copy-paste unset of both keys 1`] = `
+[Error: ✋ ConstraintError: an env credential outranks the grove login
+
+{
+  "target": "b@example.com",
+  "outrankers": [
+    "CLAUDE_CODE_OAUTH_TOKEN",
+    "ANTHROPIC_API_KEY"
+  ],
+  "hint": "unset CLAUDE_CODE_OAUTH_TOKEN ANTHROPIC_API_KEY   # in the env where clones spawn"
+}]
+`;
+
+exports[`setBrainAuthAccountInUseAtGrove given: [case3b] the provider is busy when the grove's account is read when: [t0] b is put to use then: it fails as a malfunction to retry, never a human fault 1`] = `
+[Error: 💥 MalfunctionError: the grove's signed-in account could not be read
+
+{
+  "status": "rate-limited",
+  "hint": "the grove is untouched; the provider is busy or unreachable. wait a few minutes, then retry"
+}]
+`;
+
+exports[`setBrainAuthAccountInUseAtGrove given: [case4] a live session rotates the grove login mid-swap (case=8 [t1]) when: [t0] b is put to use then: the use aborts, and says the target stays usable 1`] = `
+[Error: 💥 MalfunctionError: grove login changed mid-swap
+
+{
+  "email": "b@example.com",
+  "hint": "a live claude session rewrote the login; the target stays parked and usable. retry the use"
+}]
+`;
+
+exports[`setBrainAuthAccountInUseAtGrove given: [case5] a target the keyrack does not hold (case=5 [t0]) when: [t0] c is put to use then: it refuses, with the accounts held 1`] = `
+[Error: ✋ ConstraintError: no stored credential for c@example.com
+
+{
+  "held": [
+    "b@example.com"
+  ],
+  "signedIn": "a@example.com",
+  "hint": "rhx brains auth set --brain claude --account c@example.com"
+}]
+`;
+
+exports[`setBrainAuthAccountInUseAtGrove given: [case5b] a target whose parked login is spent (case=5 [t1]) when: [t0] b is put to use then: it refuses as a constraint, and names the set that renews it 1`] = `
+[Error: ✋ ConstraintError: the parked login for this account no longer opens it
+
+{
+  "email": "b@example.com",
+  "hint": "rhx brains auth set --brain claude --account b@example.com"
+}]
+`;
+
+exports[`setBrainAuthAccountInUseAtGrove given: [case5c] the prior account cannot be stowed after the install when: [t0] b is put to use then: it fails loud: the prior login is named as lost, with its cure 1`] = `
+[Error: 💥 MalfunctionError: the use landed, but a@example.com's login could not be stowed, so it is lost
+
+{
+  "landed": true,
+  "stowed": "none",
+  "grove": "b@example.com",
+  "hint": "rhx brains auth set --brain claude --account a@example.com"
+}]
+`;
+
+exports[`setBrainAuthAccountInUseAtGrove given: [case5d] a keyrack that holds the target but is locked when: [t0] b is put to use then: it refuses as a constraint, and names the unlock to run 1`] = `
+[Error: ✋ ConstraintError: the keyrack holds this account, but will not open it
+
+{
+  "email": "b@example.com",
+  "status": "locked",
+  "hint": "rhx keyrack unlock --owner ehmpath --env prep"
+}]
+`;
+
+exports[`setBrainAuthAccountInUseAtGrove given: [case7] a grove whose live token has lapsed (case=5 [t3]) when: [t0] b is put to use then: it refuses as unverified, and naught is minted 1`] = `
+[Error: ✋ ConstraintError: the grove's signed-in account is unverified
+
+{
+  "signedIn": "a@example.com",
+  "why": "its live access token has lapsed, and a refresh would end the session it serves",
+  "hint": "run any claude session on this box once; it renews the login. then retry"
+}]
+`;
+
+exports[`setBrainAuthAccountInUseAtGrove given: [case8] a read-back that disagrees with the target (case=8) when: [t0b] the read-back names b in another org then: the error names both sides by email and org 1`] = `
+[Error: 💥 MalfunctionError: use did not land
+
+{
+  "target": "b@example.com in org-b",
+  "after": "b@example.com in org-other",
+  "hint": "rhx brains auth get   # see which account the grove holds now; then retry the use"
+}]
+`;
+
+exports[`setBrainAuthAccountInUseAtGrove given: [case8] a read-back that disagrees with the target (case=8) when: [t0c] the read-back is not answered then: it says the use landed, unverified, never that it did not land 1`] = `
+[Error: 💥 MalfunctionError: use landed, but its read-back could not be verified
+
+{
+  "target": "b@example.com in org-b",
+  "after": "rate-limited",
+  "stowed": "a@example.com",
+  "hint": "rhx brains auth get   # see which account the grove holds now; a retry of the use reports unchanged once it is verified"
+}]
+`;
+
+exports[`setBrainAuthAccountInUseAtGrove given: [case9] a step after the install faults (steps 5-7) when: [t0] b is put to use, and b's spent copy cannot be cleared then: it fails loud, and names the use as landed 1`] = `
+[Error: 💥 MalfunctionError: the use landed, but a step after it faulted
+
+{
+  "landed": true,
+  "grove": "b@example.com",
+  "stowed": "a@example.com",
+  "hint": "rhx brains auth get   # the grove holds the target; a retry of the use reports unchanged and repairs the rest"
+}]
+`;
