@@ -1,3 +1,5 @@
+import { given, then, when } from 'test-fns';
+
 import { asTextWithFinalNewlineDropped } from './asTextWithFinalNewlineDropped';
 
 const TEST_CASES: {
@@ -33,11 +35,15 @@ const TEST_CASES: {
 ];
 
 describe('asTextWithFinalNewlineDropped', () => {
-  TEST_CASES.map((thisCase) =>
-    test(thisCase.description, () => {
-      expect(asTextWithFinalNewlineDropped(thisCase.given)).toEqual(
-        thisCase.expect.output,
-      );
+  TEST_CASES.map((thisCase, index) =>
+    given(`[case${index + 1}] ${thisCase.description}`, () => {
+      when('[t0] the final newline is dropped', () => {
+        then('it reads as expected', () => {
+          expect(asTextWithFinalNewlineDropped(thisCase.given)).toEqual(
+            thisCase.expect.output,
+          );
+        });
+      });
     }),
   );
 });

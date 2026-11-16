@@ -1,4 +1,4 @@
-import { given, then } from 'test-fns';
+import { given, then, when } from 'test-fns';
 
 import { asKeyrackMechOfSource } from './asKeyrackMechOfSource';
 
@@ -39,12 +39,14 @@ const TEST_CASES = [
 ];
 
 describe('asKeyrackMechOfSource', () => {
-  TEST_CASES.map((thisCase) =>
-    given(thisCase.description, () => {
-      then(`it reads ${thisCase.expect.mech}`, () => {
-        expect(asKeyrackMechOfSource(thisCase.given)).toEqual(
-          thisCase.expect.mech,
-        );
+  TEST_CASES.map((thisCase, index) =>
+    given(`[case${index + 1}] ${thisCase.description}`, () => {
+      when('[t0] the mech is read off the source', () => {
+        then(`it reads ${thisCase.expect.mech}`, () => {
+          expect(asKeyrackMechOfSource(thisCase.given)).toEqual(
+            thisCase.expect.mech,
+          );
+        });
       });
     }),
   );

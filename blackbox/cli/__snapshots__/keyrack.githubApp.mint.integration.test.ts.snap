@@ -1,0 +1,91 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack github-app mint that returns a token given: [case1] off ec2: the blob piped into os.secure (c1, c2) when: [t0] the commander pipes the blob in then: output matches snapshot 1`] = `
+"🔐 keyrack set @all.all.EHMPATH_BEAVER_GITHUB_TOKEN via EPHEMERAL_VIA_GITHUB_APP
+   │
+   ├─ source piped from stdin
+   │  └─ shape ok ✓
+   │
+   └─ perfect, now let's verify...
+      └─ ✓ roundtrip verified
+
+🔐 keyrack set (org: @all, env: all)
+   └─ @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
+      ├─ mech: EPHEMERAL_VIA_GITHUB_APP
+      └─ vault: os.secure"
+`;
+
+exports[`keyrack github-app mint that returns a token given: [case1] off ec2: the blob piped into os.secure (c1, c2) when: [t1] the crew asks with get --unlock, cold (c1) then: output matches snapshot 1`] = `
+"🔐 keyrack
+   └─ @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
+      ├─ vault: os.secure
+      ├─ mech: EPHEMERAL_VIA_GITHUB_APP
+      └─ status: granted 🔑"
+`;
+
+exports[`keyrack github-app mint that returns a token given: [case1] off ec2: the blob piped into os.secure (c1, c2) when: [t2] the crew asks with get --json, warm (c2) then: output matches snapshot (token and expiry masked) 1`] = `
+"{
+  "status": "granted",
+  "grant": {
+    "slug": "@all.all.EHMPATH_BEAVER_GITHUB_TOKEN",
+    "key": {
+      "secret": "ghs___CANNED__",
+      "grade": {
+        "protection": "encrypted",
+        "duration": "ephemeral"
+      }
+    },
+    "source": {
+      "vault": "os.secure",
+      "mech": "EPHEMERAL_VIA_GITHUB_APP"
+    },
+    "env": "all",
+    "org": "@all"
+  }
+}"
+`;
+
+exports[`keyrack github-app mint that returns a token given: [case2] off ec2: github cannot be reached at the mint when: [t0] the crew asks with get --unlock then: output matches snapshot 1`] = `
+"🔐 keyrack
+   └─ @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
+      ├─ status: locked 🔒
+      └─ tip: failed to mint github app token — github could not be reached (check that this box reaches api.github.com) — retry: rhx keyrack unlock --owner mechanic --env all --key EHMPATH_BEAVER_GITHUB_TOKEN --org @all"
+`;
+
+exports[`keyrack github-app mint that returns a token given: [case3] on ec2: the blob in aws.params (c10, c11) when: [t0] the crew unlocks the key, cold (c10) then: output matches snapshot 1`] = `
+"🔓 keyrack unlock
+   └─ @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
+      ├─ env: all
+      ├─ org: @all
+      ├─ vault: aws.params
+      └─ expires in: 55m"
+`;
+
+exports[`keyrack github-app mint that returns a token given: [case3] on ec2: the blob in aws.params (c10, c11) when: [t1] the crew asks with get --json, warm (c11) then: output matches snapshot (token and expiry masked) 1`] = `
+"{
+  "status": "granted",
+  "grant": {
+    "slug": "@all.all.EHMPATH_BEAVER_GITHUB_TOKEN",
+    "key": {
+      "secret": "ghs___CANNED__",
+      "grade": {
+        "protection": "encrypted",
+        "duration": "ephemeral"
+      }
+    },
+    "source": {
+      "vault": "aws.params",
+      "mech": "EPHEMERAL_VIA_GITHUB_APP"
+    },
+    "env": "all",
+    "org": "@all"
+  }
+}"
+`;
+
+exports[`keyrack github-app mint that returns a token given: [case4] on ec2: the aws.params blob holds a pem that is not an rsa key when: [t0] the crew unlocks the key then: output matches snapshot 1`] = `
+"🔓 keyrack unlock
+   └─ @all.all.EHMPATH_BEAVER_GITHUB_TOKEN
+      ├─ status: errored 💥
+      └─ tip: failed to mint github app token — the stored private key (.pem) is not a valid rsa key — fix: re-file a blob that holds a valid github app private key (.pem): rhx keyrack set --owner mechanic --key @all.all.EHMPATH_BEAVER_GITHUB_TOKEN --vault aws.params --mech EPHEMERAL_VIA_GITHUB_APP"
+`;

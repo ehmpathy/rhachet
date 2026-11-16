@@ -1,3 +1,5 @@
+import { given, then, when } from 'test-fns';
+
 import type { KeyrackGrantMechanism } from '@src/domain.objects/keyrack';
 
 import { asOsSecureSetTreeHead } from './asOsSecureSetTreeHead';
@@ -46,13 +48,17 @@ const TEST_CASES: {
 ];
 
 describe('asOsSecureSetTreeHead', () => {
-  TEST_CASES.map((thisCase) =>
-    test(thisCase.description, () => {
-      const output = asOsSecureSetTreeHead({
-        slug: '@all.all.KEY',
-        ...thisCase.given,
+  TEST_CASES.map((thisCase, index) =>
+    given(`[case${index + 1}] ${thisCase.description}`, () => {
+      when('[t0] the tree head is cast', () => {
+        then('it reads as expected', () => {
+          const output = asOsSecureSetTreeHead({
+            slug: '@all.all.KEY',
+            ...thisCase.given,
+          });
+          expect(output).toEqual(thisCase.expect.output);
+        });
       });
-      expect(output).toEqual(thisCase.expect.output);
     }),
   );
 });

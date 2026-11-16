@@ -1,4 +1,4 @@
-import { given, then, useBeforeAll, when } from 'test-fns';
+import { getError, given, then, useBeforeAll, when } from 'test-fns';
 import { parse as parseYaml } from 'yaml';
 
 import { genMockKeyrackRepoManifest } from '@src/.test/assets/genMockKeyrackRepoManifest';
@@ -1197,6 +1197,100 @@ describe('setKeyrackKeyHost.integration', () => {
           ],
         ).toBeDefined();
       });
+    });
+  });
+
+  given('[case12] a piped source, routed by the vault it names', () => {
+    const vaultSetSpy = jest.fn();
+    const scene = useBeforeAll(async () => {
+      const recipient = new KeyrackKeyRecipient({
+        mech: 'age',
+        pubkey: await getTestSshAgeRecipient(),
+        label: 'test-key',
+        addedAt: new Date().toISOString(),
+      });
+      const manifest = await daoKeyrackHostManifest.set({
+        findsert: new KeyrackHostManifest({
+          uri: '~/.rhachet/keyrack/keyrack.host.case12.age',
+          owner: 'case12',
+          recipients: [recipient],
+          hosts: {},
+        }),
+      });
+      const context: ContextKeyrack = {
+        owner: 'case12',
+        identity: {
+          getOne: async () => getTestSshAgeIdentity(),
+          getAll: {
+            discovered: async () => [await getTestSshAgeIdentity()],
+            prescribed: [],
+          },
+        },
+        hostManifest: manifest,
+        repoManifest: genMockKeyrackRepoManifest({ org: 'ehmpathy' }),
+        vaultAdapters: {
+          'os.envvar': genMockVaultAdapter(),
+          'os.direct': genMockVaultAdapter(),
+          'os.secure': genMockVaultAdapter({ isSourcePipedAccepted: true }),
+          'os.daemon': genMockVaultAdapter(),
+          '1password': genMockVaultAdapter(),
+          'aws.config': genMockVaultAdapter(),
+          'aws.params': { ...genMockVaultAdapter(), set: vaultSetSpy },
+          'github.secrets': genMockVaultAdapter(),
+        },
+      };
+      return { context };
+    });
+
+    when('[t0] set called with a source and vault aws.params', () => {
+      then(
+        'refuses before the vault is called, and names the vault fix',
+        async () => {
+          const error = await getError(
+            setKeyrackKeyHost(
+              {
+                slug: 'ehmpathy.all.PIPED_KEY',
+                mech: 'EPHEMERAL_VIA_GITHUB_APP',
+                vault: 'aws.params',
+                source: '{"appId":"1"}',
+              },
+              scene.context,
+            ),
+          );
+          expect(error.message).toContain(
+            'vault aws.params takes no piped source',
+          );
+          expect(error.message).toContain('os.secure');
+          expect(error.message).not.toContain('appId');
+          expect(vaultSetSpy).not.toHaveBeenCalled();
+        },
+      );
+    });
+
+    when('[t1] set called with a source and vault os.secure', () => {
+      then(
+        'passes the source through, and the host manifest maps the key to os.secure',
+        async () => {
+          const result = await setKeyrackKeyHost(
+            {
+              slug: 'ehmpathy.all.PIPED_KEY',
+              mech: 'PERMANENT_VIA_REPLICA',
+              vault: 'os.secure',
+              source: 'token-fake',
+            },
+            scene.context,
+          );
+          expect(result.vault).toEqual('os.secure');
+
+          const after = await daoKeyrackHostManifest.get(
+            { owner: 'case12' },
+            genContextKeyrack({ owner: 'case12' }),
+          );
+          expect(
+            after?.manifest.hosts['ehmpathy.all.PIPED_KEY']?.vault,
+          ).toEqual('os.secure');
+        },
+      );
     });
   });
 });
