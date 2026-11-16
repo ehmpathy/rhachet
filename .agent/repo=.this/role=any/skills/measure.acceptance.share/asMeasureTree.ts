@@ -35,6 +35,10 @@ export const asMeasureTree = (input: {
         `   │  ${glyphs.stem}├─ ${asPeerBesideText({ row, peerSoloMs: input.peerSoloMs })}`,
         `   │  ${glyphs.stem}├─ peak load = ${row.peak.load1.toFixed(1)}, peak cpu psi = ${asPsiText({ psi: row.peak.cpuPsiSomeAvg10 })}`,
         `   │  ${glyphs.stem}└─ suite = ${(row.suiteWallMs / 1000).toFixed(0)}s, exit ${row.suiteExitCode}`,
+        // a red suite names where its cause is; its numbers measured a run that did not pass
+        ...(row.suiteExitCode === 0
+          ? []
+          : [`   │  ${glyphs.stem}   └─ red, so read its log = ${row.suiteLogPath}`]),
       ].join('\n');
     }),
     '   │',

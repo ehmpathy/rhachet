@@ -90,6 +90,21 @@ exports[`measure.acceptance.share given: [case3] a measure on a 12-core box at t
    └─ record = .log/role=any/skill=measure.acceptance.share/20000101T000000000Z.json"
 `;
 
+exports[`measure.acceptance.share given: [case3] a measure on a 12-core box at two widths when: [t1] the suite at one width went red then: the red width names its suite log, where the cause is 1`] = `
+"🧮 measure.acceptance.share
+   ├─ box = 12 cores, baseline load 1.4, baseline cpu psi 2%
+   ├─ quiet = yes
+   ├─ peer solo = 2.00s (median of 3)
+   ├─ beside a live suite
+   │  └─ width 25%
+   │     ├─ peer = 2.30s (median of 3), slowdown 15%
+   │     ├─ peak load = 5.2, peak cpu psi = 31%
+   │     └─ suite = 94s, exit 1
+   │        └─ red, so read its log = .log/role=any/skill=measure.acceptance.share/20000101T000000002Z.width=25pct.suite.log
+   │
+   └─ record = .log/role=any/skill=measure.acceptance.share/20000101T000000002Z.json"
+`;
+
 exports[`measure.acceptance.share given: [case5] a measure on a busy box with no psi, where one width ran too short when: [t0] the tree is rendered then: it reads quiet = no, psi as n/a, and the short width as n/a with the fix 1`] = `
 "🧮 measure.acceptance.share
    ├─ box = 8 cores, baseline load 6.2, baseline cpu psi n/a
