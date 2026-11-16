@@ -2,7 +2,13 @@ import type { IsoTimeStamp } from 'iso-time';
 
 import type { KeyrackKeyReach } from '@src/domain.objects/keyrack/KeyrackKeyReach';
 import type { DaemonKeyStore } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonKeyStore';
+import type {
+  DaemonRenewMark,
+  DaemonRenewRecord,
+} from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonRenewRecord';
 import { asKeyrackKeyReachField } from '@src/domain.operations/keyrack/reach/asKeyrackKeyReachField';
+
+import { getAllStatusRowsMarkedExpired } from './getAllStatusRowsMarkedExpired';
 
 /**
  * .what = handle STATUS command to list unlocked keys with TTL left
@@ -14,6 +20,7 @@ export const handleStatusCommand = (
   _input: Record<string, never>,
   context: {
     keyStore: DaemonKeyStore;
+    renewRecord: DaemonRenewRecord;
     homeHash: string;
   },
 ): {
@@ -37,6 +44,16 @@ export const handleStatusCommand = (
      *         hands it straight to this map
      */
     ttlLeftMs: number | null;
+
+    /**
+     * .what = the renew state of a key the daemon renews
+     * .note = OPTIONAL, never nullable — absent for a key with no renew record, so
+     *         every extant payload and snapshot stays byte-identical
+     */
+    renew?: {
+      renewedCount: number;
+      mark: DaemonRenewMark | null;
+    };
   }>;
 } => {
   const now = Date.now();
@@ -47,19 +64,43 @@ export const handleStatusCommand = (
   //         there. one sweep, two consumers, two opposite needs
   const allKeys = context.keyStore.entries();
 
-  const keys = allKeys.map((unlockedKey) => ({
-    slug: unlockedKey.slug,
-    env: unlockedKey.env,
-    org: unlockedKey.org,
-    ...asKeyrackKeyReachField({ reach: unlockedKey.reach }),
-    expiresAt: unlockedKey.expiresAt ?? null,
-    // `null`, never `Infinity` — the wire is JSON, which cannot carry `Infinity` and
-    // silently rewrites it to `null`. to send `null` outright makes the declared type
-    // true on BOTH sides of the socket rather than only on this one
-    ttlLeftMs: unlockedKey.expiresAt
-      ? Math.max(0, new Date(unlockedKey.expiresAt).getTime() - now)
-      : null,
-  }));
+  // the live keys, each with its renew state where the daemon renews it
+  const keysLive = allKeys.map((unlockedKey) => {
+    const renewEntry = context.renewRecord.get({
+      slug: unlockedKey.slug,
+      reach: unlockedKey.reach,
+    });
+    return {
+      slug: unlockedKey.slug,
+      env: unlockedKey.env,
+      org: unlockedKey.org,
+      ...asKeyrackKeyReachField({ reach: unlockedKey.reach }),
+      expiresAt: unlockedKey.expiresAt ?? null,
+      // `null`, never `Infinity` — the wire is JSON, which cannot carry `Infinity` and
+      // silently rewrites it to `null`. to send `null` outright makes the declared type
+      // true on BOTH sides of the socket rather than only on this one
+      ttlLeftMs: unlockedKey.expiresAt
+        ? Math.max(0, new Date(unlockedKey.expiresAt).getTime() - now)
+        : null,
+      ...(renewEntry
+        ? {
+            renew: {
+              renewedCount: renewEntry.renewedCount,
+              mark: renewEntry.mark,
+            },
+          }
+        : {}),
+    };
+  });
 
-  return { homeHash: context.homeHash, keys };
+  // the marked keys whose grant has expired, still named until a human acts
+  const keysMarkedExpired = getAllStatusRowsMarkedExpired({
+    renewEntries: context.renewRecord.entries(),
+    grantsLive: allKeys,
+  });
+
+  return {
+    homeHash: context.homeHash,
+    keys: [...keysLive, ...keysMarkedExpired],
+  };
 };

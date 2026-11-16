@@ -4,6 +4,7 @@ import { given, then, when } from 'test-fns';
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
 import type { DaemonStatusRow } from '@src/domain.operations/keyrack/daemon/sdk';
 import { createDaemonKeyStore } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonKeyStore';
+import { createDaemonRenewRecord } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonRenewRecord';
 
 import { handleGetCommand } from './handleGetCommand';
 import { handleRelockCommand } from './handleRelockCommand';
@@ -44,7 +45,7 @@ describe('handleUnlockCommand', () => {
               }),
             ],
           },
-          { keyStore },
+          { keyStore, renewRecord: createDaemonRenewRecord() },
         );
 
         expect(result.unlocked).toEqual(['AWS_SSO_PREP', 'XAI_API_KEY']);
@@ -73,7 +74,7 @@ describe('handleUnlockCommand', () => {
               }),
             ],
           },
-          { keyStore },
+          { keyStore, renewRecord: createDaemonRenewRecord() },
         );
 
         const key = keyStore.get({ slug: 'SUDO_KEY' });
@@ -199,7 +200,10 @@ describe('handleStatusCommand', () => {
 
     when('[t0] status command is handled', () => {
       then('returns keys with TTL left', () => {
-        const result = handleStatusCommand({}, { keyStore, homeHash });
+        const result = handleStatusCommand(
+          {},
+          { keyStore, homeHash, renewRecord: createDaemonRenewRecord() },
+        );
 
         expect(result.keys.length).toBe(2);
 
@@ -215,7 +219,10 @@ describe('handleStatusCommand', () => {
       });
 
       then('returns env and org with keys', () => {
-        const result = handleStatusCommand({}, { keyStore, homeHash });
+        const result = handleStatusCommand(
+          {},
+          { keyStore, homeHash, renewRecord: createDaemonRenewRecord() },
+        );
 
         const key1 = result.keys.find((k) => k.slug === 'KEY_1');
         const key2 = result.keys.find((k) => k.slug === 'KEY_2');
@@ -233,7 +240,10 @@ describe('handleStatusCommand', () => {
 
     when('[t0] status command is handled', () => {
       then('returns empty keys array', () => {
-        const result = handleStatusCommand({}, { keyStore, homeHash });
+        const result = handleStatusCommand(
+          {},
+          { keyStore, homeHash, renewRecord: createDaemonRenewRecord() },
+        );
         expect(result.keys).toEqual([]);
       });
     });
@@ -280,7 +290,7 @@ describe('handleStatusCommand', () => {
       then('the server rows are assignable to DaemonStatusRow', () => {
         const rows: DaemonStatusRow[] = handleStatusCommand(
           {},
-          { keyStore, homeHash },
+          { keyStore, homeHash, renewRecord: createDaemonRenewRecord() },
         ).keys;
 
         expect(rows).toHaveLength(1);
@@ -291,7 +301,10 @@ describe('handleStatusCommand', () => {
       //      both sides declared `number` — and `Math.round(null / 1000 / 60)` is `0`, which
       //      rendered a key that never expires as `expires in: 0m`
       then('a key with no expiry reports null, never Infinity', () => {
-        const row = handleStatusCommand({}, { keyStore, homeHash }).keys[0]!;
+        const row = handleStatusCommand(
+          {},
+          { keyStore, homeHash, renewRecord: createDaemonRenewRecord() },
+        ).keys[0]!;
 
         expect(row.expiresAt).toEqual(null);
         expect(row.ttlLeftMs).toEqual(null);
@@ -303,7 +316,10 @@ describe('handleStatusCommand', () => {
       //         (`handleKeyrackDaemonConnection` writes `JSON.stringify`,
       //         `sendKeyrackDaemonCommand` reads `JSON.parse`)
       then('the row survives the socket codec unchanged', () => {
-        const row = handleStatusCommand({}, { keyStore, homeHash }).keys[0]!;
+        const row = handleStatusCommand(
+          {},
+          { keyStore, homeHash, renewRecord: createDaemonRenewRecord() },
+        ).keys[0]!;
         const overWire = JSON.parse(JSON.stringify(row)) as DaemonStatusRow;
 
         expect(overWire.ttlLeftMs).toEqual(row.ttlLeftMs);
@@ -349,7 +365,10 @@ describe('handleRelockCommand', () => {
 
     when('[t0] relock command with specific slugs', () => {
       then('deletes only specified keys', () => {
-        const result = handleRelockCommand({ slugs: ['KEY_A'] }, { keyStore });
+        const result = handleRelockCommand(
+          { slugs: ['KEY_A'] },
+          { keyStore, renewRecord: createDaemonRenewRecord() },
+        );
 
         expect(result.relocked).toEqual(['KEY_A']);
         expect(keyStore.get({ slug: 'KEY_A' })).toBeNull();
@@ -359,7 +378,10 @@ describe('handleRelockCommand', () => {
 
     when('[t1] relock command without slugs', () => {
       then('clears all keys', () => {
-        const result = handleRelockCommand({}, { keyStore });
+        const result = handleRelockCommand(
+          {},
+          { keyStore, renewRecord: createDaemonRenewRecord() },
+        );
 
         expect(result.relocked.sort()).toEqual(['KEY_A', 'KEY_B']);
         expect(keyStore.size()).toBe(0);
@@ -368,7 +390,10 @@ describe('handleRelockCommand', () => {
 
     when('[t2] relock command with empty slugs array', () => {
       then('clears all keys', () => {
-        const result = handleRelockCommand({ slugs: [] }, { keyStore });
+        const result = handleRelockCommand(
+          { slugs: [] },
+          { keyStore, renewRecord: createDaemonRenewRecord() },
+        );
 
         expect(result.relocked.sort()).toEqual(['KEY_A', 'KEY_B']);
         expect(keyStore.size()).toBe(0);
@@ -424,7 +449,10 @@ describe('handleRelockCommand', () => {
 
     when('[t0] relock command with env filter', () => {
       then('deletes only keys with matched env', () => {
-        const result = handleRelockCommand({ env: 'sudo' }, { keyStore });
+        const result = handleRelockCommand(
+          { env: 'sudo' },
+          { keyStore, renewRecord: createDaemonRenewRecord() },
+        );
 
         expect(result.relocked).toEqual(['SUDO_KEY']);
         expect(keyStore.get({ slug: 'SUDO_KEY' })).toBeNull();
@@ -436,7 +464,10 @@ describe('handleRelockCommand', () => {
 
     when('[t1] relock command with env filter and no matched keys', () => {
       then('returns empty relocked array', () => {
-        const result = handleRelockCommand({ env: 'prep' }, { keyStore });
+        const result = handleRelockCommand(
+          { env: 'prep' },
+          { keyStore, renewRecord: createDaemonRenewRecord() },
+        );
 
         expect(result.relocked).toEqual([]);
         expect(keyStore.size()).toBe(3);
@@ -448,7 +479,7 @@ describe('handleRelockCommand', () => {
         // slugs should take priority over env filter
         const result = handleRelockCommand(
           { slugs: ['PROD_KEY'], env: 'sudo' },
-          { keyStore },
+          { keyStore, renewRecord: createDaemonRenewRecord() },
         );
 
         expect(result.relocked).toEqual(['PROD_KEY']);

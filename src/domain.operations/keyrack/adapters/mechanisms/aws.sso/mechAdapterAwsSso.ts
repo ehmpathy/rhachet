@@ -1,11 +1,12 @@
 import { MalfunctionError } from 'helpful-errors';
-import { addDuration, asIsoTimeStamp, isIsoTimeStamp } from 'iso-time';
+import { addDuration, asIsoTimeStamp } from 'iso-time';
 
 import type { KeyrackGrantMechanismAdapter } from '@src/domain.objects/keyrack';
 import { assertKeyrackReachAbsent } from '@src/domain.operations/keyrack/reach/assertKeyrackReachAbsent';
 
 import { exec, execSync } from 'node:child_process';
 import { promisify } from 'node:util';
+import { asIsoTimeStampFromAwsExpiration } from './asIsoTimeStampFromAwsExpiration';
 import { setupAwsSsoWithGuide } from './setupAwsSsoWithGuide';
 
 const execAsync = promisify(exec);
@@ -167,11 +168,11 @@ export const mechAdapterAwsSso: KeyrackGrantMechanismAdapter = {
       }
 
       // use AWS_CREDENTIAL_EXPIRATION if available, else default to 55 min from now
-      const awsExpiration = credentials.AWS_CREDENTIAL_EXPIRATION;
+      // .why = the cli writes an offset form (`+00:00`); cast it, never swap it for a guess
       const expiresAt =
-        awsExpiration && isIsoTimeStamp(awsExpiration)
-          ? awsExpiration
-          : addDuration(asIsoTimeStamp(new Date()), { minutes: 55 });
+        asIsoTimeStampFromAwsExpiration({
+          raw: credentials.AWS_CREDENTIAL_EXPIRATION ?? null,
+        }) ?? addDuration(asIsoTimeStamp(new Date()), { minutes: 55 });
 
       return { secret: JSON.stringify(credentials), expiresAt };
     } catch (error) {
@@ -182,5 +183,46 @@ export const mechAdapterAwsSso: KeyrackGrantMechanismAdapter = {
         error,
       });
     }
+  },
+
+  /**
+   * .what = renew an sso grant from the live portal session, silently
+   * .why = the role creds behind an sso grant end long before the portal session
+   *        behind them. the silent proof re-derives the role creds with no browser;
+   *        a lapsed portal answers `lapsed` at once
+   *
+   * .note = never reaches `aws sso login`. the browser path is unreachable from here by
+   *         construction, so a lapsed portal can never hang the host on a prompt
+   * .note = the source is the sso profile name (aws.config holds a reference, never creds)
+   * .note = the proof import is lazy: a host that renews no sso grant never loads the
+   *         aws sdk (rule.require.thinnest-import-path)
+   * .note = an unknown error throws (a MalfunctionError from the proof or the export);
+   *         the host counts it as a fault, never as a lapse
+   */
+  renewForDaemon: async (input) => {
+    const profileName = input.source;
+
+    // prove the portal session live, with no browser
+    const { getOneAwsSsoSessionProof } = await import(
+      '@src/domain.operations/keyrack/adapters/vaults/aws.config/getOneAwsSsoSessionProof'
+    );
+    const proof = await getOneAwsSsoSessionProof({
+      profileName,
+      onInvalidLevel: 'debug',
+    });
+    if (!proof.live) return { status: 'lapsed' };
+
+    // re-read the role creds' expiry from the cli
+    const { expiresAt } = await mechAdapterAwsSso.deliverForGet({
+      source: profileName,
+    });
+
+    // a renew with no expiry would store a grant that never dies; fail loud instead
+    if (!expiresAt)
+      throw new MalfunctionError('aws sso renew returned no expiry', {
+        profileName,
+      });
+
+    return { status: 'renewed', expiresAt };
   },
 };

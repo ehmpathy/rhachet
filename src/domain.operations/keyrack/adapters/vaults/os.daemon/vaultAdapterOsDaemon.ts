@@ -162,6 +162,7 @@ export const vaultAdapterOsDaemon: KeyrackHostVaultAdapter<'readwrite'> = {
           expiresAt,
         },
       ],
+      renewals: [], // a session key has no source to renew from
       socketPath,
     });
 

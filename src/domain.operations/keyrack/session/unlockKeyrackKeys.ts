@@ -2,9 +2,11 @@ import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import { now } from 'iso-time';
 
 import { daoKeyrackInventory } from '@src/access/daos/daoKeyrackInventory';
+import type { KeyrackDaemonUnlockRenewal } from '@src/domain.objects/keyrack/KeyrackDaemonUnlockRenewal';
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
 import type { KeyrackKeyOmission } from '@src/domain.objects/keyrack/KeyrackKeyOmission';
 import type { KeyrackKeyReach } from '@src/domain.objects/keyrack/KeyrackKeyReach';
+import { getOneKeyrackMechAdapter } from '@src/domain.operations/keyrack/adapters/mechanisms/getOneKeyrackMechAdapter';
 import { asDurationMs } from '@src/domain.operations/keyrack/asDurationMs';
 import { asKeyrackFilterOrg } from '@src/domain.operations/keyrack/asKeyrackFilterOrg';
 import { asKeyrackKeyEnv } from '@src/domain.operations/keyrack/asKeyrackKeyEnv';
@@ -170,6 +172,7 @@ export const unlockKeyrackKeys = async (
   //         scope — the arrays never escape as shared state — which is exactly the isolated-mutation
   //         zone the rule sanctions with this note
   const keysToUnlock: KeyrackKeyGrant[] = [];
+  const renewalsToSend: KeyrackDaemonUnlockRenewal[] = []; // sso keys the daemon may renew, with caps
   const keysOmitted: KeyrackKeyOmission[] = [];
   const addressesUnlocked = new Set<string>(); // dedupe by ADDRESS — see the .note below
   const slugsHeldAtReach = new Set<string>(); // slugs the rack holds at SOME reach
@@ -473,6 +476,24 @@ export const unlockKeyrackKeys = async (
           expiresAt,
         }),
       );
+
+      // opt a key into renew when its mech can renew it, capped at the human's bound
+      // .why = the daemon renews such a grant before its upstream creds expire, but never
+      //        past min(requested duration, maxDuration) from now — the same bound
+      //        computeExpiresAt gives with no grant clamp. the stored `expiresAt` folds that
+      //        bound into the upstream expiry, so the cap must cross the socket on its own
+      if (getOneKeyrackMechAdapter(grant.source.mech).renewForDaemon)
+        renewalsToSend.push({
+          slug: effectiveSlug,
+          ...asKeyrackKeyReachField({ reach: hostConfig.reach }),
+          capAt: computeExpiresAt({
+            now: now(),
+            requestedDurationMs,
+            maxDurationMs: hostConfig.maxDuration
+              ? asDurationMs({ duration: hostConfig.maxDuration })
+              : null,
+          }).expiresAt,
+        });
     } catch (cause) {
       // allowlist boundary (rule.forbid.failhide): the per-key fault isolation exists ONLY for the
       // LIVE, OPERATIONAL faults a vault adapter raises as a classed domain error — a ConstraintError
@@ -521,6 +542,7 @@ export const unlockKeyrackKeys = async (
     await daemonAccessUnlock({
       socketPath,
       keys: keysToUnlock,
+      renewals: renewalsToSend,
     });
   }
 
