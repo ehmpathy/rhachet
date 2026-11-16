@@ -1,5 +1,6 @@
 import type { IsoTimeStamp } from 'iso-time';
 
+import type { KeyrackGrantRenewal } from '@src/domain.objects/keyrack/KeyrackGrantMechanismAdapter';
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
 
 import type { DaemonKeyStore } from '../domain.objects/daemonKeyStore';
@@ -10,7 +11,6 @@ import type {
 import { getAllRenewEntriesDue } from './getAllRenewEntriesDue';
 import { getAllRenewEntriesPastCap } from './getAllRenewEntriesPastCap';
 import { getOneRenewalSettled } from './getOneRenewalSettled';
-import type { SsoGrantRenewal } from './getOneSsoGrantRenewal';
 import { isIsoTimeStampAtOrBefore } from './isIsoTimeStampAtOrBefore';
 
 /**
@@ -47,7 +47,7 @@ const renewOneEntry = async (
     renewTimeoutMs: number;
     getOneRenewal: (input: {
       grant: KeyrackKeyGrant;
-    }) => Promise<SsoGrantRenewal>;
+    }) => Promise<KeyrackGrantRenewal>;
   },
 ): Promise<void> => {
   const { address, entry } = input;
@@ -145,10 +145,10 @@ const renewOneEntry = async (
 };
 
 /**
- * .what = renew every sso grant that sits inside its renew window
+ * .what = renew every opted-in grant that sits inside its renew window
  * .why = one tick of the daemon's renew loop. a grant inside the window, or past its
- *        expiry after a sleep, and under its cap, is renewed from the live portal
- *        session, silently. the consumer never sees the expiry
+ *        expiry after a sleep, and under its cap, is renewed via its mech adapter,
+ *        silently. the consumer never sees the expiry
  *
  * .note = walks the renew record, never the store: the store purges an expired grant
  *         on read, and a grant that expired while the host slept is still renewable
@@ -170,7 +170,7 @@ export const renewDaemonGrantsDue = async (
     renewTimeoutMs: number;
     getOneRenewal: (input: {
       grant: KeyrackKeyGrant;
-    }) => Promise<SsoGrantRenewal>;
+    }) => Promise<KeyrackGrantRenewal>;
   },
 ): Promise<void> => {
   // drop unmarked entries whose cap has passed; the key expires as it would with no renew

@@ -6,6 +6,7 @@ import type { KeyrackDaemonUnlockRenewal } from '@src/domain.objects/keyrack/Key
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
 import type { KeyrackKeyOmission } from '@src/domain.objects/keyrack/KeyrackKeyOmission';
 import type { KeyrackKeyReach } from '@src/domain.objects/keyrack/KeyrackKeyReach';
+import { getOneKeyrackMechAdapter } from '@src/domain.operations/keyrack/adapters/mechanisms/getOneKeyrackMechAdapter';
 import { asDurationMs } from '@src/domain.operations/keyrack/asDurationMs';
 import { asKeyrackFilterOrg } from '@src/domain.operations/keyrack/asKeyrackFilterOrg';
 import { asKeyrackKeyEnv } from '@src/domain.operations/keyrack/asKeyrackKeyEnv';
@@ -476,12 +477,12 @@ export const unlockKeyrackKeys = async (
         }),
       );
 
-      // opt an sso key into renew, capped at the human's bound
-      // .why = the daemon renews an sso grant before its role creds expire, but never past
-      //        min(requested duration, maxDuration) from now — the same bound computeExpiresAt
-      //        gives with no grant clamp. the stored `expiresAt` folds that bound into the
-      //        role creds' expiry, so the cap must cross the socket on its own
-      if (grant.source.mech === 'EPHEMERAL_VIA_AWS_SSO')
+      // opt a key into renew when its mech can renew it, capped at the human's bound
+      // .why = the daemon renews such a grant before its upstream creds expire, but never
+      //        past min(requested duration, maxDuration) from now — the same bound
+      //        computeExpiresAt gives with no grant clamp. the stored `expiresAt` folds that
+      //        bound into the upstream expiry, so the cap must cross the socket on its own
+      if (getOneKeyrackMechAdapter(grant.source.mech).renewForDaemon)
         renewalsToSend.push({
           slug: effectiveSlug,
           ...asKeyrackKeyReachField({ reach: hostConfig.reach }),

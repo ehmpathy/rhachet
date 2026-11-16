@@ -2,11 +2,11 @@ import { getError, MalfunctionError } from 'helpful-errors';
 import { asIsoTimeStamp, type IsoTimeStamp } from 'iso-time';
 import { given, then, when } from 'test-fns';
 
+import type { KeyrackGrantRenewal } from '@src/domain.objects/keyrack/KeyrackGrantMechanismAdapter';
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
 
 import { createDaemonKeyStore } from '../domain.objects/daemonKeyStore';
 import { createDaemonRenewRecord } from '../domain.objects/daemonRenewRecord';
-import type { SsoGrantRenewal } from './getOneSsoGrantRenewal';
 import { handleRelockCommand } from './handleRelockCommand';
 import { handleUnlockCommand } from './handleUnlockCommand';
 import { renewDaemonGrantsDue } from './renewDaemonGrantsDue';
@@ -68,11 +68,13 @@ const genDaemonWithSsoGrant = (input: {
  * .why = an injected collaborator (dependency injection), so each outcome — a renew,
  *        a lapse, a fault — is driven on demand with no aws cli in reach
  */
-const genRenewalPlan = (input: { answers: Array<SsoGrantRenewal | Error> }) => {
+const genRenewalPlan = (input: {
+  answers: Array<KeyrackGrantRenewal | Error>;
+}) => {
   const calls: KeyrackKeyGrant[] = [];
   const getOneRenewal = async (args: {
     grant: KeyrackKeyGrant;
-  }): Promise<SsoGrantRenewal> => {
+  }): Promise<KeyrackGrantRenewal> => {
     calls.push(args.grant);
     const answer =
       input.answers[Math.min(calls.length - 1, input.answers.length - 1)]!;
@@ -484,7 +486,7 @@ describe('renewDaemonGrantsDue', () => {
           expiresInMs: 8 * MIN,
           capInMs: 9 * 60 * MIN,
         });
-        const getOneRenewal = async (): Promise<SsoGrantRenewal> => {
+        const getOneRenewal = async (): Promise<KeyrackGrantRenewal> => {
           // the human relocks while the silent proof is in flight
           handleRelockCommand({ slugs: [daemon.grant.slug] }, daemon);
           return { status: 'renewed', expiresAt: at(68 * MIN) };
@@ -515,7 +517,7 @@ describe('renewDaemonGrantsDue', () => {
           capInMs: 9 * 60 * MIN,
         });
         const grantByHand = genSsoGrant({ expiresInMs: 55 * MIN });
-        const getOneRenewal = async (): Promise<SsoGrantRenewal> => {
+        const getOneRenewal = async (): Promise<KeyrackGrantRenewal> => {
           handleUnlockCommand(
             {
               keys: [grantByHand],
@@ -558,7 +560,7 @@ describe('renewDaemonGrantsDue', () => {
           capInMs: 9 * 60 * MIN,
         });
         const calls: number[] = [];
-        const getOneRenewal = (): Promise<SsoGrantRenewal> => {
+        const getOneRenewal = (): Promise<KeyrackGrantRenewal> => {
           calls.push(calls.length);
           return new Promise((fulfill) =>
             setTimeout(
@@ -585,9 +587,9 @@ describe('renewDaemonGrantsDue', () => {
     });
   });
 
-  given('[case11] a non-sso grant, or an sso grant with no cap', () => {
-    when('[t0] each is unlocked', () => {
-      then('neither is filed for renew', () => {
+  given('[case11] grants the unlock did not opt into renew', () => {
+    when('[t0] each is unlocked with no renewal at its address', () => {
+      then('none is filed for renew', () => {
         const keyStore = createDaemonKeyStore();
         const renewRecord = createDaemonRenewRecord();
         const grantSso = genSsoGrant({ expiresInMs: 8 * MIN });
@@ -600,7 +602,7 @@ describe('renewDaemonGrantsDue', () => {
         handleUnlockCommand(
           {
             keys: [grantSso, grantOther],
-            renewals: [{ slug: grantOther.slug, capAt: at(60 * MIN) }],
+            renewals: [{ slug: 'ahbode.camp.OTHER_KEY', capAt: at(60 * MIN) }],
           },
           { keyStore, renewRecord },
         );
@@ -626,7 +628,7 @@ describe('renewDaemonGrantsDue', () => {
               inflight: new Set<string>(),
               windowMs: WINDOW_MS,
               renewTimeoutMs: RENEW_TIMEOUT_MS,
-              getOneRenewal: async (): Promise<SsoGrantRenewal> => {
+              getOneRenewal: async (): Promise<KeyrackGrantRenewal> => {
                 throw new TypeError('grant.key is undefined');
               },
             };
@@ -663,7 +665,7 @@ describe('renewDaemonGrantsDue', () => {
             inflight: new Set<string>(),
             windowMs: WINDOW_MS,
             renewTimeoutMs: RENEW_TIMEOUT_MS,
-            getOneRenewal: (): Promise<SsoGrantRenewal> =>
+            getOneRenewal: (): Promise<KeyrackGrantRenewal> =>
               new Promise(() => undefined),
           };
 

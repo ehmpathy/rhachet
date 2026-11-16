@@ -46,7 +46,7 @@ export const handleStatusCommand = (
     ttlLeftMs: number | null;
 
     /**
-     * .what = the renew state of an sso key the daemon renews
+     * .what = the renew state of a key the daemon renews
      * .note = OPTIONAL, never nullable — absent for a key with no renew record, so
      *         every extant payload and snapshot stays byte-identical
      */

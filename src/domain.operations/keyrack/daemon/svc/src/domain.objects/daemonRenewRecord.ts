@@ -7,7 +7,7 @@ import { asKeyrackKeySlugAtReach } from '@src/domain.operations/keyrack/reach/as
 /**
  * .what = why a renew record stopped to renew its grant
  * .why = a marked record takes no more renews and is named in status until a human
- *        acts. `lapsed` = the portal session ended; `halted` = a fault held for a full
+ *        acts. `lapsed` = the mech's upstream session ended; `halted` = a fault held for a full
  *        window of ticks. both take the same cure, an unlock
  */
 export interface DaemonRenewMark {
@@ -21,7 +21,7 @@ export interface DaemonRenewMark {
 }
 
 /**
- * .what = what the daemon knows about one sso grant it renews
+ * .what = what the daemon knows about one grant it renews
  * .why = the store purges a grant on read once it expires, so a grant that expired
  *        while the host slept is gone from the store. the record outlives it, and is
  *        what the renew tick walks
@@ -59,7 +59,7 @@ export interface DaemonRenewEntry {
 
 /**
  * .what = in-memory renew record, keyed by (slug, reach) like the key store
- * .why = holds every sso grant the daemon renews, apart from the store, so a grant
+ * .why = holds every grant the daemon renews, apart from the store, so a grant
  *        past its expiry stays renewable and a lapse stays visible past the grant
  */
 export const createDaemonRenewRecord = () => {
