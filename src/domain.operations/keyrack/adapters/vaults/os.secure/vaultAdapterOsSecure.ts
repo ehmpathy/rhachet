@@ -24,14 +24,9 @@ import { asKeyrackKeyReachField } from '@src/domain.operations/keyrack/reach/asK
 import { asKeyrackKeySlugAtReach } from '@src/domain.operations/keyrack/reach/asKeyrackKeySlugAtReach';
 import { verifyRoundtripDecryption } from '@src/domain.operations/keyrack/verifyRoundtripDecryption';
 import { getHomeDir } from '@src/infra/getHomeDir';
+import { setFileAtomic } from '@src/infra/setFileAtomic';
 
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  unlinkSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
@@ -274,8 +269,9 @@ export const vaultAdapterOsSecure: KeyrackHostVaultAdapter<'readwrite'> = {
       recipients,
     });
 
-    // write encrypted credential
-    writeFileSync(path, ciphertext, 'utf8');
+    // write encrypted credential whole: a kill mid-write must never leave a truncated ciphertext
+    // where the only live copy of a single-use token should be
+    setFileAtomic({ path, content: ciphertext });
 
     // roundtrip verification
     const { verified } = await verifyRoundtripDecryption(

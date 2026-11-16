@@ -315,7 +315,8 @@ describe('withRepoMutex', () => {
   given('[case7] the prod source of rhachet', () => {
     when('[t0] its lock primitives are listed', () => {
       // inventory.of=requirements.case=6: every lock goes through `with-simple-mutex`, and
-      //   this wrapper is its one owner, so no second lock protocol can grow back in `src/`
+      //   `withFileMutex` is its one owner (this wrapper and `withHostMutex` each wrap it), so
+      //   no second lock protocol can grow back in `src/`
       const srcDir = join(__dirname, '..', '..');
       const prodFiles = readdirSync(srcDir, { recursive: true })
         .map(String)
@@ -323,11 +324,11 @@ describe('withRepoMutex', () => {
         .filter((name) => !name.startsWith(join('.test', '')));
       const read = (name: string) => readFileSync(join(srcDir, name), 'utf8');
 
-      then('only this wrapper imports with-simple-mutex', () => {
+      then('only the file mutex imports with-simple-mutex', () => {
         const importers = prodFiles.filter((name) =>
           /['"]with-simple-mutex['"]/.test(read(name)),
         );
-        expect(importers).toEqual([join('infra', 'lock', 'withRepoMutex.ts')]);
+        expect(importers).toEqual([join('infra', 'lock', 'withFileMutex.ts')]);
       });
 
       then('no file claims a hand-rolled lock file or a frozen wait', () => {

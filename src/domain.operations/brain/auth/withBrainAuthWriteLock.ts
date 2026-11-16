@@ -7,6 +7,7 @@ import { isErrnoEnoent } from '@src/infra/filesystem/isErrnoEnoent';
 
 import { mkdirSync, type Stats, utimesSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { asBrainAuthWriteLockHint } from './asBrainAuthWriteLockHint';
 
 /**
  * .what = run a procedure while it holds claude-code's own login write lock
@@ -26,7 +27,11 @@ import { dirname, join } from 'node:path';
  *   fresh lock is never removed by a holder or a reclaimer that acted on an old read
  */
 export const withBrainAuthWriteLock = async <T>(
-  input: { brainAuthPath: string },
+  input: {
+    brainAuthPath: string;
+    /** the verb a human retries when the lock stays held */
+    retry: 'enroll' | 'use';
+  },
   procedure: () => T | Promise<T>,
 ): Promise<T> => {
   const lockPath = join(dirname(input.brainAuthPath), '.storage-write.lock');
@@ -39,7 +44,7 @@ export const withBrainAuthWriteLock = async <T>(
       'the claude login write lock stayed held; the shared login was not touched',
       {
         lockPath,
-        hint: 'a live claude-code process holds the lock past the wait; retry the enroll. a lock dir older than 15s is stale, and is cleared on the next try',
+        hint: asBrainAuthWriteLockHint({ retry: input.retry }),
       },
     );
 

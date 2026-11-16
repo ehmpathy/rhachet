@@ -1,0 +1,29 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asBrainAuthSetJson given: [case1] a new account filed when: [t0] the envelope is built then: the envelope matches its snapshot 1`] = `
+{
+  "account": BrainAuthAccount {
+    "accountUuid": "uuid-one@example.com",
+    "brain": "claude",
+    "email": "one@example.com",
+    "orgId": "org-one",
+  },
+  "key": "@all.prep.BRAINS_AUTH__OF__CLAUDE_CODE_OAUTH_TOKEN",
+  "outcome": "stored",
+  "owner": "ehmpath",
+}
+`;
+
+exports[`asBrainAuthSetJson given: [case2] an account set again, with no org named when: [t0] the outcome is renewed then: the envelope matches its snapshot 1`] = `
+{
+  "account": BrainAuthAccount {
+    "accountUuid": "uuid-two@example.com",
+    "brain": "claude",
+    "email": "two@example.com",
+    "orgId": null,
+  },
+  "key": "@all.prep.BRAINS_AUTH__OF__CLAUDE_CODE_OAUTH_TOKEN",
+  "outcome": "renewed",
+  "owner": "ehmpath",
+}
+`;

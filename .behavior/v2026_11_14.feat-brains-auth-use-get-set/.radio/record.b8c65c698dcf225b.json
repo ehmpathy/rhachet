@@ -1,0 +1,19 @@
+{
+  "key": "b8c65c698dcf225b",
+  "kind": "create",
+  "repo": {
+    "owner": "ehmpathy",
+    "name": "rhachet-roles-ehmpathy"
+  },
+  "exid": null,
+  "title": "git.repo.test: warn when node differs from .nvmrc",
+  "description": "# 🌙 dream: git.repo.test warns when the node it runs differs from `.nvmrc`\n\n- kind = reseed\n- owner = ehmpathy/rhachet-roles-ehmpathy (mechanic, `git.repo.test`)\n- caught 2026-11-15\n\n## .the cue that fired\n\na full impacted acceptance run showed 9 red suites. 8 were green when rerun under the node\n`.nvmrc` pins; the box's default node was v24.21.0, the pin v22.21.0. no output named the gap.\n\n## .the gap, precisely\n\n`git.repo.test` runs under whatever `node` is first on the PATH. a version off the pin shifts\nbehavior a test can see:\n\n- node 24 refuses (`connect EINVAL`) a long unix socket path that node 22 accepts\n- node 24 adds a `module.exports` key to a cjs import's dynamic keys\n\nthe red reads as a product defect, and the cause is unnamed.\n\n## .the shape of the fix\n\nin `git.repo.test`, before the run: read `.nvmrc` if present, compare to `node --version`, and on\na mismatch print a `⚠️` branch that names both versions and the cure (`fnm use`, `nvm use`).\na warn, not a halt: a deliberate off-pin run stays possible.\n\nthis repo paves a stopgap meanwhile: `rhx test.as.ci <skill> …` runs a test skill under the pin.\n\n## .why it is not done in this round\n\nthe skill lives in another repo; a change there is a reseed, dispatched to its owner.",
+  "status": null,
+  "via": "gh.issues",
+  "auth": null,
+  "idem": "findsert",
+  "heldSeq": 2,
+  "recordStatus": "DELIVERED",
+  "reason": null,
+  "deliveredExid": "1346"
+}

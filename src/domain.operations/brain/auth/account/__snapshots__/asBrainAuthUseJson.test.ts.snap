@@ -1,0 +1,58 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asBrainAuthUseJson given: [case1] a swap from a to b, b capped on its week, one live clone when: [t0] the envelope is built then: the envelope matches its snapshot 1`] = `
+{
+  "after": BrainAuthAccount {
+    "accountUuid": "uuid-b",
+    "brain": "claude",
+    "email": "b@example.com",
+    "orgId": "org-b",
+  },
+  "before": BrainAuthAccount {
+    "accountUuid": "uuid-a",
+    "brain": "claude",
+    "email": "a@example.com",
+    "orgId": "org-a",
+  },
+  "clonesLive": [
+    "@:driver",
+  ],
+  "landed": true,
+  "outcome": "swapped",
+  "owner": "ehmpath",
+  "scope": "grove",
+  "stowed": "a@example.com",
+  "windowsCapped": [
+    {
+      "capped": true,
+      "resetsAt": "<instant>",
+      "slug": "week",
+      "usedShare": 1,
+    },
+  ],
+}
+`;
+
+exports[`asBrainAuthUseJson given: [case2] an unchanged use, with a live clone in the repo when: [t0] the envelope is built then: the envelope matches its snapshot 1`] = `
+{
+  "after": BrainAuthAccount {
+    "accountUuid": "uuid-b",
+    "brain": "claude",
+    "email": "b@example.com",
+    "orgId": "org-b",
+  },
+  "before": BrainAuthAccount {
+    "accountUuid": "uuid-b",
+    "brain": "claude",
+    "email": "b@example.com",
+    "orgId": "org-b",
+  },
+  "clonesLive": [],
+  "landed": true,
+  "outcome": "unchanged",
+  "owner": "ehmpath",
+  "scope": "grove",
+  "stowed": null,
+  "windowsCapped": null,
+}
+`;

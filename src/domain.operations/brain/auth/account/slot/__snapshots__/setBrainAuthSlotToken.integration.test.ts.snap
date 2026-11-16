@@ -1,0 +1,19 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`brains auth slot ops, over the real keyrack given: [case0] an owner with no host keyrack at all when: [t0] the slot is checked for a write then: it refuses as a constraint, and names the keyrack init 1`] = `
+[Error: ✋ ConstraintError: no keyrack for this owner, so a login cannot be filed
+
+{
+  "owner": "brainsauthnone",
+  "hint": "rhx keyrack init --owner brainsauthnone   # then retry"
+}]
+`;
+
+exports[`brains auth slot ops, over the real keyrack given: [case0] an owner with no host keyrack at all when: [t1] a token is filed anyway then: the write refuses the same way, and files naught 1`] = `
+[Error: ✋ ConstraintError: no keyrack for this owner, so a login cannot be filed
+
+{
+  "owner": "brainsauthnone",
+  "hint": "rhx keyrack init --owner brainsauthnone   # then retry"
+}]
+`;

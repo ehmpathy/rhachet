@@ -19,8 +19,14 @@ import { existsSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
- * .note = mocks promptHiddenInput to simulate user secret input in tests
- * .why = integration tests need controlled input without real stdin
+ * .mock = the hidden secret prompt reader — `promptHiddenInput`
+ * .why = a hidden prompt reads a keystroke from a real tty, and a jest worker has none:
+ *        its stdin is a pipe no one writes to, so a real prompt hangs until the jest timeout.
+ *        what is faked is the source of the keystrokes; the age encryption, the vault files
+ *        and the host manifest stay real
+ * .real = `blackbox/cli/keyrack.fill.acceptance.test.ts` [case7] drives the built binary under
+ *         a real pseudo-terminal (`blackbox/.test/assets/pty-with-answers.js`), answers the
+ *         hidden `enter secret for` prompt, and stores into os.secure (fill's default vault)
  * .note = no snapshot coverage because os.secure is internal vault adapter, not user-faced contract
  */
 jest.mock('@src/infra/promptHiddenInput', () => genMockPromptHiddenInput());
@@ -471,4 +477,42 @@ describe('vaultAdapterOsSecure', () => {
       );
     });
   });
+
+  given(
+    '[case6] a secret supplied from code, via context.mech.question',
+    () => {
+      const reach = { exid: 'seat-a@example.com' };
+
+      // .note = the stdin mock holds a decoy; a read of stdin would surface it, and fail
+      beforeEach(() => setMockPromptValues('decoy-from-stdin'));
+
+      when('[t0] the secret is set, then rotated, from code', () => {
+        then('a read yields the rotated value, never stdin', async () => {
+          const contextBase = genTestContext({
+            identity: testIdentity,
+            recipient: testRecipient,
+          });
+          const setFromCode = async (secret: string) =>
+            vaultAdapterOsSecure.set(
+              {
+                slug: '@all.prep.BRAINS_AUTH__OF__CLAUDE_CODE_OAUTH_TOKEN',
+                mech: 'PERMANENT_VIA_REPLICA',
+                reach,
+              },
+              { ...contextBase, mech: { question: async () => secret } },
+            );
+
+          await setFromCode('token-first');
+          await setFromCode('token-rotated');
+
+          const found = await vaultAdapterOsSecure.get({
+            slug: '@all.prep.BRAINS_AUTH__OF__CLAUDE_CODE_OAUTH_TOKEN',
+            identity: testIdentity,
+            reach,
+          });
+          expect(found?.key.secret).toEqual('token-rotated');
+        });
+      });
+    },
+  );
 });

@@ -1,0 +1,59 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`assertBrainAuthUsageReadable given: [case2] every account rate-limited (case=11 [t1]) when: [t0] the table is judged then: it fails as a malfunction, so get exits 1 and the hint says wait 1`] = `
+[Error: 💥 MalfunctionError: no brain account could be read
+
+{
+  "statuses": [
+    "a@example.com = rate-limited",
+    "b@example.com = rate-limited"
+  ],
+  "hint": "the provider did not answer, or answered in a shape rhachet cannot read, and the accounts are not dead; wait a few minutes, then retry. if it persists, file a defect at ehmpathy/rhachet"
+}]
+`;
+
+exports[`assertBrainAuthUsageReadable given: [case3] every account dead when: [t0] the table is judged then: it fails as a constraint, so get exits 2 and names set 1`] = `
+[Error: ✋ ConstraintError: no brain account could be read
+
+{
+  "statuses": [
+    "a@example.com = dead"
+  ],
+  "hint": "each parked login was refused; log in again via: rhx brains auth set --brain claude"
+}]
+`;
+
+exports[`assertBrainAuthUsageReadable given: [case3b] only the signed-in login, refused when: [t0] the table is judged then: it fails as a constraint, and names /login, never set 1`] = `
+[Error: ✋ ConstraintError: no brain account could be read
+
+{
+  "statuses": [
+    "a@example.com = dead"
+  ],
+  "hint": "the provider refused the signed-in login; run \`/login\` in any claude session"
+}]
+`;
+
+exports[`assertBrainAuthUsageReadable given: [case3c] the signed-in login and a stored one, both refused when: [t0] the table is judged then: the hint names each fix for its own kind 1`] = `
+[Error: ✋ ConstraintError: no brain account could be read
+
+{
+  "statuses": [
+    "a@example.com = dead",
+    "b@example.com = dead"
+  ],
+  "hint": "each login was refused; run \`/login\` in claude for the signed-in one, and \`rhx brains auth set --brain claude\` for each stored one"
+}]
+`;
+
+exports[`assertBrainAuthUsageReadable given: [case6] no row read, and the keyrack would not open one when: [t0] the table is judged then: it fails as a constraint, so get exits 2 and names the unlock 1`] = `
+[Error: ✋ ConstraintError: no brain account could be read
+
+{
+  "statuses": [
+    "a@example.com = locked",
+    "b@example.com = dead"
+  ],
+  "hint": "rhx keyrack unlock --owner ehmpath --env prep"
+}]
+`;
