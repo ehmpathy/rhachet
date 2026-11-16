@@ -34,7 +34,7 @@ ARGS=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --skill|--repo|--role) shift 2 ;;
-    *) ARGS+=("$1"); shift ;;
+    *) ARGS+=("$1"); shift ;; # forwarded: to the test skill named first, which refuses what it does not read
   esac
 done
 
