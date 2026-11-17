@@ -54,6 +54,7 @@ const genScene = (input: {
   );
   const args = asBrainCliSpawnArgs({
     configPath: join(brainDir, 'settings.of.repo.json'),
+    bootMdPath: join(brainDir, 'boot.md'),
     passthrough: [],
   });
   return { home, repo, brainDir, args };

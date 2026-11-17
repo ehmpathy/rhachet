@@ -32,19 +32,27 @@ import {
   askCloneForSentinels as askCloneForSentinelsUnbounded,
   getAllActorHashDirNames,
   ROLES_BOOT_COMMAND_WAXER,
+  SENTINEL_PROMPT,
   setupBrainDirBootFixtureRepo,
 } from '@/blackbox/.test/infra/brainDirBootJourney';
+import { isBrainLiveScopeAll } from '@src/.test/infra/isBrainLiveScopeAll';
+import { asFirstDifference } from '@/blackbox/.test/infra/asFirstDifference';
 import { asLegibleScreen } from '@/blackbox/.test/infra/asLegibleScreen';
 import { enrollRealClaudeAndWaitReach as enrollRealClaudeAndWaitReachUnbounded } from '@/blackbox/.test/infra/enrollCloneHarness';
 import type { RhachetBackgroundHandle } from '@/blackbox/.test/infra/spawnRhachetCliBackground';
 import { envIsolated } from '@/blackbox/.test/infra/envIsolated';
 import { genIsolatedClaudeHome } from '@/blackbox/.test/infra/genIsolatedClaudeHome';
 import { genStepBudget } from '@/blackbox/.test/infra/genStepBudget';
+import { getOneRawRequestBody } from '@/blackbox/.test/infra/getOneRawRequestBody';
 import {
   asSnapshotSafe,
   invokeRhachetCliBinary as invokeRhachetCliBinaryUnbounded,
   invokeRhachetCliBinaryAsync,
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+
+// the live-answer blocks: the journey runs whole only under `BRAIN_LIVE_SCOPE=all`
+//   (`describeBrainLiveOnDemand`), so this reads true wherever those blocks register
+const IS_BRAIN_LIVE = isBrainLiveScopeAll({ env: process.env });
 
 jest.setTimeout(600_000);
 
@@ -492,7 +500,8 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
         ).toMatchSnapshot();
       });
 
-      const ask = useThen('the clone answers its first say (M3)', () =>
+      // a live clone turn on a paid key: run only on the named flag (IS_BRAIN_LIVE)
+      const ask = useThen.runIf(IS_BRAIN_LIVE)('the clone answers its first say (M3)', () =>
         askCloneForSentinels({
           address: enrolled.address,
           dir: scene.dir,
@@ -501,12 +510,12 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
         }),
       );
 
-      then('the clone quotes shaper head and tail — the whole corpus arrived', () => {
+      then.runIf(IS_BRAIN_LIVE)('the clone quotes shaper head and tail — the whole corpus arrived', () => {
         expect(ask.sentinels).toContain(sentinelOf('shaperhead'));
         expect(ask.sentinels).toContain(sentinelOf('shapertail'));
       });
 
-      then('the clone holds no unenrolled role and no user memory', () => {
+      then.runIf(IS_BRAIN_LIVE)('the clone holds no unenrolled role and no user memory', () => {
         expect(ask.sentinels).not.toContain(sentinelOf('glasserhead'));
         expect(ask.sentinels).not.toContain(sentinelOf('glassertail'));
         expect(ask.sentinels).not.toContain(sentinelOf('waxerhead'));
@@ -516,43 +525,217 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
         expect(ask.sentinels).not.toContain(sentinelOf('local'));
       });
 
-      const relaunch = useThen('a second launch of the actor answers', async () => {
-        // two identical launches: the first writes the cache, the second reads it (M2)
-        // .note = each launch carries the argv every enrolled clone spawns with, so M2
-        //   measures the prompt a clone actually runs under
-        const launch = () =>
-          askClaudePrintForSentinels({
-            dir: scene.dir,
-            env: { ...scene.env, CLAUDE_CONFIG_DIR: enrolled.brainDir },
+      const relaunch = useThen('two launches of the actor, with two prompts, answer', async () => {
+        // two launches with DIFFERENT prompts, as two real sessions open (M2, the assembly clamp)
+        // .note = each launch carries the argv and env every enrolled clone spawns with: the
+        //   boot as the system-prompt file, the CLAUDE.md door off. a fixed prompt would
+        //   measure message identity, never whether a new session can read the boot
+        // .note = each launch logs its raw request bodies, so the clamp reads what claude sent
+        const launch = (input: {
+          prompt: string;
+          otelDir: string;
+          cwd: string;
+          argsMore: string[];
+        }) => {
+          mkdirSync(input.otelDir, { recursive: true });
+          return askClaudePrintForSentinels({
+            dir: input.cwd,
+            env: {
+              ...scene.env,
+              CLAUDE_CONFIG_DIR: enrolled.brainDir,
+              CLAUDE_CODE_DISABLE_CLAUDE_MDS: '1',
+              OTEL_LOG_RAW_API_BODIES: `file:${input.otelDir}`,
+            },
             binPath: scene.binPath,
             args: [
               ...asEnrollConfigArgs({ dir: scene.dir, actorName: enrolled.actorName }),
-              '--system-prompt',
-              '',
+              '--system-prompt-file',
+              join(enrolled.brainDir, 'boot.md'),
               '--output-format',
               'json',
+              ...input.argsMore,
             ],
+            prompt: input.prompt,
           });
-        await launch();
-        const asked = await launch();
-        const envelope = JSON.parse(asked.stdout) as {
-          usage?: { cache_read_input_tokens?: number };
         };
-        return { ...asked, envelope };
+        const otelDirFirst = join(scene.dir, '.log', 'otel', 'first');
+        const otelDirSecond = join(scene.dir, '.log', 'otel', 'second');
+        const otelDirResumed = join(scene.dir, '.log', 'otel', 'resumed');
+        const otelDirElsewhere = join(scene.dir, '.log', 'otel', 'elsewhere');
+        const first = await launch({
+          prompt: SENTINEL_PROMPT,
+          otelDir: otelDirFirst,
+          cwd: scene.dir,
+          argsMore: [],
+        });
+        const second = await launch({
+          prompt: 'Do not use any tools. Reply with exactly: OK',
+          otelDir: otelDirSecond,
+          cwd: scene.dir,
+          argsMore: [],
+        });
+        const asEnvelope = (stdout: string) =>
+          JSON.parse(stdout) as {
+            session_id?: string;
+            usage?: {
+              cache_creation_input_tokens?: number;
+              cache_read_input_tokens?: number;
+            };
+          };
+        const sessionSecond = asEnvelope(second.stdout).session_id;
+        if (!sessionSecond)
+          throw new MalfunctionError('the second launch returned no session_id', {
+            stdout: second.stdout.slice(-500),
+            hint: 'the json envelope of `claude -p --output-format json` must carry session_id',
+          });
+
+        // a later turn of the second session (vision case 2): the turn after the first
+        const resumed = await launch({
+          prompt: 'Do not use any tools. Reply with exactly: AGAIN',
+          otelDir: otelDirResumed,
+          cwd: scene.dir,
+          argsMore: ['--resume', sessionSecond],
+        });
+
+        // the same actor from another repo path (vision case 6): a second worktree of one tree
+        const dirElsewhere = genTempDir({ slug: 'brain-dir-boot-elsewhere' });
+        const elsewhere = await launch({
+          prompt: 'Do not use any tools. Reply with exactly: ELSEWHERE',
+          otelDir: otelDirElsewhere,
+          cwd: dirElsewhere,
+          argsMore: [],
+        });
+
+        const envelope = JSON.parse(second.stdout) as Record<string, unknown>;
+        return {
+          first,
+          second,
+          resumed,
+          elsewhere,
+          envelope,
+          usage: asEnvelope(second.stdout).usage ?? {},
+          usageResumed: asEnvelope(resumed.stdout).usage ?? {},
+          usageElsewhere: asEnvelope(elsewhere.stdout).usage ?? {},
+          bodyFirst: await getOneRawRequestBody({ dir: otelDirFirst }),
+          bodySecond: await getOneRawRequestBody({ dir: otelDirSecond }),
+          bodyElsewhere: await getOneRawRequestBody({ dir: otelDirElsewhere }),
+        };
       });
 
-      then('the second launch bills a cache read (M2)', () => {
-        const cacheRead = relaunch.envelope.usage?.cache_read_input_tokens ?? 0;
+      then('the two sessions send byte-equal system and tools blocks (M2, raw request)', () => {
+        // 🔴 the clamp that sees a vendor change: a cwd, a date, or a session id that claude
+        //   puts ahead of the boot reddens here, with the offset and both values named
+        // .note = one value is masked, and only its value: claude 2.1.292+ stamps a per-request
+        //   `cc_prompt_id=<uuid>` into the vendor's attribution header block, ahead of the boot.
+        //   whether that block costs cache is the live cache-read assert below to judge (fulcrum
+        //   F15); every other byte stays strict
+        const asPromptIdMasked = (system: string): string =>
+          system.replace(/cc_prompt_id=[0-9a-f-]+/g, 'cc_prompt_id=<masked>');
+        expect(
+          asFirstDifference({
+            before: asPromptIdMasked(relaunch.bodyFirst.system),
+            after: asPromptIdMasked(relaunch.bodySecond.system),
+            radius: 80,
+          }),
+        ).toEqual(null);
+        expect(
+          asFirstDifference({
+            before: relaunch.bodyFirst.tools,
+            after: relaunch.bodySecond.tools,
+            radius: 80,
+          }),
+        ).toEqual(null);
+
+        // and the system block is the boot, so the bytes compared are the corpus
+        expect(relaunch.bodyFirst.system).toContain(sentinelOf('shaperhead'));
+      });
+
+      then('the cli splits the boot at the boundary line: two sent blocks, no literal (case 5)', () => {
+        // the vendor contract the boundary rests on: claude cuts the system prompt at the line,
+        //   gives each side its own block, and never sends the line itself
+        const literal = ['__SYSTEM_PROMPT', 'DYNAMIC_BOUNDARY__'].join('_');
+        expect(relaunch.bodyFirst.system).not.toContain(literal);
+        const blocks = JSON.parse(relaunch.bodyFirst.system) as Array<{ text?: string }>;
+        const indexOfIntro = blocks.findIndex((block) =>
+          (block.text ?? '').includes('you are enrolled via rhachet'),
+        );
+        const indexOfShaper = blocks.findIndex((block) =>
+          (block.text ?? '').includes(sentinelOf('shaperhead')),
+        );
+        expect(indexOfIntro).toBeGreaterThanOrEqual(0);
+        expect(indexOfShaper).toBeGreaterThan(indexOfIntro);
+      });
+
+      then('the boot reaches the brain once, never through both doors (case 4)', () => {
+        // the CLAUDE.md door is off, so the first message holds no second copy of the boot
+        expect(relaunch.bodyFirst.messageFirst).not.toContain(
+          sentinelOf('shaperhead'),
+        );
+        expect(relaunch.bodyFirst.messageFirst).not.toContain(
+          sentinelOf('shapertail'),
+        );
+      });
+
+      then('the boot arrives whole through the system prompt alone', () => {
+        expect(relaunch.first.status).toEqual(0);
+        expect(relaunch.first.sentinels).toContain(sentinelOf('shaperhead'));
+        expect(relaunch.first.sentinels).toContain(sentinelOf('shapertail'));
+        expect(relaunch.first.sentinels).not.toContain(sentinelOf('glasserhead'));
+        expect(relaunch.first.sentinels).not.toContain(sentinelOf('user'));
+      });
+
+      then('the second session, with another prompt, reads the boot from cache (M2)', () => {
+        const cacheRead = relaunch.usage.cache_read_input_tokens ?? 0;
+        const cacheWrite = relaunch.usage.cache_creation_input_tokens ?? 0;
         const bootChars = readFileSync(
           join(enrolled.brainDir, 'boot.md'),
           'utf-8',
         ).length;
         // .note = the measure the yield records for M2
-        console.log('M2 measure', { cacheRead, bootChars });
+        console.log('M2 measure', { cacheRead, cacheWrite, bootChars });
 
-        // the cached read must at least cover the corpus, at ~4 chars per token
-        // .note = a floor, never a proof the corpus itself was read from cache; the system prompt
-        //   caches too. the differential against a no-corpus baseline is F39's dream
+        // the cached read covers the corpus, at ~4 chars per token
+        expect(cacheRead).toBeGreaterThanOrEqual(Math.ceil(bootChars / 4));
+        // 🔴 and the write is only the new first message, never the boot again. a volatile
+        //   value ahead of the boot (a path, a date, a session id) turns this red
+        expect(cacheWrite).toBeLessThan(Math.ceil(bootChars / 4 / 10));
+      });
+
+      then('a later turn of the same session reads the boot from cache (case 2)', () => {
+        const cacheRead = relaunch.usageResumed.cache_read_input_tokens ?? 0;
+        const cacheWrite = relaunch.usageResumed.cache_creation_input_tokens ?? 0;
+        const bootChars = readFileSync(join(enrolled.brainDir, 'boot.md'), 'utf-8').length;
+        console.log('case 2 measure', { cacheRead, cacheWrite, bootChars });
+
+        expect(relaunch.resumed.status).toEqual(0);
+        expect(cacheRead).toBeGreaterThanOrEqual(Math.ceil(bootChars / 4));
+        expect(cacheWrite).toBeLessThan(Math.ceil(bootChars / 4 / 10));
+      });
+
+      then('a session from another repo path sends the same system and tools (case 6)', () => {
+        const asPromptIdMasked = (system: string): string =>
+          system.replace(/cc_prompt_id=[0-9a-f-]+/g, 'cc_prompt_id=<masked>');
+        expect(relaunch.elsewhere.status).toEqual(0);
+        expect(
+          asFirstDifference({
+            before: asPromptIdMasked(relaunch.bodyFirst.system),
+            after: asPromptIdMasked(relaunch.bodyElsewhere.system),
+            radius: 80,
+          }),
+        ).toEqual(null);
+        expect(
+          asFirstDifference({
+            before: relaunch.bodyFirst.tools,
+            after: relaunch.bodyElsewhere.tools,
+            radius: 80,
+          }),
+        ).toEqual(null);
+      });
+
+      then('a session from another repo path reads the boot from cache (case 6)', () => {
+        const cacheRead = relaunch.usageElsewhere.cache_read_input_tokens ?? 0;
+        const bootChars = readFileSync(join(enrolled.brainDir, 'boot.md'), 'utf-8').length;
+        console.log('case 6 measure', { cacheRead, bootChars });
         expect(cacheRead).toBeGreaterThanOrEqual(Math.ceil(bootChars / 4));
       });
 
@@ -562,15 +745,16 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
         ).toMatchSnapshot();
       });
 
-      // the empty system prompt, measured against the real cli: one launch with the vendor
-      //   default prompt, one with the empty prompt a clone spawns with. both carry the
-      //   enroll config prefix (its claudeMdExcludes keep the repo corpus out), so the
-      //   prompt flag is the ONE variable. the difference in billed input IS the default prompt
-      const prompts = useThen('a default-prompt launch and an empty-prompt launch answer', async () => {
-        const launch = async (args: string[]) => {
+      // the boot door, measured against the real cli: one launch through the vendor
+      //   default prompt and the CLAUDE.md door, one through the door a clone spawns with
+      //   (the boot as the system-prompt file, CLAUDE.md off). both carry the enroll config
+      //   prefix (its claudeMdExcludes keep the repo corpus out), so the door is the ONE
+      //   variable. the same corpus must arrive by each, and the vendor prompt is gone
+      const prompts = useThen('a vendor-door launch and a clone-door launch answer', async () => {
+        const launch = async (args: string[], envDoor: Record<string, string>) => {
           const asked = await askClaudePrintForSentinels({
             dir: scene.dir,
-            env: { ...scene.env, CLAUDE_CONFIG_DIR: enrolled.brainDir },
+            env: { ...scene.env, CLAUDE_CONFIG_DIR: enrolled.brainDir, ...envDoor },
             binPath: scene.binPath,
             args: [
               ...asEnrollConfigArgs({ dir: scene.dir, actorName: enrolled.actorName }),
@@ -594,39 +778,42 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
           return { ...asked, inputBilled };
         };
         // one after the other, so the two launches never contend for the cache they measure
-        const vendor = await launch([]);
-        const empty = await launch(['--system-prompt', '']);
-        return { vendor, empty };
+        const vendor = await launch([], {});
+        const clone = await launch(
+          ['--system-prompt-file', join(enrolled.brainDir, 'boot.md')],
+          { CLAUDE_CODE_DISABLE_CLAUDE_MDS: '1' },
+        );
+        return { vendor, clone };
       });
 
-      then('the cli accepts the empty system prompt — exit 0', () => {
-        expect(prompts.empty.status).toEqual(0);
+      then('the cli accepts the boot as its system-prompt file — exit 0', () => {
+        expect(prompts.clone.status).toEqual(0);
       });
 
-      then('under the empty prompt, CLAUDE.md still boots the whole corpus', () => {
-        expect(prompts.empty.sentinels).toContain(sentinelOf('shaperhead'));
-        expect(prompts.empty.sentinels).toContain(sentinelOf('shapertail'));
+      then('through the clone door, the whole corpus boots', () => {
+        expect(prompts.clone.sentinels).toContain(sentinelOf('shaperhead'));
+        expect(prompts.clone.sentinels).toContain(sentinelOf('shapertail'));
       });
 
-      then('under the empty prompt, no corpus but the actor one arrives', () => {
-        expect(prompts.empty.sentinels).not.toContain(sentinelOf('glasserhead'));
-        expect(prompts.empty.sentinels).not.toContain(sentinelOf('root'));
-        expect(prompts.empty.sentinels).not.toContain(sentinelOf('local'));
-        expect(prompts.empty.sentinels).not.toContain(sentinelOf('user'));
+      then('through the clone door, no corpus but the actor one arrives', () => {
+        expect(prompts.clone.sentinels).not.toContain(sentinelOf('glasserhead'));
+        expect(prompts.clone.sentinels).not.toContain(sentinelOf('root'));
+        expect(prompts.clone.sentinels).not.toContain(sentinelOf('local'));
+        expect(prompts.clone.sentinels).not.toContain(sentinelOf('user'));
       });
 
-      then('the vendor launch reads the same corpus — the prompt is the one variable', () => {
+      then('the vendor door reads the same corpus — no brief lost to the door change', () => {
         expect([...prompts.vendor.sentinels].sort()).toEqual(
-          [...prompts.empty.sentinels].sort(),
+          [...prompts.clone.sentinels].sort(),
         );
       });
 
-      then('the empty prompt bills measurably less input — the vendor prompt is gone', () => {
-        const removed = prompts.vendor.inputBilled - prompts.empty.inputBilled;
-        // .note = the measure the yield records for the empty system prompt
+      then('the clone door bills measurably less input — the vendor prompt is gone', () => {
+        const removed = prompts.vendor.inputBilled - prompts.clone.inputBilled;
+        // .note = the measure the yield records for the clone door
         console.log('system prompt measure', {
           vendor: prompts.vendor.inputBilled,
-          empty: prompts.empty.inputBilled,
+          clone: prompts.clone.inputBilled,
           removed,
         });
 
@@ -640,7 +827,8 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
       return enrolled;
     }});
 
-    when('[t3.1] the repo brain dir opens every door, then a new shaper clone', () => {
+    // a live clone turn on a paid key: run only on the named flag (IS_BRAIN_LIVE)
+    when.runIf(IS_BRAIN_LIVE)('[t3.1] the repo brain dir opens every door, then a new shaper clone', () => {
       const doors = useThen('the doors open and a new clone answers', async () => {
         const repoBrainDir = join(scene.dir, DEFAULT_BRAIN_DIR);
 
@@ -912,7 +1100,7 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
       // the /compact of the [t3] clone and the spawn of a fresh shaper clone share no state
       //   past the init, so both brain waits run at once
       const compactThenAsk = async () => {
-        // a /compact makes the brain re-read its memory files from disk
+        // a /compact keeps the boot the clone spawned with; the ask after it proves which boot it holds
         // async, never sync — a spawnSync here starves the pty this test alone drains
         //   (rule.forbid.sync-invoke-while-a-pty-is-live)
         const said = await budget.withBudget(
@@ -975,7 +1163,8 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
           actorsAfter: getAllActorHashDirNames({ dir: scene.dir }),
         };
       };
-      const both = useThen(
+      // live clone turns on a paid key: run only on the named flag (IS_BRAIN_LIVE)
+      const both = useThen.runIf(IS_BRAIN_LIVE)(
         'the [t3] clone compacts and a new clone spawns, and both answer',
         async () => {
           const [compacted, respawn] = await Promise.all([
@@ -986,11 +1175,17 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
         },
       );
 
-      then('after /compact the live clone quotes the new sentinel', () => {
-        expect(both.compacted.sentinels).toContain(sentinelOf('shapernew'));
+      // the boot reaches a clone as --system-prompt-file, read once at spawn: a compaction keeps
+      //   it (measured by `rhx boot.compact.probe`, 2026-11-02 — the request after /compact holds
+      //   the spawn boot). an edit reaches a live clone only at its next spawn, the case below
+      //   (inventory.of=requirements.case=11). this assert was once the inverse, under the
+      //   CLAUDE.md door; the approved vision of 2026-11-02 named that cost when it moved the door
+      then.runIf(IS_BRAIN_LIVE)('after /compact the live clone still holds its spawn boot, not the edit', () => {
+        expect(both.compacted.sentinels).toContain(sentinelOf('shaperhead'));
+        expect(both.compacted.sentinels).not.toContain(sentinelOf('shapernew'));
       });
 
-      then('the new clone quotes the new sentinel at spawn, and no new actor', () => {
+      then.runIf(IS_BRAIN_LIVE)('the new clone quotes the new sentinel at spawn, and no new actor', () => {
         expect(both.respawn.ask.sentinels).toContain(sentinelOf('shapernew'));
         expect(both.respawn.actorsAfter).toEqual(changed.actorsBefore);
       });
@@ -1122,7 +1317,8 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
       });
     });
 
-    when('[t6] rhx enroll --roles shaper,sander', () => {
+    // live clone turns on a paid key: run only on the named flag (IS_BRAIN_LIVE)
+    when.runIf(IS_BRAIN_LIVE)('[t6] rhx enroll --roles shaper,sander', () => {
       const run = useThen('a new actor clone answers', async () => {
         const bootBefore = readFileSync(join(t3.brainDir, 'boot.md'), 'utf-8');
         const actorsBefore = getAllActorHashDirNames({ dir: scene.dir });
@@ -1185,7 +1381,8 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
       });
     });
 
-    when('[t7] rhx clone get on the [t3] clone', () => {
+    // reads the transcript the [t3] live turn writes: run only on the named flag (IS_BRAIN_LIVE)
+    when.runIf(IS_BRAIN_LIVE)('[t7] rhx clone get on the [t3] clone', () => {
       const got = useThen('get returns', () =>
         budget.withBudget(
           { kind: 'cli', detail: `rhx clone get ${t3.address} --output json --tail all` },

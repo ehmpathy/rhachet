@@ -36,6 +36,9 @@ reviewer checks a change against it.
 | 7 | [a brain dir holds one answer, rhachet's — no kept-aside copies](./inventory.of=requirements.case=7.no-kept-aside-one-answer.md) | proven |
 | 8 | [role inits meet the split layout: `settings.of.repo.json` always present, the layout before the inits](./inventory.of=requirements.case=8.role-inits-meet-the-split-layout.md) | proven |
 | 9 | 🔴 [a clone loads no hook from a role it is not enrolled in, from any settings layer](./inventory.of=requirements.case=9.clone-loads-only-its-roles-hooks.md) | proven |
+| 10 | [a clone's boot is a byte-stable, whole prefix the brain caches](./inventory.of=requirements.case=10.boot-prefix-is-cache-stable.md) | proven (integration by default; the journey's cache clamps on `BRAIN_LIVE_SCOPE=all`) |
+| 11 | [a boot edit reaches every clone spawned after it; a live clone keeps its spawn boot](./inventory.of=requirements.case=11.boot-edit-reaches-the-next-spawn.md) | proven (`enroll.acceptance` case2 by default); the journey [t4] on `BRAIN_LIVE_SCOPE=all` |
+| 12 | [a cold fleet of one boot writes the boot to cache once, not once per clone](./inventory.of=requirements.case=12.a-cold-fleet-writes-the-boot-once.md) | proven (acceptance, stub clones); live owed |
 
 ## .how to add an entry
 

@@ -12,6 +12,11 @@ import { isBrainCliVersionAtOrAboveFloor } from './isBrainCliVersionAtOrAboveFlo
  * .what = the lowest brain-cli version an enroll spawns
  * .why = below it, the cli lacks the claudeMdExcludes option the brain dir boot rests
  *   on, so a clone would load the wrong corpus in silence
+ * .note = the boot door rests on two more cli features: the `__SYSTEM_PROMPT_DYNAMIC_BOUNDARY__`
+ *   split (v2.1.275+, under this floor) and `CLAUDE_CODE_DISABLE_CLAUDE_MDS` (measured on
+ *   v2.1.280; its first version is unmeasured). a cli that ignores the env var still boots
+ *   the right corpus, once in the system prompt and once via `CLAUDE.md` — a cost, never a
+ *   wrong answer, so it raises no floor
  */
 export const BRAIN_CLI_VERSION_FLOOR: BrainCliVersion = {
   major: 2,

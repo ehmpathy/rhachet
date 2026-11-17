@@ -14,20 +14,22 @@ entool: a tactic worth repeat becomes a skill — \`.agent/repo=.this/role=any/s
 
 </brief.say>
 
-<readme path=".agent/repo=.this/role=any/readme.md">
-any readme
-</readme>
-
-<brief.say path=".agent/repo=.this/role=any/briefs/core.md">
-any brief body
-</brief.say>
-
 <readme path=".agent/repo=fixture/role=zeta/readme.md">
 zeta readme
 </readme>
 
 <brief.say path=".agent/repo=fixture/role=zeta/briefs/core.md">
 zeta brief body
+</brief.say>
+
+__SYSTEM_PROMPT_DYNAMIC_BOUNDARY__
+
+<readme path=".agent/repo=.this/role=any/readme.md">
+any readme
+</readme>
+
+<brief.say path=".agent/repo=.this/role=any/briefs/core.md">
+any brief body
 </brief.say>
 
 "

@@ -367,6 +367,11 @@ export const askClaudePrintForSentinels = (input: {
   args?: string[];
   /** the child is killed past this bound, so a slow launch fails at its budget */
   timeoutMs?: number;
+  /**
+   * the prompt sent on stdin; defaults to the sentinel question. a cache measure passes a
+   *   distinct prompt per launch, since two real sessions never open with the same words
+   */
+  prompt?: string;
 }): Promise<{
   status: number | null;
   stdout: string;
@@ -427,7 +432,7 @@ export const askClaudePrintForSentinels = (input: {
       clearTimeout(killer);
       fail(error);
     });
-    child.stdin.end(SENTINEL_PROMPT);
+    child.stdin.end(input.prompt ?? SENTINEL_PROMPT);
   });
 
 /**

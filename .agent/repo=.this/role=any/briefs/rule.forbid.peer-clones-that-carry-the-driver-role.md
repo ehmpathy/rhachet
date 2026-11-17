@@ -25,10 +25,17 @@ permission prompt and went deaf to `say` (`withheld` / `modal-holds-focus`).
 
 `@:nodrive1`, enrolled `--roles -driver`, replied `PONG` and took no further act.
 
+🔴 **measured 2026-11-04, print mode.** `npx rhx enroll claude -p 'reply with exactly OK'` (the repo
+actor, driver live), run from a bound route, did not exit. its stop hook returned the route's stone
+as feedback, and the turn went on for five minutes: it read the yield, ran `route.stone.set`, and
+tried three ways to write a self-review into the route, until it was killed. the same call with
+`--roles -driver` answered `OK` in 1.5s.
+
 | when… | then… |
 |---|---|
 | you enroll a peer to **ask it a question** | 🔴 the strongest cue. `--roles -driver`, every time |
 | you enroll a peer for a **second opinion** | it must read and answer, never act. drop driver |
+| you run a **one-shot `-p`** enroll to see an answer or a usage figure | 🔴 a print turn is a peer too. the driver's stop hook refuses its stop, so the "one prompt" turn takes the route's stone and drives it until killed. drop driver |
 | a peer answers correctly and you call it healthy | the answer proves naught about what it does next. read its transcript |
 | you enroll from **inside a bound route** | your bind is the peer's bind. it is the hazard, not a coincidence |
 | a peer goes deaf mid-session (`modal-holds-focus`) | it hit a permission prompt of its own. it was acting |

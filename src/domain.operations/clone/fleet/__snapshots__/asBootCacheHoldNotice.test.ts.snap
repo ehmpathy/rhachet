@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asBootCacheHoldNotice given: [case1] a hold that begins when: [t0] rendered, the lead has sent its first request then: it names the lead by its short address and the bound 1`] = `"ℹ held for the boot cache, up to 44.7s, until @:3f2a9c1b begins its first reply; @:3f2a9c1b sent the first request of this boot"`;
+
+exports[`asBootCacheHoldNotice given: [case1] a hold that begins when: [t1] rendered, the lead has not sent its first request then: it names the short bound and never claims a send 1`] = `"ℹ held for the boot cache, up to 4.2s, until @:3f2a9c1b begins its first reply; @:3f2a9c1b claimed the first request of this boot and has not sent it yet"`;
+
+exports[`asBootCacheHoldNotice given: [case2] a hold the lead released when: [t0] rendered then: it names the wait and that the boot reads from cache 1`] = `"ℹ held 2.4s for the boot cache, until @:3f2a9c1b began its first reply; this clone reads the boot from cache"`;
+
+exports[`asBootCacheHoldNotice given: [case3] a hold that reached its bound when: [t0] rendered then: it names that this clone writes the boot itself 1`] = `"ℹ held 45.0s for the boot cache; @:3f2a9c1b has not replied, so this clone writes the boot itself"`;
+
+exports[`asBootCacheHoldNotice given: [case4] a gate that faulted when: [t0] rendered then: it names the cause and that the say goes on 1`] = `"🟡 the boot cache gate faulted (mutex wait exceeded 10000ms); this say goes unheld"`;

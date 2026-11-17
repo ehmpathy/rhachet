@@ -48,6 +48,19 @@ const maskTempPaths = (input: string): string =>
   input.replace(/\/(?:private\/)?tmp\/test-fns\/[^\s"]+/g, '$TESTDIR');
 
 /**
+ * .what = swaps both names of one temp dir for `$TESTDIR`, and keeps the path below it
+ * .why = an argv row that names two temp files must still show which file is which, so the
+ *        whole-path mask above would erase the very part the row is for. `genTempDir` answers
+ *        to the path it returned and to that path's realpath; the swap names both exactly
+ */
+const maskTempDirBothNames = (input: { text: string; dir: string }): string =>
+  input.text
+    .split(realpathSync(input.dir))
+    .join('$TESTDIR')
+    .split(input.dir)
+    .join('$TESTDIR');
+
+/**
  * .what = masks the version-floor refusal's TWO stub `claude` paths to DISTINCT tokens
  * .why = 🔴 a general path mask collapses both to one token, and that destroys the very
  *        distinction the refusal exists to draw: the hint then reads "a newer 2.1.280 sits at X
@@ -76,13 +89,16 @@ const maskStubBrainPaths = (input: string): string =>
 /**
  * .what = writes a stub `claude` that RECORDS the argv of each spawn, and returns a PATH
  *   that finds it first plus the path of the record
- * .why = the empty system prompt is a contract between rhachet and the brain cli, and a
+ * .why = the system-prompt file is a contract between rhachet and the brain cli, and a
  *   unit test of the argv builder cannot see past it: a later layer (the passthrough, the
  *   pty spawn) could drop or reorder the pair and every unit test would stay green. a stub
  *   at the far end of the real spawn reads exactly what the cli would receive
  *
- * .note = the record is NUL-separated (`printf '%s\0'`), so an EMPTY argv element survives
- *   as its own entry — a newline or space join would erase the very `''` under test
+ * .note = the stub accepts any flag, so a clamp on it proves the argv rhachet sends, never
+ *   that claude accepts it. the real-brain journey holds that half
+ *   (`brain-dir-boot.journey` — "the cli accepts the boot as its system-prompt file")
+ * .note = the record is NUL-separated (`printf '%s\0'`), so an empty argv element survives
+ *   as its own entry — a newline or space join would erase it
  * .note = `--version` answers the floor and records naught, so the record holds the spawn
  *   argv alone, never the floor probe
  */
@@ -1976,6 +1992,12 @@ describe('rhx enroll leaf clone (acceptance)', () => {
         expect(dumped.hostDetached).toEqual(null);
         expect(dumped.depthMinted).toEqual(null);
       });
+
+      // 🔴 the env half of the boot door, at the far end of the pty spawn (via the detached
+      //   host): without it the clone reads its boot twice, once per door
+      then('the pty child spawns with the CLAUDE.md door off', () => {
+        expect(dumped.disableClaudeMds).toEqual('1');
+      });
     });
   });
 
@@ -2135,6 +2157,11 @@ describe('rhx enroll leaf clone (acceptance)', () => {
 
       then('the child sits one level below its caller — depth 2', () => {
         expect(dumped.depth).toEqual('2');
+      });
+
+      // 🔴 the env half of the boot door, at the far end of the plain (print-mode) spawn
+      then('the plain child spawns with the CLAUDE.md door off', () => {
+        expect(dumped.disableClaudeMds).toEqual('1');
       });
     });
   });
@@ -2713,10 +2740,11 @@ describe('rhx enroll --as slug collision (acceptance)', () => {
 
 /**
  * .what = the argv a real enroll hands the brain cli, read at the far end of the spawn
- * .why = rhachet owns the boot context: every clone spawns with `--system-prompt ''`, so
- *   the vendor default prompt is gone and the corpus arrives via CLAUDE.md alone. this
- *   clamps that the pair survives every layer between the argv builder and the cli, that
- *   no other prompt flag rides beside it, and that a passthrough cannot fork it
+ * .why = rhachet owns the boot context: every clone spawns with `--system-prompt-file
+ *   <actor boot.md>`, so the vendor default prompt is gone and the corpus is the system
+ *   prompt, where the prompt cache shares it across sessions. this clamps that the pair
+ *   survives every layer between the argv builder and the cli, that no other prompt flag
+ *   rides beside it, and that a passthrough cannot fork it
  */
 describe('rhx enroll owns the system prompt (acceptance)', () => {
   given('[case1] a linked repo whose `claude` records the argv it is spawned with', () => {
@@ -2742,19 +2770,28 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
         return { list: await readRecordedBrainArgv({ recordPath: scene.recordPath }) };
       });
 
-      then('`--system-prompt` is followed by an EMPTY element', () => {
-        const index = argv.list.indexOf('--system-prompt');
+      then('`--system-prompt-file` is followed by the actor boot.md', () => {
+        const index = argv.list.indexOf('--system-prompt-file');
         expect(index).toBeGreaterThan(-1);
-        expect(argv.list[index + 1]).toEqual('');
+        expect(argv.list[index + 1]).toMatch(
+          /\.agent\/\.actors\/actor\.via\.(repo|hash)=[^/]+\/brain\/\.claude\/boot\.md$/,
+        );
       });
 
-      then('`--system-prompt` appears exactly once', () => {
-        expect(argv.list.filter((arg) => arg === '--system-prompt')).toHaveLength(1);
+      then('the boot file it names holds the rendered corpus', () => {
+        const index = argv.list.indexOf('--system-prompt-file');
+        const bootMdPath = argv.list[index + 1]!;
+        expect(existsSync(bootMdPath)).toEqual(true);
+        expect(readFileSync(bootMdPath, 'utf8')).toContain('<brief.');
+      });
+
+      then('`--system-prompt-file` appears exactly once', () => {
+        expect(argv.list.filter((arg) => arg === '--system-prompt-file')).toHaveLength(1);
       });
 
       then('no other flag touches the system prompt', () => {
         for (const flag of [
-          '--system-prompt-file',
+          '--system-prompt',
           '--append-system-prompt',
           '--append-system-prompt-file',
           '--exclude-dynamic-system-prompt-sections',
@@ -2762,24 +2799,29 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
           expect(argv.list).not.toContain(flag);
       });
 
-      then('the prefix is exact: config source, config, then the empty prompt', () => {
+      then('the prefix is exact: config source, config, then the boot file', () => {
         expect(argv.list.slice(0, 2)).toEqual(['--setting-sources', 'user']);
         expect(argv.list[2]).toEqual('--settings');
         expect(argv.list[3]).toMatch(
           /\.agent\/\.actors\/actor\.via\.(repo|hash)=[^/]+\/brain\/\.claude\/settings\.of\.repo\.json$/,
         );
-        expect(argv.list.slice(4)).toEqual(['--system-prompt', '']);
+        expect(argv.list[4]).toEqual('--system-prompt-file');
+        expect(argv.list).toHaveLength(6);
       });
 
       then('the recorded argv is locked to a snapshot', () => {
         expect(
-          argv.list.map((arg) => (arg === '' ? '<empty>' : maskTempPaths(arg))),
+          argv.list.map((arg) =>
+            arg === '' ? '<empty>' : maskTempDirBothNames({ text: arg, dir }),
+          ),
         ).toMatchSnapshot();
       });
     });
 
     when('[t1] `enroll claude --model haiku --append-system-prompt <text>` (passthrough)', () => {
       const argv = useThen('exits 0 and the stub records the spawn', async () => {
+        // clear [t0]'s record first, so the wait below can only see this spawn's argv
+        rmSync(scene.recordPath, { force: true });
         const run = invokeRhachetCliBinary({
           args: [
             'enroll',
@@ -2797,10 +2839,13 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
         return { list: await readRecordedBrainArgv({ recordPath: scene.recordPath }) };
       });
 
-      then('the empty prompt still leads, and the passthrough follows it in order', () => {
-        expect(argv.list.slice(4)).toEqual([
-          '--system-prompt',
-          '',
+      then('the boot file still leads, and the passthrough follows it in order', () => {
+        expect(argv.list[4]).toEqual('--system-prompt-file');
+        expect(argv.list[5]).toMatch(
+          /\.agent\/\.actors\/actor\.via\.(repo|hash)=[^/]+\/brain\/\.claude\/boot\.md$/,
+        );
+        expect(argv.list).toHaveLength(10);
+        expect(argv.list.slice(6)).toEqual([
           '--model',
           'haiku',
           '--append-system-prompt',
@@ -2852,6 +2897,150 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
       then('it refuses with exit 2 and never spawns', () => {
         expect(run.status).toEqual(2);
         expect(existsSync(scene.recordPath)).toBe(false);
+      });
+
+      then('stderr names the owned slot, as for the spaced form', () => {
+        expect(run.stderr).toContain('enroll owns the system prompt');
+        expect(run.stderr).toContain('--append-system-prompt');
+      });
+
+      then('the refusal is locked to a snapshot', () => {
+        expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+      });
+    });
+
+    when('[t4] `enroll claude --system-prompt <text> --output json` (the machine channel)', () => {
+      const run = useThen('exits 2 — a constraint', () => {
+        rmSync(scene.recordPath, { force: true });
+        return invokeRhachetCliBinary({
+          args: [
+            'enroll',
+            'claude',
+            '--output',
+            'json',
+            '--system-prompt',
+            'you are a pirate',
+          ],
+          cwd: dir,
+          env: { PATH: scene.path },
+          logOnError: false,
+        });
+      });
+
+      then('it refuses with exit 2 and never spawns', () => {
+        expect(run.status).toEqual(2);
+        expect(existsSync(scene.recordPath)).toBe(false);
+      });
+
+      then('the refusal is a parseable constraint that names the override, not prose', () => {
+        expect(run.stderr).not.toContain('✋');
+        const parsed = JSON.parse(run.stderr) as {
+          class: string;
+          message: string;
+          metadata: { overrides: string[] };
+        };
+        expect(parsed.class).toEqual('ConstraintError');
+        expect(parsed.message).toContain('enroll owns the system prompt');
+        expect(parsed.metadata.overrides).toEqual(['--system-prompt']);
+      });
+
+      then('the json refusal a machine parses is locked', () => {
+        expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+      });
+    });
+  });
+
+  /**
+   * .what = a boot edit reaches the next spawn, through the same actor's boot.md
+   * .why = inventory case 11: after `rhx init` re-renders an actor's boot, each clone spawned
+   *   later boots the new bytes, with no new actor dir. the spawn reads `--system-prompt-file`,
+   *   so the clamp is that the file it names is the one re-rendered in place
+   * .note = the live half (a clone already up keeps its spawn boot through `/compact`) is a
+   *   brain-cli fact; the journey and `rhx boot.compact.probe` hold it
+   */
+  given('[case2] a repo brief that boots whole, edited between two spawns', () => {
+    const dir = genTempDir({ slug: 'enroll-boot-edit' });
+    const briefsDir = join(dir, '.agent', 'repo=.this', 'role=any', 'briefs');
+    const briefPath = join(briefsDir, 'about-the-surf.md');
+    const asActorDirs = () =>
+      readdirSync(join(dir, '.agent', '.actors')).filter((name) =>
+        name.startsWith('actor.via.'),
+      );
+    const scene = useBeforeAll(async () => {
+      setupRoleFixtureRepo({ dir });
+      invokeRhachetCliBinary({ args: ['init', '--roles', 'mechanic'], cwd: dir });
+      mkdirSync(briefsDir, { recursive: true });
+      writeFileSync(briefPath, '# the surf\n\nsentinel=SWELL_BEFORE_EDIT\n');
+      writeFileSync(
+        join(dir, '.agent', 'repo=.this', 'role=any', 'boot.yml'),
+        ['always:', '  briefs:', '    say:', '      - briefs/about-the-surf.md', ''].join(
+          '\n',
+        ),
+      );
+      return setupArgvRecorderBrainPath({ dir });
+    });
+    const asBootMdPathOf = (list: string[]): string =>
+      list[list.indexOf('--system-prompt-file') + 1]!;
+
+    when('[t0] a clone spawns, then the brief is edited and `rhx init --hooks` runs', () => {
+      const before = useThen('the first spawn records its boot file', async () => {
+        const run = invokeRhachetCliBinary({
+          args: ['enroll', 'claude'],
+          cwd: dir,
+          env: { PATH: scene.path },
+          logOnError: false,
+        });
+        expect(run.status).toEqual(0);
+        const list = await readRecordedBrainArgv({ recordPath: scene.recordPath });
+        return {
+          bootMdPath: asBootMdPathOf(list),
+          bootMdContent: readFileSync(asBootMdPathOf(list), 'utf8'),
+          actorDirs: asActorDirs(),
+        };
+      });
+
+      const edited = useThen('init re-renders after the edit', () => {
+        writeFileSync(briefPath, '# the surf\n\nsentinel=SWELL_AFTER_EDIT\n');
+        return invokeRhachetCliBinary({
+          args: ['init', '--hooks'],
+          cwd: dir,
+          logOnError: false,
+        });
+      });
+
+      const after = useThen('the next spawn records its boot file', async () => {
+        rmSync(scene.recordPath, { force: true });
+        const run = invokeRhachetCliBinary({
+          args: ['enroll', 'claude'],
+          cwd: dir,
+          env: { PATH: scene.path },
+          logOnError: false,
+        });
+        expect(run.status).toEqual(0);
+        const list = await readRecordedBrainArgv({ recordPath: scene.recordPath });
+        return { bootMdPath: asBootMdPathOf(list), actorDirs: asActorDirs() };
+      });
+
+      then('the first spawn booted the brief as it stood', () => {
+        expect(before.bootMdContent).toContain('sentinel=SWELL_BEFORE_EDIT');
+      });
+
+      then('init exits 0', () => {
+        expect(edited.status).toEqual(0);
+      });
+
+      then('the boot.md the first spawn read now holds the edit, in place', () => {
+        const content = readFileSync(before.bootMdPath, 'utf8');
+        expect(content).toContain('sentinel=SWELL_AFTER_EDIT');
+        expect(content).not.toContain('sentinel=SWELL_BEFORE_EDIT');
+      });
+
+      then('the next spawn reads that same file: the edit reaches it', () => {
+        expect(after.bootMdPath).toEqual(before.bootMdPath);
+      });
+
+      then('no new actor dir: the edit changed the content, not the actor', () => {
+        expect(after.actorDirs).toEqual(before.actorDirs);
       });
     });
   });

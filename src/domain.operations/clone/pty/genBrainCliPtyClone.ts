@@ -133,6 +133,7 @@ export const genBrainCliPtyClone = async (
       [CLONE_ENV_KEYS.socket]: input.socketPath,
     },
     brainDir: input.brainDir,
+    args: input.args,
   });
 
   // a stale socket from a prior crash must go before the server binds this path

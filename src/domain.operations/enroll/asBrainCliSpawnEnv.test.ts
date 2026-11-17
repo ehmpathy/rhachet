@@ -1,9 +1,19 @@
 import { given, then, when } from 'test-fns';
 
+import { asBrainCliSpawnArgs } from './asBrainCliSpawnArgs';
 import {
   asBrainCliSpawnEnv,
   BRAIN_CLI_SPINUP_ENV_DEFAULTS,
 } from './asBrainCliSpawnEnv';
+
+// the argv every enroll builds: the boot rides in the system prompt
+const ARGS_WITH_BOOT = asBrainCliSpawnArgs({
+  configPath:
+    '/repo/.agent/.actors/actor.via.hash=abc12345/brain/.claude/settings.of.repo.json',
+  bootMdPath:
+    '/repo/.agent/.actors/actor.via.hash=abc12345/brain/.claude/boot.md',
+  passthrough: [],
+});
 
 describe('asBrainCliSpawnEnv', () => {
   given('[case1] a caller env and a brain dir', () => {
@@ -11,6 +21,7 @@ describe('asBrainCliSpawnEnv', () => {
       const env = asBrainCliSpawnEnv({
         env: { PATH: '/usr/bin', CLAUDE_CONFIG_DIR: '/home/h/.claude' },
         brainDir: '/repo/.agent/.actors/actor.via.hash=abc12345/brain/.claude',
+        args: ARGS_WITH_BOOT,
       });
 
       then('CLAUDE_CONFIG_DIR is the brain dir', () => {
@@ -38,10 +49,56 @@ describe('asBrainCliSpawnEnv', () => {
           CLAUDE_SECURESTORAGE_CONFIG_DIR: '/some/other/dir',
         },
         brainDir: '/repo/.agent/.actors/actor.via.hash=abc12345/brain/.claude',
+        args: ARGS_WITH_BOOT,
       });
 
       then('rhachet overrides it, so no clone splits the store', () => {
         expect(env['CLAUDE_SECURESTORAGE_CONFIG_DIR']).toEqual('');
+      });
+    });
+  });
+
+  given('[case7] a caller env that would reopen the CLAUDE.md door', () => {
+    // 🔴 the boot rides in the system prompt (asBrainCliSpawnArgs). were the CLAUDE.md
+    //   door open too, `CLAUDE.md → AGENTS.md → @boot.md` would load the boot a second
+    //   time, after every per-session value, where no new session can read it from cache
+    when('[t0] the spawn env is built', () => {
+      const env = asBrainCliSpawnEnv({
+        env: { PATH: '/usr/bin', CLAUDE_CODE_DISABLE_CLAUDE_MDS: '' },
+        brainDir: '/repo/.agent/.actors/actor.via.hash=abc12345/brain/.claude',
+        args: ARGS_WITH_BOOT,
+      });
+
+      then('the CLAUDE.md door is off, whatever the caller set', () => {
+        expect(env['CLAUDE_CODE_DISABLE_CLAUDE_MDS']).toEqual('1');
+      });
+    });
+  });
+
+  given('[case8] an argv that does not carry the boot flag', () => {
+    // 🔴 the pair is derived: a spawn whose argv lacks the boot must keep the CLAUDE.md
+    //   door open, or the clone boots with no briefs at all
+    when('[t0] the spawn env is built', () => {
+      const env = asBrainCliSpawnEnv({
+        env: { PATH: '/usr/bin' },
+        brainDir: '/repo/.agent/.actors/actor.via.hash=abc12345/brain/.claude',
+        args: ['-p', 'hi'],
+      });
+
+      then('the CLAUDE.md door stays open', () => {
+        expect(env).not.toHaveProperty('CLAUDE_CODE_DISABLE_CLAUDE_MDS');
+      });
+    });
+
+    when('[t1] the caller env already holds the door switch', () => {
+      const env = asBrainCliSpawnEnv({
+        env: { PATH: '/usr/bin', CLAUDE_CODE_DISABLE_CLAUDE_MDS: '1' },
+        brainDir: '/repo/.agent/.actors/actor.via.hash=abc12345/brain/.claude',
+        args: ['-p', 'hi'],
+      });
+
+      then('the inherited switch is dropped, so the door stays open', () => {
+        expect(env).not.toHaveProperty('CLAUDE_CODE_DISABLE_CLAUDE_MDS');
       });
     });
   });
@@ -63,6 +120,7 @@ describe('asBrainCliSpawnEnv', () => {
           CLAUDE_PID: '4242',
         },
         brainDir: '/repo/.agent/.actors/actor.via.hash=abc12345/brain/.claude',
+        args: ARGS_WITH_BOOT,
       });
 
       then('the CLAUDE_CODE_CHILD_SESSION marker is dropped', () => {
@@ -74,6 +132,7 @@ describe('asBrainCliSpawnEnv', () => {
         expect(Object.keys(env).sort()).toEqual(
           [
             'ANTHROPIC_API_KEY',
+            'CLAUDE_CODE_DISABLE_CLAUDE_MDS',
             'CLAUDE_CONFIG_DIR',
             'CLAUDE_SECURESTORAGE_CONFIG_DIR',
             'PATH',
@@ -94,6 +153,7 @@ describe('asBrainCliSpawnEnv', () => {
       const env = asBrainCliSpawnEnv({
         env: { PATH: '/usr/bin' },
         brainDir: '/repo/.agent/.actors/actor.via.hash=abc12345/brain/.claude',
+        args: ARGS_WITH_BOOT,
       });
 
       then('the clone skips connectors and non-essential startup work', () => {
@@ -113,6 +173,7 @@ describe('asBrainCliSpawnEnv', () => {
       const env = asBrainCliSpawnEnv({
         env: { PATH: '/usr/bin', ENABLE_CLAUDEAI_MCP_SERVERS: 'true' },
         brainDir: '/repo/.agent/.actors/actor.via.hash=abc12345/brain/.claude',
+        args: ARGS_WITH_BOOT,
       });
 
       then("the caller's value wins over the default", () => {
@@ -138,6 +199,7 @@ describe('asBrainCliSpawnEnv', () => {
           RHACHET_CLONE_DEPTH: '1',
         },
         brainDir: '/repo/.agent/.actors/actor.via.hash=abc12345/brain/.claude',
+        args: ARGS_WITH_BOOT,
       });
 
       then('neither handoff key reaches the clone', () => {

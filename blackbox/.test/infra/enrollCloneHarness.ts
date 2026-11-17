@@ -106,6 +106,7 @@ export const readStubEnvDumped = async (input: {
   depthMinted: string | null;
   hostDetached: string | null;
   leaf: string | null;
+  disableClaudeMds: string | null;
 }> => {
   // find the enrolled actor: the one hash actor, else the repo actor
   const actorsDir = join(input.dir, '.agent/.actors');
@@ -145,6 +146,7 @@ export const readStubEnvDumped = async (input: {
     depthMinted: asField('depthMinted'),
     hostDetached: asField('hostDetached'),
     leaf: asField('leaf'),
+    disableClaudeMds: asField('disableClaudeMds'),
   };
 };
 
