@@ -147,6 +147,7 @@ const setActorSettingsRepoWithinLock = async (input: {
     hooksOfLinkedRoles === null
       ? await setActorHookDispatchManifestDerived({
           settings: settingsNarrowedByAuthor,
+          settingsSource,
           roles: enrollment.roles,
           repoPath,
           repoActorBrainDir,

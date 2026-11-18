@@ -18,12 +18,17 @@
 #   - any rule exits 2  → every exit-2 rule's stderr, in manifest order,
 #     then any crashed rule's stderr; exit 2
 #   - else, a rule emits a json decision (or the event reads stdout as
-#     context) → that stdout, exit 0; a crashed rule beside it rides in the
-#     json `systemMessage`, so the human still sees it
-#   - else, a rule crashed → its stderr; exit with its code (a non-block)
+#     context) → that stdout, exit 0; of several json decisions, the strongest
+#     is kept whole (deny > ask > allow, as claude ranks them), the first of
+#     equal rank; a crashed rule beside it rides in the json `systemMessage`
+#   - else, a rule crashed → its stderr; exit with its code (a non-block); a
+#     crash that wrote no stderr names its rule, since claude labels the
+#     dispatcher, not the rule
 #   - else → every rule's stdout, in manifest order; exit 0
-#   - a rule past its timeout is killed and counted as a crash (exit 124, as
-#     timeout(1) exits); a child it forked is not killed, as under claude
+#   - a rule past its timeout is sent TERM, then KILL after a 2s grace, and
+#     counted as a crash (exit 124, as timeout(1) exits); a child it forked is
+#     not killed, as under claude
+#   - a rule whose matcher is no valid regex runs not, and counts as a crash
 #
 # guarantee:
 #   - each rule runs in its own subshell, with the event's stdin, $0 set
@@ -32,7 +37,9 @@
 #     `bash <path>` instead
 #   - an rhx rule prints the frame `rhx` printed (`🪨 run solid skill …`,
 #     `💪 init role …`), and its stderr only on a nonzero exit, trimmed
-#   - an absent manifest fails closed: exit 2, with the fix named
+#   - an absent manifest, or one of a version other than v1, fails closed:
+#     exit 2, with the fix named
+#   - the per-call files are private (umask 077) and removed on any exit
 ######################################################################
 
 __rhx_dispatch_manifest="${1:-}"
@@ -46,6 +53,30 @@ if [[ -z "$__rhx_dispatch_manifest" || ! -f "$__rhx_dispatch_manifest" ]]; then
   printf '%s\n' "   └─ fix = run \`npx rhx init --hooks\` to rewrite it" >&2
   exit 2
 fi
+
+# fail closed on a manifest version this file does not read: a row of another shape would
+#   misread its fields, and a misread guard is no guard
+IFS= read -r __rhx_dispatch_head < "$__rhx_dispatch_manifest"
+if [[ "$__rhx_dispatch_head" != '# rhachet hooks.dispatch manifest v1' && "$__rhx_dispatch_head" != '# rhachet hooks.dispatch manifest v1 '* ]]; then
+  printf '%s\n' "✋ ConstraintError: hook dispatch manifest version is not one this dispatcher reads" >&2
+  printf '%s\n' "   ├─ manifest = ${__rhx_dispatch_manifest}" >&2
+  printf '%s\n' "   ├─ header = ${__rhx_dispatch_head}" >&2
+  printf '%s\n' "   ├─ reads = v1" >&2
+  printf '%s\n' "   └─ fix = run \`npx rhx init --hooks\`, with the rhachet this repo installs, to rewrite it" >&2
+  exit 2
+fi
+
+# the per-call files hold the payload and each rule's output, which can carry a prompt or an
+#   inline secret: they are made private (umask 077), and removed on any exit, a kill included.
+#   a rule runs under the umask this process was started with, read without a fork
+__rhx_dispatch_base="${TMPDIR:-/tmp}/rhachet.hooks.dispatch.$$."
+trap 'rm -f "${__rhx_dispatch_base}"*' EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
+umask > "${__rhx_dispatch_base}umask"
+IFS= read -r __rhx_dispatch_umask < "${__rhx_dispatch_base}umask"
+umask 077
 
 # read the event payload once; every rule reads its own copy
 __rhx_dispatch_payload=''
@@ -67,7 +98,6 @@ if [[ -n "$__rhx_dispatch_keyname" ]]; then
 fi
 
 # the per-call files: the payload, then each rule's stdout and stderr
-__rhx_dispatch_base="${TMPDIR:-/tmp}/rhachet.hooks.dispatch.$$."
 printf '%s' "$__rhx_dispatch_payload" > "${__rhx_dispatch_base}in"
 
 # a sourced rule needs bash ≥ 5 (BASH_ARGV0); below that, a rule runs as `bash <path>`
@@ -78,25 +108,50 @@ __rhx_dispatch_sourced=0
 
 # select the rules that fit this event and its matcher, in manifest order
 __rhx_dispatch_n=0
+__rhx_dispatch_err_matcher=''
 __rhx_dispatch_us=$'\x1f'
 while IFS="$__rhx_dispatch_us" read -r __rhx_dispatch_f_event __rhx_dispatch_f_matcher __rhx_dispatch_f_timeout __rhx_dispatch_f_author __rhx_dispatch_f_kind __rhx_dispatch_f_path __rhx_dispatch_f_frame __rhx_dispatch_f_args __rhx_dispatch_f_command __rhx_dispatch_f_when || [[ -n "$__rhx_dispatch_f_event" ]]; do
   [[ -z "$__rhx_dispatch_f_event" || "$__rhx_dispatch_f_event" == \#* ]] && continue
   [[ "$__rhx_dispatch_f_event" != "$__rhx_dispatch_event" ]] && continue
 
-  # match by claude's matcher grammar: `*` or empty = all; letters, digits, `_`, `|`, `,` = an exact list; else an unanchored regex
-  __rhx_dispatch_fit=0
-  if [[ -z "$__rhx_dispatch_f_matcher" || "$__rhx_dispatch_f_matcher" == '*' || -z "$__rhx_dispatch_keyname" ]]; then
-    __rhx_dispatch_fit=1
-  elif [[ "$__rhx_dispatch_f_matcher" =~ ^[A-Za-z0-9_|,]+$ ]]; then
-    case "|${__rhx_dispatch_f_matcher//,/|}|" in
-      *"|${__rhx_dispatch_key}|"*) __rhx_dispatch_fit=1 ;;
-    esac
-  elif [[ "$__rhx_dispatch_key" =~ $__rhx_dispatch_f_matcher ]]; then
-    __rhx_dispatch_fit=1
+  # fail closed on a row this file cannot run as written (a truncated row, an unknown kind): an
+  #   empty command would run as `sh -c ''` and allow, so a misread guard is never run
+  case "$__rhx_dispatch_f_kind" in
+    rhx-skill | rhx-init | shell | exec | foreign) ;;
+    *) __rhx_dispatch_f_command='' ;;
+  esac
+  if [[ -z "$__rhx_dispatch_f_command" ]]; then
+    printf '%s\n' "✋ ConstraintError: hook dispatch manifest row is malformed" >&2
+    printf '%s\n' "   ├─ manifest = ${__rhx_dispatch_manifest}" >&2
+    printf '%s\n' "   ├─ event = ${__rhx_dispatch_f_event}" >&2
+    printf '%s\n' "   ├─ kind = ${__rhx_dispatch_f_kind:-(none)}" >&2
+    printf '%s\n' "   └─ fix = run \`npx rhx init --hooks\` to rewrite it" >&2
+    exit 2
   fi
+
+  # match by claude's matcher grammar: `*` or empty = all; letters, digits, `_`, `|`, `,` = an exact list; else an unanchored regex
+  __rhx_dispatch_mk=regex
+  [[ -z "$__rhx_dispatch_f_matcher" || "$__rhx_dispatch_f_matcher" == '*' || -z "$__rhx_dispatch_keyname" ]] && __rhx_dispatch_mk=all
+  [[ "$__rhx_dispatch_mk" == regex && "$__rhx_dispatch_f_matcher" =~ ^[A-Za-z0-9_|,]+$ ]] && __rhx_dispatch_mk=list
+  __rhx_dispatch_fit=0
+  case "$__rhx_dispatch_mk" in
+    all) __rhx_dispatch_fit=1 ;;
+    list)
+      case "|${__rhx_dispatch_f_matcher//,/|}|" in
+        *"|${__rhx_dispatch_key}|"*) __rhx_dispatch_fit=1 ;;
+      esac
+      ;;
+    regex)
+      # a regex bash cannot parse returns 2: the rule cannot be matched, so it is named, never skipped quietly
+      [[ "$__rhx_dispatch_key" =~ $__rhx_dispatch_f_matcher ]]
+      __rhx_dispatch_rs=$?
+      (( __rhx_dispatch_rs == 0 )) && __rhx_dispatch_fit=1
+      (( __rhx_dispatch_rs == 2 )) && __rhx_dispatch_err_matcher="${__rhx_dispatch_err_matcher}💥 MalfunctionError: hook rule matcher is no valid regex: ${__rhx_dispatch_f_matcher} (${__rhx_dispatch_f_path:-${__rhx_dispatch_f_command}})"$'\n'
+      ;;
+  esac
   [[ "$__rhx_dispatch_fit" == 1 ]] || continue
 
-  __rhx_dispatch_timeout[__rhx_dispatch_n]="${__rhx_dispatch_f_timeout:-60}"
+  __rhx_dispatch_timeout[__rhx_dispatch_n]="$__rhx_dispatch_f_timeout"
   __rhx_dispatch_kind[__rhx_dispatch_n]="$__rhx_dispatch_f_kind"
   __rhx_dispatch_path[__rhx_dispatch_n]="$__rhx_dispatch_f_path"
   __rhx_dispatch_frame[__rhx_dispatch_n]="$__rhx_dispatch_f_frame"
@@ -133,6 +188,9 @@ while (( __rhx_dispatch_i < __rhx_dispatch_n )); do
     set -- "$__rhx_dispatch_k" "$__rhx_dispatch_p" "${__rhx_dispatch_command[__rhx_dispatch_i]}" "$__rhx_dispatch_sourced" "${__rhx_dispatch_argv[@]}"
     exec < "${__rhx_dispatch_base}in" > "${__rhx_dispatch_base}${__rhx_dispatch_i}.out" 2> "${__rhx_dispatch_base}${__rhx_dispatch_i}.err"
 
+    # the output files are private; the rule itself runs under the umask claude gave this process
+    umask "$__rhx_dispatch_umask"
+
     # then this file's names leave scope, so the rule sees the shell its own process saw
     unset "${!__rhx_dispatch_@}"
 
@@ -160,12 +218,14 @@ if (( __rhx_dispatch_n > 0 )); then
   (
     trap 'kill "$__rhx_dispatch_sleep" 2>/dev/null; exit 0' TERM
     __rhx_dispatch_elapsed=0
+    __rhx_dispatch_grace=2
     while :; do
-      # the next deadline among the rules still alive
+      # the next deadline among the rules still alive: its timeout, or, once sent TERM, its grace
       __rhx_dispatch_next=''
       __rhx_dispatch_j=0
       while (( __rhx_dispatch_j < __rhx_dispatch_n )); do
         __rhx_dispatch_t="${__rhx_dispatch_timeout[__rhx_dispatch_j]}"
+        [[ -n "${__rhx_dispatch_killat[__rhx_dispatch_j]:-}" ]] && __rhx_dispatch_t="${__rhx_dispatch_killat[__rhx_dispatch_j]}"
         if (( __rhx_dispatch_t > __rhx_dispatch_elapsed )) && kill -0 "${__rhx_dispatch_pid[__rhx_dispatch_j]}" 2>/dev/null; then
           if [[ -z "$__rhx_dispatch_next" ]] || (( __rhx_dispatch_t < __rhx_dispatch_next )); then
             __rhx_dispatch_next="$__rhx_dispatch_t"
@@ -179,14 +239,21 @@ if (( __rhx_dispatch_n > 0 )); then
       wait "$__rhx_dispatch_sleep"
       __rhx_dispatch_elapsed="$__rhx_dispatch_next"
 
-      # kill each rule whose deadline passed
+      # past its timeout, a rule is sent TERM; past its grace too, KILL, since a TERM trap waits on
+      #   the rule's foreground child and would hold every verdict past claude's own timeout
+      # .note = each kill targets the one pid this dispatcher forked; a child the rule left runs
+      #   on, as a child of a timed-out hook did under claude (rule.forbid.unscoped-process-kills)
       __rhx_dispatch_j=0
       while (( __rhx_dispatch_j < __rhx_dispatch_n )); do
-        if (( __rhx_dispatch_timeout[__rhx_dispatch_j] <= __rhx_dispatch_elapsed )) && kill -0 "${__rhx_dispatch_pid[__rhx_dispatch_j]}" 2>/dev/null; then
-          : > "${__rhx_dispatch_base}${__rhx_dispatch_j}.timeout"
-          # the kill targets the one pid this dispatcher forked; a child the rule left runs on, as a
-          # child of a timed-out hook did under claude (rule.forbid.unscoped-process-kills)
-          kill -TERM "${__rhx_dispatch_pid[__rhx_dispatch_j]}" 2>/dev/null
+        __rhx_dispatch_kp="${__rhx_dispatch_pid[__rhx_dispatch_j]}"
+        __rhx_dispatch_ka="${__rhx_dispatch_killat[__rhx_dispatch_j]:-}"
+        if kill -0 "$__rhx_dispatch_kp" 2>/dev/null; then
+          [[ -n "$__rhx_dispatch_ka" ]] && (( __rhx_dispatch_ka <= __rhx_dispatch_elapsed )) && kill -KILL "$__rhx_dispatch_kp" 2>/dev/null
+          if [[ -z "$__rhx_dispatch_ka" ]] && (( __rhx_dispatch_timeout[__rhx_dispatch_j] <= __rhx_dispatch_elapsed )); then
+            : > "${__rhx_dispatch_base}${__rhx_dispatch_j}.timeout"
+            kill -TERM "$__rhx_dispatch_kp" 2>/dev/null
+            __rhx_dispatch_killat[__rhx_dispatch_j]=$((__rhx_dispatch_elapsed + __rhx_dispatch_grace))
+          fi
         fi
         __rhx_dispatch_j=$((__rhx_dispatch_j + 1))
       done
@@ -200,9 +267,9 @@ __rhx_dispatch_i=0
 while (( __rhx_dispatch_i < __rhx_dispatch_n )); do
   wait "${__rhx_dispatch_pid[__rhx_dispatch_i]}"
   __rhx_dispatch_code[__rhx_dispatch_i]=$?
-  # a timeout counts only if the kill landed (the rule died of SIGTERM, 128 + 15): a rule that
-  # finished before its reap keeps its own verdict, since `kill -0` sees an unreaped child as alive
-  [[ -f "${__rhx_dispatch_base}${__rhx_dispatch_i}.timeout" ]] && (( __rhx_dispatch_code[__rhx_dispatch_i] == 143 )) && __rhx_dispatch_code[__rhx_dispatch_i]=124
+  # a timeout counts only if a kill landed (the rule died of SIGTERM or SIGKILL, 128 + 15 or 9): a
+  # rule that finished before its reap keeps its own verdict, since `kill -0` sees an unreaped child as alive
+  [[ -f "${__rhx_dispatch_base}${__rhx_dispatch_i}.timeout" ]] && (( __rhx_dispatch_code[__rhx_dispatch_i] == 143 || __rhx_dispatch_code[__rhx_dispatch_i] == 137 )) && __rhx_dispatch_code[__rhx_dispatch_i]=124
   __rhx_dispatch_i=$((__rhx_dispatch_i + 1))
 done
 if [[ -n "$__rhx_dispatch_wd" ]]; then
@@ -224,6 +291,8 @@ fi
 __rhx_dispatch_blocked=0
 __rhx_dispatch_crashed=0
 __rhx_dispatch_json=''
+__rhx_dispatch_json_rk=0
+__rhx_dispatch_re_decision='"(permissionDecision|decision)"[[:space:]]*:[[:space:]]*"(deny|block|ask|allow|approve)"'
 __rhx_dispatch_stdout=''
 __rhx_dispatch_err_block=''
 __rhx_dispatch_err_crash=''
@@ -239,6 +308,12 @@ while (( __rhx_dispatch_i < __rhx_dispatch_n )); do
   # a timeout names itself, so the human sees which rule hung
   if (( __rhx_dispatch_c == 124 )) && [[ -f "${__rhx_dispatch_base}${__rhx_dispatch_i}.timeout" ]]; then
     __rhx_dispatch_e="${__rhx_dispatch_e}💥 MalfunctionError: hook rule timed out after ${__rhx_dispatch_timeout[__rhx_dispatch_i]}s (${__rhx_dispatch_path[__rhx_dispatch_i]:-${__rhx_dispatch_command[__rhx_dispatch_i]}})"$'\n'
+  fi
+
+  # a crash that wrote no stderr names its rule: claude labels the dispatcher, not the rule, so a
+  #   silent crash would read as a blank line from no one (an rhx rule's frame already names it)
+  if (( __rhx_dispatch_c != 0 && __rhx_dispatch_c != 2 )) && [[ -z "$__rhx_dispatch_fr" && -z "${__rhx_dispatch_e//[[:space:]]/}" ]]; then
+    __rhx_dispatch_e="💥 MalfunctionError: hook rule exited ${__rhx_dispatch_c} with no stderr (${__rhx_dispatch_path[__rhx_dispatch_i]:-${__rhx_dispatch_command[__rhx_dispatch_i]}})"$'\n'
   fi
 
   # an rhx rule: the frame leads its stdout; its stderr shows only on a nonzero exit, framed and trimmed
@@ -269,14 +344,33 @@ while (( __rhx_dispatch_i < __rhx_dispatch_n )); do
     __rhx_dispatch_err_crash="${__rhx_dispatch_err_crash}${__rhx_dispatch_e}"
   fi
   if (( __rhx_dispatch_c == 0 )); then
-    # a json decision is the whole of its rule's stdout; the first one is kept whole
+    # a json decision is the whole of its rule's stdout. claude ranks the decisions of separate
+    #   hooks deny > ask > allow, so the strongest is kept whole; of equal rank, the first
     __rhx_dispatch_t="${__rhx_dispatch_o#"${__rhx_dispatch_o%%[![:space:]]*}"}"
-    [[ -z "$__rhx_dispatch_json" && "$__rhx_dispatch_t" == \{* ]] && __rhx_dispatch_json="$__rhx_dispatch_o"
+    if [[ "$__rhx_dispatch_t" == \{* ]]; then
+      __rhx_dispatch_dc=''
+      [[ "$__rhx_dispatch_o" =~ $__rhx_dispatch_re_decision ]] && __rhx_dispatch_dc="${BASH_REMATCH[2]}"
+      __rhx_dispatch_rk=0
+      case "$__rhx_dispatch_dc" in
+        allow | approve) __rhx_dispatch_rk=1 ;;
+        ask) __rhx_dispatch_rk=2 ;;
+        deny | block) __rhx_dispatch_rk=3 ;;
+      esac
+      if [[ -z "$__rhx_dispatch_json" ]] || (( __rhx_dispatch_rk > __rhx_dispatch_json_rk )); then
+        __rhx_dispatch_json="$__rhx_dispatch_o"
+        __rhx_dispatch_json_rk="$__rhx_dispatch_rk"
+      fi
+    fi
     __rhx_dispatch_stdout="${__rhx_dispatch_stdout}${__rhx_dispatch_o}"
   fi
   __rhx_dispatch_i=$((__rhx_dispatch_i + 1))
 done
-rm -f "${__rhx_dispatch_base}"*
+
+# a matcher that is no valid regex ran no rule; it reports as a crash, so the gap is never silent
+if [[ -n "$__rhx_dispatch_err_matcher" ]]; then
+  __rhx_dispatch_err_crash="${__rhx_dispatch_err_crash}${__rhx_dispatch_err_matcher}"
+  (( __rhx_dispatch_crashed == 0 )) && __rhx_dispatch_crashed=1
+fi
 
 # .what = a string as a json string literal, into __rhx_dispatch_js (a function, so no subshell fork)
 __rhx_dispatch_as_json_string() {

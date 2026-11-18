@@ -1,6 +1,7 @@
 import type { Command } from 'commander';
 import { ConstraintError } from 'helpful-errors';
 
+import { asRoleFileRunFrame } from '@src/domain.operations/invoke/asRoleFileRunFrame';
 import {
   executeInit,
   InitExecutionError,
@@ -58,9 +59,7 @@ const performRunViaInitMode = (input: {
 
   // log which init will run
   console.log(``);
-  console.log(
-    `💪 init role repo=${init.slugRepo}/role=${init.slugRole}/init=${init.slug}`,
-  );
+  console.log(asRoleFileRunFrame({ ...init, dir: 'inits' }));
   console.log(``);
 
   // get all args after 'run' for passthrough
@@ -86,9 +85,7 @@ const performRunViaCommandMode = (input: {
 
   // log which skill will run
   console.log(``);
-  console.log(
-    `🪨 run solid skill repo=${skill.slugRepo}/role=${skill.slugRole}/skill=${skill.slug}`,
-  );
+  console.log(asRoleFileRunFrame({ ...skill, dir: 'skills' }));
   console.log(``);
 
   // get all args after 'run' for passthrough
@@ -197,9 +194,7 @@ export const invokeRun = ({ program }: { program: Command }): void => {
                 slugInit: opts.init!,
               });
               console.error(``);
-              console.error(
-                `💪 init role repo=${init.slugRepo}/role=${init.slugRole}/init=${init.slug}`,
-              );
+              console.error(asRoleFileRunFrame({ ...init, dir: 'inits' }));
               if (error.exitCode === 2) {
                 console.error(`   └─ ✋ blocked by constraints`);
               } else {
@@ -229,9 +224,7 @@ export const invokeRun = ({ program }: { program: Command }): void => {
                 slugSkill: opts.skill!,
               });
               console.error(``);
-              console.error(
-                `🪨 run solid skill repo=${skill.slugRepo}/role=${skill.slugRole}/skill=${skill.slug}`,
-              );
+              console.error(asRoleFileRunFrame({ ...skill, dir: 'skills' }));
               if (error.exitCode === 2) {
                 console.error(`   └─ ✋ blocked by constraints`);
               } else {

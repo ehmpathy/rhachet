@@ -3,6 +3,7 @@ import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import type { HookDispatchRule } from '@src/domain.objects/HookDispatchRule';
 import type { ClaudeCodeSettings } from '@src/domain.operations/brains/claudeCodeSettings';
 import { asHookDispatchRulesFromManifestText } from '@src/domain.operations/brains/dispatch/asHookDispatchRulesFromManifestText';
+import { asManifestPathOfHookDispatcherCommand } from '@src/domain.operations/brains/dispatch/asManifestPathOfHookDispatcherCommand';
 import { HOOK_DISPATCH } from '@src/domain.operations/brains/dispatch/constants';
 
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
@@ -116,37 +117,12 @@ const getAllManifestPathsOfDispatchers = (input: {
     .flatMap((entry) => entry.hooks ?? [])
     .filter((hook) => hook.author === HOOK_DISPATCH.author)
     .map((hook) => {
-      const pathNamed = asManifestPathOfDispatcherCommand({
+      const pathNamed = asManifestPathOfHookDispatcherCommand({
         command: hook.command,
       });
       return isAbsolute(pathNamed) ? pathNamed : join(input.cwd, pathNamed);
     });
   return [...new Set(paths)].filter((path) => existsSync(path));
-};
-
-/**
- * .what = the manifest path a dispatcher command names: `bash <bin> <manifest> <event>`
- * .why = a command of any other shape would hide which manifest runs, so the guard fails loud
- *   on it, never reads it as a manifest with no rules
- */
-const asManifestPathOfDispatcherCommand = (input: {
-  command: string;
-}): string => {
-  const words = input.command.trim().split(/\s+/);
-  const isShape =
-    words.length === 4 &&
-    words[0] === 'bash' &&
-    words[1]!.endsWith('/hooks.dispatch.sh');
-  if (!isShape)
-    throw new MalfunctionError(
-      'a dispatcher hook command has an unknown shape',
-      {
-        command: input.command,
-        shape: 'bash <bin>/hooks.dispatch.sh <manifest> <event>',
-        hint: 'run `rhx init --hooks` to rewrite each dispatcher hook',
-      },
-    );
-  return words[2]!;
 };
 
 /**

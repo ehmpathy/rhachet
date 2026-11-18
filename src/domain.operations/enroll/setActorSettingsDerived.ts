@@ -6,6 +6,7 @@ import { setBrainDirSettingsLayout } from '@src/domain.operations/actor/enrolled
 import { readClaudeCodeSettings } from '@src/domain.operations/brains/claudeCodeSettings';
 import { HOOK_DISPATCH } from '@src/domain.operations/brains/dispatch/constants';
 import { getOneHookDispatchManifest } from '@src/domain.operations/brains/dispatch/getOneHookDispatchManifest';
+import { isHookAuthorOfRole } from '@src/domain.operations/brains/isHookAuthorOfRole';
 import { getHomeDir } from '@src/infra/getHomeDir';
 
 import { dirname, join } from 'node:path';
@@ -61,7 +62,7 @@ export const setActorSettingsDerived = async (input: {
 const asTimeoutSecondsOfSettingsHook = (input: {
   hook: { author?: string; timeout?: number };
 }): number | undefined => {
-  const isRoleHook = /^repo=.+\/role=.+$/.test(input.hook.author ?? '');
+  const isRoleHook = isHookAuthorOfRole({ author: input.hook.author ?? '' });
   if (!isRoleHook || input.hook.timeout === undefined)
     return input.hook.timeout;
   return Math.max(1, Math.ceil(input.hook.timeout / 1000)); // as asTimeoutSecondsOfBrainHook rounds

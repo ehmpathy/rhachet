@@ -52,8 +52,8 @@ const ROUND_TRIP_CASES = [
     rules: [genRule({ when: 'after' })],
   },
   {
-    description: 'a rule with no timeout',
-    rules: [genRule({ timeoutSeconds: 0 })],
+    description: 'a rule with the one-second timeout floor',
+    rules: [genRule({ timeoutSeconds: 1 })],
   },
   {
     description: 'one rule of every kind, in order',
@@ -210,6 +210,15 @@ describe('asHookDispatchRulesFromManifestText', () => {
     {
       description: 'a row with an empty timeout',
       fields: fieldsGood.map((f, i) => (i === 2 ? '' : f)),
+    },
+    {
+      description:
+        'a row with a zero timeout, which the watchdog would read as none',
+      fields: fieldsGood.map((f, i) => (i === 2 ? '0' : f)),
+    },
+    {
+      description: 'a row with a zero-padded timeout',
+      fields: fieldsGood.map((f, i) => (i === 2 ? '07' : f)),
     },
     {
       description: 'a row with an unknown when',
