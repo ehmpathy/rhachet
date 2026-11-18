@@ -122,7 +122,7 @@ describe('asBrainDirSyncReportLines', () => {
           () => {
             expect(lines.join('\n')).toContain('2 spawn revisions re-written');
             expect(lines.join('\n')).toContain(
-              '3 clones take it at their next compaction',
+              '3 clones refer to them; a live one takes the drift at its next compaction',
             );
             expect(lines.join('\n')).toContain(
               '✗ sha256=0123456789abcdef drift not written',

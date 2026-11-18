@@ -676,7 +676,8 @@ describe('invokeClone (integration)', () => {
 
         then('it exits 2 and names the list command', () => {
           expect(result.exitCode).toEqual(2);
-          expect(result.err).toContain("no clone answers to '@:nobody'");
+          expect(result.err).toContain('no clone answers to that address');
+          expect(result.err).toContain('@:nobody');
           expect(result.err).toContain('rhx clone list');
         });
       });

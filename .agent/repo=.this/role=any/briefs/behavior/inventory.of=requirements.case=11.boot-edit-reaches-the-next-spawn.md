@@ -29,9 +29,10 @@ request after `/compact` held a line added to the drift after spawn, in its mess
 block unchanged and the boot present once.
 
 a `--resume` reuses the system prompt its session first recorded (measured with
-`rhx boot.resume.probe`, 2026-11-03), so a resume is no new spawn for this requirement: it spawns on
-the revision its session spawned on (`genCloneBootRevisionForSpawn`), so its drift carries every edit
-since, at its first compaction.
+`rhx boot.resume.probe`, 2026-11-03), so a resume is no new spawn for this requirement. today a resume
+spawns on the current revision, so its drift reads empty while the session holds its first boot: the
+carry-over to the session's own revision is owed
+(`.dream/v2026_11_17.feat.resume-carries-its-session-boot-revision.md`).
 
 ## .clamp
 
@@ -47,9 +48,10 @@ since, at its first compaction.
 
 | tier | test | status |
 |---|---|---|
-| acceptance, key-free | `blackbox/cli/enroll.acceptance.test.ts` "owns the system prompt" [case2] — after a brief edit and `rhx init --hooks`, the first spawn's revision boot is unchanged, its drift carries the edit, and the next spawn boots a new revision that holds the edit whole; no new actor dir; a resume by id spawns on its session's revision, and a resume with no record says so | proven (42/42 green) |
-| acceptance | `blackbox/cli/brain-dir-boot.journey.acceptance.test.ts` [t4] — after an edit and `rhx init`, a new clone quotes the new sentinel with no new actor; the live `[t3]` clone, after `/compact`, quotes both its spawn sentinel and the new one | runs on `BRAIN_LIVE_SCOPE=all`, skips by default: a live clone reply spends the paid key |
-| skill | `rhx boot.compact.probe --door add-dir` — measured by hand, logs under `.log/role=any/` | ✓ 2026-11-17 |
+| acceptance, key-free | `blackbox/cli/enroll.acceptance.test.ts` "owns the system prompt" [case2] — the WRITE half: after a brief edit and `rhx init --hooks`, the first spawn's revision boot is unchanged, its drift carries the edit, and the next spawn boots a new revision that holds the edit whole; no new actor dir | proven |
+| acceptance | `blackbox/cli/brain-dir-boot.journey.acceptance.test.ts` [t4] — the RE-READ half: the live `[t3]` clone, after `/compact`, quotes both its spawn sentinel and the new one | owed in ci: runs on `BRAIN_LIVE_SCOPE=all` only, since a live clone reply spends the paid key |
+| skill | `rhx boot.compact.probe --door add-dir` — the re-read half, measured by hand on a real clone, logs under `.log/role=any/` | ✓ 2026-11-17 |
+| — | the resume carry-over | owed, per the dream above |
 
 ## .source
 

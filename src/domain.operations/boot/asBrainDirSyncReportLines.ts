@@ -127,7 +127,9 @@ export const asBrainDirSyncReportLines = (input: {
         ...(drift.rewritten > 0
           ? [
               `${drift.rewritten} spawn revision${drift.rewritten === 1 ? '' : 's'} re-written`,
-              `${drift.clones} clone${drift.clones === 1 ? '' : 's'} take it at their next compaction (a dead one, at a resume)`,
+              drift.clones === 1
+                ? '1 clone refers to them; a live one takes the drift at its next compaction'
+                : `${drift.clones} clones refer to them; a live one takes the drift at its next compaction`,
             ]
           : []),
         ...(drift.rewritten === 0 && drift.faults.length === 0

@@ -55,8 +55,8 @@ export const setActorBootDrifts = (input: {
     }
   });
 
-  // the clones that refer to a re-written revision: each takes the new drift at its next
-  //   compaction (a dead one, at a resume)
+  // the clones that refer to a re-written revision: a live one takes the new drift at its next
+  //   compaction
   const revisionsRewritten = new Set(
     results
       .filter((result) => result.outcome === 'rewritten')
