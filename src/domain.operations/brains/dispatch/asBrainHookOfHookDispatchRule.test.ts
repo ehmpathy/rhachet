@@ -37,9 +37,9 @@ describe('asBrainHookOfHookDispatchRule', () => {
       seconds: 45,
     },
     {
-      description: 'reads no timeout as thirty seconds',
-      timeoutSeconds: 0,
-      seconds: 30,
+      description: 'reads a one-second timeout, the floor the writer emits',
+      timeoutSeconds: 1,
+      seconds: 1,
     },
   ] as const;
   TIMEOUT_CASES.map((thisCase) =>

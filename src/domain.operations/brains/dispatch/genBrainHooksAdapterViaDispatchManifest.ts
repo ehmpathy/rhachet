@@ -1,6 +1,7 @@
 import type { BrainHook } from '@src/domain.objects/BrainHook';
 import type { BrainHooksAdapter } from '@src/domain.objects/BrainHooksAdapter';
 import type { HookDispatchRule } from '@src/domain.objects/HookDispatchRule';
+import { isHookAuthorOfRole } from '@src/domain.operations/brains/isHookAuthorOfRole';
 
 import { asBrainHookOfHookDispatchRule } from './asBrainHookOfHookDispatchRule';
 import { getOneHookDispatchManifest } from './getOneHookDispatchManifest';
@@ -159,7 +160,7 @@ const getAllRulesOfRoleHooks = (input: {
   repoPath: string;
 }): HookDispatchRule[] =>
   input.hooks
-    .filter((hook) => /^repo=.+\/role=.+$/.test(hook.author))
+    .filter((hook) => isHookAuthorOfRole({ author: hook.author }))
     .map((hook) =>
       getOneHookDispatchRuleOfBrainHook({ hook, repoPath: input.repoPath }),
     );

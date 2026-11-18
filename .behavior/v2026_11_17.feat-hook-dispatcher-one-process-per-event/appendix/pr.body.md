@@ -20,7 +20,7 @@ claude now starts **one hook process per event**, and that process runs every en
 - it prints the `🪨 run solid skill …` / `💪 init role …` frame that `rhx` used to print, so the rule pays no rhx boot
 - it merges the verdicts the way claude merges separate hooks:
   1. every blocker's stderr, then exit 2
-  2. else, one json decision on stdout
+  2. else, the json decision of highest rank on stdout (deny > ask > allow; the first on a tie)
   3. else, a crash's code
   4. else, every rule's stdout, in manifest order
 
@@ -55,16 +55,23 @@ a live blocker writes byte-equal stderr and exits 2 on both sides.
 - a short-form timeout (`10s`) reads as a duration, so a re-sync is idempotent
 - 🔴 the clone isolation invariant (`inventory.of=requirements.case=9`) holds through the dispatcher: the enroll guard reads each manifest a dispatcher names and refuses a rule from an unenrolled role. clamp: `enroll.acceptance` [case2e] [t2]
 - each actor's manifest is narrowed to its roles, and its dispatcher names that manifest
+- the manifest is tracked beside `settings.of.repo.json`, so a fresh checkout carries it; enroll refuses settings that name a dispatcher whose manifest is absent (`enroll` [case2e] [t4])
+- the manifest lands whole before the settings name the dispatcher (`syncRoleHooksIntoTarget` integration test, red with the order swapped)
+- each sync derives every rule's file and kind again, so a moved skill or a changed shebang reaches its row
+- the dispatcher fails closed on a manifest version or row it cannot read, and names a silent crash or an invalid regex
+- a matcher that bash would read otherwise than claude (`\d`, `(?…)`, a lazy quantifier) is refused at sync
+- the payload and output files are private (`umask 077`) and removed on any exit, a kill included
+- core's event placement equals the published `rhachet-brains-anthropic` adapter's (parity test)
 
 ## .known differences
 
 - 🟡 a rule now times out at the timeout its role declares (`PT30S` → 30s), killed as a crash (exit 124, no block). before, the claude adapter wrote the timeout in milliseconds where claude reads seconds, so the limit never bit. no live rule nears it; the adapter's unit is a separate defect
-- with no repo manifest yet (upgraded, `init --hooks` not re-run), an enrolled actor keeps the per-rule hooks until the next `init --hooks`
+- with no repo manifest yet (upgraded, `init --hooks` not re-run), an enrolled actor keeps the per-rule hooks until the next `init --hooks`. once the settings name a dispatcher, an absent manifest is refused, never passed through
 - claude's `[command]` label names the dispatcher, not the rule
 - when one rule crashes beside stdout claude reads, the dispatcher exits 0 so the decision lands, and carries the crash as the json `systemMessage` (plain SessionStart / UserPromptSubmit context is wrapped as `additionalContext` to carry it); where the rule's json already holds a `systemMessage`, that message is kept and the crash goes to stderr only (no live rule emits one)
 - when a rule crashes beside a block, the dispatcher exits 2 and writes the crash's stderr after the blockers', so a guard that did not finish is never hidden
 - a rule whose file reads `$$` runs as `bash <path>`, its own process
-- a timed-out rule is killed by its own pid; a child it forked runs on, as under claude (no `pkill`, per `rule.forbid.unscoped-process-kills`)
+- a timed-out rule gets TERM, then KILL two seconds later, by its own pid; a child it forked runs on, as under claude (no `pkill`, per `rule.forbid.unscoped-process-kills`). so a rule that traps TERM cannot hold the dispatcher past claude's timeout
 
 ## .stacked next
 

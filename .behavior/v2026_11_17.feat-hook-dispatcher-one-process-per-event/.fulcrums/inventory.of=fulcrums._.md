@@ -16,3 +16,8 @@
 | `F12-the-rule-file-lookup-reuses-rhx-discovery` | the sync finds each rule file with the same discovery `rhx` runs | clean | open, best-guessed (peer review) | 88% |
 | `F13-a-timed-out-rule-kills-only-its-own-pid` | the watchdog kills only the rule's own pid; no `pkill -P`, no process group | clean | open, best-guessed (peer review) | 85% |
 | `F14-a-rule-crash-keeps-its-non-block-verdict` | a rule's crash keeps its own non-block exit; only the dispatcher's own fault exits 2 | clean | open, best-guessed (peer review) | 88% |
+| `F15-the-own-pid-scan-reads-the-file-at-run` | the `$$` check reads the rule file at run, from the text it sources; never a sync verdict | clean | open, best-guessed (peer review) | 85% |
+| `F16-the-dispatcher-is-one-file` | the dispatcher stays one bash file; its merge is table-tested through the real file | clean | open, best-guessed (peer review) | 80% |
+| `F17-two-settings-writers-share-one-producer` | sync and enroll derive each write their own target, both from `asHookDispatchersOfRules` | clean | open, best-guessed (peer review) | 85% |
+| `F18-the-manifest-takes-one-write-per-hook` | the manifest takes one whole write per hook change, as settings did; no batch contract | dirty | open, best-guessed (peer review) | 82% |
+| `F19-an-absent-dispatcher-fails-as-an-absent-rule-did` | no sync preflight of the dispatcher file; with no `node_modules`, rules exited 127 before too | clean | open, best-guessed (peer review) | 88% |

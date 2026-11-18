@@ -20,3 +20,27 @@ exports[`hook dispatcher (one process per claude event) given: [case1] a repo wh
    └─ fix = run \`npx rhx init --hooks\` to rewrite it
 "
 `;
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t7b] the manifest is absent, on the events where a block erases a prompt or holds a stop then: the refusals match the snapshot 1`] = `
+{
+  "stop": "✋ ConstraintError: hook dispatch manifest not found
+   ├─ manifest = .claude/absent.manifest
+   ├─ event = Stop
+   └─ fix = run \`npx rhx init --hooks\` to rewrite it
+",
+  "talk": "✋ ConstraintError: hook dispatch manifest not found
+   ├─ manifest = .claude/absent.manifest
+   ├─ event = UserPromptSubmit
+   └─ fix = run \`npx rhx init --hooks\` to rewrite it
+",
+}
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t13] the manifest is of a version this dispatcher does not read then: the refusal matches the snapshot 1`] = `
+"✋ ConstraintError: hook dispatch manifest version is not one this dispatcher reads
+   ├─ manifest = .claude/version-skew.manifest
+   ├─ header = # rhachet hooks.dispatch manifest v2 — written by \`rhx init --hooks\`
+   ├─ reads = v1
+   └─ fix = run \`npx rhx init --hooks\`, with the rhachet this repo installs, to rewrite it
+"
+`;

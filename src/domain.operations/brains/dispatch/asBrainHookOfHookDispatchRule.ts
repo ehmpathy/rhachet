@@ -7,7 +7,7 @@ import { asBrainHookEventOfClaudeEvent } from './asBrainHookEventOfClaudeEvent';
 /**
  * .what = the declared hook a manifest rule reads back as
  * .why = the sync diffs declared hooks against what it finds; a rule reads back as the claude
- *   adapter read a settings hook back — timeout in seconds (30 when none), a `*` matcher as no
+ *   adapter read a settings hook back — timeout in seconds, a `*` matcher as no
  *   filter — so a re-sync of an unchanged role finds every hook unchanged
  *
  * .note = `when` reads back too, so a hook declared `when: 'after'` diffs as unchanged
@@ -21,7 +21,7 @@ export const asBrainHookOfHookDispatchRule = (input: {
     author: rule.author,
     event: asBrainHookEventOfClaudeEvent({ event: rule.event }),
     command: rule.command,
-    timeout: { seconds: rule.timeoutSeconds || 30 },
+    timeout: { seconds: rule.timeoutSeconds },
     ...(hasFilter && {
       filter: new BrainHookFilter({
         what: rule.matcher,

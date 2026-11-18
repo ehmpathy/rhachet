@@ -10,6 +10,7 @@ import {
   readFileSync,
   readdirSync,
   symlinkSync,
+  writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
 
@@ -68,6 +69,50 @@ const asPayloadBash = (command: string): string =>
     hook_event_name: 'PreToolUse',
     tool_name: 'Bash',
     tool_input: { command },
+  });
+
+/**
+ * .what = a v1 manifest of `foreign` rows, each a declared command the dispatcher runs as claude ran it
+ * .why = the merge, matcher and watchdog paths are reached with no fixture role churn
+ */
+const asManifestOfCommands = (input: {
+  header?: string;
+  rows: Array<{
+    event: string;
+    matcher: string;
+    timeout: number;
+    command: string;
+  }>;
+}): string =>
+  [
+    input.header ?? '# rhachet hooks.dispatch manifest v1',
+    ...input.rows.map((row) =>
+      [
+        row.event,
+        row.matcher,
+        String(row.timeout),
+        'repo=test/role=tester',
+        'foreign',
+        '',
+        '',
+        '',
+        row.command,
+        '',
+      ].join('\x1f'),
+    ),
+    '',
+  ].join('\n');
+
+/**
+ * .what = a claude PreToolUse json decision, as a rule prints it
+ */
+const asDecisionJson = (decision: 'allow' | 'ask' | 'deny'): string =>
+  JSON.stringify({
+    hookSpecificOutput: {
+      hookEventName: 'PreToolUse',
+      permissionDecision: decision,
+      permissionDecisionReason: `rule says ${decision}`,
+    },
   });
 
 /**
@@ -137,7 +182,24 @@ describe('hook dispatcher (one process per claude event)', () => {
         env?: Record<string, string | undefined>,
       ) => runAsClaude({ cwd, command, payload, env });
 
-      return { cwd, init, settings, dispatch, standalone };
+      // a hand-written manifest, dispatched for one event, as claude would run its dispatcher
+      const dispatchManifest = (input: {
+        name: string;
+        manifest: string;
+        event: string;
+        payload: string;
+        env?: Record<string, string | undefined>;
+      }) => {
+        writeFileSync(join(cwd, '.claude', `${input.name}.manifest`), input.manifest);
+        return runAsClaude({
+          cwd,
+          command: `bash ./node_modules/rhachet/bin/hooks.dispatch.sh .claude/${input.name}.manifest ${input.event}`,
+          payload: input.payload,
+          env: input.env,
+        });
+      };
+
+      return { cwd, init, settings, dispatch, standalone, dispatchManifest };
     });
 
     then('init succeeds', () => {
@@ -372,9 +434,13 @@ describe('hook dispatcher (one process per claude event)', () => {
         boot: scene.standalone(DECLARED.boot, payload),
       }));
 
+      then('stderr is the init stderr, as rhx printed it', () => {
+        expect(result.dispatched.stderr).toEqual(result.boot.stderr);
+      });
+
       then('stdout is the init frame and its output, as rhx printed them', () => {
         expect(result.dispatched.code).toEqual(0);
-        expect(result.dispatched.stdout).toEqual(result.boot.stdout);
+        expect(JSON.stringify(result.dispatched.stdout)).toEqual(JSON.stringify(result.boot.stdout));
         expect(result.dispatched.stdout).toContain(
           '💪 init role repo=test/role=tester/init=claude.hooks/boot',
         );
@@ -428,6 +494,331 @@ describe('hook dispatcher (one process per claude event)', () => {
           readFileSync(join(scene.cwd, '.claude/settings.of.repo.json'), 'utf-8'),
         );
         expect(after.hooks).toEqual(scene.settings.hooks);
+      });
+    });
+
+    when('[t7b] the manifest is absent, on the events where a block erases a prompt or holds a stop', () => {
+      const result = useBeforeAll(async () => ({
+        talk: runAsClaude({
+          cwd: scene.cwd,
+          command:
+            'bash ./node_modules/rhachet/bin/hooks.dispatch.sh .claude/absent.manifest UserPromptSubmit',
+          payload: JSON.stringify({ hook_event_name: 'UserPromptSubmit', prompt: 'hi' }),
+        }),
+        stop: runAsClaude({
+          cwd: scene.cwd,
+          command:
+            'bash ./node_modules/rhachet/bin/hooks.dispatch.sh .claude/absent.manifest Stop',
+          payload: JSON.stringify({ hook_event_name: 'Stop' }),
+        }),
+      }));
+
+      then('each fails closed with exit 2, and names the fix', () => {
+        expect(result.talk.code).toEqual(2);
+        expect(result.stop.code).toEqual(2);
+        expect(result.talk.stderr).toContain('rhx init --hooks');
+        expect(result.stop.stderr).toContain('rhx init --hooks');
+      });
+
+      then('the refusals match the snapshot', () => {
+        expect({ talk: result.talk.stderr, stop: result.stop.stderr }).toMatchSnapshot();
+      });
+    });
+
+    when('[t9] a rule crashes with no stderr', () => {
+      const result = useBeforeAll(async () =>
+        scene.dispatchManifest({
+          name: 'silent-crash',
+          manifest: asManifestOfCommands({
+            rows: [{ event: 'PreToolUse', matcher: 'Bash', timeout: 5, command: 'exit 3' }],
+          }),
+          event: 'PreToolUse',
+          payload: asPayloadBash('pwd'),
+        }),
+      );
+
+      then('the dispatcher exits with the crash code, a non-block', () => {
+        expect(result.code).toEqual(3);
+      });
+
+      then('stderr names the rule that crashed, since claude labels only the dispatcher', () => {
+        expect(result.stderr).toEqual(
+          '💥 MalfunctionError: hook rule exited 3 with no stderr (exit 3)\n',
+        );
+      });
+    });
+
+    when('[t10] two rules emit json decisions of different rank', () => {
+      const result = useBeforeAll(async () => ({
+        allowThenDeny: scene.dispatchManifest({
+          name: 'json-allow-deny',
+          manifest: asManifestOfCommands({
+            rows: [
+              { event: 'PreToolUse', matcher: 'Bash', timeout: 5, command: `printf '%s' '${asDecisionJson('allow')}'` },
+              { event: 'PreToolUse', matcher: 'Bash', timeout: 5, command: `printf '%s' '${asDecisionJson('deny')}'` },
+            ],
+          }),
+          event: 'PreToolUse',
+          payload: asPayloadBash('pwd'),
+        }),
+        askThenAllow: scene.dispatchManifest({
+          name: 'json-ask-allow',
+          manifest: asManifestOfCommands({
+            rows: [
+              { event: 'PreToolUse', matcher: 'Bash', timeout: 5, command: `printf '%s' '${asDecisionJson('ask')}'` },
+              { event: 'PreToolUse', matcher: 'Bash', timeout: 5, command: `printf '%s' '${asDecisionJson('allow')}'` },
+            ],
+          }),
+          event: 'PreToolUse',
+          payload: asPayloadBash('pwd'),
+        }),
+      }));
+
+      then('a later deny wins over an earlier allow, as claude ranks them', () => {
+        expect(result.allowThenDeny.code).toEqual(0);
+        expect(result.allowThenDeny.stdout).toEqual(asDecisionJson('deny'));
+      });
+
+      then('an earlier ask holds over a later allow', () => {
+        expect(result.askThenAllow.code).toEqual(0);
+        expect(result.askThenAllow.stdout).toEqual(asDecisionJson('ask'));
+      });
+    });
+
+    when('[t11] a rule whose matcher is no valid regex', () => {
+      const result = useBeforeAll(async () =>
+        scene.dispatchManifest({
+          name: 'invalid-matcher',
+          manifest: asManifestOfCommands({
+            rows: [{ event: 'PreToolUse', matcher: '(?i)bash', timeout: 5, command: 'echo ran' }],
+          }),
+          event: 'PreToolUse',
+          payload: asPayloadBash('pwd'),
+        }),
+      );
+
+      then('the rule does not run', () => {
+        expect(result.stdout).not.toContain('ran');
+      });
+
+      then('the dispatcher reports it as a crash, never a silent skip', () => {
+        expect(result.code).toEqual(1);
+        expect(result.stderr).toEqual(
+          '💥 MalfunctionError: hook rule matcher is no valid regex: (?i)bash (echo ran)\n',
+        );
+      });
+    });
+
+    when('[t12] a rule that ignores TERM hangs past its timeout', () => {
+      const result = useBeforeAll(async () => {
+        const startedAt = Date.now();
+        const dispatched = scene.dispatchManifest({
+          name: 'hang-ignores-term',
+          manifest: asManifestOfCommands({
+            rows: [
+              { event: 'PreToolUse', matcher: 'Bash', timeout: 1, command: "trap '' TERM; sleep 9" },
+            ],
+          }),
+          event: 'PreToolUse',
+          payload: asPayloadBash('pwd'),
+        });
+        return { dispatched, elapsed: Date.now() - startedAt };
+      });
+
+      then('the dispatcher returns within the timeout plus the grace, not the hang', () => {
+        expect(result.elapsed).toBeLessThan(6_000);
+      });
+
+      then('the rule counts as timed out', () => {
+        expect(result.dispatched.code).toEqual(124);
+        expect(result.dispatched.stderr).toContain(
+          '💥 MalfunctionError: hook rule timed out after 1s',
+        );
+      });
+    });
+
+    when('[t13] the manifest is of a version this dispatcher does not read', () => {
+      const result = useBeforeAll(async () =>
+        scene.dispatchManifest({
+          name: 'version-skew',
+          manifest: asManifestOfCommands({
+            header: '# rhachet hooks.dispatch manifest v2 — written by `rhx init --hooks`',
+            rows: [{ event: 'PreToolUse', matcher: 'Bash', timeout: 5, command: 'echo ran' }],
+          }),
+          event: 'PreToolUse',
+          payload: asPayloadBash('pwd'),
+        }),
+      );
+
+      then('the dispatcher fails closed, runs no rule, and names the fix', () => {
+        expect(result.code).toEqual(2);
+        expect(result.stdout).toEqual('');
+        expect(result.stderr).toContain('✋ ConstraintError');
+        expect(result.stderr).toContain('rhx init --hooks');
+      });
+
+      then('the refusal matches the snapshot', () => {
+        expect(result.stderr).toMatchSnapshot();
+      });
+    });
+
+    when('[t16] a bash rule file reads `$$`', () => {
+      const result = useBeforeAll(async () => {
+        // sourced in a subshell, `$$` would name the dispatcher and differ from BASHPID
+        writeFileSync(
+          join(scene.cwd, '.claude', 'own-pid.sh'),
+          '[ "$$" = "$BASHPID" ] && echo own || echo shared\n',
+        );
+        return scene.dispatchManifest({
+          name: 'own-pid',
+          manifest: [
+            '# rhachet hooks.dispatch manifest v1',
+            [
+              'PreToolUse',
+              'Bash',
+              '5',
+              'repo=test/role=tester',
+              'shell',
+              '.claude/own-pid.sh',
+              '',
+              '',
+              'bash .claude/own-pid.sh',
+              '',
+            ].join('\x1f'),
+            '',
+          ].join('\n'),
+          event: 'PreToolUse',
+          payload: asPayloadBash('pwd'),
+        });
+      });
+
+      then('the rule runs as its own process, so `$$` is its own pid', () => {
+        expect(result.code).toEqual(0);
+        expect(result.stdout.trim()).toEqual('own');
+      });
+    });
+
+    when('[t17] a rule file whose shebang is not bash (`exec`)', () => {
+      const result = useBeforeAll(async () => {
+        const path = join(scene.cwd, '.claude', 'node-rule.js');
+        writeFileSync(path, "#!/usr/bin/env node\nprocess.stdout.write('node ran');\n");
+        chmodSync(path, 0o755);
+        return scene.dispatchManifest({
+          name: 'exec-rule',
+          manifest: [
+            '# rhachet hooks.dispatch manifest v1',
+            [
+              'PreToolUse',
+              'Bash',
+              '5',
+              'repo=test/role=tester',
+              'exec',
+              '.claude/node-rule.js',
+              '',
+              '',
+              './.claude/node-rule.js',
+              '',
+            ].join('\x1f'),
+            '',
+          ].join('\n'),
+          event: 'PreToolUse',
+          payload: asPayloadBash('pwd'),
+        });
+      });
+
+      then('the rule runs as its own process, under its own shebang', () => {
+        expect(result.code).toEqual(0);
+        expect(result.stdout).toEqual('node ran');
+      });
+    });
+
+    when('[t18] a rule file vanished since the sync', () => {
+      const result = useBeforeAll(async () =>
+        scene.dispatchManifest({
+          name: 'vanished-rule',
+          manifest: [
+            '# rhachet hooks.dispatch manifest v1',
+            [
+              'PreToolUse',
+              'Bash',
+              '5',
+              'repo=test/role=tester',
+              'shell',
+              '.claude/gone.sh',
+              '',
+              '',
+              'echo declared command ran',
+              '',
+            ].join('\x1f'),
+            '',
+          ].join('\n'),
+          event: 'PreToolUse',
+          payload: asPayloadBash('pwd'),
+        }),
+      );
+
+      then('the rule runs its declared command, as claude ran it', () => {
+        expect(result.code).toEqual(0);
+        expect(result.stdout.trim()).toEqual('declared command ran');
+      });
+    });
+
+    when('[t15] a manifest row is truncated, with no kind and no command', () => {
+      const result = useBeforeAll(async () =>
+        scene.dispatchManifest({
+          name: 'truncated-row',
+          manifest: [
+            '# rhachet hooks.dispatch manifest v1',
+            ['PreToolUse', 'Bash', '5', 'repo=demo/role=tester'].join('\x1f'),
+            '',
+          ].join('\n'),
+          event: 'PreToolUse',
+          payload: asPayloadBash('pwd'),
+        }),
+      );
+
+      then('the dispatcher fails closed, runs no rule, and names the fix', () => {
+        expect(result.code).toEqual(2);
+        expect(result.stdout).toEqual('');
+        expect(result.stderr).toContain(
+          '✋ ConstraintError: hook dispatch manifest row is malformed',
+        );
+        expect(result.stderr).toContain('rhx init --hooks');
+      });
+    });
+
+    when('[t14] a rule lists the per-call files and reads its umask', () => {
+      const tmpdir = genTempDir({ slug: 'hooks-dispatch-tmpdir' });
+      const result = useBeforeAll(async () => ({
+        dispatched: scene.dispatchManifest({
+          name: 'private-files',
+          manifest: asManifestOfCommands({
+            rows: [
+              { event: 'PreToolUse', matcher: 'Bash', timeout: 5, command: 'ls -l "$TMPDIR"; umask' },
+            ],
+          }),
+          event: 'PreToolUse',
+          payload: asPayloadBash('pwd'),
+          env: { TMPDIR: tmpdir },
+        }),
+        umask: scene.standalone('umask', ''),
+      }));
+
+      then('the payload and output files are private to the owner', () => {
+        const lines = result.dispatched.stdout.split('\n');
+        const inLine = lines.find((line) => line.endsWith('.in'));
+        const outLine = lines.find((line) => line.endsWith('.0.out'));
+        expect(inLine).toMatch(/^-rw------- /);
+        expect(outLine).toMatch(/^-rw------- /);
+      });
+
+      then('the rule runs under the umask the dispatcher was started with', () => {
+        const lines = result.dispatched.stdout.trim().split('\n');
+        expect(lines[lines.length - 1]).toEqual(result.umask.stdout.trim());
+      });
+
+      then('no per-call file is left once the dispatcher exits', () => {
+        expect(readdirSync(tmpdir).filter((name) => name.startsWith('rhachet.hooks.dispatch.'))).toEqual([]);
       });
     });
   });

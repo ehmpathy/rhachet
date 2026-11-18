@@ -1,5 +1,6 @@
 import type { HookDispatchRule } from '@src/domain.objects/HookDispatchRule';
 
+import { asHookDispatcherCommand } from './asHookDispatcherCommand';
 import { HOOK_DISPATCH } from './constants';
 
 /**
@@ -9,8 +10,8 @@ import { HOOK_DISPATCH } from './constants';
  * .note = the matcher is the union of the rules' matchers: any `*` → `*`; else every token,
  *   joined by `|`. a union with a regex reads as a regex, a superset — the dispatcher still
  *   checks each rule's own matcher before it runs the rule
- * .note = the timeout sits above the slowest rule's (a rule with none takes claude's default),
- *   so claude never kills the dispatcher before the dispatcher kills a hung rule
+ * .note = the timeout sits above the slowest rule's by the margin, so claude never kills the
+ *   dispatcher before the dispatcher kills a hung rule; every rule holds a timeout of at least 1s
  * .note = events come back in the order their first rule holds
  */
 export const asHookDispatchersOfRules = (input: {
@@ -31,13 +32,12 @@ export const asHookDispatchersOfRules = (input: {
         matchers: rulesOfEvent.map((rule) => rule.matcher),
       }),
       timeoutSeconds:
-        Math.max(
-          ...rulesOfEvent.map(
-            (rule) =>
-              rule.timeoutSeconds || HOOK_DISPATCH.timeoutDefaultSeconds,
-          ),
-        ) + HOOK_DISPATCH.timeoutMarginSeconds,
-      command: `bash ${HOOK_DISPATCH.bin} ${input.manifestPathRel} ${event}`,
+        Math.max(...rulesOfEvent.map((rule) => rule.timeoutSeconds)) +
+        HOOK_DISPATCH.timeoutMarginSeconds,
+      command: asHookDispatcherCommand({
+        manifestPathRel: input.manifestPathRel,
+        event,
+      }),
     };
   });
 };

@@ -43,13 +43,14 @@ export const asHookDispatchRulesFromManifestText = (input: {
         when,
       ] = fields;
 
-      // a row with the wrong shape is a corrupt file; name it and its fix
+      // a row with the wrong shape is a corrupt file; name it and its fix. a timeout is whole
+      //   seconds, at least 1, as the writer emits it: a 0 would read as no timeout to the watchdog
       const whenRead = asWhenOfField({ field: when });
       if (
         fields.length !== 10 ||
         !isHookDispatchRuleKind(kind) ||
         whenRead === undefined ||
-        !/^\d+$/.test(timeout ?? '')
+        !/^[1-9]\d*$/.test(timeout ?? '')
       )
         throw new ConstraintError('hook dispatch manifest row is malformed', {
           path: input.path,

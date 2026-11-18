@@ -102,20 +102,6 @@ describe('asHookDispatchersOfRules', () => {
       );
     });
 
-    test('a rule with no timeout takes the default', () => {
-      const [dispatcher] = asHookDispatchersOfRules({
-        rules: [
-          genRule({ timeoutSeconds: 0 }),
-          genRule({ timeoutSeconds: 10 }),
-        ],
-        manifestPathRel: MANIFEST_PATH,
-      });
-      expect(dispatcher!.timeoutSeconds).toEqual(
-        HOOK_DISPATCH.timeoutDefaultSeconds +
-          HOOK_DISPATCH.timeoutMarginSeconds,
-      );
-    });
-
     test('is per event, not shared across events', () => {
       const dispatchers = asHookDispatchersOfRules({
         rules: [

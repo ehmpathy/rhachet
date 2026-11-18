@@ -2,6 +2,7 @@ import { BrainHook } from '@src/domain.objects/BrainHook';
 import { BrainHookFilter } from '@src/domain.objects/BrainHookFilter';
 import type { BrainHooksAdapter } from '@src/domain.objects/BrainHooksAdapter';
 import type { HookDispatchRule } from '@src/domain.objects/HookDispatchRule';
+import { isHookAuthorOfRole } from '@src/domain.operations/brains/isHookAuthorOfRole';
 
 import { asBrainHookEventOfClaudeEvent } from './asBrainHookEventOfClaudeEvent';
 import { asHookDispatchersOfRules } from './asHookDispatchersOfRules';
@@ -81,7 +82,7 @@ const isHookToTakeBack = (input: {
   hook: BrainHook;
   desired: BrainHook[];
 }): boolean => {
-  if (/^repo=.+\/role=.+$/.test(input.hook.author)) return true;
+  if (isHookAuthorOfRole({ author: input.hook.author })) return true;
   if (input.hook.author !== HOOK_DISPATCH.author) return false;
   return !input.desired.some((want) => isSameHook(want, input.hook));
 };

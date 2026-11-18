@@ -44,6 +44,7 @@ const GITIGNORE_ALLOWLIST = [
   '!/settings.of.repo.json',
   '!/settings.of.grove.json',
   '!/settings.local.json',
+  '!/hooks.dispatch.manifest',
   '',
 ].join('\n');
 
@@ -114,6 +115,7 @@ describe('setRepoActorBrainDir', () => {
             'settings.of.repo.json',
             'settings.of.grove.json',
             'settings.local.json',
+            'hooks.dispatch.manifest',
           ])
             expect(
               getOneIsPathIgnoredByGit({

@@ -5,12 +5,18 @@ import {
   HookDispatchRule,
   type HookDispatchRuleKind,
 } from '@src/domain.objects/HookDispatchRule';
+import { asRoleFileRunFrame } from '@src/domain.operations/invoke/asRoleFileRunFrame';
 
 import { closeSync, openSync, readSync } from 'node:fs';
 import { join } from 'node:path';
 import { asClaudeEventOfBrainHookEvent } from './asClaudeEventOfBrainHookEvent';
 import { asTimeoutSecondsOfBrainHook } from './asTimeoutSecondsOfBrainHook';
+import {
+  HOOK_DISPATCH_RHX_SHORT_CIRCUITS,
+  HOOK_DISPATCH_RUN_FLAGS,
+} from './constants';
 import { getAllRoleExecutablesBySlug } from './getAllRoleExecutablesBySlug';
+import { isHookMatcherPortable } from './isHookMatcherPortable';
 
 /**
  * .what = the words a shell reads as plain words: no quote, no expansion, no redirect
@@ -19,39 +25,9 @@ import { getAllRoleExecutablesBySlug } from './getAllRoleExecutablesBySlug';
  */
 const PLAIN_WORDS = /^[A-Za-z0-9_\-./:@=+, ]+$/;
 
-/**
- * .what = the flags `rhachet run` parses for itself
- * .why = a command that passes one of these past the skill name may be read by rhx, not the
- *   skill; such a command runs as declared, never guessed at
- */
-const RUN_FLAGS = new Set([
-  '--skill',
-  '-s',
-  '--init',
-  '-i',
-  '--repo',
-  '--role',
-  '-r',
-  '--attempts',
-  '--help',
-  '-h',
-]);
-
-/**
- * .what = the first words `rhx` routes to a command of its own, never to a skill
- */
-const RHX_SHORT_CIRCUITS = new Set([
-  'help',
-  'list',
-  'boot',
-  'cost',
-  'keyrack',
-  'upgrade',
-  'enroll',
-  'actor',
-  'clone',
-  'init',
-]);
+// the route tables of `rhachet run` and `bin/rhx`, each held to its owner by a parity test
+const RUN_FLAGS = new Set(HOOK_DISPATCH_RUN_FLAGS);
+const RHX_SHORT_CIRCUITS = new Set(HOOK_DISPATCH_RHX_SHORT_CIRCUITS);
 
 /**
  * .what = the dispatcher rule for one declared role hook: its kind, the file it runs, its args
@@ -81,10 +57,23 @@ export const getOneHookDispatchRuleOfBrainHook = (input: {
       hint: 'declare the hook command on one line, in the role that authors it',
     });
 
+  // a matcher the dispatcher's bash would read otherwise than claude did is refused here, at sync
+  const matcher = hook.filter?.what ?? '*';
+  if (!isHookMatcherPortable({ matcher }))
+    throw new ConstraintError(
+      'a role hook matcher uses regex syntax the hook dispatcher reads otherwise',
+      {
+        author: hook.author,
+        command: hook.command,
+        matcher,
+        hint: 'declare the matcher as an exact list (`Read|Write`) or a posix ere: no \\d \\w \\s \\b, no (?…), no lazy quantifier',
+      },
+    );
+
   // the fields every kind shares, as the claude adapter would write them
   const shared = {
     event: asClaudeEventOfBrainHookEvent({ event: hook.event }),
-    matcher: hook.filter?.what ?? '*',
+    matcher,
     timeoutSeconds: asTimeoutSecondsOfBrainHook({ timeout: hook.timeout }),
     author: hook.author,
     command: hook.command,
@@ -261,10 +250,12 @@ const getOneRuleOfRoleFile = (input: {
   const file = found[0]!;
 
   // the frame rhx printed before the file ran
-  const frame =
-    input.dir === 'skills'
-      ? `🪨 run solid skill repo=${file.slugRepo}/role=${file.slugRole}/skill=${input.slug}`
-      : `💪 init role repo=${file.slugRepo}/role=${file.slugRole}/init=${input.slug}`;
+  const frame = asRoleFileRunFrame({
+    dir: input.dir,
+    slugRepo: file.slugRepo,
+    slugRole: file.slugRole,
+    slug: input.slug,
+  });
 
   // rhx ran the file by its own shebang; a bash file may be sourced, any other runs as itself
   const isBash = isBashShebangOrNoneOfLine({

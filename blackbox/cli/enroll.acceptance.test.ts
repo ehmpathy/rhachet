@@ -1065,6 +1065,46 @@ describe('rhx enroll --roles (acceptance)', () => {
       });
     });
 
+    when('[t4] the repo actor settings name a dispatcher, but its manifest is absent', () => {
+      // a fresh checkout held the committed settings with no manifest beside them. the author
+      //   narrow drops the dispatcher, so a pass-through would spawn a clone with no role hook;
+      //   enroll must refuse before the brain starts (rhachet#764, r010 blocker.1)
+      const scene = useBeforeAll(async () => {
+        const dir = genTempDir({ slug: 'enroll-dispatcher-manifest-absent' });
+        setupEnrollFixture(dir);
+        seedRoleAuthoredHookRulesDispatched({ dir });
+        rmSync(
+          join(dir, '.agent', '.actors', 'actor.via.repo=ambient', 'brain', '.claude', 'hooks.dispatch.manifest'),
+        );
+        const home = join(dir, '.home');
+        mkdirSync(join(home, '.claude'), { recursive: true });
+        writeFileSync(join(home, '.claude', 'settings.json'), '{}\n', 'utf-8');
+        const recorder = setupArgvRecorderBrainPath({ dir });
+        const run = invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--roles', '-driver'],
+          cwd: dir,
+          env: { PATH: recorder.path, HOME: home },
+          logOnError: false,
+        });
+        return { run, recorder };
+      });
+
+      then('enroll refuses with exit 2, before the brain spawns', () => {
+        expect(scene.run.status).toEqual(2);
+        expect(existsSync(scene.recorder.recordPath)).toEqual(false);
+      });
+
+      then('the refusal names the absent manifest and the fix', () => {
+        expect(scene.run.stderr).toContain('ConstraintError');
+        expect(scene.run.stderr).toContain('actor.via.repo=ambient/brain/.claude/hooks.dispatch.manifest');
+        expect(scene.run.stderr).toContain('npx rhx init --hooks');
+      });
+
+      then('the refusal is locked to a snapshot', () => {
+        expect(asSnapshotSafeOfCredential(scene.run.stderr)).toMatchSnapshot();
+      });
+    });
+
     when('[t2] the HOME grove starts a hook dispatcher whose manifest holds a driver rule', () => {
       // a dispatcher hook carries no role author; the roles it runs sit in its manifest. the
       //   guard must read through the dispatcher to the manifest, or a driver rule rides in
