@@ -14,3 +14,4 @@
 | `F10-the-manifest-seed-rides-the-adapter-read` | the manifest adapter seeds an absent manifest inside its rule read, a findsert of the file | clean | open, best-guessed (peer review) | 80% |
 | `F11-the-dispatcher-sets-no-errexit` | the dispatcher reads every exit code as data, so it sets no `set -euo pipefail` | clean | open, best-guessed (peer review) | 85% |
 | `F12-the-rule-file-lookup-reuses-rhx-discovery` | the sync finds each rule file with the same discovery `rhx` runs | clean | open, best-guessed (peer review) | 88% |
+| `F13-a-timed-out-rule-kills-only-its-own-pid` | the watchdog kills only the rule's own pid; no `pkill -P`, no process group | clean | open, best-guessed (peer review) | 85% |

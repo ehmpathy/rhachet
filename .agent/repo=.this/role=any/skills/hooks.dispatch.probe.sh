@@ -43,14 +43,21 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# the tools this reads with; absent → name the fix
-for bin in jq /usr/bin/time; do
-  command -v "$bin" > /dev/null || {
-    echo "✋ ConstraintError: $bin is required" >&2
-    echo "   └─ hint: install $bin; the cost read is linux-only (GNU time has no darwin build)" >&2
-    exit 2
-  }
-done
+# the tools each mode reads with; absent → name the fix, for the mode that needs it only
+case "$WHAT" in
+  hooks | verdicts | cost)
+    command -v jq > /dev/null || {
+      echo "✋ ConstraintError: jq is required for --what $WHAT" >&2
+      echo "   └─ hint: install jq" >&2
+      exit 2
+    }
+    ;;
+esac
+if [[ "$WHAT" == cost ]] && ! /usr/bin/time -f '%U' true > /dev/null 2>&1; then
+  echo "✋ ConstraintError: GNU time is required for --what cost" >&2
+  echo "   └─ hint: the cost read is linux-only; BSD time has no -f" >&2
+  exit 2
+fi
 
 # list the hook commands one tool call fires, per claude's matcher grammar
 probe_hooks() {

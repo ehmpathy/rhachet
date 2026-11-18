@@ -61,8 +61,10 @@ a live blocker writes byte-equal stderr and exits 2 on both sides.
 - 🟡 a rule now times out at the timeout its role declares (`PT30S` → 30s), killed as a crash (exit 124, no block). before, the claude adapter wrote the timeout in milliseconds where claude reads seconds, so the limit never bit. no live rule nears it; the adapter's unit is a separate defect
 - with no repo manifest yet (upgraded, `init --hooks` not re-run), an enrolled actor keeps the per-rule hooks until the next `init --hooks`
 - claude's `[command]` label names the dispatcher, not the rule
-- when one rule crashes beside stdout claude reads, the dispatcher exits 0 so the decision lands, and carries the crash as the json `systemMessage` (plain SessionStart / UserPromptSubmit context is wrapped as `additionalContext` to carry it)
-- a rule whose file reads `$$` runs as `bash <path>`, its own process; a timed-out rule's direct children are killed with it
+- when one rule crashes beside stdout claude reads, the dispatcher exits 0 so the decision lands, and carries the crash as the json `systemMessage` (plain SessionStart / UserPromptSubmit context is wrapped as `additionalContext` to carry it); where the rule's json already holds a `systemMessage`, that message is kept and the crash goes to stderr only (no live rule emits one)
+- when a rule crashes beside a block, the dispatcher exits 2 and writes the crash's stderr after the blockers', so a guard that did not finish is never hidden
+- a rule whose file reads `$$` runs as `bash <path>`, its own process
+- a timed-out rule is killed by its own pid; a child it forked runs on, as under claude (no `pkill`, per `rule.forbid.unscoped-process-kills`)
 
 ## .stacked next
 

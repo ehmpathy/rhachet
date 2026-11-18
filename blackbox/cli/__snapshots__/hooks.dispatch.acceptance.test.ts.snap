@@ -9,6 +9,7 @@ exports[`hook dispatcher (one process per claude event) given: [case1] a repo wh
    └─ hint: drop the word deny
 ✋ trap.sh refuses
 trap fired in trap.sh, src=trap.sh
+💥 MalfunctionError: hook rule timed out after 2s (.agent/repo=test/role=tester/inits/claude.hooks/hang.sh)
 "
 `;
 

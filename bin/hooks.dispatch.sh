@@ -15,14 +15,15 @@
 #   kind ∈ rhx-skill | rhx-init | shell | exec | foreign
 #
 # the merge, as claude merges separate hooks:
-#   - any rule exits 2  → every exit-2 rule's stderr, in manifest order; exit 2
+#   - any rule exits 2  → every exit-2 rule's stderr, in manifest order,
+#     then any crashed rule's stderr; exit 2
 #   - else, a rule emits a json decision (or the event reads stdout as
 #     context) → that stdout, exit 0; a crashed rule beside it rides in the
 #     json `systemMessage`, so the human still sees it
 #   - else, a rule crashed → its stderr; exit with its code (a non-block)
 #   - else → every rule's stdout, in manifest order; exit 0
-#   - a rule past its timeout is killed, its children with it, and counted
-#     as a crash (exit 124, as timeout(1) exits)
+#   - a rule past its timeout is killed and counted as a crash (exit 124, as
+#     timeout(1) exits); a child it forked is not killed, as under claude
 #
 # guarantee:
 #   - each rule runs in its own subshell, with the event's stdin, $0 set
@@ -183,8 +184,8 @@ if (( __rhx_dispatch_n > 0 )); then
       while (( __rhx_dispatch_j < __rhx_dispatch_n )); do
         if (( __rhx_dispatch_timeout[__rhx_dispatch_j] <= __rhx_dispatch_elapsed )) && kill -0 "${__rhx_dispatch_pid[__rhx_dispatch_j]}" 2>/dev/null; then
           : > "${__rhx_dispatch_base}${__rhx_dispatch_j}.timeout"
-          # the rule's own children first, so a killed rule leaves none behind (one fork, only on a timeout)
-          command -v pkill > /dev/null && pkill -TERM -P "${__rhx_dispatch_pid[__rhx_dispatch_j]}" 2>/dev/null
+          # the kill targets the one pid this dispatcher forked; a child the rule left runs on, as a
+          # child of a timed-out hook did under claude (rule.forbid.unscoped-process-kills)
           kill -TERM "${__rhx_dispatch_pid[__rhx_dispatch_j]}" 2>/dev/null
         fi
         __rhx_dispatch_j=$((__rhx_dispatch_j + 1))
@@ -199,9 +200,9 @@ __rhx_dispatch_i=0
 while (( __rhx_dispatch_i < __rhx_dispatch_n )); do
   wait "${__rhx_dispatch_pid[__rhx_dispatch_i]}"
   __rhx_dispatch_code[__rhx_dispatch_i]=$?
-  # a timeout counts only if the kill landed: a rule that finished before its reap keeps its own
-  # verdict, since `kill -0` sees an unreaped child as alive and a kill leaves its exit untouched
-  [[ -f "${__rhx_dispatch_base}${__rhx_dispatch_i}.timeout" ]] && (( __rhx_dispatch_code[__rhx_dispatch_i] != 0 && __rhx_dispatch_code[__rhx_dispatch_i] != 2 )) && __rhx_dispatch_code[__rhx_dispatch_i]=124
+  # a timeout counts only if the kill landed (the rule died of SIGTERM, 128 + 15): a rule that
+  # finished before its reap keeps its own verdict, since `kill -0` sees an unreaped child as alive
+  [[ -f "${__rhx_dispatch_base}${__rhx_dispatch_i}.timeout" ]] && (( __rhx_dispatch_code[__rhx_dispatch_i] == 143 )) && __rhx_dispatch_code[__rhx_dispatch_i]=124
   __rhx_dispatch_i=$((__rhx_dispatch_i + 1))
 done
 if [[ -n "$__rhx_dispatch_wd" ]]; then
@@ -288,9 +289,11 @@ __rhx_dispatch_as_json_string() {
   __rhx_dispatch_js="\"${__rhx_dispatch_js}\""
 }
 
-# a block wins: every blocker's stderr, in manifest order
+# a block wins: every blocker's stderr, in manifest order; a crash beside it follows, so a guard
+# that did not finish is never hidden behind another rule's block
 if (( __rhx_dispatch_blocked == 1 )); then
   printf '%s' "$__rhx_dispatch_err_block" >&2
+  [[ -n "$__rhx_dispatch_err_crash" ]] && printf '%s' "$__rhx_dispatch_err_crash" >&2
   exit 2
 fi
 
