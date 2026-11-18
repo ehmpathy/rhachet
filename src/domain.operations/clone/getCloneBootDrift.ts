@@ -28,9 +28,17 @@ export const getCloneBootDrift = (input: {
 }):
   | { kind: 'legacy' }
   | {
-      kind: 'current' | 'drifted';
+      kind: 'current';
       revision: string;
-      drift: string | null;
+      drift: null;
+      lines: number;
+      counts: { changed: number; added: number; removed: number };
+      outside: boolean;
+    }
+  | {
+      kind: 'drifted';
+      revision: string;
+      drift: string;
       lines: number;
       counts: { changed: number; added: number; removed: number };
       outside: boolean;
@@ -64,12 +72,14 @@ export const getCloneBootDrift = (input: {
       { path: driftPath, hint: 'run `rhx init` to re-write every drift' },
     );
 
-  return {
-    kind: delta.markdown === null ? 'current' : 'drifted',
+  // no delta, or no drift hash to name it by: the clone is current
+  const shape = {
     revision,
-    drift: delta.drift,
     lines: delta.lines,
     counts: delta.counts,
     outside: delta.outside,
   };
+  if (delta.markdown === null || delta.drift === null)
+    return { kind: 'current', drift: null, ...shape };
+  return { kind: 'drifted', drift: delta.drift, ...shape };
 };

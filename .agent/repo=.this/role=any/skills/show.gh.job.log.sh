@@ -87,7 +87,7 @@ fi
 # .note = gh gates a body that holds escape sequences; this skill strips them before it
 #   prints, so the gate is passed here and never reaches the terminal
 REPO="$(gh repo view --json nameWithOwner --jq .nameWithOwner)" || { echo "💥 MalfunctionError: could not derive the current repo via gh" >&2; exit 1; }
-RAW="$(gh api --allow-escape-sequences "repos/$REPO/actions/jobs/$JOB/logs")" || { echo "💥 MalfunctionError: gh api could not read the log of job $JOB" >&2; exit 1; }
+RAW="$(gh api "repos/$REPO/actions/jobs/$JOB/logs")" || { echo "💥 MalfunctionError: gh api could not read the log of job $JOB" >&2; exit 1; }
 PLAIN="$(printf '%s\n' "$RAW" | sed -E 's/\x1B\[[0-9;?]*[A-Za-z]//g; s/\x1B\][^\x07]*\x07//g; s/\r$//')"
 LINES="$(printf '%s\n' "$PLAIN" | wc -l | tr -d ' ')"
 

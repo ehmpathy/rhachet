@@ -606,16 +606,14 @@ describe('rhx enroll --roles (acceptance)', () => {
       });
 
       then('the authored default-roleset config body is locked to a snapshot', () => {
-        // the default-roleset config IS the primary user experience — snapshot the
+        // the default-roleset config IS the primary human experience — snapshot the
         // full authored hook set so a regression that silently drops OR adds a default
         // role surfaces in the pr diff (the toContain checks above cannot catch a
         // widened set that keeps too much)
         //
-        // .note = its `claudeMdExcludes` holds two entries where [case2]'s hash actor holds
-        //   eight, by design: an actor's list never names its OWN doors, and this bare enroll
-        //   lands in the repo actor, whose doors are the repo's. so only the human's home
-        //   CLAUDE.md and `CLAUDE.local.md` remain. a hash actor additionally names the repo
-        //   actor's doors (define.brain-dir-repo-vs-actor, .invariants)
+        // .note = its `claudeMdExcludes` are the same four globs every actor holds: they close
+        //   every brain dir door, own door included, so the boot loads once, from the system
+        //   prompt; the drift reaches the clone through the `--add-dir` revision (F8)
         expect(
           asSnapshotSafe(readEnrollmentConfig({ dir })),
         ).toMatchSnapshot();
