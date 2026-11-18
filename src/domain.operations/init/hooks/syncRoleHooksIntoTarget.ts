@@ -33,17 +33,12 @@ export const syncRoleHooksIntoTarget = async (
   const configTargetDir = input.configTargetDir ?? undefined;
 
   // prune; a classified or fs fault is the target's, reported by the caller; all else rethrows
-  const pruneResult = await (async () => {
-    try {
-      return await pruneOrphanedRoleHooksFromAllBrains(
-        { authorsDesired: input.authorsDesired, brains, configTargetDir },
-        context,
-      );
-    } catch (error) {
-      if (!isActorHookSyncFault(error)) throw error;
-      return { error };
-    }
-  })();
+  const pruneResult = await withActorHookSyncFaultCaught(() =>
+    pruneOrphanedRoleHooksFromAllBrains(
+      { authorsDesired: input.authorsDesired, brains, configTargetDir },
+      context,
+    ),
+  );
   if ('error' in pruneResult)
     return {
       pruneResult: { removed: [] },
@@ -52,17 +47,12 @@ export const syncRoleHooksIntoTarget = async (
     };
 
   // sync; a fault here keeps the prune's real removals in the report
-  const syncResult = await (async () => {
-    try {
-      return await syncAllRoleHooksIntoEachBrainRepl(
-        { roles: input.roles, brains, configTargetDir },
-        context,
-      );
-    } catch (error) {
-      if (!isActorHookSyncFault(error)) throw error;
-      return { error };
-    }
-  })();
+  const syncResult = await withActorHookSyncFaultCaught(() =>
+    syncAllRoleHooksIntoEachBrainRepl(
+      { roles: input.roles, brains, configTargetDir },
+      context,
+    ),
+  );
   if ('error' in syncResult)
     return {
       pruneResult,
@@ -72,37 +62,60 @@ export const syncRoleHooksIntoTarget = async (
 
   // then, with every manifest whole, swap each brain's per-rule hooks for its dispatchers;
   //   a fault here keeps the rules the sync already wrote in the report
-  const swapResult = await (async () => {
-    try {
-      return await setHookDispatchersForTarget(
-        { brains: input.brains, configTargetDir: input.configTargetDir },
-        context,
-      );
-    } catch (error) {
-      if (!isActorHookSyncFault(error)) throw error;
-      return { error };
-    }
-  })();
+  const swapResult = await withActorHookSyncFaultCaught(() =>
+    setHookDispatchersForTarget(
+      { brains: input.brains, configTargetDir: input.configTargetDir },
+      context,
+    ),
+  );
   if ('error' in swapResult)
     return { pruneResult, syncResult, faults: [{ error: swapResult.error }] };
 
   // a brain that refused its dispatchers runs none of its rules, so each role synced into it
-  //   reports that refusal, as the per-rule sync reported a refused write per role × brain;
-  //   a refused brain with no role synced into it still reports, as a fault of the target
-  const faultsOfBrainsUnsynced = swapResult.errors
-    .filter(
-      ({ brain }) =>
-        !syncResult.applied.some((applied) => applied.brain === brain),
-    )
-    .map(({ error }) => ({ error }));
+  //   reports that refusal, as the per-rule sync reported a refused write per role × brain
   return {
     pruneResult,
     syncResult: asSyncResultWithSwapErrors({
       syncResult,
       swapErrors: swapResult.errors,
     }),
-    faults: faultsOfBrainsUnsynced,
+    faults: asFaultsOfBrainsUnsynced({
+      syncResult,
+      swapErrors: swapResult.errors,
+    }),
   };
+};
+
+/**
+ * .what = run one step; an allowlisted fault comes back as `{ error }`, all else rethrows
+ * .why = prune, sync and swap each catch the same faults, by the one allowlist
+ *   (`isActorHookSyncFault`)
+ */
+const withActorHookSyncFaultCaught = async <T>(
+  step: () => Promise<T>,
+): Promise<T | { error: Error }> => {
+  try {
+    return await step();
+  } catch (error) {
+    if (!isActorHookSyncFault(error)) throw error;
+    return { error };
+  }
+};
+
+/**
+ * .what = the faults of each refused brain that no role was synced into
+ * .why = with no role to name the refusal, it still reports, as a fault of the target
+ */
+const asFaultsOfBrainsUnsynced = (input: {
+  syncResult: Awaited<ReturnType<typeof syncAllRoleHooksIntoEachBrainRepl>>;
+  swapErrors: Array<{ brain: BrainSpecifier; error: Error }>;
+}): Array<{ error: Error }> => {
+  const brainsSynced = new Set(
+    input.syncResult.applied.map((applied) => applied.brain),
+  );
+  return input.swapErrors
+    .filter(({ brain }) => !brainsSynced.has(brain))
+    .map(({ error }) => ({ error }));
 };
 
 /**

@@ -44,7 +44,7 @@ export const genBrainHooksAdapterViaDispatchManifest = (input: {
    *   each one out of the settings
    */
   const setRulesSeededFromSettings = async (): Promise<HookDispatchRule[]> => {
-    const rules = asRulesOfRoleHooks({
+    const rules = getAllRulesOfRoleHooks({
       hooks: await input.adapter.dao.get.all(),
       repoPath,
     });
@@ -154,7 +154,7 @@ const isHookOfQuery = (input: {
 /**
  * .what = the rules each role-authored hook becomes; a hook no role authored is left out
  */
-const asRulesOfRoleHooks = (input: {
+const getAllRulesOfRoleHooks = (input: {
   hooks: BrainHook[];
   repoPath: string;
 }): HookDispatchRule[] =>

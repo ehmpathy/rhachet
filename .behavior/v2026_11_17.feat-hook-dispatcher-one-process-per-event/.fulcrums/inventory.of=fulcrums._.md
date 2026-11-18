@@ -15,3 +15,4 @@
 | `F11-the-dispatcher-sets-no-errexit` | the dispatcher reads every exit code as data, so it sets no `set -euo pipefail` | clean | open, best-guessed (peer review) | 85% |
 | `F12-the-rule-file-lookup-reuses-rhx-discovery` | the sync finds each rule file with the same discovery `rhx` runs | clean | open, best-guessed (peer review) | 88% |
 | `F13-a-timed-out-rule-kills-only-its-own-pid` | the watchdog kills only the rule's own pid; no `pkill -P`, no process group | clean | open, best-guessed (peer review) | 85% |
+| `F14-a-rule-crash-keeps-its-non-block-verdict` | a rule's crash keeps its own non-block exit; only the dispatcher's own fault exits 2 | clean | open, best-guessed (peer review) | 88% |
