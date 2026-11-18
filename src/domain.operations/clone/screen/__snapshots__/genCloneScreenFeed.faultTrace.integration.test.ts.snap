@@ -1,0 +1,6 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`genCloneScreenFeed.faultTrace given: [case1] a screen feed with its default trace sink when: [t0] its emulator write faults then: the fault line lands in the trace log, whole 1`] = `
+"<iso> pid=<n> 😶 clone screen feed fault — degraded to feed-faulted, re-enroll to clear: emulator write faulted
+"
+`;

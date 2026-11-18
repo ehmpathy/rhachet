@@ -1,0 +1,5 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`genCloneSocketServer.stallTrace given: [case1] a daemon socket server with its default trace sink when: [t0] its event loop stalls past the lag bound then: the liveness line lands in the trace log, once — so a silent log reads as health 1`] = `"<iso> pid=<n> clone daemon loop watch live (tick 1000ms, stall past 2000ms)"`;
+
+exports[`genCloneSocketServer.stallTrace given: [case1] a daemon socket server with its default trace sink when: [t0] its event loop stalls past the lag bound then: the stall line lands in the trace log, with its drift and both measures 1`] = `"<iso> pid=<n> clone daemon event loop stalled <n>ms (cpu <n>ms, loop active <n>ms)"`;

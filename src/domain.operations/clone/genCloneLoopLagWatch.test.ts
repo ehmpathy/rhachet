@@ -16,8 +16,51 @@ const blockTheLoop = (input: { forMs: number }): void => {
   }
 };
 
+/**
+ * .what = block this process's event loop until it has BURNT a stated span of cpu
+ * .why = a wall-clock busy wait on a loaded host is descheduled part of the time, so the cpu it
+ *   spends is not fixed. a burn measured in cpu time is, so the line's cpu figure has a floor
+ */
+const burnTheLoopCpu = (input: { cpuMs: number }): void => {
+  const from = process.cpuUsage();
+  while (true) {
+    const spent = process.cpuUsage(from);
+    if ((spent.user + spent.system) / 1000 >= input.cpuMs) return;
+  }
+};
+
+/**
+ * .what = block this process's event loop for a stated span, OFF the cpu
+ * .why = a sync call that waits in the kernel (a tty or fs write the far side does not drain)
+ *   holds the loop with no cpu spent. `Atomics.wait` on a buffer no one notifies is exactly
+ *   that shape, with no fs or tty for a test to arrange
+ */
+const blockTheLoopOffCpu = (input: { forMs: number }): void => {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, input.forMs);
+};
+
 const sleep = (ms: number): Promise<void> =>
   new Promise((settle) => setTimeout(settle, ms));
+
+/**
+ * .what = parse the stall line into its three measures
+ * .why = the class cases assert on the measures, not the text; one parse keeps each case to its
+ *   claim
+ */
+const asStallMeasures = (
+  line: string,
+): { driftMs: number; cpuMs: number; loopActiveMs: number } | null => {
+  const match =
+    /^clone daemon event loop stalled (\d+)ms \(cpu (\d+)ms, loop active (\d+)ms\)\n$/.exec(
+      line,
+    );
+  if (!match) return null;
+  return {
+    driftMs: Number(match[1]),
+    cpuMs: Number(match[2]),
+    loopActiveMs: Number(match[3]),
+  };
+};
 
 /**
  * .what = run the watch across a caller-staged span and report what it traced
@@ -29,6 +72,7 @@ const runTheWatch = async (input: {
   lagThresholdMs: number;
   stopFirst: boolean;
   blockForMs: number;
+  blockBy?: 'wall' | 'cpu-burn' | 'off-cpu';
 }): Promise<{ count: number; first: string }> => {
   const lines: string[] = [];
   const watch = genCloneLoopLagWatch({
@@ -39,7 +83,13 @@ const runTheWatch = async (input: {
 
   if (input.stopFirst) watch.stop();
 
-  if (input.blockForMs > 0) blockTheLoop({ forMs: input.blockForMs });
+  const blockBy = input.blockBy ?? 'wall';
+  if (input.blockForMs > 0 && blockBy === 'wall')
+    blockTheLoop({ forMs: input.blockForMs });
+  if (input.blockForMs > 0 && blockBy === 'cpu-burn')
+    burnTheLoopCpu({ cpuMs: input.blockForMs });
+  if (input.blockForMs > 0 && blockBy === 'off-cpu')
+    blockTheLoopOffCpu({ forMs: input.blockForMs });
   await sleep(60); // let any missed tick land
 
   watch.stop();
@@ -104,6 +154,101 @@ describe('genCloneLoopLagWatch', () => {
         expect(traced.first.startsWith('clone daemon event loop stalled')).toBe(
           true,
         );
+      });
+    });
+  });
+
+  given(
+    '[case5] a loop the daemon holds with its OWN sync work (on-cpu)',
+    () => {
+      when('[t0] the loop burns 400ms of cpu in one sync span', () => {
+        const traced = useThen('the watch reports the stall', async () =>
+          runTheWatch({
+            lagThresholdMs: 100,
+            stopFirst: false,
+            blockForMs: 400,
+            blockBy: 'cpu-burn',
+          }),
+        );
+
+        then(
+          'the line reports the cpu the loop burnt, and loop active near the drift',
+          () => {
+            const measures = asStallMeasures(traced.first);
+            expect(measures).not.toBeNull();
+            expect({
+              cpuAtLeastTheBurn: measures!.cpuMs >= 380,
+              activeNearDrift:
+                measures!.loopActiveMs >= measures!.driftMs * 0.5,
+            }).toEqual({ cpuAtLeastTheBurn: true, activeNearDrift: true });
+          },
+        );
+      });
+    },
+  );
+
+  given('[case6] a loop held in a blocked sync call (off-cpu)', () => {
+    when('[t0] the loop waits in the kernel well past the bound', () => {
+      const traced = useThen('the watch reports the stall', async () =>
+        runTheWatch({
+          lagThresholdMs: 100,
+          stopFirst: false,
+          blockForMs: 400,
+          blockBy: 'off-cpu',
+        }),
+      );
+
+      then(
+        'the line reads loop active near the drift, but cpu far below it',
+        () => {
+          const measures = asStallMeasures(traced.first);
+          expect(measures).not.toBeNull();
+          expect({
+            // relative to the drift, since cpu is process-wide: gc and native threads add to it
+            //   on a loaded host, never in proportion to the span the loop sat blocked
+            cpuFarBelowDrift: measures!.cpuMs < measures!.driftMs * 0.5,
+            activeNearDrift: measures!.loopActiveMs >= measures!.driftMs * 0.5,
+          }).toEqual({ cpuFarBelowDrift: true, activeNearDrift: true });
+        },
+      );
+    });
+  });
+
+  given('[case7] a loop that stalls twice, apart', () => {
+    when('[t0] a 300ms stall, a turn of the loop, then a 600ms stall', () => {
+      const traced = useThen('the watch reports both stalls', async () => {
+        // .note = deliberate mutation — a local list the watch's trace appends to; never escapes
+        const lines: string[] = [];
+        const watch = genCloneLoopLagWatch({
+          trace: (line) => lines.push(line),
+          tickMs: 10,
+          lagThresholdMs: 100,
+        });
+        blockTheLoop({ forMs: 300 });
+        await sleep(60); // the loop turns: the first stall's line lands
+        blockTheLoop({ forMs: 600 });
+        await sleep(60);
+        watch.stop();
+        return {
+          count: lines.length,
+          drifts: lines
+            .map((line) => asStallMeasures(line)?.driftMs ?? -1)
+            .join(','),
+        };
+      });
+
+      then('one line per stall lands, in the order the stalls occurred', () => {
+        const drifts = traced.drifts.split(',').map(Number);
+        expect(traced.count).toEqual(2);
+        // drift reads a tick or so below the block (case2: a 400ms block, drift >= 300), so
+        //   the order is proven by the gap between the two, never by exact bounds
+        expect({
+          firstNamesTheShortStall: drifts[0]! >= 200 && drifts[0]! < 500,
+          secondIsTheLongerStall: drifts[1]! >= drifts[0]! + 150,
+        }).toEqual({
+          firstNamesTheShortStall: true,
+          secondIsTheLongerStall: true,
+        });
       });
     });
   });

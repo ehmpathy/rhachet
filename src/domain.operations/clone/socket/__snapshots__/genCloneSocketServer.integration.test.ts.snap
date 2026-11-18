@@ -1,0 +1,8 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`genCloneSocketServer.integration given: [case5] a server that accepts a connection but never acks (wedged) when: [t0] a message is dispatched with a short in-flight window then: sayClone fails loud AND the error carries the fix in metadata.hint (for --output json) 1`] = `
+{
+  "headline": "💥 MalfunctionError: the clone accepted the connection but did not answer in time",
+  "hint": "the brain may be busy, or its daemon loop stalled — retry, and read the clone daemon trace (\`<repo>/.agent/.cache/repo=rhachet/skill=clone-say/daemon.<yyyy-mm-dd>.log\`, or \`<tmpdir>/rhachet.uid=<uid>/clone-trace/\` if that log was unwritable) for a stall line at that time; re-enroll if it stays unresponsive",
+}
+`;

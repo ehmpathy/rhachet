@@ -5,7 +5,7 @@ import {
   asCliErrorFrameFromOutput,
   asCliErrorJsonFromOutput,
   asCloneReachBreadcrumbFromOutput,
-  asCloneSocketTraceFromOutput,
+  asCloneDaemonTraceLogFromRepo,
 } from '@/blackbox/.test/infra/asCliErrorReadouts';
 import {
   readStubEnvDumped,
@@ -120,6 +120,40 @@ const getUnwritableShortRuntimeDir = (input: { label: string }): string => {
 };
 
 /**
+ * .what = the repo's daemon trace log, once it holds a line that includes the given text
+ * .why = a live daemon writes as it serves, so a row that reads the log right after the enroll
+ *   reports ready may beat the write; this waits, bounded, then fails loud with the log it saw
+ * .note = the one caught error is the readout's own "no log yet" refusal; any other throws
+ */
+const awaitCloneDaemonTraceLine = async (input: {
+  repoPath: string;
+  includes: string;
+}): Promise<string> => {
+  const boundAt = Date.now() + 10000;
+  while (Date.now() < boundAt) {
+    const log = (() => {
+      try {
+        return asCloneDaemonTraceLogFromRepo({ repoPath: input.repoPath });
+      } catch (error) {
+        if (
+          error instanceof ConstraintError &&
+          error.message.includes('no clone daemon trace log in the repo')
+        )
+          return '';
+        throw error;
+      }
+    })();
+    if (log.includes(input.includes)) return log;
+    await new Promise((settle) => setTimeout(settle, 100));
+  }
+  throw new ConstraintError('the daemon trace log never held the line', {
+    hint: 'the daemon may not have served, or the line moved; read the log by hand',
+    includes: input.includes,
+    log: asCloneDaemonTraceLogFromRepo({ repoPath: input.repoPath }),
+  });
+};
+
+/**
  * .what = blackbox acceptance for the enroll REACH surfaces — the outputs a human or
  *   machine reads off an enroll so a clone is not a dead end: the bare-enroll F7
  *   breadcrumb, the `--output json` machine handoff, and the `--no-socket` fallback
@@ -201,6 +235,32 @@ describe('rhx enroll reach surfaces (acceptance)', () => {
         });
         expect(asSnapshotSafe(breadcrumb)).toMatchSnapshot();
       });
+
+      then(
+        'the daemon serves with no trace line on the pane, and its liveness line lands in the log',
+        async () => {
+          // the healthy path of the wish: a live daemon writes at least its liveness line, and
+          //   that line goes to the repo's trace log, never to the human's pane
+          const log = await awaitCloneDaemonTraceLine({
+            repoPath: scene.dir,
+            includes: 'clone daemon loop watch live',
+          });
+          const lines = log
+            .split('\n')
+            .filter((line) => line.includes('clone daemon loop watch live'));
+          expect(lines).toHaveLength(1);
+
+          // the whole line an operator reads on a healthy daemon, its head masked
+          const stamp = /^\d{4}-\d{2}-\d{2}T[\d:.]+Z pid=\d+ clone=@:[0-9a-f]{8} /;
+          expect(lines[0]).toMatch(stamp);
+          expect(
+            lines[0]!.replace(stamp, '<iso> pid=<n> clone=@:<serial> '),
+          ).toMatchSnapshot();
+          expect(scene.bg.getOutput()).not.toMatch(
+            /clone daemon|clone socket|clone screen feed|\d{4}-\d{2}-\d{2}T[\d:.]+Z pid=\d+/,
+          );
+        },
+      );
     });
   });
 
@@ -695,6 +755,17 @@ describe('rhx enroll reach surfaces (acceptance)', () => {
         // …and that it is NOT an unhandled throw: a HelpfulError renders its frame and
         // sets process.exitCode; a raw crash would print a stack trace instead
         expect(scene.output).not.toContain('at Object.<anonymous>');
+      });
+
+      then('the refusal precedes every daemon part — the frame is the one report', () => {
+        // the pty check throws before the socket server, the screen feed, or the loop watch is
+        // built, so no daemon trace line can ride beside the frame today. this row holds that
+        // order: a reorder that stood up a daemon part first would put its lines (or a stamp)
+        // here, beside the frame (vision case=5 [t1]). the sink itself is proven log-only where
+        // a daemon does start: [case8]
+        expect(scene.output).not.toMatch(
+          /clone daemon|clone socket|clone screen feed|\d{4}-\d{2}-\d{2}T[\d:.]+Z pid=\d+/,
+        );
       });
 
       then('the pty-absent enroll frame is locked (visual spot-check)', () => {
@@ -1210,6 +1281,7 @@ describe('rhx enroll reach surfaces (acceptance)', () => {
         const exitCodeJson = await bgJson.waitForExit({ timeoutMs: 30000 });
 
         return {
+          dir,
           bg,
           bgJson,
           exitCode,
@@ -1285,31 +1357,43 @@ describe('rhx enroll reach surfaces (acceptance)', () => {
           expect(asSnapshotSafe(frame)).toMatchSnapshot();
         });
 
-        then('the RAW trace line above the frame is locked too', () => {
-          /**
-           * 🚨 the row that makes the human's WHOLE screen reviewable. the frame snapshot
-           *   above spans from the glyph line down, so a reader of it sees a clean single
-           *   report — while a human on this exact fault reads an unframed diagnostic
-           *   FIRST. two differently-shaped outputs for one failure, and no snapshot
-           *   showed the pair (raised by the r009 lane at i076).
-           *
-           * ⚠️ this row does NOT bless that shape. it makes the cost visible so the trade
-           *   can be judged on a rendered screen rather than on a docblock's word for it —
-           *   the trade itself is litigated at `genCloneSocketServer`'s `ready.catch`,
-           *   which keeps the line because a `ready` NO caller awaits would otherwise lose
-           *   a named fault entirely (`rule.forbid.failhide`).
-           */
-          const trace = asCloneSocketTraceFromOutput({ output: scene.output });
+        then('no raw daemon trace line reaches the screen — the frame alone', () => {
+          // 🚨 the daemon's trace lines never reach a pane: a line there paints over the
+          //   brain-cli's input row, where the next Enter can submit it as a prompt. the
+          //   human reads one framed report, with no unframed diagnostic ahead of it
+          // .note = this row retires, on purpose, a prior row that pinned this raw line on the
+          //   screen above the frame; that row's own docblock said it locked a cost, never a
+          //   blessed shape. the requirement change is the wish of
+          //   `.behavior/v2026_11_16.fix-loop-stall-trace-off-pane` (`0.wish.md`, `.done means`),
+          //   human-approved at its vision; the row below keeps the line's words, now in the log
+          // .note = the broad read, the same as [case4]'s: this is the one scene where a daemon
+          //   starts, so ANY of its lines (stall, liveness, feed fault, a bare stamp) must be absent
+          expect(scene.output).not.toMatch(
+            /clone daemon|clone socket|clone screen feed|\d{4}-\d{2}-\d{2}T[\d:.]+Z pid=\d+/,
+          );
+        });
+
+        then('the same fault lands in the daemon trace log, named', () => {
+          // the line moved, never vanished: an operator finds it in the repo's trace log
+          const log = asCloneDaemonTraceLogFromRepo({ repoPath: scene.dir });
+          const trace = log
+            .split('\n')
+            .find((line) => line.includes('clone socket ready rejected with'));
+          expect(trace).toBeDefined();
           expect(trace).toContain('a bind fault');
           expect(trace).not.toContain('an unclassified fault');
 
-          // the ORDER is the friction: the bare line lands ahead of the framed report,
-          // so a human reads the diagnostic before the report that explains it
-          expect(scene.output.indexOf(trace)).toBeLessThan(
-            scene.output.indexOf('💥'),
-          );
-
-          expect(asSnapshotSafe(trace)).toMatchSnapshot();
+          // the line opens with its time, the daemon pid, and the clone's address, so an operator
+          //   can place it and name the clone; the snapshot shows that head masked, then the words
+          // .note = the scene enrolls twice into one repo (human and --output json), so the log
+          //   holds two such lines; the first is read, and both carry the same words
+          const stamp = /^\d{4}-\d{2}-\d{2}T[\d:.]+Z pid=\d+ clone=@:[0-9a-f]{8} /;
+          expect(trace).toMatch(stamp);
+          expect(
+            asSnapshotSafe(
+              (trace ?? '').replace(stamp, '<iso> pid=<n> clone=@:<serial> '),
+            ),
+          ).toMatchSnapshot();
         });
       });
 

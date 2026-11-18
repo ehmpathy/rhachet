@@ -1,0 +1,6 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`genCloneWriteQueue.faultTrace given: [case1] a write queue with its default trace sink when: [t0] its pty write faults then: the fault line lands in the trace log, whole 1`] = `
+"<iso> pid=<n> 💥 clone write fault — demoted to pty-write-fault (re-enroll remedy): pty write faulted
+"
+`;

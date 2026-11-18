@@ -5,13 +5,12 @@ import { CLONE_SAY_DEBUG_DIR_REL } from './socket/getCloneSayDebugLogPath';
 /**
  * .what = the absolute path of the clone DAEMON's trace log for one calendar day
  * .why =
- *   - 🔴 a detached daemon OUTLIVES the stderr fd it inherited. `genCloneEnrollDetached`
- *     spawns it with `stdio: ['ignore', 'pipe', 'inherit']`, so every trace it writes after
- *     the enroll caller exits goes into a pipe with no reader — measured: across every
- *     acceptance log in this tree, a grep for the daemon's own trace lines returns ZERO
- *   - so the operator channel the daemon's faults ride is, in the one scenario that matters
- *     (a wedge diagnosed after the fact), write-only into a closed fd. a report nobody can
- *     read is as good as absent (`rule.forbid.failhide`)
+ *   - 🔴 the daemon's stdio is no place for a trace. a detached daemon's stderr is a pipe no
+ *     one reads after handoff (`genCloneEnrollDetached`), and an attended daemon's stderr is
+ *     the human's pane, where a trace paints over the brain-cli's screen. so this log is the
+ *     daemon's ONLY trace channel (`getOneCloneTraceSinkForDaemon`)
+ *   - a wedge is diagnosed after the fact; a report nobody can read is as good as absent
+ *     (`rule.forbid.failhide`)
  *   - it sits beside the say debug stream, under the same gitignored `.agent/.cache/`
  *     coordinates, so a reader who already knows where a say's client-side trail lands finds
  *     the daemon's half one filename over

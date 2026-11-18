@@ -1,3 +1,5 @@
+import { asCloneDaemonTraceWhereHuman } from './asCloneDaemonTraceWhereHuman';
+
 /**
  * .what = the distinct reasons a clone cannot receive a `say`
  * .why = each cause names a DIFFERENT fix, so the caller must know which one it
@@ -57,7 +59,7 @@ export const computeCloneUnreachableHint = (input: {
     case 'wedged':
       return {
         message: 'the clone accepted the connection but did not answer in time',
-        hint: 'the brain may be busy — retry, or re-enroll if it stays unresponsive',
+        hint: `the brain may be busy, or its daemon loop stalled — retry, and read the clone daemon trace (${asCloneDaemonTraceWhereHuman()}) for a stall line at that time; re-enroll if it stays unresponsive`,
       };
   }
 };
