@@ -46,6 +46,10 @@ exports[`rhx init — a repo with .agent/repo=.mods given: [case1] a sound mod o
    └─ boot.md
       └─ created — 2 roles
 
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
+
 "
 `;
 

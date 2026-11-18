@@ -43,9 +43,9 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case1] a manifest
    │  ├─ + .agent/repo=ehmpathy/role=mechanic/skills
    │  └─ + .agent/repo=ehmpathy/role=mechanic/inits
    └─ stats
-      ├─ 273 brief(s)
-      ├─ 91 skill(s)
-      └─ 51 init(s)
+      ├─ 299 brief(s)
+      ├─ 123 skill(s)
+      └─ 53 init(s)
 
 💪 init role repo=ehmpathy/role=mechanic
    └─ ../../../../../PATH_STRIPPED
@@ -78,7 +78,7 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case1] a manifest
    │  ├─ + .agent/repo=bhuild/role=behaver/skills
    │  └─ + .agent/repo=bhuild/role=behaver/inits
    └─ stats
-      ├─ 46 brief(s)
+      ├─ 47 brief(s)
       ├─ 9 skill(s)
       └─ 4 init(s)
 
@@ -90,9 +90,11 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case1] a manifest
    │  ├─ + .agent/repo=bhrain/.gitignore
    │  ├─ + .agent/repo=bhrain/role=librarian/readme.md
    │  ├─ + .agent/repo=bhrain/role=librarian/boot.yml
-   │  └─ + .agent/repo=bhrain/role=librarian/briefs
+   │  ├─ + .agent/repo=bhrain/role=librarian/briefs
+   │  └─ + .agent/repo=bhrain/role=librarian/skills
    └─ stats
-      └─ 20 brief(s)
+      ├─ 64 brief(s)
+      └─ 3 skill(s)
 
 ✨ 3 role(s) linked
 ✨ 3 role(s) initialized
@@ -128,9 +130,9 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case1] a manifest
    │  ├─ ↻ .agent/repo=ehmpathy/role=mechanic/skills (updated)
    │  └─ ↻ .agent/repo=ehmpathy/role=mechanic/inits (updated)
    └─ stats
-      ├─ 273 brief(s)
-      ├─ 91 skill(s)
-      └─ 51 init(s)
+      ├─ 299 brief(s)
+      ├─ 123 skill(s)
+      └─ 53 init(s)
 
 💪 init role repo=ehmpathy/role=mechanic
    └─ ../../../../../PATH_STRIPPED
@@ -157,7 +159,7 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case1] a manifest
    │  ├─ ↻ .agent/repo=bhuild/role=behaver/skills (updated)
    │  └─ ↻ .agent/repo=bhuild/role=behaver/inits (updated)
    └─ stats
-      ├─ 46 brief(s)
+      ├─ 47 brief(s)
       ├─ 9 skill(s)
       └─ 4 init(s)
 
@@ -169,9 +171,11 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case1] a manifest
    │  ├─ ✓ .agent/repo=bhrain/.gitignore (unchanged)
    │  ├─ ↻ .agent/repo=bhrain/role=librarian/readme.md (updated)
    │  ├─ ↻ .agent/repo=bhrain/role=librarian/boot.yml (updated)
-   │  └─ ↻ .agent/repo=bhrain/role=librarian/briefs (updated)
+   │  ├─ ↻ .agent/repo=bhrain/role=librarian/briefs (updated)
+   │  └─ ↻ .agent/repo=bhrain/role=librarian/skills (updated)
    └─ stats
-      └─ 20 brief(s)
+      ├─ 64 brief(s)
+      └─ 3 skill(s)
 
 ✨ 3 role(s) linked
 ✨ 3 role(s) initialized
