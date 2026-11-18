@@ -398,8 +398,10 @@
     "padding": 0
   },
   "claudeMdExcludes": [
-    "**/!(brain)/.claude/CLAUDE.md",
-    "**/CLAUDE.local.md"
+    "**/.claude/AGENTS.md",
+    "**/.claude/CLAUDE.md",
+    "**/CLAUDE.local.md",
+    "**/.claude/rules/**"
   ],
   "attribution": {
     "commit": "",

@@ -1,8 +1,9 @@
+import { asCountPhrase } from '@src/utils/asCountPhrase';
 import { asTreeBranch } from '@src/utils/asTreeBranch';
 
 import { basename } from 'node:path';
 import { asBrainDirBootScopeLabel } from './asBrainDirBootScopeLabel';
-import type { BrainDirBootRender } from './BrainDirBootRender';
+import type { BootDriftFault, BrainDirBootRender } from './BrainDirBootRender';
 import { BRAIN_DIR_BOOT_FILENAMES } from './constants';
 
 /**
@@ -45,8 +46,11 @@ export const asBrainDirSyncReportLines = (input: {
   symlink: BrainDirSyncSymlink | null;
   repoActorBrainDirRel: string;
   isManifestRepo: boolean;
+  /** the clones that refer to the re-written revisions, and the refs the drift cannot reach */
+  driftReach: { clones: number; faults: BootDriftFault[] } | null;
 }): string[] => {
-  const { render, symlink, repoActorBrainDirRel, isManifestRepo } = input;
+  const { render, symlink, repoActorBrainDirRel, isManifestRepo, driftReach } =
+    input;
 
   const groups: ReportGroup[] = [];
 
@@ -118,24 +122,31 @@ export const asBrainDirSyncReportLines = (input: {
   //   "no change" included, and a fault always shows
   //   .note = deliberate mutation: `groups` is this render's local accumulator, as for each group above
   const drift = render.drift;
+  const driftFaults = [...(drift?.faults ?? []), ...(driftReach?.faults ?? [])];
   const isDriftNews =
-    drift !== null && (drift.revisions > 0 || drift.faults.length > 0);
+    drift !== null && (drift.revisions.length > 0 || driftFaults.length > 0);
   if (drift && isDriftNews)
     groups.push({
       label: 'drift',
       rows: [
-        ...(drift.rewritten > 0
+        ...(drift.rewritten.length > 0
           ? [
-              `${drift.rewritten} spawn revision${drift.rewritten === 1 ? '' : 's'} re-written`,
-              drift.clones === 1
-                ? '1 clone refers to them; a live one takes the drift at its next compaction'
-                : `${drift.clones} clones refer to them; a live one takes the drift at its next compaction`,
+              asCountPhrase({
+                count: drift.rewritten.length,
+                one: 'spawn revision re-written',
+                many: 'spawn revisions re-written',
+              }),
+              asCountPhrase({
+                count: driftReach?.clones ?? 0,
+                one: 'clone refers to them; a live one takes the drift at its next compaction',
+                many: 'clones refer to them; a live one takes the drift at its next compaction',
+              }),
             ]
           : []),
-        ...(drift.rewritten === 0 && drift.faults.length === 0
+        ...(drift.rewritten.length === 0 && driftFaults.length === 0
           ? ['no change']
           : []),
-        ...drift.faults.map(
+        ...driftFaults.map(
           (fault) => `✗ ${basename(fault.revisionDir)} ${fault.reason}`,
         ),
       ],

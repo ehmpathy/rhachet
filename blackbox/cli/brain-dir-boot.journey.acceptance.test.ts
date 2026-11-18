@@ -1184,6 +1184,23 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
         ).toMatchSnapshot();
       });
 
+      // the [t3] clone spawned on the prior boot, so it now carries a drift: the built binary
+      //   reads it by address, cred-free, off the spawn ref the enroll wrote
+      const drift = useThen('rhx clone boot drift names the [t3] clone drift', async () =>
+        invokeRhachetCliBinaryAsync({
+          args: ['clone', 'boot', 'drift', '--of', t3.address],
+          cwd: scene.dir,
+          env: scene.env,
+        }),
+      );
+
+      then('the drift readout exits 0 and carries the drift a compaction takes', () => {
+        expect(drift.status).toEqual(0);
+        expect(drift.stdout).toContain(`boot drift of ${t3.address}`);
+        expect(drift.stdout).toMatch(/drift = [0-9a-f]{16}/);
+        expect(drift.stdout).toContain('1 block drifted since this clone spawned');
+      });
+
       // the [t3] actor enrolled shaper alone, so the waxer hook the repo root carries is
       //   foreign to it: its clones read this brain dir at user scope, where a foreign hook
       //   would fire inside them. the actor row above reads a bare hash for this reason

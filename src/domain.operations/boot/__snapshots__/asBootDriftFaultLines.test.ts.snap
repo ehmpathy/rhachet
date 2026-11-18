@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asBootDriftFaultLines given: [case2] two faults then: one qualified header, a row per fault, and the fix 1`] = `
+[
+  "💥 MalfunctionError: a boot drift was not written",
+  "   ├─ ✗ sha256=0123456789abcdef drift not written (EACCES) — its clones keep their prior drift",
+  "   ├─ ✗ sha256=fedcba9876543210 is gone, yet a clone refers to it — respawn that clone",
+  "   └─ fix: run \`rhx init\` to re-write every drift",
+]
+`;

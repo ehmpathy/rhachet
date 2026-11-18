@@ -54,6 +54,7 @@ describe('asBrainDirSyncReportLines', () => {
           }),
           repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
           isManifestRepo: false,
+          driftReach: null,
         });
 
         then('every group sits under one header, in the one order', () => {
@@ -77,6 +78,7 @@ describe('asBrainDirSyncReportLines', () => {
         symlink: genSymlink({ effect: 'CREATED' }),
         repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
         isManifestRepo: false,
+        driftReach: null,
       });
 
       then('it names the link and the corpus, and naught else', () => {
@@ -92,29 +94,34 @@ describe('asBrainDirSyncReportLines', () => {
         const lines = asBrainDirSyncReportLines({
           render: genRender({
             drift: {
-              revisions: 3,
-              rewritten: 2,
-              clones: 3,
+              actorDir: '/repo/.agent/.actors/a',
+              revisions: ['0123456789abcdef', '1111', '2222'],
+              rewritten: ['1111', '2222'],
               faults: [
                 {
                   revisionDir:
                     '/repo/.agent/.actors/a/boots/sha256=0123456789abcdef',
                   reason:
-                    'drift not written — its clones keep their prior drift',
+                    'drift not written (EACCES) — its clones keep their prior drift',
                   cause: new Error('EACCES'),
-                },
-                {
-                  revisionDir:
-                    '/repo/.agent/.actors/a/boots/sha256=fedcba9876543210',
-                  reason:
-                    'is gone, yet a clone refers to it — respawn that clone',
-                  cause: new Error('gone'),
                 },
               ],
             },
           }),
           symlink: genSymlink({ effect: 'FOUND' }),
           repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+          driftReach: {
+            clones: 3,
+            faults: [
+              {
+                revisionDir:
+                  '/repo/.agent/.actors/a/boots/sha256=fedcba9876543210',
+                reason:
+                  'is gone, yet a clone refers to it — respawn that clone',
+                cause: new Error('gone'),
+              },
+            ],
+          },
         });
 
         then(
@@ -139,10 +146,16 @@ describe('asBrainDirSyncReportLines', () => {
     when('[t1] its drift re-wrote naught', () => {
       const lines = asBrainDirSyncReportLines({
         render: genRender({
-          drift: { revisions: 2, rewritten: 0, clones: 0, faults: [] },
+          drift: {
+            actorDir: '/repo/.agent/.actors/a',
+            revisions: ['1111', '2222'],
+            rewritten: [],
+            faults: [],
+          },
         }),
         symlink: genSymlink({ effect: 'FOUND' }),
         repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+        driftReach: { clones: 2, faults: [] },
       });
 
       then(
@@ -158,10 +171,16 @@ describe('asBrainDirSyncReportLines', () => {
     when('[t2] the actor holds no spawn revision yet', () => {
       const lines = asBrainDirSyncReportLines({
         render: genRender({
-          drift: { revisions: 0, rewritten: 0, clones: 0, faults: [] },
+          drift: {
+            actorDir: '/repo/.agent/.actors/a',
+            revisions: [],
+            rewritten: [],
+            faults: [],
+          },
         }),
         symlink: genSymlink({ effect: 'FOUND' }),
         repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+        driftReach: { clones: 0, faults: [] },
       });
 
       then('it says NAUGHT — no clone has a drift to take', () => {
@@ -177,6 +196,7 @@ describe('asBrainDirSyncReportLines', () => {
         symlink: genSymlink({ effect: 'FOUND' }),
         repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
         isManifestRepo: false,
+        driftReach: null,
       });
 
       then('it says NAUGHT — success is not news', () => {
@@ -274,6 +294,7 @@ describe('asBrainDirSyncReportLines', () => {
           symlink: null,
           repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
           isManifestRepo: false,
+          driftReach: null,
         });
 
         then(
@@ -292,6 +313,7 @@ describe('asBrainDirSyncReportLines', () => {
           symlink: null,
           repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
           isManifestRepo: false,
+          driftReach: null,
         });
 
         then('it says NAUGHT', () => {
@@ -312,6 +334,7 @@ describe('asBrainDirSyncReportLines', () => {
         }),
         repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
         isManifestRepo: false,
+        driftReach: null,
       });
 
       then(
@@ -332,6 +355,7 @@ describe('asBrainDirSyncReportLines', () => {
         symlink: genSymlink({ effect: 'FOUND' }),
         repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
         isManifestRepo: false,
+        driftReach: null,
       });
 
       then(

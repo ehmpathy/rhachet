@@ -81,15 +81,16 @@ describe('genActorBootRevision', () => {
         // revisions on v1 and v2, then the actor boot moved to v3
         const scene = useBeforeAll(async () => {
           const actor = genActorWithBoot({ boot: BOOT_V1 });
-          const revV1 = genActorBootRevision({
-            actorDir: actor.actorDir,
-          })!.revisionDir;
+          const v1 = genActorBootRevision({ actorDir: actor.actorDir })!;
           writeFileSync(actor.bootMdPath, BOOT_V2);
-          const revV2 = genActorBootRevision({
-            actorDir: actor.actorDir,
-          })!.revisionDir;
+          const v2 = genActorBootRevision({ actorDir: actor.actorDir })!;
           writeFileSync(actor.bootMdPath, BOOT_V3);
-          return { ...actor, revV1, revV2 };
+          return {
+            ...actor,
+            revV1: v1.revisionDir,
+            revV2: v2.revisionDir,
+            hashes: [v1.hash, v2.hash].sort(),
+          };
         });
 
         then(
@@ -100,9 +101,8 @@ describe('genActorBootRevision', () => {
               bootMdPathCurrent: scene.bootMdPath,
             });
             expect(drifts).toEqual({
-              revisions: 2,
-              rewritten: 2,
-              clones: 0,
+              revisions: scene.hashes,
+              rewritten: scene.hashes,
               faults: [],
             });
             const claudeMdV1 = readFileSync(
@@ -125,9 +125,8 @@ describe('genActorBootRevision', () => {
             bootMdPathCurrent: scene.bootMdPath,
           });
           expect(drifts).toEqual({
-            revisions: 2,
-            rewritten: 0,
-            clones: 0,
+            revisions: scene.hashes,
+            rewritten: [],
             faults: [],
           });
         });
@@ -141,13 +140,11 @@ describe('genActorBootRevision', () => {
         'the fault is named, and the other revision is still written',
         () => {
           const scene = genActorWithBoot({ boot: BOOT_V1 });
-          const revV1 = genActorBootRevision({
-            actorDir: scene.actorDir,
-          })!.revisionDir;
+          const v1 = genActorBootRevision({ actorDir: scene.actorDir })!;
+          const revV1 = v1.revisionDir;
           writeFileSync(scene.bootMdPath, BOOT_V2);
-          const revV2 = genActorBootRevision({
-            actorDir: scene.actorDir,
-          })!.revisionDir;
+          const v2 = genActorBootRevision({ actorDir: scene.actorDir })!;
+          const revV2 = v2.revisionDir;
           writeFileSync(scene.bootMdPath, BOOT_V3);
 
           // a dir where the drift file belongs: no user, root included, can write it
@@ -157,96 +154,18 @@ describe('genActorBootRevision', () => {
             actorDir: scene.actorDir,
             bootMdPathCurrent: scene.bootMdPath,
           });
-          expect(drifts.revisions).toEqual(2);
-          expect(drifts.rewritten).toEqual(1);
-          expect(
-            drifts.faults.map((fault) => [fault.revisionDir, fault.reason]),
-          ).toEqual([
-            [revV1, 'drift not written — its clones keep their prior drift'],
-          ]);
+          expect(drifts.revisions).toEqual([v1.hash, v2.hash].sort());
+          expect(drifts.rewritten).toEqual([v2.hash]);
+          expect(drifts.faults).toHaveLength(1);
+          expect(drifts.faults[0]!.revisionDir).toEqual(revV1);
+          // the reason carries the cause, so the human sees WHY the write failed
+          expect(drifts.faults[0]!.reason).toContain('EISDIR');
+          expect(drifts.faults[0]!.reason).toContain(
+            'its clones keep their prior drift',
+          );
           expect(readFileSync(join(revV2, 'CLAUDE.md'), 'utf8')).toContain(
             'noon',
           );
-        },
-      );
-    });
-  });
-
-  given('[case5] clone refs the sweep cannot serve', () => {
-    /**
-     * .what = an actor with one revision on v1, a clone on it, and the boot moved to v2
-     */
-    const genActorWithCloneOnV1 = () => {
-      const scene = genActorWithBoot({ boot: BOOT_V1 });
-      const revision = genActorBootRevision({ actorDir: scene.actorDir })!;
-      const cloneDir = join(
-        scene.actorDir,
-        'clones',
-        'serial=0000aaaa-1111-2222-3333-444455556666',
-      );
-      mkdirSync(cloneDir, { recursive: true });
-      writeFileSync(join(cloneDir, 'boot.spawned.ref'), `${revision.hash}\n`);
-      writeFileSync(scene.bootMdPath, BOOT_V2);
-      return { ...scene, revision, cloneDir };
-    };
-
-    when('[t0] a ref names a revision that was reaped', () => {
-      then(
-        'the sweep names the gone revision as a fault, and respawn as the cure',
-        () => {
-          const scene = genActorWithCloneOnV1();
-          const cloneDirGone = join(
-            scene.actorDir,
-            'clones',
-            'serial=0000bbbb-1111-2222-3333-444455556666',
-          );
-          mkdirSync(cloneDirGone, { recursive: true });
-          writeFileSync(
-            join(cloneDirGone, 'boot.spawned.ref'),
-            'ffffffffffffffff\n',
-          );
-          const drifts = setActorBootDrifts({
-            actorDir: scene.actorDir,
-            bootMdPathCurrent: scene.bootMdPath,
-          });
-          expect(drifts.rewritten).toEqual(1);
-          expect(drifts.clones).toEqual(1);
-          expect(
-            drifts.faults.map((fault) => [fault.revisionDir, fault.reason]),
-          ).toEqual([
-            [
-              join(scene.actorDir, 'boots', 'sha256=ffffffffffffffff'),
-              'is gone, yet a clone refers to it — respawn that clone',
-            ],
-          ]);
-        },
-      );
-    });
-
-    when('[t1] a ref cannot be read', () => {
-      then(
-        'the drifts are still written, and the unreadable ref is a fault with its path, never a throw',
-        () => {
-          const scene = genActorWithCloneOnV1();
-          const refPath = join(scene.cloneDir, 'boot.spawned.ref');
-          rmSync(refPath);
-          mkdirSync(refPath);
-          const drifts = setActorBootDrifts({
-            actorDir: scene.actorDir,
-            bootMdPathCurrent: scene.bootMdPath,
-          });
-          expect(drifts.rewritten).toEqual(1);
-          expect(
-            readFileSync(join(scene.revision.revisionDir, 'CLAUDE.md'), 'utf8'),
-          ).toContain('paddle out at dusk');
-          expect(drifts.faults).toHaveLength(1);
-          expect(drifts.faults[0]!.revisionDir).toEqual(
-            join(scene.actorDir, 'clones'),
-          );
-          expect(drifts.faults[0]!.reason).toContain(
-            'a spawn ref could not be read',
-          );
-          expect(drifts.faults[0]!.reason).toContain(refPath);
         },
       );
     });

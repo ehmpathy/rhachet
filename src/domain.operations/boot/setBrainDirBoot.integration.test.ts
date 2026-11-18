@@ -475,9 +475,9 @@ describe('setBrainDirBoot', () => {
             scope: { kind: 'actor', actorExid: 'abc12345' },
           });
           expect(renderFirst.drift).toEqual({
-            revisions: 0,
-            rewritten: 0,
-            clones: 0,
+            actorDir,
+            revisions: [],
+            rewritten: [],
             faults: [],
           });
 
@@ -501,9 +501,9 @@ describe('setBrainDirBoot', () => {
             scope: { kind: 'actor', actorExid: 'abc12345' },
           });
           expect(renderSecond.drift).toEqual({
-            revisions: 1,
-            rewritten: 1,
-            clones: 1,
+            actorDir,
+            revisions: [revision.hash],
+            rewritten: [revision.hash],
             faults: [],
           });
           expect(

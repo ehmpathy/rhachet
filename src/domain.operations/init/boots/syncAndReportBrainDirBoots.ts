@@ -18,6 +18,7 @@ import { relative } from 'node:path';
 import { asBootGuardReportLines } from './asBootGuardReportLines';
 import { asExitCodeForBrainDirSyncFailures } from './asExitCodeForBrainDirSyncFailures';
 import { findsertRepoThisRoleAnyBootGuard } from './findsertRepoThisRoleAnyBootGuard';
+import { getActorBootDriftReach } from './getActorBootDriftReach';
 import { syncBootsForBrainDirs } from './syncBootsForBrainDirs';
 
 /**
@@ -115,12 +116,25 @@ export const syncAndReportBrainDirBoots = async (
   const isManifestRepo = existsSync(
     getActorsManifestPath({ repoPath: input.repoPath }),
   );
-  for (const render of renders) {
+  // each render joined to the clones that refer to its revisions
+  const reports = renders.map((render) => ({
+    render,
+    driftReach:
+      render.drift === null
+        ? null
+        : getActorBootDriftReach({
+            actorDir: render.drift.actorDir,
+            revisions: render.drift.revisions,
+            rewritten: render.drift.rewritten,
+          }),
+  }));
+  for (const { render, driftReach } of reports) {
     const lines = asBrainDirSyncReportLines({
       render,
       symlink: render.scope.kind === 'repo' ? symlink : null,
       repoActorBrainDirRel,
       isManifestRepo,
+      driftReach,
     });
     if (lines.length === 0) continue;
     for (const line of lines) console.log(line);
@@ -134,8 +148,9 @@ export const syncAndReportBrainDirBoots = async (
 
   // a drift not written is a fault the human must see in the exit too: its clones keep a stale drift
   const exitCodeOfFailures = asExitCodeForBrainDirSyncFailures({ failures });
-  const isDriftFaulted = renders.some(
-    (render) => (render.drift?.faults.length ?? 0) > 0,
+  const isDriftFaulted = reports.some(
+    ({ render, driftReach }) =>
+      (render.drift?.faults.length ?? 0) + (driftReach?.faults.length ?? 0) > 0,
   );
   return {
     exitCode:
