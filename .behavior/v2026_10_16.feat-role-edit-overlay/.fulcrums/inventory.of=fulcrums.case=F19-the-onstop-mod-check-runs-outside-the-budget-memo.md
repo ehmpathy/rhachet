@@ -45,5 +45,6 @@ low — no credential, no prod write. a wrong call costs a few fs reads per stop
 
 ## .verdict
 
-moot — F23 (b), the director, 2026-11-09 (seed S9), removed the onStop mod check; no mod check
-rides the stop, in or beside the memo.
+**(a)**, live again since F23 was reversed to (a), the commander, 2026-11-17 (seed S11). the mod
+check rides the stop beside the budget memo, unmemoized, as `getAllRoleModDriftsOfRepo` called from
+`invokeRolesCostForHook`. (it was moot from 2026-11-09 to 2026-11-17, under F23 (b).)

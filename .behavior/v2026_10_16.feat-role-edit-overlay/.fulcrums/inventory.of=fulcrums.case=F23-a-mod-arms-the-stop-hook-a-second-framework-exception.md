@@ -51,11 +51,23 @@ is a brief edit to `rule.forbid.framework-owned-hooks`.
 
 ## .verdict
 
-**(b)**, by the director, 2026-11-09 (seed S9). a mod arms no stop hook, and the framework-owned-hooks
-rule stands unamended. the version-drift pester lives with `roles boot` and `rhx upgrade`. the stop
-carrier and its sweep are removed.
+**(a)**, by the commander, 2026-11-17 (seed S11), in his #702 review. it reverses the director's
+**(b)** of 2026-11-09 (seed S9).
+
+- a drifted mod pin holds the stop, as a boot budget breach does, so a clone that never boots the
+  modded role still learns of the drift
+- the framework-owned-hooks rule names the mod pin as the second arm of its one exception, the
+  repo-wide stop sweep
+- as built, the sweep stays one entry per repo, authored by a `.this` role: the first budgeted one,
+  else `role=any`. a mod is never a hook author (`repo=.mods/role=$slug` stays reserved, per
+  requirement 20), which narrows option (a)'s coordinate above
+- a refused or stale mod is still the boot's and the render's to refuse; the stop holds on a pin
+  drift alone
 
 ## .concerns this verdict settles
 
-- `arch-hazards-behavior` (r7) nitpick.3, *"the stop sweep read view state without the lock"*: disputed
-  2026-11-14 as moot. the sweep it grades is deleted under (b), so no stop path reads view state
+- `arch-hazards-behavior` (r7) nitpick.3, *"the stop sweep read view state without the lock"*: under
+  (a) the sweep reads each mod's state again, with no lock. a read that lands mid-render refuses,
+  and a refused mod is no drift, so the worst case is one stop that misses the pester, never a false
+  hold; the next stop reads it. held as a deliberate tradeoff: a lock on every stop costs every
+  session, and the miss costs one stop

@@ -187,13 +187,23 @@ describe('rhachet roles — a role modded via .agent/repo=.mods', () => {
         }),
       );
 
-      then('the stop is clear, exit 0: the moved pin is the boot and the upgrade to name (F23 b)', () => {
-        expect(result.status).toEqual(0);
+      then('the stop is held, exit 2, as a boot budget breach holds it', () => {
+        expect(result.status).toEqual(2);
       });
 
-      then('the stop says naught of the mod', () => {
-        expect(result.stderr).not.toContain('the modded role moved');
-        expect(result.stderr).not.toContain('surfer');
+      then('the hold names the role, both versions, each mod, and the fix', () => {
+        expect(result.stderr).toContain(
+          '✋ ConstraintError: 1 modded role moved off the version its mod pins',
+        );
+        expect(result.stderr).toContain('role    = test/surfer');
+        expect(result.stderr).toContain(
+          'mods    = 0.9.0   (declared in .agent/repo=.mods/role=surfer/boot.yml)',
+        );
+        expect(result.stderr).toContain('now     = 1.0.0');
+        expect(result.stderr).toContain('[-] not briefs/rule.forbid.wipeouts.md');
+        expect(result.stderr).toContain(
+          'then set `of: test/surfer@1.0.0` in the mod boot.yml',
+        );
       });
 
       then('the stop output matches its snapshot', () => {
@@ -221,6 +231,22 @@ describe('rhachet roles — a role modded via .agent/repo=.mods', () => {
 
       then('the boot stdout matches its snapshot', () => {
         expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
+      });
+    });
+
+    when('[t5] a session stops, with the pin at the installed version', () => {
+      const result = useBeforeAll(async () =>
+        invoke({
+          args: ['roles', 'cost', '--all', '--when', 'hook.onStop'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('the stop is clear, exit 0, and silent: no drift is left to hold for', () => {
+        expect(result.status).toEqual(0);
+        expect(result.stdout).toEqual('');
+        expect(result.stderr).toEqual('');
       });
     });
   });
@@ -286,8 +312,9 @@ describe('rhachet roles — a role modded via .agent/repo=.mods', () => {
         }),
       );
 
-      then('the stop is clear, exit 0: the stale view is the boot to refuse, as [t0] shows (F23 b)', () => {
-        expect(result.status).toEqual(0);
+      then('the stop holds on the moved pin alone; the stale view is the boot to refuse, as [t0] shows', () => {
+        expect(result.status).toEqual(2);
+        expect(result.stderr).toContain('1 modded role moved off the version its mod pins');
         expect(result.stderr).not.toContain('is stale');
       });
 
@@ -554,7 +581,7 @@ describe('rhachet roles — a role modded via .agent/repo=.mods', () => {
         }),
       );
 
-      then('the stop is clear, exit 0: the mod is the boot to refuse (F23 b)', () => {
+      then('the stop is clear, exit 0: a refused mod is the boot to refuse, never a drift', () => {
         expect(result.status).toEqual(0);
         expect(result.stderr).not.toContain('surfer');
       });
@@ -606,7 +633,7 @@ describe('rhachet roles — a role modded via .agent/repo=.mods', () => {
         }),
       );
 
-      then('the stop is clear, exit 0: the mod is the boot to refuse (F23 b)', () => {
+      then('the stop is clear, exit 0: a refused mod is the boot to refuse, never a drift', () => {
         expect(result.status).toEqual(0);
         expect(result.stderr).not.toContain('surfer');
       });
@@ -1416,8 +1443,9 @@ describe('rhachet roles — a role modded via .agent/repo=.mods', () => {
         }),
       );
 
-      then('the stop is clear, exit 0: the stray is the sweep report to name, as [t0] shows (F23 b)', () => {
-        expect(result.status).toEqual(0);
+      then("the stop holds on the sound mod's moved pin alone; the stray is the sweep report to name, as [t0] shows", () => {
+        expect(result.status).toEqual(2);
+        expect(result.stderr).toContain('role    = test/surfer');
         expect(result.stderr).not.toContain('readme.md');
       });
 

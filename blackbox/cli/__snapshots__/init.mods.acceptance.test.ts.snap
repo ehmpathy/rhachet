@@ -140,15 +140,46 @@ modded: wax the board, then wax the rails
 
 exports[`rhx init — a repo with .agent/repo=.mods given: [case1] a sound mod of a linked role when: [t0] init links the roles then: the stop sweep output matches its snapshot 1`] = `
 {
-  "stderr": "",
+  "stderr": "🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 modded role moved off the version its mod pins
+   │  └─ test/surfer
+   │     ├─ role    = test/surfer
+   │     ├─ mods    = 0.9.0   (declared in .agent/repo=.mods/role=surfer/boot.yml)
+   │     ├─ now     = 1.0.0
+   │     ├─ review each mod against the new release
+   │     │  ├─ [~] shadow briefs/rule.require.surf-wax.md
+   │     │  ├─ [+] add briefs/rule.require.reef-etiquette.md
+   │     │  └─ [-] not briefs/rule.forbid.wipeouts.md
+   │     └─ then set \`of: test/surfer@1.0.0\` in the mod boot.yml
+   │
+   └─ the stop holds until each mod's \`of:\` names the installed version
+
+
+✋ ConstraintError: modded roles moved off the version their mods pin
+
+{
+  "hint": "review each mod against the installed release, then set its \`of:\` to the installed version",
+  "modsDrifted": [
+    ".agent/repo=.mods/role=surfer/boot.yml"
+  ]
+}
+
+[args] roles,cost,--all,--when,hook.onStop
+
+",
   "stdout": "",
 }
 `;
 
 exports[`rhx init — a repo with .agent/repo=.mods given: [case1] a sound mod of a linked role when: [t1] init applies the hooks then: init stdout matches its snapshot 1`] = `
 "🔭 search for linked roles with hooks...
+   └─ .this/any
 
-🫧 no roles with hooks found
+🪝 apply hooks to brains...
+   └─ .this/any → anthropic/claude/code: +1
+
+✨ hooks
+   └─ 1 created
 
 "
 `;
@@ -298,8 +329,12 @@ modded: wax the board, then wax the rails
       └─ created — 2 roles
 
 🔭 search for linked roles with hooks...
+   └─ .this/any
 
-🫧 no roles with hooks found
+🪝 apply hooks to brains...
+
+✨ hooks
+   └─ no changes needed
 
 ",
 }

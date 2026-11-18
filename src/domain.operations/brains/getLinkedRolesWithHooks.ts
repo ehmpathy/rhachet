@@ -40,8 +40,8 @@ const asRoleWithoutRolesBootHooks = (input: { role: Role }): Role => {
  * .why = enables hook application for roles already linked into .agent/
  *
  * .note = scans .agent/repo=* directories to find linked roles; repo=.this has no package and
- *   declares no hooks of its own. it gets only the framework-owned budget gate, armed when a
- *   `.this` boot.yml declares a budget (getAllRepoThisRolesWithHooks)
+ *   declares no hooks of its own. it gets only the framework-owned stop sweep, armed when a
+ *   `.this` boot.yml declares a budget or a role is modded (getAllRepoThisRolesWithHooks)
  * .note = imports packages dynamically to get full Role objects with hooks.onBrain
  * .note = returns HasRepo<Role> so caller knows which repo each role came from
  */
@@ -171,7 +171,7 @@ export const getLinkedRolesWithHooks = async (
     }
   }
 
-  // a budgeted `.this` boot arms the built-in gate, which joins the same sync as a supplier's
+  // a budgeted `.this` boot or a mod arms the built-in sweep, which joins the same sync as a supplier's
   const repoThis = getAllRepoThisRolesWithHooks({ gitroot: context.gitroot });
   roles.push(...repoThis.roles);
   errors.push(

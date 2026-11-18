@@ -61,8 +61,12 @@ exports[`rhx upgrade — a repo with .agent/repo=.mods given: [case1.1] two mods
 ✨ 2 role(s) initialized
 
 🔭 search for linked roles with hooks...
+   └─ .this/any
 
-🫧 no roles with hooks found
+🪝 apply hooks to brains...
+
+✨ hooks
+   └─ no changes needed
 
 
 
@@ -127,8 +131,12 @@ exports[`rhx upgrade — a repo with .agent/repo=.mods given: [case1] a mod pinn
 ✨ 1 role(s) initialized
 
 🔭 search for linked roles with hooks...
+   └─ .this/any
 
-🫧 no roles with hooks found
+🪝 apply hooks to brains...
+
+✨ hooks
+   └─ no changes needed
 
 
 

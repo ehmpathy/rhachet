@@ -11,7 +11,8 @@ import { getOneRoleModStateOrRefusal } from './getOneRoleModStateOrRefusal';
  *         that no longer applies
  * .why = an upgrade names each mod whose role it moved (usecase 5), and each mod the new
  *        release refuses, so the human learns of it at the upgrade, not at the next boot; the
- *        derivation lives here, so the cli layer only prints what it returns
+ *        stop sweep holds on the same drifts, so a clone that never boots the role learns too.
+ *        the derivation lives here, so the cli layer only prints what it returns
  *
  * .note = a refusal is returned as a value, never thrown: the upgrade already landed, so a
  *   report of what it found must not read as a failed upgrade

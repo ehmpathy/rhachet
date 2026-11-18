@@ -99,8 +99,8 @@ describe('rhx init — a repo with .agent/repo=.mods', () => {
         expect(asSnapshotSafe(actor.boot)).toMatchSnapshot();
       });
 
-      // the fixture pins `of: test/surfer@0.9.0` while 1.0.0 is installed; the stop is silent
-      //   on it, and the boot above carries the moved pin as `(installed 1.0.0)` (usecase 5)
+      // the fixture pins `of: test/surfer@0.9.0` while 1.0.0 is installed; the stop holds on
+      //   it, as the boot above carries the moved pin as `(installed 1.0.0)` (usecase 5)
       const sweep = useThen('the stop sweep runs as the hook runs it', async () =>
         invoke({
           args: ['roles', 'cost', '--all', '--when', 'hook.onStop'],
@@ -109,10 +109,10 @@ describe('rhx init — a repo with .agent/repo=.mods', () => {
         }),
       );
 
-      then('the stop sweep says naught of the mod (F23 b)', () => {
-        expect(sweep.status).toEqual(0);
-        expect(sweep.stderr).not.toContain('the modded role moved');
-        expect(sweep.stderr).not.toContain('surfer');
+      then('the stop sweep holds, exit 2, and names the moved pin', () => {
+        expect(sweep.status).toEqual(2);
+        expect(sweep.stderr).toContain('1 modded role moved off the version its mod pins');
+        expect(sweep.stderr).toContain('then set `of: test/surfer@1.0.0` in the mod boot.yml');
       });
 
       then('the stop sweep output matches its snapshot', () => {
@@ -136,7 +136,17 @@ describe('rhx init — a repo with .agent/repo=.mods', () => {
         expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
       });
 
-      then('the repo actor settings hold no hook the mod arms (F23 b)', async () => {
+      then('the repo actor settings hold the one stop sweep, carried by repo=.this/role=any', async () => {
+        const settings = await fs.readFile(
+          asAmbientBrainPath({ repo: repo.path, file: 'settings.of.repo.json' }),
+          'utf-8',
+        );
+        const sweeps = settings.split('roles cost --all --when hook.onStop');
+        expect(sweeps).toHaveLength(2); // the command appears once
+        expect(settings).toContain('repo=.this/role=any');
+      });
+
+      then('the mod is no hook author of its own', async () => {
         const settings = await fs.readFile(
           asAmbientBrainPath({ repo: repo.path, file: 'settings.of.repo.json' }),
           'utf-8',

@@ -43,7 +43,7 @@ reviewer checks a change against it.
 | 11 | [a mod shadows, adds, and nots the files of a role it consumes](./inventory.of=requirements.case=11.mod-shadows-adds-and-nots.md) | proven |
 | 12 | [a typo in a mod is refused, never read as an add or a quiet no-op](./inventory.of=requirements.case=12.mod-typo-is-refused-never-an-add.md) | proven |
 | 13 | [a clone of a modded role sees a notice, and a tag on each modded resource](./inventory.of=requirements.case=13.modded-role-boots-with-notice-and-tags.md) | proven |
-| 14 | [a pinned mod pesters at the upgrade and the boot once its role moves off the pin](./inventory.of=requirements.case=14.mod-version-pester-at-upgrade-and-boot.md) | proven 2026-11-09, as amended (F23 (b)) |
+| 14 | [a pinned mod pesters at the upgrade, the boot, and the stop once its role moves off the pin](./inventory.of=requirements.case=14.mod-version-pester-at-upgrade-and-boot.md) | proven 2026-11-17, as amended (F23 reversed to (a)) |
 | 15 | [a stale modded view fails the boot loud and names `rhx init --hooks`](./inventory.of=requirements.case=15.stale-modded-view-fails-the-boot.md) | proven 2026-11-09, as amended (F23 (b)) |
 | 16 | [a `not` of a skill a role hook invokes is refused at render](./inventory.of=requirements.case=16.mod-not-of-a-hook-skill-is-refused.md) | proven |
 | 17 | [a mod out of scope is refused — its files, its mode, and its `of:`](./inventory.of=requirements.case=17.mod-out-of-scope-is-refused.md) | proven |
@@ -51,7 +51,7 @@ reviewer checks a change against it.
 | 19 | [a `.md.min` rides with its `.md` in a mod](./inventory.of=requirements.case=19.mod-min-rides-with-its-md.md) | proven |
 | 20 | [`.agent/repo=.mods` is a reserved slug — no supplier, no role, no scan](./inventory.of=requirements.case=20.mods-dir-is-no-supplier.md) | proven |
 | 21 | [a deleted mod returns the role to its published layout](./inventory.of=requirements.case=21.deleted-mod-returns-the-published-role.md) | proven |
-| 22 | [`roles cost` marks a modded role, and a mod alone arms no stop hook](./inventory.of=requirements.case=22.modded-role-marked-no-stop-hook.md) | proven 2026-11-09, as amended (F23 (b)) |
+| 22 | [`roles cost` marks a modded role, and a mod arms the one stop sweep](./inventory.of=requirements.case=22.modded-role-marked-no-stop-hook.md) | proven 2026-11-17, as amended (F23 reversed to (a)) |
 | 23 | [a shadow skill runs beside its published peers](./inventory.of=requirements.case=23.shadow-skill-finds-its-published-peer.md) | proven |
 
 ## .how to add an entry

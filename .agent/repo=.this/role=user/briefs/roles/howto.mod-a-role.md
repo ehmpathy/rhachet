@@ -50,8 +50,8 @@ briefs:
   one slug, only the role `of:` names carries a mod
 - **`@version`** opts into the pester: once an upgrade moves the role off that version, `rhx upgrade`
   lists every mod to re-read and names the fix (`set of: <role>@<installed>`), and each boot's mod
-  notice names the drift (`@1.39.5 (installed 1.40.0)`). no stop hook carries it. no `@version`, no
-  pester
+  notice names the drift (`@1.39.5 (installed 1.40.0)`), and every stop in the repo holds on it, as
+  a boot budget breach does, until the pin moves. no `@version`, no pester
 - **the mode matches the role's.** a simple role takes top-level `briefs:`/`skills:`; a subject
   role takes `always:`/`subject.<slug>:`, and only the subjects it declares
 - **the mod reads first.** what the mod says or refs is settled by the mod; the role curates the

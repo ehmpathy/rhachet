@@ -14,5 +14,6 @@
 | [S8](./inventory.of=seeds.case=S8-no-blueprint-review-drive-the-nano-path.md) | a simple tree with no taste calls owes no blueprint review; execute, then the pr is what he reviews | blockers struck |
 | [S9](./inventory.of=seeds.case=S9-drop-the-mod-stop-hook-better-nitpicks-need-no-human.md) | F23 (b): a mod arms no stop hook, the drift pester lives in `roles boot` and `rhx upgrade`; a `better`-only nitpick tally needs no human | F23 + usecase 5 + the howto; the carrier removed |
 | [S10](./inventory.of=seeds.case=S10-nheuron-adopts-published-prioritizer-mods-its-extras.md) | F30 (b): nheuron adopts the published prioritizer and mods only its extra files; the diff names the mod set first; steps 2–5 from the director's seat after the release | F30 + the fulcrum index + the stone 6 blocker |
+| [S11](./inventory.of=seeds.case=S11-mod-drift-holds-the-stop-like-a-budget-breach.md) | F23 reversed to (a): a drifted mod pin holds the stop, as a boot budget breach does, so every clone learns | the stop arm + the carrier + the hooks rule + requirements 14, 22 + F4, F19, F23 + vision, criteria, howto |
 
 gaps: none known.

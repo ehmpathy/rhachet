@@ -2,8 +2,12 @@
 
 exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case1] a repo that mods a linked package role when: [t0.1] init renders again, with no mod change then: the render stdout matches its snapshot 1`] = `
 "🔭 search for linked roles with hooks...
+   └─ .this/any
 
-🫧 no roles with hooks found
+🪝 apply hooks to brains...
+
+✨ hooks
+   └─ no changes needed
 
 "
 `;
@@ -205,7 +209,33 @@ exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case1] a 
 
 exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case1] a repo that mods a linked package role when: [t3] a session stops, with the mod pinned to 0.9.0 and 1.0.0 installed then: the stop output matches its snapshot 1`] = `
 {
-  "stderr": "",
+  "stderr": "🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 modded role moved off the version its mod pins
+   │  └─ test/surfer
+   │     ├─ role    = test/surfer
+   │     ├─ mods    = 0.9.0   (declared in .agent/repo=.mods/role=surfer/boot.yml)
+   │     ├─ now     = 1.0.0
+   │     ├─ review each mod against the new release
+   │     │  ├─ [~] shadow briefs/rule.require.surf-wax.md
+   │     │  ├─ [+] add briefs/rule.require.reef-etiquette.md
+   │     │  └─ [-] not briefs/rule.forbid.wipeouts.md
+   │     └─ then set \`of: test/surfer@1.0.0\` in the mod boot.yml
+   │
+   └─ the stop holds until each mod's \`of:\` names the installed version
+
+
+✋ ConstraintError: modded roles moved off the version their mods pin
+
+{
+  "hint": "review each mod against the installed release, then set its \`of:\` to the installed version",
+  "modsDrifted": [
+    ".agent/repo=.mods/role=surfer/boot.yml"
+  ]
+}
+
+[args] roles,cost,--all,--when,hook.onStop
+
+",
   "stdout": "",
 }
 `;
@@ -302,7 +332,34 @@ exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case2] a 
 
 exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case2] a mod edited after the last render when: [t0.2] a session stops before a render then: the stop stdout and stderr match their snapshot 1`] = `
 {
-  "stderr": "",
+  "stderr": "🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 modded role moved off the version its mod pins
+   │  └─ test/surfer
+   │     ├─ role    = test/surfer
+   │     ├─ mods    = 0.9.0   (declared in .agent/repo=.mods/role=surfer/boot.yml)
+   │     ├─ now     = 1.0.0
+   │     ├─ review each mod against the new release
+   │     │  ├─ [~] shadow briefs/howto.paddle-out.md
+   │     │  ├─ [~] shadow briefs/rule.require.surf-wax.md
+   │     │  ├─ [+] add briefs/rule.require.reef-etiquette.md
+   │     │  └─ [-] not briefs/rule.forbid.wipeouts.md
+   │     └─ then set \`of: test/surfer@1.0.0\` in the mod boot.yml
+   │
+   └─ the stop holds until each mod's \`of:\` names the installed version
+
+
+✋ ConstraintError: modded roles moved off the version their mods pin
+
+{
+  "hint": "review each mod against the installed release, then set its \`of:\` to the installed version",
+  "modsDrifted": [
+    ".agent/repo=.mods/role=surfer/boot.yml"
+  ]
+}
+
+[args] roles,cost,--all,--when,hook.onStop
+
+",
   "stdout": "",
 }
 `;
@@ -1672,7 +1729,33 @@ exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case16] a
 
 exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case16] a stray entry under .agent/repo=.mods, beside a sound mod when: [t1] a session stops then: the stop stdout and stderr match their snapshot 1`] = `
 {
-  "stderr": "",
+  "stderr": "🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 modded role moved off the version its mod pins
+   │  └─ test/surfer
+   │     ├─ role    = test/surfer
+   │     ├─ mods    = 0.9.0   (declared in .agent/repo=.mods/role=surfer/boot.yml)
+   │     ├─ now     = 1.0.0
+   │     ├─ review each mod against the new release
+   │     │  ├─ [~] shadow briefs/rule.require.surf-wax.md
+   │     │  ├─ [+] add briefs/rule.require.reef-etiquette.md
+   │     │  └─ [-] not briefs/rule.forbid.wipeouts.md
+   │     └─ then set \`of: test/surfer@1.0.0\` in the mod boot.yml
+   │
+   └─ the stop holds until each mod's \`of:\` names the installed version
+
+
+✋ ConstraintError: modded roles moved off the version their mods pin
+
+{
+  "hint": "review each mod against the installed release, then set its \`of:\` to the installed version",
+  "modsDrifted": [
+    ".agent/repo=.mods/role=surfer/boot.yml"
+  ]
+}
+
+[args] roles,cost,--all,--when,hook.onStop
+
+",
   "stdout": "",
 }
 `;
