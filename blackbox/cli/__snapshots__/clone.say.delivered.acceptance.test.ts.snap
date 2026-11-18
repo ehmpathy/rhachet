@@ -77,3 +77,290 @@ exports[`rhx clone reach (acceptance) given: [case16] a live clone asked to end 
 "😶🎙️ said to @:exitme — the clone exited as asked
 "
 `;
+
+exports[`rhx clone reach (acceptance) given: [case17] a clone whose box top rule carries its agent name (#655) when: [t0] a buffer read of the clone then: the buffer read stdout is locked (visual spot-check) 1`] = `
+"😶 @:labeled — the input box holds 1 row(s)
+   │
+   │  0 │ Try "a message"
+   │
+   └─ read it twice a second apart: rows that GREW are a human mid-type; rows that
+      held still are either a human who paused or stale output awaiting a redraw
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case17] a clone whose box top rule carries its agent name (#655) when: [t0] a buffer read of the clone then: the json twin on a labeled box is locked 1`] = `
+"{
+  "probe": "capable",
+  "state": {
+    "focus": "input",
+    "input": "clear",
+    "countInInput": 0,
+    "countOnScreen": 0,
+    "queued": false
+  },
+  "content": {
+    "buffer": [
+      "Try \\"a message\\""
+    ],
+    "queue": []
+  }
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case17] a clone whose box top rule carries its agent name (#655) when: [t1] a say to the clone then: the released json envelope on a labeled box is locked 1`] = `
+"{
+  "delivered": true,
+  "verdict": "released",
+  "reason": null,
+  "probe": "capable",
+  "serial": "__SERIAL__",
+  "slug": "labeled"
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case17b] a clone whose labeled box sits at the screen foot (#655) when: [t0] a buffer read of the clone then: the buffer read stdout on a labeled foot box is locked (visual spot-check) 1`] = `
+"😶 @:labeledfoot — the input box holds 1 row(s)
+   │
+   │  0 │ Try "a message"
+   │
+   └─ read it twice a second apart: rows that GREW are a human mid-type; rows that
+      held still are either a human who paused or stale output awaiting a redraw
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case17b] a clone whose labeled box sits at the screen foot (#655) when: [t0] a buffer read of the clone then: the json twin on a labeled foot box is locked 1`] = `
+"{
+  "probe": "capable",
+  "state": {
+    "focus": "input",
+    "input": "clear",
+    "countInInput": 0,
+    "countOnScreen": 0,
+    "queued": false
+  },
+  "content": {
+    "buffer": [
+      "Try \\"a message\\""
+    ],
+    "queue": []
+  }
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case17b] a clone whose labeled box sits at the screen foot (#655) when: [t1] a say to the clone then: the released json envelope on a labeled foot box is locked 1`] = `
+"{
+  "delivered": true,
+  "verdict": "released",
+  "reason": null,
+  "probe": "capable",
+  "serial": "__SERIAL__",
+  "slug": "labeledfoot"
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case17b] a clone whose labeled box sits at the screen foot (#655) when: [t2] a second say, after the clone redrew its labeled box, on the human tree channel then: the released tree frame on a labeled foot box is locked 1`] = `
+"😶🎙️ said to @:labeledfoot
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case17c] a human mid-type in a labeled box (#655) when: [t0] an unforced say to the clone then: the withheld json envelope on a labeled dirty box is locked 1`] = `
+"{
+  "class": "ConstraintError",
+  "message": "the clone input box holds uncommitted text (a human mid-type) — the say was withheld",
+  "hint": "read the box with \`clone get --what buffer\`, twice a second apart: rows that GREW are a human mid-type; rows that held still are either a human who paused or stale output the brain has yet to redraw. then wait for it to clear, or re-send with --force (which clobbers whatever sits there)",
+  "reachState": null,
+  "reachCause": null,
+  "metadata": {
+    "delivered": false,
+    "verdict": "withheld",
+    "reason": "input-region-dirty",
+    "probe": "capable",
+    "serial": "__SERIAL__",
+    "slug": "labeleddirty",
+    "hint": "read the box with \`clone get --what buffer\`, twice a second apart: rows that GREW are a human mid-type; rows that held still are either a human who paused or stale output the brain has yet to redraw. then wait for it to clear, or re-send with --force (which clobbers whatever sits there)",
+    "debugLog": "/TMP_TEST_DIR/.agent/.cache/repo=rhachet/skill=clone-say/debug.__DATE__.log"
+  }
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case17c] a human mid-type in a labeled box (#655) when: [t1] the buffer read the withheld hint points at then: the buffer read stdout on a labeled dirty box is locked (visual spot-check) 1`] = `
+"😶 @:labeleddirty — the input box holds 1 row(s)
+   │
+   │  0 │ HUMAN-DRAFT-half-typed-and-uncommitted
+   │
+   └─ read it twice a second apart: rows that GREW are a human mid-type; rows that
+      held still are either a human who paused or stale output awaiting a redraw
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case17c] a human mid-type in a labeled box (#655) when: [t1] the buffer read the withheld hint points at then: the json twin on a labeled dirty box is locked 1`] = `
+"{
+  "probe": "capable",
+  "state": {
+    "focus": "input",
+    "input": "dirty",
+    "countInInput": 0,
+    "countOnScreen": 0,
+    "queued": false
+  },
+  "content": {
+    "buffer": [
+      "HUMAN-DRAFT-half-typed-and-uncommitted"
+    ],
+    "queue": []
+  }
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case17d] an unparsed box rule beneath a plain rule — the residual (#737) when: [t0] an unforced say to the clone then: the withheld stderr the foreman reads is locked 1`] = `
+"
+✋ ConstraintError: the clone input box holds uncommitted text (a human mid-type) — the say was withheld
+
+{
+  "hint": "read the box with \`clone get --what buffer\`, twice a second apart: rows that GREW are a human mid-type; rows that held still are either a human who paused or stale output the brain has yet to redraw. then wait for it to clear, or re-send with --force (which clobbers whatever sits there)",
+  "delivered": false,
+  "verdict": "withheld",
+  "reason": "input-region-dirty",
+  "probe": "capable",
+  "serial": "__SERIAL__",
+  "slug": "unparsed",
+  "debugLog": "/TMP_TEST_DIR/.agent/.cache/repo=rhachet/skill=clone-say/debug.__DATE__.log"
+}
+
+[args] clone,say,@:unparsed,--what,poke unparsed-x9
+
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case17d] an unparsed box rule beneath a plain rule — the residual (#737) when: [t1] the buffer read the hint names — the residual made visible then: the buffer read stdout on the residual is locked (visual spot-check) 1`] = `
+"😶 @:unparsed — the input box holds 3 row(s)
+   │
+   │  0 │ ● a prior turn
+   │  1 │ ────────────────────────────── a ─ b ─
+   │  2 │ Try "a message"
+   │
+   └─ read it twice a second apart: rows that GREW are a human mid-type; rows that
+      held still are either a human who paused or stale output awaiting a redraw
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case17d] an unparsed box rule beneath a plain rule — the residual (#737) when: [t1] the buffer read the hint names — the residual made visible then: the json twin on the residual is locked 1`] = `
+"{
+  "probe": "capable",
+  "state": {
+    "focus": "input",
+    "input": "dirty",
+    "countInInput": 0,
+    "countOnScreen": 0,
+    "queued": false
+  },
+  "content": {
+    "buffer": [
+      "● a prior turn",
+      "────────────────────────────── a ─ b ─",
+      "Try \\"a message\\""
+    ],
+    "queue": []
+  }
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case17e] a busy driver behind a labeled box (#655) when: [t0] a say to the busy clone then: the enqueued json envelope on a labeled box is locked 1`] = `
+"{
+  "delivered": true,
+  "verdict": "enqueued",
+  "reason": null,
+  "probe": "capable",
+  "serial": "__SERIAL__",
+  "slug": "labeledbusy"
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case17e] a busy driver behind a labeled box (#655) when: [t1] a queue read of the busy clone then: the gated queue read on a labeled busy box is locked (the gate only, not the walk) 1`] = `
+"{
+  "probe": "capable",
+  "state": {
+    "focus": "input",
+    "input": "clear",
+    "countInInput": 0,
+    "countOnScreen": 0,
+    "queued": false
+  },
+  "content": {
+    "buffer": [
+      "Try \\"a message\\""
+    ],
+    "queue": []
+  }
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case17f] a modal above a labeled box (#655) when: [t0] a say while the modal holds focus then: the withheld json envelope for a modal above a labeled box is locked 1`] = `
+"{
+  "class": "ConstraintError",
+  "message": "the clone has a modal open (a prompt or menu) — a say would answer it, so it was withheld",
+  "hint": "a modal is never force-able. read what it asks with --debug; an attended clone clears it at its own tty, a detached clone has none, so no say lands until it is torn down",
+  "reachState": null,
+  "reachCause": null,
+  "metadata": {
+    "delivered": false,
+    "verdict": "withheld",
+    "reason": "modal-holds-focus",
+    "probe": "capable",
+    "serial": "__SERIAL__",
+    "slug": "labeledmodal",
+    "hint": "a modal is never force-able. read what it asks with --debug; an attended clone clears it at its own tty, a detached clone has none, so no say lands until it is torn down",
+    "debugLog": "/TMP_TEST_DIR/.agent/.cache/repo=rhachet/skill=clone-say/debug.__DATE__.log"
+  }
+}
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case17f] a modal above a labeled box (#655) when: [t1] the same say, on the human tree channel then: the withheld tree frame for a modal above a labeled box is locked 1`] = `
+"
+✋ ConstraintError: the clone has a modal open (a prompt or menu) — a say would answer it, so it was withheld
+
+{
+  "hint": "a modal is never force-able. read what it asks with --debug; an attended clone clears it at its own tty, a detached clone has none, so no say lands until it is torn down",
+  "delivered": false,
+  "verdict": "withheld",
+  "reason": "modal-holds-focus",
+  "probe": "capable",
+  "serial": "__SERIAL__",
+  "slug": "labeledmodal",
+  "debugLog": "/TMP_TEST_DIR/.agent/.cache/repo=rhachet/skill=clone-say/debug.__DATE__.log"
+}
+
+[args] clone,say,@:labeledmodal,--what,poke labeledmodal-y7
+
+"
+`;
+
+exports[`rhx clone reach (acceptance) given: [case17f] a modal above a labeled box (#655) when: [t2] a json buffer read while the modal holds focus then: the json buffer read for a modal above a labeled box is locked 1`] = `
+"{
+  "probe": "capable",
+  "state": {
+    "focus": "modal",
+    "input": "clear",
+    "countInInput": 0,
+    "countOnScreen": 0,
+    "queued": false
+  },
+  "content": {
+    "buffer": [
+      "Try \\"a message\\""
+    ],
+    "queue": []
+  }
+}
+"
+`;

@@ -31,7 +31,7 @@ const SCREEN_SETTLE_TIMEOUT_MS = 250;
  * .why =
  *   - 🔴 the bright walk is the read's dominant cost and all but a few of its rows are DISCARDED.
  *     `linesBright` has exactly ONE reader — `getInputBand`, which slices the rows between the
- *     LAST full-width `─` rule pair (computeCloneInputState). that band is a viewport-FOOT
+ *     last bare `─` rule and the nearest rule above it (computeCloneInputState). that band is a viewport-FOOT
  *     structure the tui redraws every frame, so a scrollback row's bright text is computed and
  *     then thrown away
  *   - and the waste GROWS with the session: `asBrightOnlyRow` walks every cell of every row, so

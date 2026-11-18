@@ -1,0 +1,19 @@
+{
+  "key": "d69f0a6d60dca583",
+  "kind": "update",
+  "repo": {
+    "owner": "ehmpathy",
+    "name": "rhachet"
+  },
+  "exid": "737",
+  "title": "fix(clone): the input band anchors on the prompt row, so an unparsed box rule never reads the transcript as the box",
+  "description": "follow-up to ehmpathy/rhachet#655 (fulcrum F2 of .behavior/v2026_11_08.fix-clone-say-labeled-rule, ruled a dedicated follow-up by the wisher).\n\ngetInputBand (src/domain.operations/clone/screen/computeCloneInputState.ts) closes the box on the last bare rule and opens it on the nearest rule above. a box rule isRuleRow cannot parse (a new title shape, a ─ inside a label), beneath plain rules higher on screen, makes it open the band on a plain rule. the transcript between them then reads as the box: input-region-dirty, and the hint offers --force, which writes over the real box.\n\nfix shape: require the band to open on the ❯ row and hold only it and its continuation rows; a band whose first row is not ❯-led is not a box, so it reads unrecognized, never dirty (fails closed). this changes the band contract computeCloneInputContent and clone get --what buffer rest on, so the multi-line and queue cases need a re-walk.\n\nthe interim friction: until the fix lands, the input-region-dirty hint (computeCloneSayReport.ts) and the clone get --what buffer footer (asCloneInputSurfaceText.ts) say the stale rows are a human who paused or stale output, and never that the box may be mislocated. so --force stays on offer over the real box. the fix should either make that read impossible (the anchor above), or name the mislocated-box cause in both copies.\n\nclamps today: computeCloneInputState.test.ts [case4] pins dirty, never clear; computeCloneInputContent.test.ts [case4] pins that the buffer shows the unparsed rule row. after the fix the first should read unrecognized; every other extant case stays green. detail: .dream/v2026_11_08.fix.input-band-anchors-on-the-prompt-row.md",
+  "status": null,
+  "via": "gh.issues",
+  "auth": "as-human",
+  "idem": "upsert",
+  "heldSeq": 5,
+  "recordStatus": "DELIVERED",
+  "reason": null,
+  "deliveredExid": "737"
+}

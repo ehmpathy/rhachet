@@ -1,0 +1,19 @@
+{
+  "key": "5e7528b2c73c239a",
+  "kind": "create",
+  "repo": {
+    "owner": "ehmpathy",
+    "name": "rhachet"
+  },
+  "exid": null,
+  "title": "test(clone): a live brain cell proves the labeled input-box rule shape a named agent draws",
+  "description": "follow-up to ehmpathy/rhachet#655 (fulcrum F5 of .behavior/v2026_11_08.fix-clone-say-labeled-rule).\n\nthe labeled input-box rule (a top rule that carries the agent name, e.g. a run of ─ then mechanic then ─) rests on one capture pasted in #655, on rhachet@1.50.1, with the claude version unrecorded. the stub modes (labeled, labeledfoot) and the unit fixture genSampleCloneScreenRuleLabeled all copy that one string, so they prove the code agrees with the stub, not that claude draws that shape.\n\nadd an on-demand realbrain cell (describeBrainLiveOnDemand, beside clone.screen-dogfood.realbrain.acceptance.test.ts) that enrolls a clone with an agent name, reads the screen, and asserts: the band is found via getInputBand, the top rule matches isRuleRow, the bottom rule is bare, and a say lands released. record the claude version the cell ran against in the isRuleRow docblock.",
+  "status": null,
+  "via": "gh.issues",
+  "auth": "as-human",
+  "idem": null,
+  "heldSeq": 6,
+  "recordStatus": "DELIVERED",
+  "reason": null,
+  "deliveredExid": "738"
+}
