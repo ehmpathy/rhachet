@@ -34,19 +34,30 @@ export type BrainDirBootRender = {
    */
   bootMdChanged: boolean;
   /**
-   * .what = the drift fan-out this render triggered: how many boot revisions the actor holds,
-   *         how many had their drift re-written, and each that faulted
-   * .why = the editor's question after a render is "do my live clones get this?"; this is
-   *        the answer, and a fault names the revision (or the clones dir) and why its clones
-   *        miss the drift: a drift write failed, a ref names a gone revision, or a ref is unreadable
+   * .what = the drift fan-out this render triggered: the actor, the boot revisions it holds
+   *         and the ones whose drift was re-written (by hash), and each write that faulted
+   * .why = the editor's question after a render is "do my live clones get this?"; the init
+   *        layer joins this to the clones that refer to each revision (`getActorBootDriftReach`)
    * .note = null where the brain dir sits outside the actor layout, so no actor holds it
    */
   drift: {
-    revisions: number;
-    rewritten: number;
-    clones: number;
-    faults: { revisionDir: string; reason: string; cause: Error }[];
+    actorDir: string;
+    revisions: string[];
+    rewritten: string[];
+    faults: BootDriftFault[];
   } | null;
+};
+
+/**
+ * .what = one drift the fan-out could not deliver: the revision (or the clones dir), why, and
+ *         the cause
+ * .why = a fault names where and why its clones miss the drift: a write failed, a ref names a
+ *        gone revision, or a ref is unreadable
+ */
+export type BootDriftFault = {
+  revisionDir: string;
+  reason: string;
+  cause: Error;
 };
 
 /**

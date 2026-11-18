@@ -735,7 +735,9 @@
     "padding": 0
   },
   "claudeMdExcludes": [
-    "/home/vlad/.claude/CLAUDE.md",
-    "**/CLAUDE.local.md"
+    "**/.claude/AGENTS.md",
+    "**/.claude/CLAUDE.md",
+    "**/CLAUDE.local.md",
+    "**/.claude/rules/**"
   ]
 }

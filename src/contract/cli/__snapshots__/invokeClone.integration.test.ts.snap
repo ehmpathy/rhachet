@@ -19,3 +19,53 @@ exports[`invokeClone (integration) given: [case12] a clone whose boot drifted pa
       └─ respawn — the new boot loads whole, from the shared cache; the sure cure
 "
 `;
+
+exports[`invokeClone (integration) given: [case12] a clone whose boot drifted past the threshold since it spawned when: [t3] \`clone boot drift --of @:nobody\` runs then: the error matches snapshot 1`] = `
+"
+✋ ConstraintError: no clone answers to that address
+
+{
+  "hint": "list clones with \`rhx clone list\`",
+  "address": "@:nobody"
+}
+
+[args] clone,boot,drift,--of,@:nobody
+
+"
+`;
+
+exports[`invokeClone (integration) given: [case12] a clone whose boot drifted past the threshold since it spawned when: [t3b] \`clone boot drift\` runs outside a clone, with no --of then: the error matches snapshot 1`] = `
+"
+✋ ConstraintError: no clone named
+
+{
+  "hint": "name one with \`--of @:<slug|serial>\`; list clones with \`rhx clone list\`"
+}
+
+[args] clone,boot,drift
+
+"
+`;
+
+exports[`invokeClone (integration) given: [case13] a clone spawned before boot drift (no boot.spawned.ref) when: [t0] \`clone boot drift --of @:old\` runs then: the tree matches snapshot 1`] = `
+"😶 boot drift of @:old
+   └─ spawned before boot drift, so it holds its spawn boot until a respawn
+"
+`;
+
+exports[`invokeClone (integration) given: [case16] a clone whose boot has not moved since it spawned when: [t0] \`clone boot drift --of @:fresh\` runs then: the tree matches snapshot 1`] = `
+"😶 boot drift of @:fresh
+   ├─ spawn revision = sha256=37d6bf88434c7048
+   └─ no drift; the clone holds the current boot
+"
+`;
+
+exports[`invokeClone (integration) given: [case17] a clone whose boot drifted, but under the threshold when: [t0] \`clone boot drift --of @:small\` runs then: the tree matches snapshot 1`] = `
+"😶 boot drift of @:small
+   ├─ spawn revision = sha256=37d6bf88434c7048
+   ├─ drift = 2911d22140e082ad
+   ├─ 1 block drifted since this clone spawned (1 changed)
+   ├─ 13 lines carried, under the 200 line threshold
+   └─ a compacted clone that does not hold drift = 2911d22140e082ad did not take the drift — respawn it
+"
+`;

@@ -33,7 +33,7 @@ exports[`asBrainDirSyncReportLines given: [case3b] a corpus re-rendered under li
   "   └─ drift",
   "      ├─ 2 spawn revisions re-written",
   "      ├─ 3 clones refer to them; a live one takes the drift at its next compaction",
-  "      ├─ ✗ sha256=0123456789abcdef drift not written — its clones keep their prior drift",
+  "      ├─ ✗ sha256=0123456789abcdef drift not written (EACCES) — its clones keep their prior drift",
   "      └─ ✗ sha256=fedcba9876543210 is gone, yet a clone refers to it — respawn that clone",
 ]
 `;

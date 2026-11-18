@@ -1,0 +1,28 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx clone boot drift (acceptance) given: [case1] a repo with no clone enrolled when: [t0] the readout runs outside a clone, with no --of then: the error matches snapshot 1`] = `
+"
+✋ ConstraintError: no clone named
+
+{
+  "hint": "name one with \`--of @:<slug|serial>\`; list clones with \`rhx clone list\`"
+}
+
+[args] clone,boot,drift
+
+"
+`;
+
+exports[`rhx clone boot drift (acceptance) given: [case1] a repo with no clone enrolled when: [t1] the readout names a clone that does not exist then: the error matches snapshot 1`] = `
+"
+✋ ConstraintError: no clone answers to that address
+
+{
+  "hint": "list clones with \`rhx clone list\`",
+  "address": "@:ghost"
+}
+
+[args] clone,boot,drift,--of,@:ghost
+
+"
+`;

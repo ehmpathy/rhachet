@@ -1,8 +1,9 @@
-import { getAllCloneBootSpawnedRefs } from '@src/domain.operations/clone/getAllCloneBootSpawnedRefs';
-
 import { existsSync, readdirSync } from 'node:fs';
-import { basename, join } from 'node:path';
+import { asBootDriftFaultCause } from './asBootDriftFaultCause';
+import { asBootRevisionHashFromDirName } from './asBootRevisionHashFromDirName';
+import type { BootDriftFault } from './BrainDirBootRender';
 import { getActorBootRevisionDir } from './getActorBootRevisionDir';
+import { getActorBootRevisionsRootDir } from './getActorBootRevisionsRootDir';
 import { setActorBootDrift } from './setActorBootDrift';
 
 /**
@@ -10,120 +11,85 @@ import { setActorBootDrift } from './setActorBootDrift';
  * .why = a boot render changes what every live clone of the actor should hold; each clone
  *        refers to the revision it spawned on, so one write per revision reaches them all
  *
- * .note = a fault on one revision is collected, never thrown: the rest are still written, and
- *         the caller names each fault (a clone on a faulted revision keeps its prior drift)
+ * .note = a filesystem fault on one revision is collected, so the rest still write, and the
+ *         caller names each with its cause; any other error rethrows (`asBootDriftFaultCause`)
  * .note = an actor with no `boots/` dir has no clone to reach; the sweep is a no-op
+ * .note = which clones refer to each revision is the init layer's join
+ *         (`getActorBootDriftReach`), so the boot layer never reads a clone
  */
 export const setActorBootDrifts = (input: {
   actorDir: string;
   bootMdPathCurrent: string;
 }): {
-  revisions: number;
-  rewritten: number;
-  clones: number;
-  faults: { revisionDir: string; reason: string; cause: Error }[];
+  revisions: string[];
+  rewritten: string[];
+  faults: BootDriftFault[];
 } => {
-  // enumerate the revisions; none means no clone has spawned on a revision yet
-  const bootsDir = getActorBootRevisionDir({
-    actorDir: input.actorDir,
-    hash: null,
-  });
-  if (!existsSync(bootsDir))
-    return { revisions: 0, rewritten: 0, clones: 0, faults: [] };
-  const revisionDirs = readdirSync(bootsDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() && entry.name.startsWith('sha256='))
-    .map((entry) => join(bootsDir, entry.name))
+  // enumerate the revisions by hash; none means no clone has spawned on a revision yet
+  const rootDir = getActorBootRevisionsRootDir({ actorDir: input.actorDir });
+  if (!existsSync(rootDir)) return { revisions: [], rewritten: [], faults: [] };
+  const revisions = readdirSync(rootDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .flatMap((entry) => {
+      const hash = asBootRevisionHashFromDirName({ name: entry.name });
+      return hash === null ? [] : [hash];
+    })
     .sort();
 
-  // write each; collect a fault rather than stop the sweep
-  const results = revisionDirs.map((revisionDir) => {
-    try {
-      return {
-        revisionDir,
-        outcome: setActorBootDrift({
-          revisionDir,
-          bootMdPathCurrent: input.bootMdPathCurrent,
-        }).outcome,
-        cause: null,
-      };
-    } catch (error) {
-      return {
-        revisionDir,
-        outcome: 'fault' as const,
-        cause: error instanceof Error ? error : new Error(String(error)),
-      };
-    }
-  });
-
-  // the clones that refer to a re-written revision: a live one takes the new drift at its next
-  //   compaction
-  const revisionsRewritten = new Set(
-    results
-      .filter((result) => result.outcome === 'rewritten')
-      .map((result) => basename(result.revisionDir).replace('sha256=', '')),
-  );
-  //   an unreadable ref is a fault of the sweep, never a throw past the drifts it already wrote
-  const refs = ((): { hashes: string[]; cause: Error | null } => {
-    try {
-      return {
-        hashes: getAllCloneBootSpawnedRefs({ actorDir: input.actorDir }),
-        cause: null,
-      };
-    } catch (error) {
-      return {
-        hashes: [],
-        cause: error instanceof Error ? error : new Error(String(error)),
-      };
-    }
-  })();
-  const clonesReached = refs.hashes.filter((ref) =>
-    revisionsRewritten.has(ref),
-  ).length;
-
-  // a ref that names a revision no longer on disk: its clone cannot take any drift
-  const revisionNames = new Set(revisionDirs.map((dir) => basename(dir)));
-  const refsGone = [...new Set(refs.hashes)].filter(
-    (hash) => !revisionNames.has(`sha256=${hash}`),
+  // write each; collect a filesystem fault rather than stop the sweep
+  const results = revisions.map((hash) =>
+    setOneRevisionDrift({
+      actorDir: input.actorDir,
+      hash,
+      bootMdPathCurrent: input.bootMdPathCurrent,
+    }),
   );
 
   return {
-    revisions: revisionDirs.length,
-    rewritten: revisionsRewritten.size,
-    clones: clonesReached,
-    faults: [
-      ...results.flatMap((result) =>
-        result.cause === null
-          ? []
-          : [
-              {
-                revisionDir: result.revisionDir,
-                reason: 'drift not written — its clones keep their prior drift',
-                cause: result.cause,
-              },
-            ],
-      ),
-      ...refsGone.map((hash) => {
-        const revisionDir = getActorBootRevisionDir({
-          actorDir: input.actorDir,
-          hash,
-        });
-        return {
-          revisionDir,
-          reason: 'is gone, yet a clone refers to it — respawn that clone',
-          cause: new Error(
-            `a clone refers to a boot revision that is gone: ${revisionDir}`,
-          ),
-        };
-      }),
-      ...(refs.cause === null
-        ? []
-        : [
-            {
-              revisionDir: join(input.actorDir, 'clones'),
-              reason: `a spawn ref could not be read — ${refs.cause.message}`,
-              cause: refs.cause,
-            },
-          ]),
-    ],
+    revisions,
+    rewritten: results.flatMap((result) =>
+      result.outcome === 'rewritten' ? [result.hash] : [],
+    ),
+    faults: results.flatMap((result) =>
+      result.fault === null ? [] : [result.fault],
+    ),
   };
+};
+
+/**
+ * .what = write one revision's drift, or the fault that stopped it
+ */
+const setOneRevisionDrift = (input: {
+  actorDir: string;
+  hash: string;
+  bootMdPathCurrent: string;
+}): {
+  hash: string;
+  outcome: 'rewritten' | 'unchanged' | 'fault';
+  fault: BootDriftFault | null;
+} => {
+  const revisionDir = getActorBootRevisionDir({
+    actorDir: input.actorDir,
+    hash: input.hash,
+  });
+  try {
+    const { outcome } = setActorBootDrift({
+      revisionDir,
+      bootMdPathCurrent: input.bootMdPathCurrent,
+    });
+    return { hash: input.hash, outcome, fault: null };
+  } catch (error) {
+    // a defect in the code rethrows; only a filesystem fault is collected
+    const cause = asBootDriftFaultCause({ error });
+    if (cause === null) throw error;
+    return {
+      hash: input.hash,
+      outcome: 'fault',
+      fault: {
+        revisionDir,
+        reason: `drift not written (${cause.message}) — its clones keep their prior drift`,
+        cause,
+      },
+    };
+  }
 };

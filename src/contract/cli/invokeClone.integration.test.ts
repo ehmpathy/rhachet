@@ -680,7 +680,64 @@ describe('invokeClone (integration)', () => {
           expect(result.err).toContain('@:nobody');
           expect(result.err).toContain('rhx clone list');
         });
+
+        then('the error matches snapshot', () => {
+          expect(result.err).toMatchSnapshot();
+        });
       });
+
+      when(
+        '[t3b] `clone boot drift` runs outside a clone, with no --of',
+        () => {
+          const result = useBeforeAll(async () =>
+            driveClone({
+              cwd: scene.cwd,
+              argv: ['clone', 'boot', 'drift'],
+              env: CLONE_ENV_UNSET,
+            }),
+          );
+
+          then(
+            'it exits 2 and names both the flag and the list command',
+            () => {
+              expect(result.exitCode).toEqual(2);
+              expect(result.out).toEqual('');
+              expect(result.err).toContain('no clone named');
+              expect(result.err).toContain('--of @:<slug|serial>');
+              expect(result.err).toContain('rhx clone list');
+            },
+          );
+
+          then('the error matches snapshot', () => {
+            expect(result.err).toMatchSnapshot();
+          });
+        },
+      );
+
+      when(
+        '[t3c] `clone boot drift` runs inside the clone, with no --of',
+        () => {
+          const result = useBeforeAll(async () =>
+            driveClone({
+              cwd: scene.cwd,
+              argv: ['clone', 'boot', 'drift'],
+              env: {
+                ...CLONE_ENV_UNSET,
+                [CLONE_ENV_KEYS.serial]: scene.serial,
+              },
+            }),
+          );
+
+          then(
+            'it reads this clone by its serial: the same tree as --of',
+            () => {
+              expect(result.exitCode).toEqual(0);
+              expect(result.out).toContain('@:reviewer');
+              expect(result.out).toContain('over the 200 line threshold');
+            },
+          );
+        },
+      );
 
       when('[t4] an unknown --when moment is given', () => {
         const result = useBeforeAll(async () =>
@@ -753,6 +810,10 @@ describe('invokeClone (integration)', () => {
             );
           },
         );
+
+        then('the tree matches snapshot', () => {
+          expect(result.out).toMatchSnapshot();
+        });
       });
 
       when('[t1] the onStop hook runs inside it', () => {
@@ -865,6 +926,126 @@ describe('invokeClone (integration)', () => {
           expect(result.err).toContain('boot.drift.told');
         },
       );
+    });
+  });
+
+  given('[case16] a clone whose boot has not moved since it spawned', () => {
+    const scene = useBeforeAll(async () => {
+      const seeded = await genSampleCloneOndisk({
+        repoPath: genTempDir({ slug: 'invokeClone-drift-current', git: true }),
+        serial: getUuid(),
+        slug: 'fresh',
+      });
+      const brainDir = getBrainOndiskDir({ actorDir: seeded.actorDir });
+      mkdirSync(brainDir, { recursive: true });
+      writeFileSync(join(brainDir, 'boot.md'), BOOT_V1);
+      const revision = genActorBootRevision({ actorDir: seeded.actorDir })!;
+      setCloneBootSpawnedRef({
+        cloneDir: seeded.cloneDir,
+        hash: revision.hash,
+      });
+      setActorBootDrifts({
+        actorDir: seeded.actorDir,
+        bootMdPathCurrent: join(brainDir, 'boot.md'),
+      });
+      return { ...seeded, cwd: getOneRepoPath({ from: seeded.repoPath }) };
+    });
+
+    when('[t0] `clone boot drift --of @:fresh` runs', () => {
+      const result = useBeforeAll(async () =>
+        driveClone({
+          cwd: scene.cwd,
+          argv: ['clone', 'boot', 'drift', '--of', '@:fresh'],
+          env: CLONE_ENV_UNSET,
+        }),
+      );
+
+      then('it exits 0 and names no drift', () => {
+        expect(result.exitCode).toEqual(0);
+        expect(result.out).toContain('@:fresh');
+        expect(result.out).not.toMatch(/drift = [0-9a-f]{16}/);
+      });
+
+      then('the tree matches snapshot', () => {
+        expect(result.out).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] the onStop hook runs inside it', () => {
+      const result = useBeforeAll(async () =>
+        driveClone({
+          cwd: scene.cwd,
+          argv: ['clone', 'boot', 'drift', '--when', 'hook.onStop'],
+          env: { ...CLONE_ENV_UNSET, [CLONE_ENV_KEYS.serial]: scene.serial },
+        }),
+      );
+
+      then('it exits 0, silent', () => {
+        expect(result.exitCode).toEqual(0);
+        expect(result.err).toEqual('');
+      });
+    });
+  });
+
+  given('[case17] a clone whose boot drifted, but under the threshold', () => {
+    const scene = useBeforeAll(async () => {
+      const seeded = await genSampleCloneOndisk({
+        repoPath: genTempDir({ slug: 'invokeClone-drift-small', git: true }),
+        serial: getUuid(),
+        slug: 'small',
+      });
+      const brainDir = getBrainOndiskDir({ actorDir: seeded.actorDir });
+      mkdirSync(brainDir, { recursive: true });
+      writeFileSync(join(brainDir, 'boot.md'), BOOT_V1);
+      const revision = genActorBootRevision({ actorDir: seeded.actorDir })!;
+      setCloneBootSpawnedRef({
+        cloneDir: seeded.cloneDir,
+        hash: revision.hash,
+      });
+      writeFileSync(join(brainDir, 'boot.md'), BOOT_V1.replace('dawn', 'dusk'));
+      setActorBootDrifts({
+        actorDir: seeded.actorDir,
+        bootMdPathCurrent: join(brainDir, 'boot.md'),
+      });
+      return { ...seeded, cwd: getOneRepoPath({ from: seeded.repoPath }) };
+    });
+
+    when('[t0] `clone boot drift --of @:small` runs', () => {
+      const result = useBeforeAll(async () =>
+        driveClone({
+          cwd: scene.cwd,
+          argv: ['clone', 'boot', 'drift', '--of', '@:small'],
+          env: CLONE_ENV_UNSET,
+        }),
+      );
+
+      then(
+        'it exits 0, names the drift, and claims no threshold breach',
+        () => {
+          expect(result.exitCode).toEqual(0);
+          expect(result.out).toMatch(/drift = [0-9a-f]{16}/);
+          expect(result.out).not.toContain('over the 200 line threshold');
+        },
+      );
+
+      then('the tree matches snapshot', () => {
+        expect(result.out).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] the onStop hook runs inside it', () => {
+      const result = useBeforeAll(async () =>
+        driveClone({
+          cwd: scene.cwd,
+          argv: ['clone', 'boot', 'drift', '--when', 'hook.onStop'],
+          env: { ...CLONE_ENV_UNSET, [CLONE_ENV_KEYS.serial]: scene.serial },
+        }),
+      );
+
+      then('it exits 0, silent: no nudge under the threshold', () => {
+        expect(result.exitCode).toEqual(0);
+        expect(result.err).toEqual('');
+      });
     });
   });
 });

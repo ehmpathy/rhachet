@@ -93,7 +93,10 @@ export const setBrainDirBoot = async (input: {
   const drift =
     actorDir === null
       ? null
-      : setActorBootDrifts({ actorDir, bootMdPathCurrent: bootMdPath });
+      : {
+          actorDir,
+          ...setActorBootDrifts({ actorDir, bootMdPathCurrent: bootMdPath }),
+        };
 
   return {
     scope: input.scope,

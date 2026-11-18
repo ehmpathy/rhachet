@@ -21,6 +21,7 @@ import { setBrainDirAuthMigrated } from '@src/domain.operations/actor/enrolled/s
 import { setBrainDirSettingsLayout } from '@src/domain.operations/actor/enrolled/setBrainDirSettingsLayout';
 import { asRoleRefsOfActorExpanded } from '@src/domain.operations/actor/manifest/asRoleRefsOfActorExpanded';
 import { getOneActorExpandedOfRepo } from '@src/domain.operations/actor/manifest/getOneActorExpandedOfRepo';
+import { asBootDriftFaultLines } from '@src/domain.operations/boot/asBootDriftFaultLines';
 import { assertRoleFociDeclared } from '@src/domain.operations/boot/assertRoleFociDeclared';
 import { getAllRolesAtFocusAlwaysShed } from '@src/domain.operations/boot/getAllRolesAtFocusAlwaysShed';
 import { setBrainDirBoot } from '@src/domain.operations/boot/setBrainDirBoot';
@@ -717,12 +718,17 @@ const performEnroll = async (input: {
   //   stream a real fault must own. a render that FAILS still throws, loud, with its hint
   // .note = the spawn names `bootMdPath` as its system-prompt file, so a clone boots the
   //   exact file this render wrote and proved delivered
-  const { bootMdPath } = await setBrainDirBoot({
+  const { bootMdPath, drift } = await setBrainDirBoot({
     brainDir,
     roles: refsEnrolled,
     repoPath,
     scope: { kind: 'actor', actorExid: exid },
   });
+
+  // a drift the render could not write is said aloud: live clones on that revision keep a stale
+  //   drift. the spawn still proceeds, since this clone boots its own fresh revision
+  for (const line of asBootDriftFaultLines({ faults: drift?.faults ?? [] }))
+    console.error(line);
 
   // observe the shared login every clone reads, to say plainly when there is none (D13)
   //
