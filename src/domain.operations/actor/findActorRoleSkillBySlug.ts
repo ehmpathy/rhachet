@@ -26,6 +26,7 @@ export const findActorRoleSkillBySlug = <TOutput = unknown>(input: {
   if (skillSchema) {
     // find executable from .agent/ dirs (skill schema defines type, but executable runs)
     const executables = discoverSkillExecutables({
+      repoPath: null,
       slugRole: input.role.slug,
       slugSkill: input.slug,
     });
@@ -53,6 +54,7 @@ export const findActorRoleSkillBySlug = <TOutput = unknown>(input: {
 
   // fall back to .agent/ discovery (executable exists but no schema)
   const executables = discoverSkillExecutables({
+    repoPath: null,
     slugRole: input.role.slug,
     slugSkill: input.slug,
   });

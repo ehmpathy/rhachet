@@ -1,11 +1,12 @@
 import type { BrainHook } from '@src/domain.objects/BrainHook';
+import type { BrainHooksAdapter } from '@src/domain.objects/BrainHooksAdapter';
 import type { BrainSpecifier } from '@src/domain.objects/BrainSpecifier';
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { HasRepo } from '@src/domain.objects/HasRepo';
 import type { Role } from '@src/domain.objects/Role';
-import { getBrainHooksAdapterByConfigImplicit } from '@src/domain.operations/config/getBrainHooksAdapterByConfigImplicit';
 
 import { detectBrainReplsInRepo } from './detectBrainReplsInRepo';
+import { getOneBrainHooksAdapterForSync } from './dispatch/getOneBrainHooksAdapterForSync';
 import { syncOneRoleHooksIntoOneBrainRepl } from './syncOneRoleHooksIntoOneBrainRepl';
 
 /**
@@ -61,16 +62,20 @@ export const syncAllRoleHooksIntoEachBrainRepl = async (
   //   .note = only when a role exists: no role, no lookup, as before
   // .note = deliberate mutation — the list grows one brain at a time, in order
   const adapters: Array<{
-    adapter: Awaited<ReturnType<typeof getBrainHooksAdapterByConfigImplicit>>;
+    adapter: BrainHooksAdapter | null;
     fault: unknown;
   }> = [];
   if (input.roles.length > 0)
     for (const brain of brainSlugs) {
       try {
-        const adapter = await getBrainHooksAdapterByConfigImplicit(
-          { brain, configTargetDir: input.configTargetDir },
-          context,
-        );
+        // for claude code, the role hooks land as rules in the dispatch manifest
+        const adapter =
+          (
+            await getOneBrainHooksAdapterForSync(
+              { brain, configTargetDir: input.configTargetDir ?? null },
+              context,
+            )
+          )?.adapter ?? null;
         adapters.push({ adapter, fault: null });
       } catch (error) {
         adapters.push({ adapter: null, fault: error });

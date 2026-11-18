@@ -5,6 +5,10 @@ import { given, then, useBeforeAll, useThen, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import {
+  getAllHookDispatchManifestRows,
+  HOOK_DISPATCH_AUTHOR,
+} from '@/blackbox/.test/infra/getAllHookDispatchManifestRows';
+import {
   asSnapshotSafe,
   invokeRhachetCliBinary,
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
@@ -32,7 +36,7 @@ const BRIEF_OVERGROWN = [
   '',
 ].join('\n');
 
-// the Stop entries the fixture's test brain adapter relays — flat `{ matcher: author, command }`
+// the Stop entries the fixture's test brain adapter writes — flat `{ matcher: author, command }`
 //
 // .note = read from `settings.of.repo.json`, the repo actor's file that holds the roles' hooks.
 //   `settings.json` is claude's name for the grove arrow into the host's home settings, so a
@@ -46,6 +50,20 @@ const getSettingsHooksStop = async (input: {
   );
   return JSON.parse(content).hooks.Stop ?? [];
 };
+
+// the Stop rules the one dispatcher runs, as `{ matcher: author, command }`
+//
+// .note = read from `hooks.dispatch.manifest` beside the settings: the role rules live there
+const getManifestRulesStop = async (input: {
+  repoPath: string;
+}): Promise<Array<{ matcher: string; command: string }>> =>
+  (
+    await getAllHookDispatchManifestRows({
+      claudeDir: path.join(input.repoPath, '.claude'),
+    })
+  )
+    .filter((row) => row.event === 'Stop')
+    .map((row) => ({ matcher: row.author, command: row.command }));
 
 describe('rhachet init --hooks, boot guard for .agent/repo=.this/role=any', () => {
   given('[case1] a repo whose own role has a payload and no budget', () => {
@@ -88,8 +106,8 @@ describe('rhachet init --hooks, boot guard for .agent/repo=.this/role=any', () =
         expect(isHooksYmlPresent).toEqual(false);
       });
 
-      then('settings.of.repo.json relays the Stop hook, authored by the repo role', async () => {
-        const stops = await getSettingsHooksStop({ repoPath: repo.path });
+      then('the manifest relays the Stop hook, authored by the repo role', async () => {
+        const stops = await getManifestRulesStop({ repoPath: repo.path });
         expect(stops).toContainEqual(
           expect.objectContaining({
             command:
@@ -97,6 +115,13 @@ describe('rhachet init --hooks, boot guard for .agent/repo=.this/role=any', () =
             matcher: 'repo=.this/role=any',
           }),
         );
+      });
+
+      then('settings.of.repo.json starts the one Stop dispatcher', async () => {
+        const stops = await getSettingsHooksStop({ repoPath: repo.path });
+        expect(stops).toEqual([
+          expect.objectContaining({ matcher: HOOK_DISPATCH_AUTHOR }),
+        ]);
       });
     });
 
@@ -164,7 +189,10 @@ describe('rhachet init --hooks, boot guard for .agent/repo=.this/role=any', () =
       });
 
       then('the Stop hook is relayed once, never twice', async () => {
-        const stops = await getSettingsHooksStop({ repoPath: repo.path });
+        const stops = [
+          ...(await getSettingsHooksStop({ repoPath: repo.path })),
+          ...(await getManifestRulesStop({ repoPath: repo.path })),
+        ];
         const matched = stops.filter((hook) =>
           hook.command.includes('roles cost --all --when hook.onStop'),
         );
@@ -199,8 +227,8 @@ describe('rhachet init --hooks, boot guard for .agent/repo=.this/role=any', () =
         expect(result.stdout).not.toContain('+ boot.yml');
       });
 
-      then('the owner budget arms the Stop hook in settings.of.repo.json', async () => {
-        const stops = await getSettingsHooksStop({ repoPath: repo.path });
+      then('the owner budget arms the Stop hook in the manifest', async () => {
+        const stops = await getManifestRulesStop({ repoPath: repo.path });
         expect(stops).toContainEqual(
           expect.objectContaining({
             command:

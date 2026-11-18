@@ -4,9 +4,11 @@ import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActo
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
 import { setBrainDirSettingsLayout } from '@src/domain.operations/actor/enrolled/setBrainDirSettingsLayout';
 import { readClaudeCodeSettings } from '@src/domain.operations/brains/claudeCodeSettings';
+import { HOOK_DISPATCH } from '@src/domain.operations/brains/dispatch/constants';
+import { getOneHookDispatchManifest } from '@src/domain.operations/brains/dispatch/getOneHookDispatchManifest';
 import { getHomeDir } from '@src/infra/getHomeDir';
 
-import { dirname } from 'node:path';
+import { dirname, join } from 'node:path';
 import { genBrainCliConfigArtifact } from './genBrainCliConfigArtifact';
 
 /**
@@ -51,10 +53,28 @@ export const setActorSettingsDerived = async (input: {
 };
 
 /**
- * .what = every hook in a brain dir's settings.of.repo.json, keyed by `event|author|command`,
- *         valued by its whole body (matcher included)
+ * .what = a settings hook's timeout in the manifest's unit, whole seconds
+ * .why = the claude adapter wrote a role hook's timeout in milliseconds; the manifest holds
+ *   seconds. read both in seconds, so a role hook that moves into the manifest keeps its body
+ * .note = a hook no role authored keeps its timeout as written (claude's own unit, seconds)
+ */
+const asTimeoutSecondsOfSettingsHook = (input: {
+  hook: { author?: string; timeout?: number };
+}): number | undefined => {
+  const isRoleHook = /^repo=.+\/role=.+$/.test(input.hook.author ?? '');
+  if (!isRoleHook || input.hook.timeout === undefined)
+    return input.hook.timeout;
+  return Math.max(1, Math.ceil(input.hook.timeout / 1000)); // as asTimeoutSecondsOfBrainHook rounds
+};
+
+/**
+ * .what = every hook that runs for a brain dir, keyed by `event|author|command`, valued by its
+ *         body (matcher and timeout): each settings hook but the dispatcher, plus each rule of
+ *         the dispatch manifest beside it
  * .why = a before/after pair of these tallies what one derivation added, changed, and
- *        removed — a changed timeout or matcher keeps the key and moves the body
+ *        removed — a changed timeout or matcher keeps the key and moves the body. a role hook
+ *        that moved from the settings into the manifest keeps its key and its body, so the
+ *        move itself reads as no change
  */
 const getAllHooksByKeyOfBrainDir = async (input: {
   brainDir: string;
@@ -62,17 +82,34 @@ const getAllHooksByKeyOfBrainDir = async (input: {
   const settings = await readClaudeCodeSettings({
     from: dirname(input.brainDir),
   });
-  return new Map(
-    Object.entries(settings.hooks ?? {}).flatMap(([event, entries]) =>
+  const manifest = await getOneHookDispatchManifest({
+    path: join(input.brainDir, HOOK_DISPATCH.manifest),
+  });
+  const asBody = (body: { matcher: string | undefined; timeout: unknown }) =>
+    JSON.stringify({ matcher: body.matcher || '*', timeout: body.timeout });
+  return new Map([
+    ...Object.entries(settings.hooks ?? {}).flatMap(([event, entries]) =>
       (entries ?? []).flatMap((entry) =>
-        entry.hooks.map(
-          (hook) =>
-            [
-              `${event}|${hook.author ?? ''}|${hook.command}`,
-              JSON.stringify({ matcher: entry.matcher, ...hook }),
-            ] as const,
-        ),
+        entry.hooks
+          .filter((hook) => hook.author !== HOOK_DISPATCH.author)
+          .map(
+            (hook) =>
+              [
+                `${event}|${hook.author ?? ''}|${hook.command}`,
+                asBody({
+                  matcher: entry.matcher,
+                  timeout: asTimeoutSecondsOfSettingsHook({ hook }),
+                }),
+              ] as const,
+          ),
       ),
     ),
-  );
+    ...(manifest?.rules ?? []).map(
+      (rule) =>
+        [
+          `${rule.event}|${rule.author}|${rule.command}`,
+          asBody({ matcher: rule.matcher, timeout: rule.timeoutSeconds }),
+        ] as const,
+    ),
+  ]);
 };

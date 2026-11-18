@@ -54,6 +54,19 @@ jest.mock('../config/getBrainHooksAdapterByConfigImplicit', () => ({
   getBrainHooksAdapterByConfigImplicit: jest.fn(),
 }));
 
+// the sync adapter is the brain's own, unwrapped: this unit covers the role × brain sweep;
+//   the dispatch manifest wrap is covered by its own tests and the hook dispatcher acceptance
+jest.mock('./dispatch/getOneBrainHooksAdapterForSync', () => ({
+  getOneBrainHooksAdapterForSync: jest.fn(
+    async (input: unknown, context: unknown) => {
+      const { getBrainHooksAdapterByConfigImplicit: getAdapter } =
+        jest.requireMock('../config/getBrainHooksAdapterByConfigImplicit');
+      const adapter = await getAdapter(input, context);
+      return adapter ? { adapter, dispatch: null } : null;
+    },
+  ),
+}));
+
 // mock brain detection
 jest.mock('./detectBrainReplsInRepo', () => ({
   detectBrainReplsInRepo: jest.fn(),
