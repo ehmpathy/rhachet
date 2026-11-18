@@ -37,8 +37,8 @@ Commands:
   run [options]             run a solid skill (deterministic, no brain)
   enroll [options] [brain]  enroll a brain cli as a managed, addressable clone
   actor                     inspect enrolled actor identities
-  clone                     reach an enrolled clone: make, list, say, get,
-                            whoami, prune
+  clone                     reach an enrolled clone: list, say, get, whoami,
+                            prune, boot drift
   choose [options]          select one attempt file, archive its peer files, and
                             remove unrelated ones
   ask [options]             invoke a skill or start a fluid conversation with an
