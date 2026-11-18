@@ -209,6 +209,7 @@ describe('asRepoSlugKind, across every scanner of `.agent/`', () => {
       when('[t6] the linked roles with hooks are loaded', () => {
         const result = useBeforeAll(async () =>
           getLinkedRolesWithHooks(
+            { rolesHeld: null },
             new ContextCli({ cwd: scene.repo, gitroot: scene.repo }),
           ),
         );

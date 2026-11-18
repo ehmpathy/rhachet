@@ -194,7 +194,7 @@ describe('setBrainDirBoot', () => {
               brainDir: join(repoPath, 'brain'),
               roles: ROLES,
               repoPath,
-              scope: { kind: 'repo' },
+              scope: { kind: 'repo', actorExid: 'repo=ambient' },
             });
             const bootMd = readFileSync(render.bootMdPath, 'utf8');
 
@@ -223,7 +223,7 @@ describe('setBrainDirBoot', () => {
                 brainDir,
                 roles: ROLES,
                 repoPath,
-                scope: { kind: 'repo' },
+                scope: { kind: 'repo', actorExid: 'repo=ambient' },
               })
             ).bootMdPath,
             'utf8',
@@ -246,7 +246,7 @@ describe('setBrainDirBoot', () => {
                 brainDir,
                 roles: ROLES,
                 repoPath,
-                scope: { kind: 'repo' },
+                scope: { kind: 'repo', actorExid: 'repo=ambient' },
               })
             ).bootMdPath,
             'utf8',
@@ -266,7 +266,7 @@ describe('setBrainDirBoot', () => {
             brainDir: join(repoPath, 'brain'),
             roles: [{ repo: 'fixture', role: 'zeta', subjects: null }],
             repoPath,
-            scope: { kind: 'repo' },
+            scope: { kind: 'repo', actorExid: 'repo=ambient' },
           });
           expect(readFileSync(render.bootMdPath, 'utf8')).not.toContain(
             BOOT_CACHE_BOUNDARY_LINE,
