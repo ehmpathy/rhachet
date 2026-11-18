@@ -223,23 +223,28 @@ describe('asRepoSlugKind, across every scanner of `.agent/`', () => {
           );
         });
 
-        then('the mod dir arms the one stop sweep, on the .this any carrier', () => {
-          expect(
-            result.roles.map((role) => ({
-              repo: role.repo,
-              slug: role.slug,
-              onStop: role.hooks?.onBrain?.onStop?.map((hook) => hook.command),
-            })),
-          ).toEqual([
-            {
-              repo: '.this',
-              slug: 'any',
-              onStop: [
-                './node_modules/.bin/rhachet roles cost --all --when hook.onStop',
-              ],
-            },
-          ]);
-        });
+        then(
+          'the mod dir arms the one stop sweep, on the .this any carrier',
+          () => {
+            expect(
+              result.roles.map((role) => ({
+                repo: role.repo,
+                slug: role.slug,
+                onStop: role.hooks?.onBrain?.onStop?.map(
+                  (hook) => hook.command,
+                ),
+              })),
+            ).toEqual([
+              {
+                repo: '.this',
+                slug: 'any',
+                onStop: [
+                  './node_modules/.bin/rhachet roles cost --all --when hook.onStop',
+                ],
+              },
+            ]);
+          },
+        );
       });
     },
   );

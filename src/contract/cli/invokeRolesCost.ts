@@ -127,7 +127,10 @@ const invokeRolesCostForHook = async (): Promise<void> => {
     // `specsOver`, never `over` — the boot halt's `over` is a token COUNT, and one key name
     // across the two refusals must hold one type
     specsOver: over.map((one) => relative(cwd, one.pathToSpec)),
-    modsDrifted: drifts.map((one) => one.pathToSpec),
+    // named only when a mod drifted too, so a plain budget breach reads as it always has
+    ...(drifts.length > 0 && {
+      modsDrifted: drifts.map((one) => one.pathToSpec),
+    }),
   });
 };
 
