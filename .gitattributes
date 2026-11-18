@@ -1,3 +1,7 @@
+# [tests-any] collapse test source in pr diffs; snapshots stay open
+*.test.ts linguist-generated
+*.test.tsx linguist-generated
+
 # [rhachet] collapse route robocode in pr diffs; yields and radio stay open
 .route/** linguist-generated
 .route/**/*.yield.* -linguist-generated

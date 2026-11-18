@@ -12,10 +12,18 @@ import { genSampleContextNoAmbient } from '@src/.test/assets/genSampleContextNoA
 import { HOST_SPECIFIC_SHELL_TOKENS } from '@src/.test/assets/hostSpecificShellTokens';
 import type { RoleSlug } from '@src/domain.objects/RoleSlug';
 
-import { existsSync, readdirSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { getActorOndiskDir } from '../actor/enrolled/getActorOndiskDir';
+import { getBrainOndiskDir } from '../actor/enrolled/getBrainOndiskDir';
 import { getOneActorOndiskExid } from '../actor/enrolled/getOneActorOndiskExid';
+import { asBootContentHash } from '../boot/asBootContentHash';
 import { genCloneOndisk } from './genCloneOndisk';
 import type { CloneSpawnHandle } from './genCloneSpawn';
 import { getCloneSocketPath } from './getCloneSocketPath';
@@ -35,6 +43,9 @@ import { getPtyPlatformSupportFromProcess } from './pty/getPtyPlatformSupportFro
  */
 
 const STUB_BRAIN = join(__dirname, '../../.test/assets/stubBrainCli.cjs');
+
+/** a rendered boot, one brief */
+const BOOT = '<brief.say path="surf.md">\npaddle out at dawn\n</brief.say>\n';
 
 const genCaptureHost = (output: string[]): PtyCloneHost => ({
   // .note = deliberate mutation — the host mirror IS a capture sink; each pty
@@ -67,6 +78,7 @@ const genCloneVia = (
     slug: string | null;
     roles?: RoleSlug[];
     pty?: ReturnType<typeof getPtyModuleOrNull>;
+    args?: string[];
   },
 ): Promise<{
   outcome: 'reused' | 'baked' | 'rebound';
@@ -82,7 +94,7 @@ const genCloneVia = (
       delta: null,
       reason: null,
       command: process.execPath,
-      args: [STUB_BRAIN],
+      args: opts.args ?? [STUB_BRAIN],
       cwd: repoPath,
       slug: opts.slug,
       mode: 'watch',
@@ -504,6 +516,95 @@ describe('genCloneOndisk.integration', () => {
             [],
           );
         });
+      });
+    },
+  );
+
+  given('[case9] a bake of an actor whose brain dir holds a boot', () => {
+    const scene = useBeforeAll(async () => {
+      // the actor's boot, rendered before the bake
+      const repoPath = genTempDir({ slug: `genclone-boot-${Date.now()}` });
+      const actorDir = getActorOndiskDir({ repoPath, exid: getMechanicExid() });
+      const brainDir = getBrainOndiskDir({ actorDir });
+      mkdirSync(brainDir, { recursive: true });
+      writeFileSync(join(brainDir, 'boot.md'), BOOT);
+
+      // the argv names the actor's boot, as `asBrainCliSpawnArgs` does for every enroll
+      const result = await genCloneVia(repoPath, {
+        slug: null,
+        args: [STUB_BRAIN, '--system-prompt-file', join(brainDir, 'boot.md')],
+      });
+      return { actorDir, result };
+    });
+    afterAll(async () => {
+      await scene.result.spawn?.dispose().catch(() => undefined);
+    });
+
+    when('[t0] genCloneOndisk runs', () => {
+      then('the actor holds the boot revision the clone spawned on', () => {
+        const hash = asBootContentHash({ bytes: BOOT });
+        const revisionDir = join(scene.actorDir, 'boots', `sha256=${hash}`);
+        expect(readFileSync(join(revisionDir, 'boot.md'), 'utf8')).toEqual(
+          BOOT,
+        );
+        expect(readFileSync(join(revisionDir, 'CLAUDE.md'), 'utf8')).toEqual(
+          '',
+        );
+      });
+
+      then(
+        'the clone dir refers to that revision by hash, and holds no copy of it',
+        () => {
+          const cloneDir = join(
+            scene.actorDir,
+            'clones',
+            `serial=${scene.result.clone.serial}`,
+          );
+          expect(
+            readFileSync(join(cloneDir, 'boot.spawned.ref'), 'utf8'),
+          ).toEqual(`${asBootContentHash({ bytes: BOOT })}\n`);
+          expect(existsSync(join(cloneDir, 'boot.md'))).toBe(false);
+        },
+      );
+    });
+  });
+
+  given(
+    '[case10] a bake whose argv names no boot, of an actor that holds one',
+    () => {
+      const scene = useBeforeAll(async () => {
+        const repoPath = genTempDir({ slug: `genclone-noboot-${Date.now()}` });
+        const actorDir = getActorOndiskDir({
+          repoPath,
+          exid: getMechanicExid(),
+        });
+        const brainDir = getBrainOndiskDir({ actorDir });
+        mkdirSync(brainDir, { recursive: true });
+        writeFileSync(join(brainDir, 'boot.md'), BOOT);
+
+        const result = await genCloneVia(repoPath, {
+          slug: null,
+          args: [STUB_BRAIN],
+        });
+        return { actorDir, result };
+      });
+      afterAll(async () => {
+        await scene.result.spawn?.dispose().catch(() => undefined);
+      });
+
+      when('[t0] genCloneOndisk runs', () => {
+        then(
+          'no revision is made and no ref is kept: the clone spawned on no boot to drift from',
+          () => {
+            const cloneDir = join(
+              scene.actorDir,
+              'clones',
+              `serial=${scene.result.clone.serial}`,
+            );
+            expect(existsSync(join(cloneDir, 'boot.spawned.ref'))).toBe(false);
+            expect(existsSync(join(scene.actorDir, 'boots'))).toBe(false);
+          },
+        );
       });
     },
   );

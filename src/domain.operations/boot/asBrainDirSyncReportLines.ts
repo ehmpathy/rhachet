@@ -113,10 +113,36 @@ export const asBrainDirSyncReportLines = (input: {
       rows: ['reset — hand edits dropped; rhachet owns this file'],
     });
 
-  // a corpus that re-rendered identical bytes, with no migration and no link change, is no news.
-  //   under `.agent/actors.yml`, a corpus whose bytes changed is news: a manifest edit just moved
-  //   the roleset every clone of this actor boots. with no manifest the report stays as it was,
-  //   news only on a created corpus, so an absent actors.yml keeps today's output (the wish)
+  // the drift: whether the live clones of this actor get the change, at their next compaction.
+  //   an actor with no spawn revision has no clone to tell; one that holds some always answers,
+  //   "no change" included, and a fault always shows
+  //   .note = deliberate mutation: `groups` is this render's local accumulator, as for each group above
+  const drift = render.drift;
+  const isDriftNews =
+    drift !== null && (drift.revisions > 0 || drift.faults.length > 0);
+  if (drift && isDriftNews)
+    groups.push({
+      label: 'drift',
+      rows: [
+        ...(drift.rewritten > 0
+          ? [
+              `${drift.rewritten} spawn revision${drift.rewritten === 1 ? '' : 's'} re-written`,
+              `${drift.clones} clone${drift.clones === 1 ? '' : 's'} take it at their next compaction (a dead one, at a resume)`,
+            ]
+          : []),
+        ...(drift.rewritten === 0 && drift.faults.length === 0
+          ? ['no change']
+          : []),
+        ...drift.faults.map(
+          (fault) => `✗ ${basename(fault.revisionDir)} ${fault.reason}`,
+        ),
+      ],
+    });
+
+  // a corpus that re-rendered identical bytes, with no migration, no link change, and no drift,
+  //   is no news. under `.agent/actors.yml`, a corpus whose bytes changed is news: a manifest
+  //   edit just moved the roleset every clone of this actor boots. with no manifest the report
+  //   stays as it was, news only on a created corpus, so an absent actors.yml keeps today's output
   const isBootOnly = groups.length === 1;
   const isNewsOfCorpus =
     render.bootMdCreated || (isManifestRepo && render.bootMdChanged);

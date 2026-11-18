@@ -1,0 +1,21 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`invokeClone (integration) given: [case12] a clone whose boot drifted past the threshold since it spawned when: [t0] \`clone boot drift --of @:reviewer\` runs then: the tree matches snapshot 1`] = `
+"😶 boot drift of @:reviewer
+   ├─ spawn revision = sha256=37d6bf88434c7048
+   ├─ drift = f28e9d479982932e
+   ├─ 1 block drifted since this clone spawned (1 added)
+   ├─ 252 lines carried, over the 200 line threshold
+   └─ a compacted clone that does not hold drift = f28e9d479982932e did not take the drift — respawn it
+"
+`;
+
+exports[`invokeClone (integration) given: [case12] a clone whose boot drifted past the threshold since it spawned when: [t1] the onStop hook runs inside the clone, twice then: the nudge matches snapshot 1`] = `
+"😶 boot drift
+   ├─ 1 block drifted since this clone spawned (1 added)
+   ├─ 252 lines carried, over the 200 line threshold
+   └─ to take it
+      ├─ /compact — reads the drift in, the conversation kept; after it, you should hold drift = f28e9d479982932e
+      └─ respawn — the new boot loads whole, from the shared cache; the sure cure
+"
+`;

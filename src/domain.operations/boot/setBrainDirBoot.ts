@@ -1,6 +1,7 @@
 import { MalfunctionError } from 'helpful-errors';
 
 import type { RoleLinkRefAtFocus } from '@src/domain.objects/RoleLinkRefAtFocus';
+import { getActorOndiskDirOfBrainDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDirOfBrainDir';
 import { setFileAtomic } from '@src/infra/setFileAtomic';
 
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
@@ -14,6 +15,7 @@ import type {
 } from './BrainDirBootRender';
 import { BRAIN_DIR_BOOT_FILENAMES } from './constants';
 import { getOneRoleBootContent } from './getOneRoleBootContent';
+import { setActorBootDrifts } from './setActorBootDrifts';
 import { setBrainDirPointerFiles } from './setBrainDirPointerFiles';
 
 /**
@@ -85,6 +87,14 @@ export const setBrainDirBoot = async (input: {
   const { agentsMdReset } = setBrainDirPointerFiles({
     brainDir: input.brainDir,
   });
+
+  // carry the new boot to every live clone of the actor, as the drift beside its revision
+  const actorDir = getActorOndiskDirOfBrainDir({ brainDir: input.brainDir });
+  const drift =
+    actorDir === null
+      ? null
+      : setActorBootDrifts({ actorDir, bootMdPathCurrent: bootMdPath });
+
   return {
     scope: input.scope,
     bootMdPath,
@@ -92,5 +102,6 @@ export const setBrainDirBoot = async (input: {
     agentsMdReset,
     bootMdCreated,
     bootMdChanged,
+    drift,
   };
 };

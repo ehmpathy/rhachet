@@ -8,7 +8,10 @@ import { genSampleContextNoAmbient } from '@src/.test/assets/genSampleContextNoA
 import { withCapturedStreams } from '@src/.test/assets/withCapturedStreams';
 import { findsertActorOndisk } from '@src/domain.operations/actor/enrolled/findsertActorOndisk';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
+import { genActorBootRevision } from '@src/domain.operations/boot/genActorBootRevision';
+import { setActorBootDrifts } from '@src/domain.operations/boot/setActorBootDrifts';
 import { asClaudeProjectSlug } from '@src/domain.operations/clone/asClaudeProjectSlug';
+import { setCloneBootSpawnedRef } from '@src/domain.operations/clone/setCloneBootSpawnedRef';
 import { getOneRepoPath } from '@src/infra/host/getOneRepoPath';
 import { CLONE_ENV_KEYS } from '@src/utils/cloneEnvKeys';
 
@@ -552,4 +555,328 @@ describe('invokeClone (integration)', () => {
       });
     },
   );
+
+  given(
+    '[case12] a clone whose boot drifted past the threshold since it spawned',
+    () => {
+      // a clone `@:reviewer` on boot v1; the actor boot then moved to v2, 240 lines of new brief
+      const scene = useBeforeAll(async () => {
+        const seeded = await genSampleCloneOndisk({
+          repoPath: genTempDir({ slug: 'invokeClone-drift', git: true }),
+          serial: getUuid(),
+          slug: 'reviewer',
+        });
+        const brainDir = getBrainOndiskDir({ actorDir: seeded.actorDir });
+        mkdirSync(brainDir, { recursive: true });
+        writeFileSync(join(brainDir, 'boot.md'), BOOT_V1);
+        const revision = genActorBootRevision({ actorDir: seeded.actorDir })!;
+        setCloneBootSpawnedRef({
+          cloneDir: seeded.cloneDir,
+          hash: revision.hash,
+        });
+        writeFileSync(join(brainDir, 'boot.md'), BOOT_V2);
+        setActorBootDrifts({
+          actorDir: seeded.actorDir,
+          bootMdPathCurrent: join(brainDir, 'boot.md'),
+        });
+        return { ...seeded, cwd: getOneRepoPath({ from: seeded.repoPath }) };
+      });
+
+      when('[t0] `clone boot drift --of @:reviewer` runs', () => {
+        const result = useBeforeAll(async () =>
+          driveClone({
+            cwd: scene.cwd,
+            argv: ['clone', 'boot', 'drift', '--of', '@:reviewer'],
+            env: CLONE_ENV_UNSET,
+          }),
+        );
+
+        then(
+          'it exits 0 and names the drift a compacted clone must hold',
+          () => {
+            expect(result.exitCode).toEqual(0);
+            expect(result.out).toMatch(/drift = [0-9a-f]{16}/);
+            expect(result.out).toContain(
+              '1 block drifted since this clone spawned (1 added)',
+            );
+            expect(result.out).toContain('over the 200 line threshold');
+            expect(result.out).toContain('did not take the drift — respawn it');
+          },
+        );
+
+        then('the tree matches snapshot', () => {
+          expect(result.out).toMatchSnapshot();
+        });
+      });
+
+      when('[t1] the onStop hook runs inside the clone, twice', () => {
+        const result = useBeforeAll(async () => {
+          const env = {
+            ...CLONE_ENV_UNSET,
+            [CLONE_ENV_KEYS.serial]: scene.serial,
+          };
+          const argv = ['clone', 'boot', 'drift', '--when', 'hook.onStop'];
+          const first = await driveClone({ cwd: scene.cwd, argv, env });
+          const second = await driveClone({ cwd: scene.cwd, argv, env });
+          return { first, second };
+        });
+
+        then(
+          'the first stop is blocked once, with the two ways out on stderr',
+          () => {
+            expect(result.first.exitCode).toEqual(2);
+            expect(result.first.out).toEqual('');
+            expect(result.first.err).toContain('to take it');
+            expect(result.first.err).toContain('/compact');
+            expect(result.first.err).toContain('respawn');
+          },
+        );
+
+        then('the copy never says the drift loaded', () => {
+          expect(result.first.err).not.toContain('loaded');
+        });
+
+        then(
+          'the second stop is silent: the latch holds this drift as told',
+          () => {
+            expect(result.second.exitCode).toEqual(0);
+            expect(result.second.err).toEqual('');
+          },
+        );
+
+        then('the nudge matches snapshot', () => {
+          expect(result.first.err).toMatchSnapshot();
+        });
+      });
+
+      when('[t2] the onStop hook runs in a process that is no clone', () => {
+        const result = useBeforeAll(async () =>
+          driveClone({
+            cwd: scene.cwd,
+            argv: ['clone', 'boot', 'drift', '--when', 'hook.onStop'],
+            env: CLONE_ENV_UNSET,
+          }),
+        );
+
+        then('it exits 0, silent', () => {
+          expect(result.exitCode).toEqual(0);
+          expect(result.out).toEqual('');
+          expect(result.err).toEqual('');
+        });
+      });
+
+      when('[t3] `clone boot drift --of @:nobody` runs', () => {
+        const result = useBeforeAll(async () =>
+          driveClone({
+            cwd: scene.cwd,
+            argv: ['clone', 'boot', 'drift', '--of', '@:nobody'],
+            env: CLONE_ENV_UNSET,
+          }),
+        );
+
+        then('it exits 2 and names the list command', () => {
+          expect(result.exitCode).toEqual(2);
+          expect(result.err).toContain("no clone answers to '@:nobody'");
+          expect(result.err).toContain('rhx clone list');
+        });
+      });
+
+      when('[t4] an unknown --when moment is given', () => {
+        const result = useBeforeAll(async () =>
+          driveClone({
+            cwd: scene.cwd,
+            argv: ['clone', 'boot', 'drift', '--when', 'hook.onBoot'],
+            env: CLONE_ENV_UNSET,
+          }),
+        );
+
+        then('it exits 2 and names the one moment', () => {
+          expect(result.exitCode).toEqual(2);
+          expect(result.err).toContain('--when hook.onStop');
+        });
+      });
+
+      when('[t5] the hook moment is given with --of', () => {
+        const result = useBeforeAll(async () =>
+          driveClone({
+            cwd: scene.cwd,
+            argv: [
+              'clone',
+              'boot',
+              'drift',
+              '--when',
+              'hook.onStop',
+              '--of',
+              '@:reviewer',
+            ],
+            env: { ...CLONE_ENV_UNSET, [CLONE_ENV_KEYS.serial]: scene.serial },
+          }),
+        );
+
+        then('it refuses the pair with exit 2, never drops --of', () => {
+          expect(result.exitCode).toEqual(2);
+          expect(result.err).toContain('--of cannot ride --when hook.onStop');
+          expect(result.err).toContain('rhx clone boot drift --of @:reviewer');
+        });
+      });
+    },
+  );
+
+  given(
+    '[case13] a clone spawned before boot drift (no boot.spawned.ref)',
+    () => {
+      const scene = useBeforeAll(async () => {
+        const seeded = await genSampleCloneOndisk({
+          repoPath: genTempDir({ slug: 'invokeClone-drift-legacy', git: true }),
+          serial: getUuid(),
+          slug: 'old',
+        });
+        return { ...seeded, cwd: getOneRepoPath({ from: seeded.repoPath }) };
+      });
+
+      when('[t0] `clone boot drift --of @:old` runs', () => {
+        const result = useBeforeAll(async () =>
+          driveClone({
+            cwd: scene.cwd,
+            argv: ['clone', 'boot', 'drift', '--of', '@:old'],
+            env: CLONE_ENV_UNSET,
+          }),
+        );
+
+        then(
+          'it exits 0 and says the clone holds its spawn boot until a respawn',
+          () => {
+            expect(result.exitCode).toEqual(0);
+            expect(result.out).toContain(
+              'spawned before boot drift, so it holds its spawn boot until a respawn',
+            );
+          },
+        );
+      });
+
+      when('[t1] the onStop hook runs inside it', () => {
+        const result = useBeforeAll(async () =>
+          driveClone({
+            cwd: scene.cwd,
+            argv: ['clone', 'boot', 'drift', '--when', 'hook.onStop'],
+            env: { ...CLONE_ENV_UNSET, [CLONE_ENV_KEYS.serial]: scene.serial },
+          }),
+        );
+
+        then('it exits 0, silent', () => {
+          expect(result.exitCode).toEqual(0);
+          expect(result.err).toEqual('');
+        });
+      });
+    },
+  );
+
+  given('[case14] a clone whose ref names a boot revision that is gone', () => {
+    const scene = useBeforeAll(async () => {
+      const seeded = await genSampleCloneOndisk({
+        repoPath: genTempDir({ slug: 'invokeClone-drift-gone', git: true }),
+        serial: getUuid(),
+        slug: 'lost',
+      });
+      setCloneBootSpawnedRef({
+        cloneDir: seeded.cloneDir,
+        hash: '0123456789abcdef',
+      });
+      return { ...seeded, cwd: getOneRepoPath({ from: seeded.repoPath }) };
+    });
+
+    when('[t0] the onStop hook runs inside it', () => {
+      const result = useBeforeAll(async () =>
+        driveClone({
+          cwd: scene.cwd,
+          argv: ['clone', 'boot', 'drift', '--when', 'hook.onStop'],
+          env: { ...CLONE_ENV_UNSET, [CLONE_ENV_KEYS.serial]: scene.serial },
+        }),
+      );
+
+      then(
+        'it fails loud with the path, and exits 1, which never blocks a stop',
+        () => {
+          expect(result.exitCode).toEqual(1);
+          expect(result.err).toContain('MalfunctionError');
+          expect(result.err).toContain('sha256=0123456789abcdef');
+        },
+      );
+    });
+
+    when('[t1] `clone boot drift --of @:lost` runs', () => {
+      const result = useBeforeAll(async () =>
+        driveClone({
+          cwd: scene.cwd,
+          argv: ['clone', 'boot', 'drift', '--of', '@:lost'],
+          env: CLONE_ENV_UNSET,
+        }),
+      );
+
+      then('it fails loud with the path, and exits 1', () => {
+        expect(result.exitCode).toEqual(1);
+        expect(result.err).toContain('MalfunctionError');
+        expect(result.err).toContain('sha256=0123456789abcdef');
+      });
+    });
+  });
+
+  given('[case15] a drifted clone whose told latch cannot be read', () => {
+    // the case12 scene, with a dir where the latch file belongs
+    const scene = useBeforeAll(async () => {
+      const seeded = await genSampleCloneOndisk({
+        repoPath: genTempDir({ slug: 'invokeClone-drift-latch', git: true }),
+        serial: getUuid(),
+        slug: 'latched',
+      });
+      const brainDir = getBrainOndiskDir({ actorDir: seeded.actorDir });
+      mkdirSync(brainDir, { recursive: true });
+      writeFileSync(join(brainDir, 'boot.md'), BOOT_V1);
+      const revision = genActorBootRevision({ actorDir: seeded.actorDir })!;
+      setCloneBootSpawnedRef({
+        cloneDir: seeded.cloneDir,
+        hash: revision.hash,
+      });
+      writeFileSync(join(brainDir, 'boot.md'), BOOT_V2);
+      setActorBootDrifts({
+        actorDir: seeded.actorDir,
+        bootMdPathCurrent: join(brainDir, 'boot.md'),
+      });
+      mkdirSync(join(seeded.cloneDir, 'boot.drift.told'));
+      return { ...seeded, cwd: getOneRepoPath({ from: seeded.repoPath }) };
+    });
+
+    when('[t0] the onStop hook runs inside it', () => {
+      const result = useBeforeAll(async () =>
+        driveClone({
+          cwd: scene.cwd,
+          argv: ['clone', 'boot', 'drift', '--when', 'hook.onStop'],
+          env: { ...CLONE_ENV_UNSET, [CLONE_ENV_KEYS.serial]: scene.serial },
+        }),
+      );
+
+      then(
+        'it fails loud with the latch path, and exits 1, which never blocks a stop',
+        () => {
+          expect(result.exitCode).toEqual(1);
+          expect(result.err).toContain('MalfunctionError');
+          expect(result.err).toContain('a boot drift file could not be read');
+          expect(result.err).toContain('boot.drift.told');
+        },
+      );
+    });
+  });
 });
+
+/** a boot of one brief, as a clone spawned on it */
+const BOOT_V1 =
+  '<brief.say path="surf.md">\npaddle out at dawn\n</brief.say>\n';
+
+/** the same boot, plus one long brief: past the nudge threshold */
+const BOOT_V2 = [
+  BOOT_V1,
+  '<brief.say path="tides.md">',
+  ...Array.from({ length: 240 }, (_, index) => `tide line ${index}`),
+  '</brief.say>',
+  '',
+].join('\n');

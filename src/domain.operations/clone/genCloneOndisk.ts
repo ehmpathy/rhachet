@@ -25,6 +25,7 @@ import {
 import { computeCloneSocketOmissionReason } from './computeCloneSocketOmissionReason';
 import { delCloneSpawn } from './delCloneSpawn';
 import { delCloneStagedDir } from './delCloneStagedDir';
+import { genCloneBootRevisionForSpawn } from './genCloneBootRevisionForSpawn';
 import { genCloneHistoryLink } from './genCloneHistoryLink';
 import { genCloneSerial } from './genCloneSerial';
 import { type CloneSpawnHandle, genCloneSpawn } from './genCloneSpawn';
@@ -246,6 +247,13 @@ export const genCloneOndisk = async (
   // and the history link routes this clone to it (D8)
   mkdirSync(brainDir, { recursive: true });
 
+  // spawn on the actor's boot revision, recorded by hash in the staged dir
+  const { args } = genCloneBootRevisionForSpawn({
+    actorDir,
+    stagedCloneDir: tempDir,
+    args: input.args,
+  });
+
   // capture the spawn instant ONCE, BEFORE the spawn, and reuse it for BOTH the
   // persisted identity and the history-link window below. a second now() taken
   // AFTER the pty spawn's real wall-clock cost could fall outside
@@ -263,7 +271,7 @@ export const genCloneOndisk = async (
   const spawn: CloneSpawnHandle = await genCloneSpawn(
     {
       command: input.command,
-      args: input.args,
+      args,
       cwd: input.cwd,
       serial,
       brainDir,

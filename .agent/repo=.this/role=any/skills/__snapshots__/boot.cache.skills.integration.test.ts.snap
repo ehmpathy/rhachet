@@ -347,16 +347,20 @@ exports[`boot.cache.skills given: [case2] clone.cache.usage when: [t8] a clone d
 exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t0] help is asked then: it exits 0 and names every option 1`] = `
 "🧮 boot.compact.probe — does a live clone re-read its boot on /compact?
    ├─ usage
-   │  └─ rhx boot.compact.probe [--roles <spec>] [--model <model>]
+   │  └─ rhx boot.compact.probe [--roles <spec>] [--model <model>] [--door <system|add-dir>]
    ├─ options
    │  ├─ --roles    the --roles spec passed to rhx enroll; -driver when absent
-   │  └─ --model    the brain model; haiku when absent
+   │  ├─ --model    the brain model; haiku when absent
+   │  └─ --door     where the sentinel lands; system when absent
+   │     ├─ system   the actor's boot.md, read as the system prompt
+   │     └─ add-dir  the clone's boot revision CLAUDE.md, read as memory
    ├─ exits
    │  ├─ 0 = measured, and the verdict is ✓ or ✗
    │  ├─ 1 = the measure failed — no clone, no request bodies, or a wait ran out
    │  └─ 2 = bad input
    ├─ examples
    │  ├─ rhx boot.compact.probe
+   │  ├─ rhx boot.compact.probe --door add-dir
    │  └─ rhx boot.compact.probe --model sonnet
    └─ spends real tokens — two short turns and one compaction
 "
@@ -429,27 +433,29 @@ exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t7] the clon
 `;
 
 exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t8] the request after /compact holds the edit then: it exits 0 with the ✓ verdict, each request in send order 1`] = `
-"🧮 boot.compact.probe --roles '-driver' --model haiku
-   ├─ the sentinel line lands in boot.md after spawn, before /compact
+"🧮 boot.compact.probe --roles '-driver' --model haiku --door system
+   ├─ the sentinel line lands in .agent/.actors/actor.via.hash=stub/brain/.claude/boot.md after spawn, before /compact
    ├─ requests, in send order
-   │  ├─ [1] turn 1 · system holds the sentinel = no · asks "Do not use any tools. Reply with exactly: OK"
-   │  ├─ [2] /compact · system holds the sentinel = yes · asks "/compact"
-   │  └─ [3] turn 2 · system holds the sentinel = yes · asks "Do not use any tools. Reply with exactly: OK"
+   │  ├─ [1] turn 1 · sentinel in system = no · sentinel in messages = no · boot copies = 1 · asks "Do not use any tools. Reply with exactly: OK"
+   │  ├─ [2] /compact · sentinel in system = yes · sentinel in messages = no · boot copies = 1 · asks "/compact"
+   │  └─ [3] turn 2 · sentinel in system = yes · sentinel in messages = no · boot copies = 1 · asks "Do not use any tools. Reply with exactly: OK"
    │
    ├─ request bodies = .log/role=any/skill=boot.compact.probe/<run>/otel
+   ├─ ✓ the boot reached turn 1 once
    └─ ✓ /compact re-read the boot; a live clone meets a boot edit at its next compaction
 "
 `;
 
 exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t9] the request after /compact holds the spawn boot then: it exits 0 with the ✗ verdict: a kept boot is a measure, not a fault 1`] = `
-"🧮 boot.compact.probe --roles '-driver' --model haiku
-   ├─ the sentinel line lands in boot.md after spawn, before /compact
+"🧮 boot.compact.probe --roles '-driver' --model haiku --door system
+   ├─ the sentinel line lands in .agent/.actors/actor.via.hash=stub/brain/.claude/boot.md after spawn, before /compact
    ├─ requests, in send order
-   │  ├─ [1] turn 1 · system holds the sentinel = no · asks "Do not use any tools. Reply with exactly: OK"
-   │  ├─ [2] /compact · system holds the sentinel = no · asks "/compact"
-   │  └─ [3] turn 2 · system holds the sentinel = no · asks "Do not use any tools. Reply with exactly: OK"
+   │  ├─ [1] turn 1 · sentinel in system = no · sentinel in messages = no · boot copies = 1 · asks "Do not use any tools. Reply with exactly: OK"
+   │  ├─ [2] /compact · sentinel in system = no · sentinel in messages = no · boot copies = 1 · asks "/compact"
+   │  └─ [3] turn 2 · sentinel in system = no · sentinel in messages = no · boot copies = 1 · asks "Do not use any tools. Reply with exactly: OK"
    │
    ├─ request bodies = .log/role=any/skill=boot.compact.probe/<run>/otel
+   ├─ ✓ the boot reached turn 1 once
    └─ ✗ /compact kept the spawn boot; a live clone meets a boot edit only at its next spawn
 "
 `;

@@ -80,9 +80,6 @@ importers:
       rhachet-artifact:
         specifier: 1.0.3
         version: 1.0.3
-      rhachet-artifact-git:
-        specifier: 1.1.5
-        version: 1.1.5
       sdk-logs:
         specifier: 0.9.2
         version: 0.9.2
@@ -183,6 +180,9 @@ importers:
       rhachet:
         specifier: link:.
         version: 'link:'
+      rhachet-artifact-git:
+        specifier: 1.1.5
+        version: 1.1.5
       rhachet-brains-anthropic:
         specifier: 0.4.3
         version: 0.4.3(@huggingface/transformers@3.8.1)(@tensorflow/tfjs@4.22.0(seedrandom@3.0.5))(rhachet@)

@@ -1,0 +1,13 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asCloneBootDriftLines given: [case2] a boot that changed only outside the briefs when: [t0] the clone is nudged then: it never reads as no drift, and names respawn as the only cure for the outside part 1`] = `
+[
+  "😶 boot drift",
+  "   ├─ no block drifted; the change sits outside the briefs, or in whitespace and order alone",
+  "   ├─ 212 lines carried, over the 200 line threshold",
+  "   ├─ the boot also changed outside the briefs, which only a respawn takes",
+  "   └─ to take it",
+  "      ├─ /compact — reads the drift in, the conversation kept; after it, you should hold drift = fedcba9876543210",
+  "      └─ respawn — the new boot loads whole, from the shared cache; the sure cure",
+]
+`;

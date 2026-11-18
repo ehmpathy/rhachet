@@ -3,8 +3,15 @@ import { getError, given, then, when } from 'test-fns';
 
 import { genSampleRepoWithRoles } from '@src/.test/assets/genSampleRepoWithRoles';
 import { ContextCli } from '@src/domain.objects/ContextCli';
+import { genActorBootRevision } from '@src/domain.operations/boot/genActorBootRevision';
 
-import { chmodSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { syncAndReportBrainDirBoots } from './syncAndReportBrainDirBoots';
 
@@ -126,4 +133,53 @@ describe('syncAndReportBrainDirBoots', () => {
       );
     });
   });
+
+  given(
+    '[case4] two clones on two boot revisions, one of which cannot be written',
+    () => {
+      when('[t0] a brief changes and the sweep runs', () => {
+        then(
+          'the other revision takes the drift, and the exit code names the fault',
+          async () => {
+            // render once; a clone spawns on that boot; the brief changes; a second clone spawns
+            const { repoPath, context } = genRepoWithRole({
+              slug: 'sweep-drift-fault',
+            });
+            const env = genShimEnv({ dir: repoPath, version: '2.1.277' });
+            const actorDir = join(
+              repoPath,
+              REPO_ACTOR_BRAIN_DIR_REL,
+              '..',
+              '..',
+            );
+            const briefPath = join(
+              repoPath,
+              '.agent/repo=.this/role=any/briefs/core.md',
+            );
+            await syncAndReportBrainDirBoots({ repoPath, env }, context);
+            const revisionFaulted = genActorBootRevision({ actorDir })!;
+            writeFileSync(briefPath, 'any brief body, second\n');
+            await syncAndReportBrainDirBoots({ repoPath, env }, context);
+            const revisionOk = genActorBootRevision({ actorDir })!;
+
+            // the first revision cannot take a write; the brief changes again
+            chmodSync(revisionFaulted.revisionDir, 0o500);
+            writeFileSync(briefPath, 'any brief body, third\n');
+            try {
+              const result = await syncAndReportBrainDirBoots(
+                { repoPath, env },
+                context,
+              );
+              expect(result.exitCode).toEqual(1);
+              expect(
+                readFileSync(join(revisionOk.revisionDir, 'CLAUDE.md'), 'utf8'),
+              ).toContain('any brief body, third');
+            } finally {
+              chmodSync(revisionFaulted.revisionDir, 0o700);
+            }
+          },
+        );
+      });
+    },
+  );
 });

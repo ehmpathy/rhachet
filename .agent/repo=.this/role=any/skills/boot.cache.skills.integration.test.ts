@@ -142,7 +142,8 @@ const asStubCompactRunBody = (input: { boot: 'reread' | 'kept' }): string =>
     '  for a in "$@"; do [[ "$prev" == "--as" ]] && slug="${a#@:}"; prev="$a"; done',
     '  mkdir -p "$actor/clones/serial=$slug" "$actor/brain/.claude"',
     `  printf '{"serial":"%s","slug":"%s"}' "$slug" "$slug" > "$actor/clones/serial=$slug/identity.json"`,
-    `  printf 'a boot\\n' > "$actor/brain/.claude/boot.md"`,
+    // the boot holds the intro marker once, as a rendered boot does
+    `  printf 'a boot from rhachet/intro\\n' > "$actor/brain/.claude/boot.md"`,
     '  cp "$actor/brain/.claude/boot.md" "$actor/brain/.claude/boot.md.spawn"',
     `  printf '%s' "\${OTEL_LOG_RAW_API_BODIES#file:}" > "$actor/clones/serial=$slug/otel.dir"`,
     '  exit 0',
@@ -707,6 +708,7 @@ describe('boot.cache.skills', () => {
         expect(result.status).toEqual(0);
         expect(result.stdout).toContain('--roles');
         expect(result.stdout).toContain('--model');
+        expect(result.stdout).toContain('--door');
         expect(result.stdout).toMatchSnapshot();
       });
     });
@@ -835,7 +837,8 @@ describe('boot.cache.skills', () => {
 
       then('it exits 0 with the ✓ verdict, each request in send order', () => {
         expect(result.status).toEqual(0);
-        expect(result.stdout).toContain('[3] turn 2 · system holds the sentinel = yes');
+        expect(result.stdout).toContain('[3] turn 2 · sentinel in system = yes');
+        expect(result.stdout).toContain('✓ the boot reached turn 1 once');
         expect(result.stdout).toContain('✓ /compact re-read the boot');
         expect(result.stdout).toMatchSnapshot();
       });
@@ -853,7 +856,8 @@ describe('boot.cache.skills', () => {
 
       then('it exits 0 with the ✗ verdict: a kept boot is a measure, not a fault', () => {
         expect(result.status).toEqual(0);
-        expect(result.stdout).toContain('[3] turn 2 · system holds the sentinel = no');
+        expect(result.stdout).toContain('[3] turn 2 · sentinel in system = no');
+        expect(result.stdout).toContain('✓ the boot reached turn 1 once');
         expect(result.stdout).toContain('✗ /compact kept the spawn boot');
         expect(result.stdout).toMatchSnapshot();
       });
