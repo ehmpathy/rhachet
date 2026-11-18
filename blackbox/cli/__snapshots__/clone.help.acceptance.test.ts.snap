@@ -134,3 +134,31 @@ Options:
   -h, --help          display help for command
 "
 `;
+
+exports[`rhx actor/clone --help (acceptance) given: [case1] a repo where the commands are registered when: [t8] clone boot --help then: the help text is locked (visual spot-check) 1`] = `
+"Usage: rhachet clone boot [options] [command]
+
+inspect a clone's boot: drift
+
+Options:
+  -h, --help       display help for command
+
+Commands:
+  drift [options]  show the boot drift a clone carries since it spawned; with
+                   --when hook.onStop, nudge it once past the threshold
+  help [command]   display help for command
+"
+`;
+
+exports[`rhx actor/clone --help (acceptance) given: [case1] a repo where the commands are registered when: [t9] clone boot drift --help then: the help text is locked (visual spot-check) 1`] = `
+"Usage: rhachet clone boot drift [options]
+
+show the boot drift a clone carries since it spawned; with --when hook.onStop,
+nudge it once past the threshold
+
+Options:
+  --of <address>   the clone to inspect, as @:<slug|serial>
+  --when <moment>  the hook moment this runs at: hook.onStop
+  -h, --help       display help for command
+"
+`;
