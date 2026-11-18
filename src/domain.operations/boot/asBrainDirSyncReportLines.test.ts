@@ -22,6 +22,7 @@ const genRender = (
   agentsMdReset: false,
   bootMdCreated: false,
   bootMdChanged: false,
+  drift: null,
   ...overrides,
 });
 
@@ -80,6 +81,91 @@ describe('asBrainDirSyncReportLines', () => {
 
       then('it names the link and the corpus, and naught else', () => {
         expect(lines).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case3b] a corpus re-rendered under live clones of the actor', () => {
+    when(
+      '[t0] its drift reached two revisions, three clones, and one faulted',
+      () => {
+        const lines = asBrainDirSyncReportLines({
+          render: genRender({
+            drift: {
+              revisions: 3,
+              rewritten: 2,
+              clones: 3,
+              faults: [
+                {
+                  revisionDir:
+                    '/repo/.agent/.actors/a/boots/sha256=0123456789abcdef',
+                  reason:
+                    'drift not written — its clones keep their prior drift',
+                  cause: new Error('EACCES'),
+                },
+                {
+                  revisionDir:
+                    '/repo/.agent/.actors/a/boots/sha256=fedcba9876543210',
+                  reason:
+                    'is gone, yet a clone refers to it — respawn that clone',
+                  cause: new Error('gone'),
+                },
+              ],
+            },
+          }),
+          symlink: genSymlink({ effect: 'FOUND' }),
+          repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+        });
+
+        then(
+          'the drift is news: it names where the change went, and the revision it missed',
+          () => {
+            expect(lines.join('\n')).toContain('2 spawn revisions re-written');
+            expect(lines.join('\n')).toContain(
+              '3 clones take it at their next compaction',
+            );
+            expect(lines.join('\n')).toContain(
+              '✗ sha256=0123456789abcdef drift not written',
+            );
+            expect(lines.join('\n')).toContain(
+              '✗ sha256=fedcba9876543210 is gone, yet a clone refers to it',
+            );
+            expect(lines).toMatchSnapshot();
+          },
+        );
+      },
+    );
+
+    when('[t1] its drift re-wrote naught', () => {
+      const lines = asBrainDirSyncReportLines({
+        render: genRender({
+          drift: { revisions: 2, rewritten: 0, clones: 0, faults: [] },
+        }),
+        symlink: genSymlink({ effect: 'FOUND' }),
+        repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+      });
+
+      then(
+        'the drift subbranch reads "no change", per vision case=6 [t1]',
+        () => {
+          expect(lines.join('\n')).toContain('drift');
+          expect(lines.join('\n')).toContain('no change');
+          expect(lines).toMatchSnapshot();
+        },
+      );
+    });
+
+    when('[t2] the actor holds no spawn revision yet', () => {
+      const lines = asBrainDirSyncReportLines({
+        render: genRender({
+          drift: { revisions: 0, rewritten: 0, clones: 0, faults: [] },
+        }),
+        symlink: genSymlink({ effect: 'FOUND' }),
+        repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+      });
+
+      then('it says NAUGHT — no clone has a drift to take', () => {
+        expect(lines).toEqual([]);
       });
     });
   });

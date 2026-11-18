@@ -1,7 +1,7 @@
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
+import { asBootContentHash } from '@src/domain.operations/boot/asBootContentHash';
 import { BRAIN_DIR_BOOT_FILENAMES } from '@src/domain.operations/boot/constants';
 
-import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -25,9 +25,6 @@ export const getOneBootHashOfActor = (input: {
   );
   if (!existsSync(bootMdPath)) return null;
 
-  // 16 hex chars: wide enough that two boots never share a lead record
-  return createHash('sha256')
-    .update(readFileSync(bootMdPath))
-    .digest('hex')
-    .slice(0, 16);
+  // the same identity a boot revision dir is named by
+  return asBootContentHash({ bytes: readFileSync(bootMdPath) });
 };

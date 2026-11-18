@@ -132,8 +132,14 @@ export const syncAndReportBrainDirBoots = async (
     for (const line of asBrainDirBootFailureLines({ failure }))
       console.error(line);
 
+  // a drift not written is a fault the human must see in the exit too: its clones keep a stale drift
+  const exitCodeOfFailures = asExitCodeForBrainDirSyncFailures({ failures });
+  const isDriftFaulted = renders.some(
+    (render) => (render.drift?.faults.length ?? 0) > 0,
+  );
   return {
-    exitCode: asExitCodeForBrainDirSyncFailures({ failures }),
+    exitCode:
+      exitCodeOfFailures === 0 && isDriftFaulted ? 1 : exitCodeOfFailures,
     repoActorRendered: !failures.some(
       (failure) => failure.scope.kind === 'repo',
     ),

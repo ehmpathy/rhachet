@@ -1,3 +1,4 @@
+import picomatch from 'picomatch';
 import { given, then, when } from 'test-fns';
 
 import { getClaudeMdExcludesList } from './getClaudeMdExcludesList';
@@ -9,57 +10,59 @@ import { getClaudeMdExcludesList } from './getClaudeMdExcludesList';
  *   constant here too would make the assertion tautological and the tripwire inert
  */
 describe('getClaudeMdExcludesList', () => {
-  const repoActorBrainDir =
-    '/repo/.agent/.actors/actor.via.repo=ambient/brain/.claude';
-
-  given('[case1] a repo, a repo actor brain dir, and a home', () => {
+  given('[case1] a clone of any actor', () => {
     when('[t0] the excludes list is built', () => {
       then(
-        'both repo doors in both spellings, the user CLAUDE.md, every CLAUDE.local.md by glob, and both rules globs, in order',
+        'every brain dir door in both spellings, every CLAUDE.local.md, and every rules dir, as globs, in order',
         () => {
-          expect(
-            getClaudeMdExcludesList({
-              repoPath: '/repo',
-              repoActorBrainDir,
-              home: '/home/h',
-            }),
-          ).toEqual([
-            '/repo/.claude/AGENTS.md',
-            '/repo/.claude/CLAUDE.md',
-            `${repoActorBrainDir}/AGENTS.md`,
-            `${repoActorBrainDir}/CLAUDE.md`,
-            '/home/h/.claude/CLAUDE.md',
+          expect(getClaudeMdExcludesList()).toEqual([
+            '**/.claude/AGENTS.md',
+            '**/.claude/CLAUDE.md',
             '**/CLAUDE.local.md',
-            '/repo/.claude/rules/**',
-            `${repoActorBrainDir}/rules/**`,
+            '**/.claude/rules/**',
           ]);
         },
       );
-    });
 
-    when('[t1] the list is built twice', () => {
-      then('the two arrays are equal', () => {
-        const build = () =>
-          getClaudeMdExcludesList({
-            repoPath: '/repo',
-            repoActorBrainDir,
-            home: '/home/h',
+      then(
+        'no entry names a host path, so the tracked settings file never drifts per worktree',
+        () => {
+          expect(
+            getClaudeMdExcludesList().filter((entry) => entry.startsWith('/')),
+          ).toEqual([]);
+        },
+      );
+
+      then(
+        'no entry, matched as a glob, hides a boot revision drift — while each brain dir door is hidden',
+        () => {
+          const isExcluded = picomatch(getClaudeMdExcludesList(), {
+            dot: true,
           });
-        expect(build()).toEqual(build());
-      });
-    });
-  });
+          const repo = '/home/human/git/surf-school';
 
-  given('[case2] a repoPath with a trail slash', () => {
-    when('[t0] the excludes list is built', () => {
-      then('no entry holds a double slash', () => {
-        const list = getClaudeMdExcludesList({
-          repoPath: '/repo/',
-          repoActorBrainDir,
-          home: '/home/h',
-        });
-        expect(list.filter((entry) => entry.includes('//'))).toEqual([]);
-      });
+          // the drift a clone must read, by its absolute path and by its repo-relative one
+          expect(
+            isExcluded(
+              `${repo}/.agent/.actors/actor.via.hash=abc/boots/sha256=0123456789abcdef/CLAUDE.md`,
+            ),
+          ).toBe(false);
+          expect(
+            isExcluded(
+              '.agent/.actors/actor.via.hash=abc/boots/sha256=0123456789abcdef/CLAUDE.md',
+            ),
+          ).toBe(false);
+
+          // the positive control: the doors the excludes exist to shut are shut
+          expect(
+            isExcluded(
+              `${repo}/.agent/.actors/actor.via.hash=abc/brain/.claude/CLAUDE.md`,
+            ),
+          ).toBe(true);
+          expect(isExcluded(`${repo}/.claude/AGENTS.md`)).toBe(true);
+          expect(isExcluded(`${repo}/CLAUDE.local.md`)).toBe(true);
+        },
+      );
     });
   });
 });

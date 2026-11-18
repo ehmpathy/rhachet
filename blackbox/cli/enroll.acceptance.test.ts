@@ -35,7 +35,7 @@ import {
   symlinkSync,
   writeFileSync,
 } from 'node:fs';
-import { join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 
 /**
  * .what = replaces any test-fns temp dir path with a stable `$TESTDIR` token
@@ -1994,9 +1994,11 @@ describe('rhx enroll leaf clone (acceptance)', () => {
       });
 
       // 🔴 the env half of the boot door, at the far end of the pty spawn (via the detached
-      //   host): without it the clone reads its boot twice, once per door
-      then('the pty child spawns with the CLAUDE.md door off', () => {
-        expect(dumped.disableClaudeMds).toEqual('1');
+      //   host): the add-dir door on, so a compaction re-reads the boot drift, and no
+      //   switch that would shut it (the excludes keep the boot to one load)
+      then('the pty child spawns with the add-dir CLAUDE.md door on', () => {
+        expect(dumped.addDirClaudeMd).toEqual('1');
+        expect(dumped.disableClaudeMds).toEqual(null);
       });
     });
   });
@@ -2160,8 +2162,9 @@ describe('rhx enroll leaf clone (acceptance)', () => {
       });
 
       // 🔴 the env half of the boot door, at the far end of the plain (print-mode) spawn
-      then('the plain child spawns with the CLAUDE.md door off', () => {
-        expect(dumped.disableClaudeMds).toEqual('1');
+      then('the plain child spawns with the add-dir CLAUDE.md door on', () => {
+        expect(dumped.addDirClaudeMd).toEqual('1');
+        expect(dumped.disableClaudeMds).toEqual(null);
       });
     });
   });
@@ -2741,7 +2744,8 @@ describe('rhx enroll --as slug collision (acceptance)', () => {
 /**
  * .what = the argv a real enroll hands the brain cli, read at the far end of the spawn
  * .why = rhachet owns the boot context: every clone spawns with `--system-prompt-file
- *   <actor boot.md>`, so the vendor default prompt is gone and the corpus is the system
+ *   <its boot revision's boot.md>` (the actor's boot bytes at spawn, kept by hash under
+ *   `boots/`), so the vendor default prompt is gone and the corpus is the system
  *   prompt, where the prompt cache shares it across sessions. this clamps that the pair
  *   survives every layer between the argv builder and the cli, that no other prompt flag
  *   rides beside it, and that a passthrough cannot fork it
@@ -2770,19 +2774,34 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
         return { list: await readRecordedBrainArgv({ recordPath: scene.recordPath }) };
       });
 
-      then('`--system-prompt-file` is followed by the actor boot.md', () => {
+      then('`--system-prompt-file` is followed by the boot revision the clone spawns on', () => {
         const index = argv.list.indexOf('--system-prompt-file');
         expect(index).toBeGreaterThan(-1);
         expect(argv.list[index + 1]).toMatch(
-          /\.agent\/\.actors\/actor\.via\.(repo|hash)=[^/]+\/brain\/\.claude\/boot\.md$/,
+          /\.agent\/\.actors\/actor\.via\.(repo|hash)=[^/]+\/boots\/sha256=[0-9a-f]{16}\/boot\.md$/,
         );
       });
 
-      then('the boot file it names holds the rendered corpus', () => {
+      then('the boot file it names holds the actor rendered corpus, byte for byte', () => {
         const index = argv.list.indexOf('--system-prompt-file');
         const bootMdPath = argv.list[index + 1]!;
-        expect(existsSync(bootMdPath)).toEqual(true);
+        const actorBootMdPath = join(
+          dirname(dirname(dirname(bootMdPath))),
+          'brain',
+          '.claude',
+          'boot.md',
+        );
         expect(readFileSync(bootMdPath, 'utf8')).toContain('<brief.');
+        expect(readFileSync(bootMdPath, 'utf8')).toEqual(
+          readFileSync(actorBootMdPath, 'utf8'),
+        );
+      });
+
+      then('`--add-dir` names that revision dir, where the drift rides', () => {
+        const index = argv.list.indexOf('--add-dir');
+        const bootMdPath = argv.list[argv.list.indexOf('--system-prompt-file') + 1]!;
+        expect(argv.list[index + 1]).toEqual(dirname(bootMdPath));
+        expect(readFileSync(join(dirname(bootMdPath), 'CLAUDE.md'), 'utf8')).toEqual('');
       });
 
       then('`--system-prompt-file` appears exactly once', () => {
@@ -2799,20 +2818,31 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
           expect(argv.list).not.toContain(flag);
       });
 
-      then('the prefix is exact: config source, config, then the boot file', () => {
+      then('the prefix is exact: config source, config, the drift dir, then the boot file', () => {
         expect(argv.list.slice(0, 2)).toEqual(['--setting-sources', 'user']);
         expect(argv.list[2]).toEqual('--settings');
         expect(argv.list[3]).toMatch(
           /\.agent\/\.actors\/actor\.via\.(repo|hash)=[^/]+\/brain\/\.claude\/settings\.of\.repo\.json$/,
         );
-        expect(argv.list[4]).toEqual('--system-prompt-file');
-        expect(argv.list).toHaveLength(6);
+        expect(argv.list[4]).toEqual('--add-dir');
+        expect(argv.list[6]).toEqual('--system-prompt-file');
+        expect(argv.list).toHaveLength(8);
+      });
+
+      then('the revision dir is named by a 16-hex content hash', () => {
+        expect(argv.list[5]).toMatch(/\/boots\/sha256=[0-9a-f]{16}$/);
       });
 
       then('the recorded argv is locked to a snapshot', () => {
+        // mask the content hash: it moves with every edit to the fixture's boot, which the hash case above guards
         expect(
           argv.list.map((arg) =>
-            arg === '' ? '<empty>' : maskTempDirBothNames({ text: arg, dir }),
+            arg === ''
+              ? '<empty>'
+              : maskTempDirBothNames({ text: arg, dir }).replace(
+                  /sha256=[0-9a-f]{16}/g,
+                  'sha256=$HASH',
+                ),
           ),
         ).toMatchSnapshot();
       });
@@ -2840,12 +2870,13 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
       });
 
       then('the boot file still leads, and the passthrough follows it in order', () => {
-        expect(argv.list[4]).toEqual('--system-prompt-file');
-        expect(argv.list[5]).toMatch(
-          /\.agent\/\.actors\/actor\.via\.(repo|hash)=[^/]+\/brain\/\.claude\/boot\.md$/,
+        expect(argv.list[4]).toEqual('--add-dir');
+        expect(argv.list[6]).toEqual('--system-prompt-file');
+        expect(argv.list[7]).toMatch(
+          /\.agent\/\.actors\/actor\.via\.(repo|hash)=[^/]+\/boots\/sha256=[0-9a-f]{16}\/boot\.md$/,
         );
-        expect(argv.list).toHaveLength(10);
-        expect(argv.list.slice(6)).toEqual([
+        expect(argv.list).toHaveLength(12);
+        expect(argv.list.slice(8)).toEqual([
           '--model',
           'haiku',
           '--append-system-prompt',
@@ -2951,12 +2982,13 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
   });
 
   /**
-   * .what = a boot edit reaches the next spawn, through the same actor's boot.md
+   * .what = a boot edit reaches the next spawn whole, and a live clone as its drift
    * .why = inventory case 11: after `rhx init` re-renders an actor's boot, each clone spawned
-   *   later boots the new bytes, with no new actor dir. the spawn reads `--system-prompt-file`,
-   *   so the clamp is that the file it names is the one re-rendered in place
-   * .note = the live half (a clone already up keeps its spawn boot through `/compact`) is a
-   *   brain-cli fact; the journey and `rhx boot.compact.probe` hold it
+   *   later boots the new bytes, with no new actor dir; a clone already up keeps its spawn
+   *   bytes as its system prompt, and the edit lands in the drift `CLAUDE.md` beside them,
+   *   which its next compaction reads (`--add-dir`)
+   * .note = whether the brain cli re-reads that drift at `/compact` is a brain-cli fact; the
+   *   journey [t4] and `rhx boot.compact.probe --door add-dir` hold it
    */
   given('[case2] a repo brief that boots whole, edited between two spawns', () => {
     const dir = genTempDir({ slug: 'enroll-boot-edit' });
@@ -3029,20 +3061,28 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
         expect(edited.status).toEqual(0);
       });
 
-      then('the boot.md the first spawn read now holds the edit, in place', () => {
+      then('the boot the first spawn read is kept as it was: its system prompt is never rewritten', () => {
         const content = readFileSync(before.bootMdPath, 'utf8');
-        expect(content).toContain('sentinel=SWELL_AFTER_EDIT');
-        expect(content).not.toContain('sentinel=SWELL_BEFORE_EDIT');
+        expect(content).toEqual(before.bootMdContent);
       });
 
-      then('the next spawn reads that same file: the edit reaches it', () => {
-        expect(after.bootMdPath).toEqual(before.bootMdPath);
+      then('the drift beside the first spawn boot now carries the edit, for its next compaction', () => {
+        const drift = readFileSync(join(dirname(before.bootMdPath), 'CLAUDE.md'), 'utf8');
+        expect(drift).toContain('sentinel=SWELL_AFTER_EDIT');
+        expect(drift).toMatch(/\ndrift = [0-9a-f]{16}\n/);
+      });
+
+      then('the next spawn reads a new revision that holds the edit whole', () => {
+        expect(after.bootMdPath).not.toEqual(before.bootMdPath);
+        const content = readFileSync(after.bootMdPath, 'utf8');
+        expect(content).toContain('sentinel=SWELL_AFTER_EDIT');
+        expect(content).not.toContain('sentinel=SWELL_BEFORE_EDIT');
+        expect(readFileSync(join(dirname(after.bootMdPath), 'CLAUDE.md'), 'utf8')).toEqual('');
       });
 
       then('no new actor dir: the edit changed the content, not the actor', () => {
         expect(after.actorDirs).toEqual(before.actorDirs);
-      });
-    });
+      });    });
   });
 });
 

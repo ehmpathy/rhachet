@@ -11,12 +11,10 @@ import {
   writeClaudeCodeSettings,
 } from '@src/domain.operations/brains/claudeCodeSettings';
 import { getAllHooksOfLinkedRolesForClaudeCode } from '@src/domain.operations/init/hooks/getAllHooksOfLinkedRolesForClaudeCode';
-import { getHomeDir } from '@src/infra/getHomeDir';
 import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 
 import { dirname, join } from 'node:path';
 import { getSupportedBrainCommand } from '../brain/getSupportedBrainCommand';
-import { asClaudeMdExcludesOutsideDirs } from './asClaudeMdExcludesOutsideDirs';
 import { asSettingsWithoutCloneEnv } from './asSettingsWithoutCloneEnv';
 import { getClaudeMdExcludesList } from './getClaudeMdExcludesList';
 import { getSettingsForRoles } from './getSettingsForRoles';
@@ -36,8 +34,9 @@ import { getSettingsForRoles } from './getSettingsForRoles';
  * .note = with no manifest the repo actor is the source itself: its hooks are never narrowed (a
  *   narrow would drop any hook with no author), only its claudeMdExcludes are set. under a
  *   manifest every actor narrows from the linked roles' hooks (`asSettingsNarrowedForActor`)
- * .note = the excludes never name the actor's own doors — for the repo actor, those are its
- *   own boot, so an exclude there would hide the clone's corpus
+ * .note = the excludes name the actor's own doors too: a clone's boot rides
+ *   `--system-prompt-file` and its drift rides `--add-dir`, never a brain dir door
+ *   (`getClaudeMdExcludesList`)
  * .note = the read of the source and the write of the target hold both files' mutexes, the
  *   source's first. a hook sync (the shield) or a layout findsert on the same file waits its
  *   turn, so a whole-file write here never drops a hook another `rhx` wrote between the read
@@ -81,7 +80,6 @@ export const genBrainCliConfigArtifact = async (input: {
   const withinLocks = () =>
     setActorSettingsRepoWithinLock({
       enrollment,
-      repoPath,
       repoActorBrainDir,
       actorBrainDir,
       isRepoActor,
@@ -112,7 +110,6 @@ export const genBrainCliConfigArtifact = async (input: {
  */
 const setActorSettingsRepoWithinLock = async (input: {
   enrollment: BrainCliEnrollmentManifest;
-  repoPath: string;
   repoActorBrainDir: string;
   actorBrainDir: string;
   isRepoActor: boolean;
@@ -120,7 +117,6 @@ const setActorSettingsRepoWithinLock = async (input: {
 }): Promise<{ configPath: string }> => {
   const {
     enrollment,
-    repoPath,
     repoActorBrainDir,
     actorBrainDir,
     isRepoActor,
@@ -143,20 +139,10 @@ const setActorSettingsRepoWithinLock = async (input: {
     settings: settingsNarrowed,
   });
 
-  // exclude every door but the actor's own, so the clone reads its brain dir alone (D5, D12).
-  //   the repo actor's doors have two paths — its real dir, and `<repo>/.claude`, a
-  //   symlink to it — so neither path may be excluded for it
-  const ownDirs = isRepoActor
-    ? [actorBrainDir, join(repoPath, '.claude')]
-    : [actorBrainDir];
-  const claudeMdExcludes = asClaudeMdExcludesOutsideDirs({
-    excludes: getClaudeMdExcludesList({
-      repoPath,
-      repoActorBrainDir,
-      home: getHomeDir(),
-    }),
-    dirs: ownDirs,
-  });
+  // exclude every brain dir door, the actor's own too: a clone boots from its system prompt
+  //   and reads its drift from its boot revision dir, so a door would load the boot twice
+  //   or load another actor's corpus beside it (D5, D12)
+  const claudeMdExcludes = getClaudeMdExcludesList();
 
   // write the actor's settings.of.repo.json
   await writeClaudeCodeSettings({

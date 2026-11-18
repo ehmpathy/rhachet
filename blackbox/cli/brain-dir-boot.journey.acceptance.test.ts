@@ -528,8 +528,9 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
       const relaunch = useThen('two launches of the actor, with two prompts, answer', async () => {
         // two launches with DIFFERENT prompts, as two real sessions open (M2, the assembly clamp)
         // .note = each launch carries the argv and env every enrolled clone spawns with: the
-        //   boot as the system-prompt file, the CLAUDE.md door off. a fixed prompt would
-        //   measure message identity, never whether a new session can read the boot
+        //   boot as the system-prompt file, every brain dir door shut by the enroll config's
+        //   claudeMdExcludes, the add-dir memory load on. a fixed prompt would measure message
+        //   identity, never whether a new session can read the boot
         // .note = each launch logs its raw request bodies, so the clamp reads what claude sent
         const launch = (input: {
           prompt: string;
@@ -543,7 +544,7 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
             env: {
               ...scene.env,
               CLAUDE_CONFIG_DIR: enrolled.brainDir,
-              CLAUDE_CODE_DISABLE_CLAUDE_MDS: '1',
+              CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD: '1',
               OTEL_LOG_RAW_API_BODIES: `file:${input.otelDir}`,
             },
             binPath: scene.binPath,
@@ -747,9 +748,10 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
 
       // the boot door, measured against the real cli: one launch through the vendor
       //   default prompt and the CLAUDE.md door, one through the door a clone spawns with
-      //   (the boot as the system-prompt file, CLAUDE.md off). both carry the enroll config
-      //   prefix (its claudeMdExcludes keep the repo corpus out), so the door is the ONE
-      //   variable. the same corpus must arrive by each, and the vendor prompt is gone
+      //   (the boot as the system-prompt file). both carry the enroll config prefix, whose
+      //   claudeMdExcludes shut every brain dir door, the actor's own too, so the door is the
+      //   ONE variable. the corpus must arrive by the system prompt alone — the CLAUDE.md door
+      //   reads naught, so the boot loads once — and the vendor prompt is gone
       const prompts = useThen('a vendor-door launch and a clone-door launch answer', async () => {
         const launch = async (args: string[], envDoor: Record<string, string>) => {
           const asked = await askClaudePrintForSentinels({
@@ -777,13 +779,23 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
             (envelope.usage?.cache_read_input_tokens ?? 0);
           return { ...asked, inputBilled };
         };
-        // one after the other, so the two launches never contend for the cache they measure
+        // an empty system-prompt file: the clone door with no corpus, so the vendor prompt
+        //   is the one difference from the vendor-door launch, now that neither reads a brief
+        const emptyDir = genTempDir({ slug: 'journey-empty-boot' });
+        const emptyBootPath = join(emptyDir, 'boot.empty.md');
+        writeFileSync(emptyBootPath, '');
+
+        // one after the other, so the launches never contend for the cache they measure
         const vendor = await launch([], {});
         const clone = await launch(
           ['--system-prompt-file', join(enrolled.brainDir, 'boot.md')],
-          { CLAUDE_CODE_DISABLE_CLAUDE_MDS: '1' },
+          { CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD: '1' },
         );
-        return { vendor, clone };
+        const cloneEmpty = await launch(
+          ['--system-prompt-file', emptyBootPath],
+          { CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD: '1' },
+        );
+        return { vendor, clone, cloneEmpty };
       });
 
       then('the cli accepts the boot as its system-prompt file — exit 0', () => {
@@ -802,18 +814,19 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
         expect(prompts.clone.sentinels).not.toContain(sentinelOf('user'));
       });
 
-      then('the vendor door reads the same corpus — no brief lost to the door change', () => {
-        expect([...prompts.vendor.sentinels].sort()).toEqual(
-          [...prompts.clone.sentinels].sort(),
-        );
+      then('the CLAUDE.md door, under the enroll config, reads no brief — so the boot reaches a clone only through the system prompt', () => {
+        expect(prompts.vendor.sentinels).not.toContain(sentinelOf('shaperhead'));
+        expect(prompts.vendor.sentinels).not.toContain(sentinelOf('shapertail'));
       });
 
       then('the clone door bills measurably less input — the vendor prompt is gone', () => {
-        const removed = prompts.vendor.inputBilled - prompts.clone.inputBilled;
+        // neither launch reads a brief, so the gap is the vendor prompt alone
+        const removed = prompts.vendor.inputBilled - prompts.cloneEmpty.inputBilled;
         // .note = the measure the yield records for the clone door
         console.log('system prompt measure', {
           vendor: prompts.vendor.inputBilled,
           clone: prompts.clone.inputBilled,
+          cloneEmpty: prompts.cloneEmpty.inputBilled,
           removed,
         });
 
@@ -821,6 +834,7 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
         //   release. a flag the cli ignored would leave the two launches within a few
         //   tokens of each other, far below this bound
         expect(prompts.vendor.status).toEqual(0);
+        expect(prompts.cloneEmpty.status).toEqual(0);
         expect(removed).toBeGreaterThanOrEqual(1000);
       });
 
@@ -1175,14 +1189,14 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
         },
       );
 
-      // the boot reaches a clone as --system-prompt-file, read once at spawn: a compaction keeps
-      //   it (measured by `rhx boot.compact.probe`, 2026-11-02 — the request after /compact holds
-      //   the spawn boot). an edit reaches a live clone only at its next spawn, the case below
-      //   (inventory.of=requirements.case=11). this assert was once the inverse, under the
-      //   CLAUDE.md door; the approved vision of 2026-11-02 named that cost when it moved the door
-      then.runIf(IS_BRAIN_LIVE)('after /compact the live clone still holds its spawn boot, not the edit', () => {
+      // the boot reaches a clone as --system-prompt-file, read once at spawn, so its system
+      //   prompt stays the cached spawn boot. the edit rides the drift CLAUDE.md of the boot
+      //   revision the clone spawned on (--add-dir), which a compaction re-reads: measured by
+      //   `rhx boot.compact.probe --door add-dir`, 2026-11-17 — the request after /compact holds
+      //   the drift in its messages, the system block unchanged (inventory.of=requirements.case=11)
+      then.runIf(IS_BRAIN_LIVE)('after /compact the live clone holds its spawn boot and the edit', () => {
         expect(both.compacted.sentinels).toContain(sentinelOf('shaperhead'));
-        expect(both.compacted.sentinels).not.toContain(sentinelOf('shapernew'));
+        expect(both.compacted.sentinels).toContain(sentinelOf('shapernew'));
       });
 
       then.runIf(IS_BRAIN_LIVE)('the new clone quotes the new sentinel at spawn, and no new actor', () => {

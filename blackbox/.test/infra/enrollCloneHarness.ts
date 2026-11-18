@@ -107,6 +107,7 @@ export const readStubEnvDumped = async (input: {
   hostDetached: string | null;
   leaf: string | null;
   disableClaudeMds: string | null;
+  addDirClaudeMd: string | null;
 }> => {
   // find the enrolled actor: the one hash actor, else the repo actor
   const actorsDir = join(input.dir, '.agent/.actors');
@@ -147,6 +148,7 @@ export const readStubEnvDumped = async (input: {
     hostDetached: asField('hostDetached'),
     leaf: asField('leaf'),
     disableClaudeMds: asField('disableClaudeMds'),
+    addDirClaudeMd: asField('addDirClaudeMd'),
   };
 };
 

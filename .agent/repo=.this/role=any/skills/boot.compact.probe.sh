@@ -12,6 +12,12 @@
 #         live clone: at the next /compact, or only at the next spawn. the
 #         raw request is the record; a brain's self-report is no measure
 #
+# .note = --door add-dir measures the drift door instead: the sentinel lands
+#         in the CLAUDE.md of the boot revision the clone spawned on (its
+#         `boot.spawned.ref`), and the verdict reads the messages, where
+#         memory rides. the same run counts how often the boot's intro marker
+#         reaches turn 1, so a boot that loads twice fails loud
+#
 # usage:
 #   run `rhx boot.compact.probe help` — `show_help()` below is the one source
 #
@@ -30,16 +36,20 @@ ORIGINAL_ARGS=("$@")
 show_help() {
   echo "🧮 boot.compact.probe — does a live clone re-read its boot on /compact?"
   echo "   ├─ usage"
-  echo "   │  └─ rhx boot.compact.probe [--roles <spec>] [--model <model>]"
+  echo "   │  └─ rhx boot.compact.probe [--roles <spec>] [--model <model>] [--door <system|add-dir>]"
   echo "   ├─ options"
   echo "   │  ├─ --roles    the --roles spec passed to rhx enroll; -driver when absent"
-  echo "   │  └─ --model    the brain model; haiku when absent"
+  echo "   │  ├─ --model    the brain model; haiku when absent"
+  echo "   │  └─ --door     where the sentinel lands; system when absent"
+  echo "   │     ├─ system   the actor's boot.md, read as the system prompt"
+  echo "   │     └─ add-dir  the clone's boot revision CLAUDE.md, read as memory"
   echo "   ├─ exits"
   echo "   │  ├─ 0 = measured, and the verdict is ✓ or ✗"
   echo "   │  ├─ 1 = the measure failed — no clone, no request bodies, or a wait ran out"
   echo "   │  └─ 2 = bad input"
   echo "   ├─ examples"
   echo "   │  ├─ rhx boot.compact.probe"
+  echo "   │  ├─ rhx boot.compact.probe --door add-dir"
   echo "   │  └─ rhx boot.compact.probe --model sonnet"
   echo "   └─ spends real tokens — two short turns and one compaction"
   exit 0
@@ -100,9 +110,18 @@ fi
 
 ROLES="-driver"
 MODEL="haiku"
+DOOR="system"
 
 while [[ $# -gt 0 ]]; do
   case $1 in
+    --door)
+      require_val flag=--door value="${2:-}"
+      if [[ "$2" != "system" && "$2" != "add-dir" ]]; then
+        fail kind=constraint what="--door must be system or add-dir, not $2"
+      fi
+      DOOR="$2"
+      shift 2
+      ;;
     --roles)
       require_val flag=--roles value="${2:-}"
       ROLES="$2"
@@ -137,13 +156,16 @@ OTEL="$LOGDIR/otel"
 mkdir -p "$OTEL"
 SLUG="compactprobe-$$"
 SENTINEL="KELP-$$-TIDE"
+# the one marker every boot holds once: the rhachet intro brief's path
+BOOT_MARKER="rhachet/intro"
 BOOT=""
+TARGET=""
 
-# on every exit: send /exit to the clone, and put the actor's boot.md back as it was
+# on every exit: send /exit to the clone, and put the edited file back as it was
 cleanup() {
   npx rhx clone say "@:$SLUG" --what /exit >/dev/null 2>&1 || true
-  if [[ -n "$BOOT" && -f "$LOGDIR/boot.md.before" ]]; then
-    cp "$LOGDIR/boot.md.before" "$BOOT"
+  if [[ -n "$TARGET" && -f "$LOGDIR/target.before" ]]; then
+    cp "$LOGDIR/target.before" "$TARGET"
   fi
 }
 trap cleanup EXIT
@@ -227,6 +249,8 @@ if [[ "$ENROLL_STATUS" -ne 0 ]]; then
 fi
 
 # the actor dir that holds the clone: the clone whose identity.json names this slug
+CLONE_DIR=""
+ACTOR_DIR=""
 for IDENTITY in .agent/.actors/*/clones/serial=*/identity.json; do
   [[ -f "$IDENTITY" ]] || continue
   # an unreadable identity fails loud, never reads as another clone's
@@ -235,13 +259,28 @@ for IDENTITY in .agent/.actors/*/clones/serial=*/identity.json; do
     fail kind=malfunction what="a clone identity could not be parsed as json" detail="$IDENTITY_SLUG" hint="the identity is at $IDENTITY"
   fi
   if [[ "$IDENTITY_SLUG" == "$SLUG" ]]; then
-    BOOT="$(dirname "$(dirname "$(dirname "$IDENTITY")")")/brain/.claude/boot.md"
+    CLONE_DIR="$(dirname "$IDENTITY")"
+    ACTOR_DIR="$(dirname "$(dirname "$CLONE_DIR")")"
+    BOOT="$ACTOR_DIR/brain/.claude/boot.md"
   fi
 done
 if [[ -z "$BOOT" || ! -f "$BOOT" ]]; then
   fail kind=malfunction what="the probe clone's actor boot.md could not be found" detail="$ENROLLED"
 fi
-cp "$BOOT" "$LOGDIR/boot.md.before"
+
+# the file the sentinel lands in: the actor's boot, or the clone's boot revision drift
+TARGET="$BOOT"
+if [[ "$DOOR" == "add-dir" ]]; then
+  if [[ ! -f "$CLONE_DIR/boot.spawned.ref" ]]; then
+    fail kind=malfunction what="the probe clone holds no boot.spawned.ref" hint="rebuild (npm run build); the clone must spawn on a boot revision"
+  fi
+  REVISION_HASH="$(tr -d '[:space:]' < "$CLONE_DIR/boot.spawned.ref")"
+  TARGET="$ACTOR_DIR/boots/sha256=$REVISION_HASH/CLAUDE.md"
+  if [[ ! -f "$TARGET" ]]; then
+    fail kind=malfunction what="the clone's boot revision holds no CLAUDE.md" detail="$TARGET"
+  fi
+fi
+cp "$TARGET" "$LOGDIR/target.before"
 
 # the requests a clone sends before any say: settle 15s, then count them
 sleep 15
@@ -250,8 +289,8 @@ AT_SPAWN=$(rows_now)
 # turn 1, at spawn: the boot as the clone read it
 say_and_await what="Do not use any tools. Reply with exactly: OK" label="turn 1" >/dev/null
 
-# the edit after spawn: one sentinel line at the end of the boot
-printf '\nthe compact probe sentinel is %s.\n' "$SENTINEL" >> "$BOOT"
+# the edit after spawn: one sentinel line at the end of the target
+printf '\nthe compact probe sentinel is %s.\n' "$SENTINEL" >> "$TARGET"
 
 # /compact, then one more turn: the request after the compaction is the one that matters
 COMPACT_AT=$(say_and_await what="/compact" label="/compact")
@@ -261,6 +300,7 @@ AFTER_AT=$(say_and_await what="Do not use any tools. Reply with exactly: OK" lab
 #   a fault never counts as a request without the sentinel
 N=0
 VERDICT_HOLDS=""
+BOOTS_AT_TURN1=""
 TOTAL=$(rows_now)
 ROWS_OUT=""
 while IFS= read -r ROW; do
@@ -280,6 +320,15 @@ while IFS= read -r ROW; do
   if ! HOLDS=$(jq -r --arg s "$SENTINEL" '(.system | tostring) | contains($s) | if . then "yes" else "no" end' "$OTEL/$FILE" 2>&1); then
     fail kind=malfunction what="request body $N could not be parsed as json" detail="$HOLDS"
   fi
+  MSGS_HOLD=""
+  if ! MSGS_HOLD=$(jq -r --arg s "$SENTINEL" '(.messages | tostring) | contains($s) | if . then "yes" else "no" end' "$OTEL/$FILE" 2>&1); then
+    fail kind=malfunction what="request body $N holds no readable messages" detail="$MSGS_HOLD"
+  fi
+  # how many times the boot marker reaches this request, system and messages together
+  BOOTS=""
+  if ! BOOTS=$(jq -r --arg m "$BOOT_MARKER" '[(.system | tostring), (.messages | tostring)] | map(split($m) | length - 1) | add' "$OTEL/$FILE" 2>&1); then
+    fail kind=malfunction what="request body $N could not be counted for the boot marker" detail="$BOOTS"
+  fi
   # the last text the request carries, so the compaction request reads as one
   ASK=""
   if ! ASK=$(jq -r '
@@ -287,8 +336,10 @@ while IFS= read -r ROW; do
       | last // "" | gsub("\\s+"; " ") | .[0:60]' "$OTEL/$FILE" 2>&1); then
     fail kind=malfunction what="request body $N holds no readable messages" detail="$ASK"
   fi
-  ROWS_OUT+="   │  $GLYPH [$N] $PHASE · system holds the sentinel = $HOLDS · asks \"$ASK\""$'\n'
-  if [[ "$PHASE" == "turn 2" ]]; then VERDICT_HOLDS="$HOLDS"; fi
+  ROWS_OUT+="   │  $GLYPH [$N] $PHASE · sentinel in system = $HOLDS · sentinel in messages = $MSGS_HOLD · boot copies = $BOOTS · asks \"$ASK\""$'\n'
+  if [[ "$PHASE" == "turn 2" && "$DOOR" == "system" ]]; then VERDICT_HOLDS="$HOLDS"; fi
+  if [[ "$PHASE" == "turn 2" && "$DOOR" == "add-dir" ]]; then VERDICT_HOLDS="$MSGS_HOLD"; fi
+  if [[ "$PHASE" == "turn 1" ]]; then BOOTS_AT_TURN1="$BOOTS"; fi
 done < "$OTEL/index.jsonl"
 
 # a void measure fails before the tree opens, so stdout never holds a tree with no verdict
@@ -298,14 +349,28 @@ if [[ -z "$VERDICT_HOLDS" ]]; then
   fail kind=malfunction what="no request after the compaction was logged" hint="read the clone with rhx clone get @:$SLUG --tail 10"
 fi
 
-echo "🧮 boot.compact.probe --roles '$ROLES' --model $MODEL"
-echo "   ├─ the sentinel line lands in boot.md after spawn, before /compact"
+echo "🧮 boot.compact.probe --roles '$ROLES' --model $MODEL --door $DOOR"
+echo "   ├─ the sentinel line lands in ${TARGET#"$PWD"/} after spawn, before /compact"
 echo "   ├─ requests, in send order"
 printf '%s' "$ROWS_OUT"
 echo "   │"
 echo "   ├─ request bodies = .log/role=any/skill=boot.compact.probe/$RUN/otel"
-if [[ "$VERDICT_HOLDS" == "yes" ]]; then
+if [[ "$BOOTS_AT_TURN1" == "1" ]]; then
+  echo "   ├─ ✓ the boot reached turn 1 once"
+fi
+if [[ "$BOOTS_AT_TURN1" != "1" ]]; then
+  echo "   ├─ ✗ the boot reached turn 1 ${BOOTS_AT_TURN1:-an unread number of} times, not once"
+fi
+if [[ "$DOOR" == "system" && "$VERDICT_HOLDS" == "yes" ]]; then
   echo "   └─ ✓ /compact re-read the boot; a live clone meets a boot edit at its next compaction"
   exit 0
 fi
-echo "   └─ ✗ /compact kept the spawn boot; a live clone meets a boot edit only at its next spawn"
+if [[ "$DOOR" == "system" ]]; then
+  echo "   └─ ✗ /compact kept the spawn boot; a live clone meets a boot edit only at its next spawn"
+  exit 0
+fi
+if [[ "$VERDICT_HOLDS" == "yes" ]]; then
+  echo "   └─ ✓ /compact re-read the add-dir CLAUDE.md; a live clone meets its boot drift at its next compaction"
+  exit 0
+fi
+echo "   └─ ✗ /compact kept the add-dir CLAUDE.md as it was at spawn; the drift needs another door"

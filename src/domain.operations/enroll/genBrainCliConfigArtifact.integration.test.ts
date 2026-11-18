@@ -146,22 +146,14 @@ describe('genBrainCliConfigArtifact', () => {
       });
 
       then(
-        'carries claudeMdExcludes for every repo door (D5, D12)',
+        'carries claudeMdExcludes for every repo door and its own door (D5, D12)',
         async () => {
           const content = await fs.readFile(result.configPath, 'utf-8');
           const settings = JSON.parse(content) as {
             claudeMdExcludes?: string[];
           };
-          expect(settings.claudeMdExcludes).toEqual(
-            getClaudeMdExcludesList({
-              repoPath: scene.repoPath,
-              repoActorBrainDir: asBrainDir({
-                repoPath: scene.repoPath,
-                exid: REPO_EXID,
-              }),
-              home: os.homedir(),
-            }),
-          );
+          expect(settings.claudeMdExcludes).toEqual(getClaudeMdExcludesList());
+          expect(settings.claudeMdExcludes).toContain('**/.claude/CLAUDE.md');
         },
       );
     });
@@ -193,24 +185,16 @@ describe('genBrainCliConfigArtifact', () => {
         expect(settings.hooks).toEqual(settingsWithHooks.hooks);
       });
 
-      then('never excludes its own doors — they are its own boot', async () => {
-        const content = await fs.readFile(result.configPath, 'utf-8');
-        const settings: { claudeMdExcludes: string[] } = JSON.parse(content);
-        const ownBrainDir = asBrainDir({
-          repoPath: scene.repoPath,
-          exid: REPO_EXID,
-        });
-        expect(
-          settings.claudeMdExcludes.filter(
-            (p) =>
-              p.startsWith(`${ownBrainDir}/`) ||
-              p.startsWith(`${path.join(scene.repoPath, '.claude')}/`),
-          ),
-        ).toEqual([]);
-        expect(settings.claudeMdExcludes).toContain(
-          path.join(os.homedir(), '.claude', 'CLAUDE.md'),
-        );
-      });
+      then(
+        'excludes every door, its own too, with no host path in its tracked file',
+        async () => {
+          const content = await fs.readFile(result.configPath, 'utf-8');
+          const settings: { claudeMdExcludes: string[] } = JSON.parse(content);
+          expect(settings.claudeMdExcludes).toEqual(getClaudeMdExcludesList());
+          expect(content).not.toContain(scene.repoPath);
+          expect(content).not.toContain(os.homedir());
+        },
+      );
     });
   });
 

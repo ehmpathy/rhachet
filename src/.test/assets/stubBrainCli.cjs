@@ -46,14 +46,15 @@ const serial = process.env.RHACHET_CLONE_SERIAL || 'unknown';
  *   leaked flag. a stub that accepts every argv proves only that rhachet spawned a
  *   child, never that it spawned a VIABLE one.
  *
- * .the allowlist = exactly what `asBrainCliSpawnArgs` builds: the fixed
- *   prefix (config sources + the owned system-prompt file, the actor's boot). an arg
- *   past it is by definition a passthrough arg, and no extant case passes one — so an
- *   arg here is a LEAK, and this refusal is what says so out loud (rule.forbid.failhide)
+ * .the allowlist = exactly what the spawn builds: the fixed prefix (config sources,
+ *   the boot revision dir via `--add-dir`, the owned system-prompt file). an arg past
+ *   it is by definition a passthrough arg, and no extant case passes one — so an arg
+ *   here is a LEAK, and this refusal is what says so out loud (rule.forbid.failhide)
  */
 const ARGS_KNOWN_WITH_VALUE = new Set([
   '--setting-sources',
   '--settings',
+  '--add-dir',
   '--system-prompt-file',
 ]);
 /**
@@ -117,8 +118,11 @@ fs.writeFileSync(
     depthMinted: process.env.RHACHET_CLONE_DEPTH_MINTED ?? null,
     leaf: process.env.RHACHET_CLONE_LEAF ?? null,
     hostDetached: process.env.RHACHET_CLONE_HOST_DETACHED ?? null,
-    // the boot door switch: with it on, the clone reads its boot once, as the system prompt
+    // the door switches: the CLAUDE.md doors stay open (the excludes shut the brain dir
+    //   ones), and the add-dir door is on, so a compaction re-reads the boot drift
     disableClaudeMds: process.env.CLAUDE_CODE_DISABLE_CLAUDE_MDS ?? null,
+    addDirClaudeMd:
+      process.env.CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD ?? null,
   }),
 );
 

@@ -33,6 +33,20 @@ export type BrainDirBootRender = {
    *        an identical re-render is not. like `bootMdCreated`, it is knowable only at write time
    */
   bootMdChanged: boolean;
+  /**
+   * .what = the drift fan-out this render triggered: how many boot revisions the actor holds,
+   *         how many had their drift re-written, and each that faulted
+   * .why = the editor's question after a render is "do my live clones get this?"; this is
+   *        the answer, and a fault names the revision (or the clones dir) and why its clones
+   *        miss the drift: a drift write failed, a ref names a gone revision, or a ref is unreadable
+   * .note = null where the brain dir sits outside the actor layout, so no actor holds it
+   */
+  drift: {
+    revisions: number;
+    rewritten: number;
+    clones: number;
+    faults: { revisionDir: string; reason: string; cause: Error }[];
+  } | null;
 };
 
 /**
