@@ -1,5 +1,5 @@
-import { BrainHookFilter } from '@src/domain.objects/BrainHookFilter';
 import { genSampleHookDispatchRule } from '@src/.test/assets/genSampleHookDispatchRule';
+import { BrainHookFilter } from '@src/domain.objects/BrainHookFilter';
 
 import { asBrainHookOfHookDispatchRule } from './asBrainHookOfHookDispatchRule';
 

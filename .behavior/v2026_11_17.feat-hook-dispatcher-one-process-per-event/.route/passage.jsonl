@@ -127,3 +127,6 @@
 {"stone":"5.1.execution.from_vision","status":"absorbed","reason":"absorbed review.peer: ergo-friction-hazards"}
 {"stone":"5.1.execution.from_vision","status":"arrived","reason":"entered guard reviews"}
 {"stone":"5.1.execution.from_vision","status":"blocked","blocker":"review.peer","reason":"blockers exceed threshold (3 > 0)"}
+{"stone":"5.1.execution.from_vision","status":"conceded","reviewer":"repo-rules","about":"blocker.1","given":"5.1.execution.from_vision._.review.i002.d6c03829a404ea6b29.r001._.given.by_peer.repo-rules.md","severity":"better","reason":"conceded review.peer: repo-rules blocker.1 (better)"}
+{"stone":"5.1.execution.from_vision","status":"conceded","reviewer":"repo-rules","about":"nitpick.1","given":"5.1.execution.from_vision._.review.i002.d6c03829a404ea6b29.r001._.given.by_peer.repo-rules.md","severity":"better","reason":"conceded review.peer: repo-rules nitpick.1 (better)"}
+{"stone":"5.1.execution.from_vision","status":"disputed","reviewer":"repo-rules","about":"nitpick.2","given":"5.1.execution.from_vision._.review.i002.d6c03829a404ea6b29.r001._.given.by_peer.repo-rules.md","fulcrum":".behavior/v2026_11_17.feat-hook-dispatcher-one-process-per-event/.fulcrums/inventory.of=fulcrums.case=F8-worktree-files-of-another-upgrade-stay-out.md","reason":"disputed review.peer: repo-rules nitpick.2"}
