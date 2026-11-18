@@ -200,16 +200,6 @@ entool: a tactic worth repeat becomes a skill — \`.agent/repo=.this/role=any/s
 
 </brief.say>
 
-<readme path=".agent/repo=.this/role=surfer/readme.md">
-# surfer, native
-
-</readme>
-
-<brief.say path=".agent/repo=.this/role=surfer/briefs/rule.require.local-break.md">
-native: surf the local break
-
-</brief.say>
-
 <readme path=".agent/repo=alpha/role=surfer/readme.md">
 # surfer, of alpha
 
@@ -228,6 +218,18 @@ alpha: ride a longboard on small days
 
 # [implementation hidden - use skill to execute]
 </skill.say>
+
+__SYSTEM_PROMPT_DYNAMIC_BOUNDARY__
+
+<readme path=".agent/repo=.this/role=surfer/readme.md">
+# surfer, native
+
+</readme>
+
+<brief.say path=".agent/repo=.this/role=surfer/briefs/rule.require.local-break.md">
+native: surf the local break
+
+</brief.say>
 
 "
 `;

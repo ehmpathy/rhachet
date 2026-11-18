@@ -217,8 +217,28 @@ describe('asRepoSlugKind, across every scanner of `.agent/`', () => {
           expect(result.errors).toEqual([]);
         });
 
-        then('the mod dir yields no role and arms no hook', () => {
-          expect(result.roles).toEqual([]);
+        then('the mod dir yields no role of its own', () => {
+          expect(result.roles.filter((role) => role.repo === '.mods')).toEqual(
+            [],
+          );
+        });
+
+        then('the mod dir arms the one stop sweep, on the .this any carrier', () => {
+          expect(
+            result.roles.map((role) => ({
+              repo: role.repo,
+              slug: role.slug,
+              onStop: role.hooks?.onBrain?.onStop?.map((hook) => hook.command),
+            })),
+          ).toEqual([
+            {
+              repo: '.this',
+              slug: 'any',
+              onStop: [
+                './node_modules/.bin/rhachet roles cost --all --when hook.onStop',
+              ],
+            },
+          ]);
         });
       });
     },
