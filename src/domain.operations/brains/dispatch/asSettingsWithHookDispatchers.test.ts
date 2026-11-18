@@ -1,6 +1,6 @@
 import { given, then, when } from 'test-fns';
 
-import { HookDispatchRule } from '@src/domain.objects/HookDispatchRule';
+import { genSampleHookDispatchRule } from '@src/.test/assets/genSampleHookDispatchRule';
 import type { ClaudeCodeSettings } from '@src/domain.operations/brains/claudeCodeSettings';
 
 import { asHookDispatchersOfRules } from './asHookDispatchersOfRules';
@@ -11,20 +11,7 @@ const MANIFEST_PATH =
   '.agent/.actors/actor.via.slug=demo/brain/.claude/hooks.dispatch.manifest';
 
 // a rule with sane defaults; each case overrides what it tests
-const genRule = (input: Partial<HookDispatchRule>): HookDispatchRule =>
-  new HookDispatchRule({
-    event: 'PreToolUse',
-    matcher: '*',
-    timeoutSeconds: 30,
-    author: 'repo=demo/role=tester',
-    kind: 'foreign',
-    path: '',
-    frame: '',
-    args: [],
-    command: 'echo hi',
-    when: null,
-    ...input,
-  });
+const genRule = genSampleHookDispatchRule;
 
 // a hook a human added by hand: no dispatcher author
 const handHook = { type: 'command', command: 'echo hand', timeout: 7 };

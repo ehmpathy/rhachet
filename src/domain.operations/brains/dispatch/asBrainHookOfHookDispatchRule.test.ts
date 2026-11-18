@@ -1,23 +1,10 @@
 import { BrainHookFilter } from '@src/domain.objects/BrainHookFilter';
-import { HookDispatchRule } from '@src/domain.objects/HookDispatchRule';
+import { genSampleHookDispatchRule } from '@src/.test/assets/genSampleHookDispatchRule';
 
 import { asBrainHookOfHookDispatchRule } from './asBrainHookOfHookDispatchRule';
 
 // a rule with sane defaults; each case overrides what it tests
-const genRule = (input: Partial<HookDispatchRule>): HookDispatchRule =>
-  new HookDispatchRule({
-    event: 'PreToolUse',
-    matcher: '*',
-    timeoutSeconds: 30,
-    author: 'repo=demo/role=tester',
-    kind: 'foreign',
-    path: '',
-    frame: '',
-    args: [],
-    command: 'echo hi',
-    when: null,
-    ...input,
-  });
+const genRule = genSampleHookDispatchRule;
 
 describe('asBrainHookOfHookDispatchRule', () => {
   test('reads author and command back as declared', () => {

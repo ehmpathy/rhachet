@@ -1,6 +1,7 @@
 import { ConstraintError } from 'helpful-errors';
 import { getError } from 'test-fns';
 
+import { genSampleHookDispatchRule } from '@src/.test/assets/genSampleHookDispatchRule';
 import { HookDispatchRule } from '@src/domain.objects/HookDispatchRule';
 
 import {
@@ -13,20 +14,7 @@ import { asHookDispatchRulesFromManifestText } from './asHookDispatchRulesFromMa
 const PATH = 'hooks.dispatch.manifest';
 
 // a rule with sane defaults; each case overrides what it tests
-const genRule = (input: Partial<HookDispatchRule>): HookDispatchRule =>
-  new HookDispatchRule({
-    event: 'PreToolUse',
-    matcher: '*',
-    timeoutSeconds: 30,
-    author: 'repo=demo/role=tester',
-    kind: 'foreign',
-    path: '',
-    frame: '',
-    args: [],
-    command: 'echo hi',
-    when: null,
-    ...input,
-  });
+const genRule = genSampleHookDispatchRule;
 
 const ROUND_TRIP_CASES = [
   { description: 'no rules', rules: [] },

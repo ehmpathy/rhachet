@@ -1,4 +1,4 @@
-import { HookDispatchRule } from '@src/domain.objects/HookDispatchRule';
+import { genSampleHookDispatchRule } from '@src/.test/assets/genSampleHookDispatchRule';
 
 import { asHookDispatchersOfRules } from './asHookDispatchersOfRules';
 import { HOOK_DISPATCH } from './constants';
@@ -7,20 +7,7 @@ const MANIFEST_PATH =
   '.agent/.actors/actor.via.slug=demo/brain/.claude/hooks.dispatch.manifest';
 
 // a rule with sane defaults; each case overrides what it tests
-const genRule = (input: Partial<HookDispatchRule>): HookDispatchRule =>
-  new HookDispatchRule({
-    event: 'PreToolUse',
-    matcher: '*',
-    timeoutSeconds: 30,
-    author: 'repo=demo/role=tester',
-    kind: 'foreign',
-    path: '',
-    frame: '',
-    args: [],
-    command: 'echo hi',
-    when: null,
-    ...input,
-  });
+const genRule = genSampleHookDispatchRule;
 
 const TEST_CASES = [
   {

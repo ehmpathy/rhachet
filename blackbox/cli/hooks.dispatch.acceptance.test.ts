@@ -258,6 +258,28 @@ describe('hook dispatcher (one process per claude event)', () => {
       });
     });
 
+    when('[t2b] a Bash call where two rules block and one crashes', () => {
+      const payload = asPayloadBash('deny crash');
+      const result = useBeforeAll(async () => ({
+        dispatched: scene.dispatch('PreToolUse', payload),
+        block: scene.standalone(DECLARED.block, payload),
+        trap: scene.standalone(DECLARED.trap, payload),
+        crash: scene.standalone(DECLARED.crash, payload),
+      }));
+
+      then('the dispatcher exits 2, so the block holds', () => {
+        expect(result.block.code).toEqual(2);
+        expect(result.crash.code).toEqual(1);
+        expect(result.dispatched.code).toEqual(2);
+      });
+
+      then('stderr is every blocker stderr, then the crash stderr, never lost', () => {
+        expect(result.dispatched.stderr).toEqual(
+          [result.block.stderr, result.trap.stderr, result.crash.stderr].join(''),
+        );
+      });
+    });
+
     when('[t3] a Bash call where one rule asks via json and one crashes', () => {
       const payload = asPayloadBash('ask crash');
       const result = useBeforeAll(async () => ({

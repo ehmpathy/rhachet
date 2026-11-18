@@ -72,14 +72,60 @@ export const syncRoleHooksIntoTarget = async (
 
   // then, with every manifest whole, swap each brain's per-rule hooks for its dispatchers;
   //   a fault here keeps the rules the sync already wrote in the report
-  try {
-    await setHookDispatchersForTarget(
-      { brains: input.brains, configTargetDir: input.configTargetDir },
-      context,
-    );
-    return { pruneResult, syncResult, faults: [] };
-  } catch (error) {
-    if (!isActorHookSyncFault(error)) throw error;
-    return { pruneResult, syncResult, faults: [{ error }] };
-  }
+  const swapResult = await (async () => {
+    try {
+      return await setHookDispatchersForTarget(
+        { brains: input.brains, configTargetDir: input.configTargetDir },
+        context,
+      );
+    } catch (error) {
+      if (!isActorHookSyncFault(error)) throw error;
+      return { error };
+    }
+  })();
+  if ('error' in swapResult)
+    return { pruneResult, syncResult, faults: [{ error: swapResult.error }] };
+
+  // a brain that refused its dispatchers runs none of its rules, so each role synced into it
+  //   reports that refusal, as the per-rule sync reported a refused write per role × brain;
+  //   a refused brain with no role synced into it still reports, as a fault of the target
+  const faultsOfBrainsUnsynced = swapResult.errors
+    .filter(
+      ({ brain }) =>
+        !syncResult.applied.some((applied) => applied.brain === brain),
+    )
+    .map(({ error }) => ({ error }));
+  return {
+    pruneResult,
+    syncResult: asSyncResultWithSwapErrors({
+      syncResult,
+      swapErrors: swapResult.errors,
+    }),
+    faults: faultsOfBrainsUnsynced,
+  };
+};
+
+/**
+ * .what = the sync result with each role applied into a refused brain moved to its errors
+ * .why = the rules of a brain whose dispatchers did not land never run, so the report must not
+ *   count them as created; it names the refusal per role, the row a human already reads
+ */
+const asSyncResultWithSwapErrors = (input: {
+  syncResult: Awaited<ReturnType<typeof syncAllRoleHooksIntoEachBrainRepl>>;
+  swapErrors: Array<{ brain: BrainSpecifier; error: Error }>;
+}): Awaited<ReturnType<typeof syncAllRoleHooksIntoEachBrainRepl>> => {
+  const errorOfBrain = new Map(
+    input.swapErrors.map(({ brain, error }) => [brain, error]),
+  );
+  const appliedKept = input.syncResult.applied.filter(
+    (applied) => !errorOfBrain.has(applied.brain),
+  );
+  const appliedRefused = input.syncResult.applied.flatMap((applied) => {
+    const error = errorOfBrain.get(applied.brain);
+    return error ? [{ role: applied.role, brain: applied.brain, error }] : [];
+  });
+  return {
+    applied: appliedKept,
+    errors: [...input.syncResult.errors, ...appliedRefused],
+  };
 };

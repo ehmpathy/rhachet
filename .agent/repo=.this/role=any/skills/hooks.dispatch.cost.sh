@@ -151,6 +151,8 @@ if [[ "$WHAT" == "cost" ]]; then
   echo "heres the read..."
   echo ""
   echo "🧮 hooks.dispatch.cost --event $EVENT --tool $TOOL --runs $RUNS"
+  # a bare run reads one file twice; say so, so equal numbers never read as "no change"
+  [[ "$BEFORE" == "$AFTER" ]] && echo "   ├─ note = before and after name one file; pass --before <settings> for a delta"
   echo "   ├─ before = $BEFORE"
   echo "   │  ├─ hooks claude starts = $(count_hooks "$BEFORE")"
   echo "   │  ├─ processes forked = $forks_before ($execs_before execs)"

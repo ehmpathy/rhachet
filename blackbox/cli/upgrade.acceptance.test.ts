@@ -102,8 +102,42 @@ const extractRhachetOutput = (input: {
 
   return {
     header: headerLines.join('\n').trim(),
-    summary: summaryLines.join('\n').trim(),
+    summary: asHookCountsMasked({ lines: summaryLines }).join('\n').trim(),
   };
+};
+
+/**
+ * .what = masks the counts on the rows beneath `✨ hooks` as `__N__`
+ * .why = `upgrade` installs the latest role from the npm registry, so the hook count belongs
+ *        to whatever version was last published, never to this repo. a pinned count turns
+ *        red on every upstream publish (1.43.0 took it 14 → 16); the shape stays pinned, and
+ *        `getHookCountCreated` asserts the count itself
+ */
+const asHookCountsMasked = (input: { lines: string[] }): string[] => {
+  const indexHooks = input.lines.findIndex((line) => line.trim() === '✨ hooks');
+  return input.lines.map((line, index) => {
+    // only the tree rows that hang beneath the hooks header
+    const isUnderHooks =
+      indexHooks >= 0 &&
+      index > indexHooks &&
+      input.lines
+        .slice(indexHooks + 1, index + 1)
+        .every((row) => /^\s+[├└│]/.test(row));
+    if (!isUnderHooks) return line;
+    return line.replace(/([├└]─ )\d+ /, '$1__N__ ');
+  });
+};
+
+/**
+ * .what = reads the `└─ N created` count beneath `✨ hooks` from upgrade stdout
+ * .why = the summary snapshot masks the count (see asHookCountsMasked), so the count
+ *        is asserted here: a reinit of a linked role must create at least one hook
+ */
+const getHookCountCreated = (input: { stdout: string }): number | null => {
+  const match = input.stdout.match(
+    /✨ hooks\n(?:\s+[├│].*\n)*\s+[├└]─ (\d+) created/,
+  );
+  return match ? Number(match[1]) : null;
 };
 
 /**
@@ -120,33 +154,6 @@ const isSummaryLine = (input: { lines: string[]; index: number }): boolean => {
   if (input.index === 0) return false;
   return isSummaryLine({ lines: input.lines, index: input.index - 1 });
 };
-
-/**
- * .what = reads the count of hooks the summary reports as created
- * .why  = a summary that `maskPublishedHookCount` masks still owes a check that hooks landed
- */
-const getHookCountCreated = (input: { summary: string }): number => {
-  const match = input.summary.match(/✨ hooks\n {3}└─ (\d+) created/);
-  if (!match)
-    throw new ConstraintError('the summary holds no `✨ hooks` created row', {
-      hint: 'the hooks row moved or was renamed — repair the read, never mask the absence',
-      summary: input.summary,
-    });
-  return Number(match[1]);
-};
-
-/**
- * .what = masks the count of hooks created under `✨ hooks` to a stable token
- * .why  = an upgrade installs the latest published role package, whose hook count is that
- *   package's to change. measured 2026-11-16: `rhachet-roles-ehmpathy@1.43.0` took mechanic from
- *   14 hooks to 16 and turned two snapshots red with no change here
- * .note = a caller pairs it with `getHookCountCreated`, so the count is asserted, never dropped
- */
-const maskPublishedHookCount = (input: { summary: string }): string =>
-  input.summary.replace(
-    /(✨ hooks\n {3}└─ )\d+( created)/,
-    '$1$HOOK_COUNT$2',
-  );
 
 /**
  * .what = drops ansi color escape sequences from a string
@@ -1003,18 +1010,18 @@ describe('rhachet upgrade', () => {
         expect(result.upgradeResult.stdout).toContain('🔧 init');
       });
 
-      then('the published role creates at least one hook', () => {
-        const { summary } = extractRhachetOutput({
+      then('the reinit creates at least one hook', () => {
+        const count = getHookCountCreated({
           stdout: result.upgradeResult.stdout,
         });
-        expect(getHookCountCreated({ summary })).toBeGreaterThan(0);
+        expect(count).toBeGreaterThan(0);
       });
 
       then('stdout.summary matches snapshot', () => {
         const { summary } = extractRhachetOutput({
           stdout: result.upgradeResult.stdout,
         });
-        expect(maskPublishedHookCount({ summary })).toMatchSnapshot();
+        expect(summary).toMatchSnapshot();
       });
     });
   });
@@ -1057,6 +1064,13 @@ describe('rhachet upgrade', () => {
         expect(result.upgradeResult.stdout).toContain('🔧 init');
       });
 
+      then('the reinit creates at least one hook', () => {
+        const count = getHookCountCreated({
+          stdout: result.upgradeResult.stdout,
+        });
+        expect(count).toBeGreaterThan(0);
+      });
+
       then('the default brain dir reports as a tree, never a census line', () => {
         // the reinit of a linked role re-renders the repo's brain dir; no actor is
         //   enrolled here. a human reads one `🧠 brain dir` treestruct, never a census line
@@ -1083,18 +1097,11 @@ describe('rhachet upgrade', () => {
         ).toMatchSnapshot();
       });
 
-      then('the published role creates at least one hook', () => {
-        const { summary } = extractRhachetOutput({
-          stdout: result.upgradeResult.stdout,
-        });
-        expect(getHookCountCreated({ summary })).toBeGreaterThan(0);
-      });
-
       then('stdout.summary matches snapshot', () => {
         const { summary } = extractRhachetOutput({
           stdout: result.upgradeResult.stdout,
         });
-        expect(maskPublishedHookCount({ summary })).toMatchSnapshot();
+        expect(summary).toMatchSnapshot();
       });
     });
   });
