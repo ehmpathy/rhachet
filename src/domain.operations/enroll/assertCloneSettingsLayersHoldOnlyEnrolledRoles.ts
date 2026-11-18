@@ -1,9 +1,12 @@
 import { ConstraintError, MalfunctionError } from 'helpful-errors';
 
+import type { HookDispatchRule } from '@src/domain.objects/HookDispatchRule';
 import type { ClaudeCodeSettings } from '@src/domain.operations/brains/claudeCodeSettings';
+import { asHookDispatchRulesFromManifestText } from '@src/domain.operations/brains/dispatch/asHookDispatchRulesFromManifestText';
+import { HOOK_DISPATCH } from '@src/domain.operations/brains/dispatch/constants';
 
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
-import { sep } from 'node:path';
+import { isAbsolute, join, sep } from 'node:path';
 import {
   type BrainCliSettingsLayer,
   getAllBrainCliSettingsLayers,
@@ -36,17 +39,9 @@ export const assertCloneSettingsLayersHoldOnlyEnrolledRoles = (input: {
     args: input.args,
     brainDir: input.brainDir,
     cwd: input.cwd,
-  }).flatMap((layer) => {
-    const settings = getOneLayerSettings({ layer });
-    if (settings === null) return [];
-    return getAllHooksOfUnenrolledRoles({ settings, roles: input.roles }).map(
-      (hook) => ({
-        ...hook,
-        source: layer.source,
-        path: realpathSync(layer.path),
-      }),
-    );
-  });
+  }).flatMap((layer) =>
+    getAllLeaksOfLayer({ layer, roles: input.roles, cwd: input.cwd }),
+  );
   if (leaks.length === 0) return;
 
   // a leak that lives under the human's home is theirs to fix; any other is rhachet's
@@ -67,6 +62,127 @@ export const assertCloneSettingsLayersHoldOnlyEnrolledRoles = (input: {
     ...metadata,
     hint: 'run `rhx init --hooks` to rewrite each actor brain dir; if it persists, the settings layout or the role filter is broken — report it with the leaks above',
   });
+};
+
+/**
+ * .what = every hook of one layer a non-enrolled role authored: the layer's own hooks, plus each
+ *   rule of each dispatch manifest its dispatcher hooks name
+ * .why = a dispatcher hook runs every rule of its manifest, so each rule is a hook the clone loads
+ */
+const getAllLeaksOfLayer = (input: {
+  layer: BrainCliSettingsLayer;
+  roles: string[];
+  cwd: string;
+}): Array<{ event: string; author: string; source: string; path: string }> => {
+  const settings = getOneLayerSettings({ layer: input.layer });
+  if (settings === null) return [];
+  const sources = [
+    { settings, path: input.layer.path },
+    ...getAllManifestPathsOfDispatchers({ settings, cwd: input.cwd }).map(
+      (path) => ({
+        settings: asSettingsOfManifestRules({
+          rules: getAllManifestRules({ path }),
+        }),
+        path,
+      }),
+    ),
+  ];
+  return sources.flatMap((each) =>
+    getAllHooksOfUnenrolledRoles({
+      settings: each.settings,
+      roles: input.roles,
+    }).map((hook) => ({
+      ...hook,
+      source: input.layer.source,
+      path: realpathSync(each.path),
+    })),
+  );
+};
+
+/**
+ * .what = the path of each dispatch manifest a layer's dispatcher hooks name, when present
+ * .why = a dispatcher hook carries no role author; the roles it runs sit in its manifest
+ *
+ * .note = claude runs a dispatcher from the spawn cwd, so a relative manifest path is taken
+ *   from there
+ * .note = an absent manifest holds no rule; the dispatcher itself fails closed on it
+ */
+const getAllManifestPathsOfDispatchers = (input: {
+  settings: ClaudeCodeSettings;
+  cwd: string;
+}): string[] => {
+  const paths = Object.values(input.settings.hooks ?? {})
+    .flatMap((entries) => entries ?? [])
+    .flatMap((entry) => entry.hooks ?? [])
+    .filter((hook) => hook.author === HOOK_DISPATCH.author)
+    .map((hook) => {
+      const pathNamed = asManifestPathOfDispatcherCommand({
+        command: hook.command,
+      });
+      return isAbsolute(pathNamed) ? pathNamed : join(input.cwd, pathNamed);
+    });
+  return [...new Set(paths)].filter((path) => existsSync(path));
+};
+
+/**
+ * .what = the manifest path a dispatcher command names: `bash <bin> <manifest> <event>`
+ * .why = a command of any other shape would hide which manifest runs, so the guard fails loud
+ *   on it, never reads it as a manifest with no rules
+ */
+const asManifestPathOfDispatcherCommand = (input: {
+  command: string;
+}): string => {
+  const words = input.command.trim().split(/\s+/);
+  const isShape =
+    words.length === 4 &&
+    words[0] === 'bash' &&
+    words[1]!.endsWith('/hooks.dispatch.sh');
+  if (!isShape)
+    throw new MalfunctionError(
+      'a dispatcher hook command has an unknown shape',
+      {
+        command: input.command,
+        shape: 'bash <bin>/hooks.dispatch.sh <manifest> <event>',
+        hint: 'run `rhx init --hooks` to rewrite each dispatcher hook',
+      },
+    );
+  return words[2]!;
+};
+
+/**
+ * .what = the rules of one dispatch manifest, read from disk
+ * .note = a sync read, as this guard runs sync before the spawn; the async
+ *   `getOneHookDispatchManifest` reads the same bytes with the same parse
+ */
+const getAllManifestRules = (input: { path: string }): HookDispatchRule[] =>
+  asHookDispatchRulesFromManifestText({
+    text: readFileSync(input.path, 'utf-8'),
+    path: input.path,
+  });
+
+/**
+ * .what = the rules of one dispatch manifest, in the shape of a settings file's hooks
+ * .why = so the one author check reads a manifest rule exactly as it reads a settings hook
+ */
+const asSettingsOfManifestRules = (input: {
+  rules: HookDispatchRule[];
+}): ClaudeCodeSettings => {
+  const { rules } = input;
+  return {
+    hooks: Object.fromEntries(
+      [...new Set(rules.map((rule) => rule.event))].map((event) => [
+        event,
+        rules
+          .filter((rule) => rule.event === event)
+          .map((rule) => ({
+            matcher: rule.matcher,
+            hooks: [
+              { type: 'command', command: rule.command, author: rule.author },
+            ],
+          })),
+      ]),
+    ),
+  };
 };
 
 /**

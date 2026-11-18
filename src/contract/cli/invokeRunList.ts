@@ -51,6 +51,7 @@ export const invokeRunList = ({
 
         // discover skills from .agent/ directories
         const skills = discoverSkillExecutables({
+          repoPath: null,
           slugRepo: opts.repo,
           slugRole: opts.role,
         });

@@ -385,6 +385,31 @@ exports[`rhx enroll --roles (acceptance) given: [case2e] 🔴 core invariant —
 "
 `;
 
+exports[`rhx enroll --roles (acceptance) given: [case2e] 🔴 core invariant — a \`-driver\` clone loads no driver hook from ANY layer when: [t2] the HOME grove starts a hook dispatcher whose manifest holds a driver rule then: the refusal matches the snapshot 1`] = `
+"
+✋ ConstraintError: a clone would load hooks from roles it is not enrolled in
+
+{
+  "hint": "your home claude settings hold role hooks; remove every hook whose \`author\` names a \`role=\` from the file(s) above, then enroll again",
+  "rolesEnrolled": [
+    "architect",
+    "mechanic"
+  ],
+  "leaks": [
+    {
+      "event": "SessionStart",
+      "author": "repo=bhrain/role=driver",
+      "source": "user",
+      "path": "/TMP_TEST_DIR/.home/.claude/hooks.dispatch.manifest"
+    }
+  ]
+}
+
+[args] enroll,claude,--roles,-driver
+
+"
+`;
+
 exports[`rhx enroll --roles (acceptance) given: [case3] positive replace — bare \`mechanic\` keeps ONLY mechanic when: [t0] \`enroll claude --roles mechanic\` (replace mode) then: the authored config body is locked to a snapshot 1`] = `
 "{
   "hooks": {

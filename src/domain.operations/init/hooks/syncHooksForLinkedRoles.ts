@@ -8,6 +8,7 @@ import { withBrainDirSettingsShield } from '@src/domain.operations/actor/enrolle
 import { getActorsManifest } from '@src/domain.operations/actor/manifest/getActorsManifest';
 import { getBrainsDetectedAndSupplied } from '@src/domain.operations/brains/getBrainsDetectedAndSupplied';
 import { getLinkedRolesWithHooks } from '@src/domain.operations/brains/getLinkedRolesWithHooks';
+import { isBrainClaudeCode } from '@src/domain.operations/brains/isBrainClaudeCode';
 import { setActorSettingsDerived } from '@src/domain.operations/enroll/setActorSettingsDerived';
 import { getHomeDir } from '@src/infra/getHomeDir';
 import { asErrorClassText } from '@src/utils/asErrorClassText';
@@ -24,7 +25,6 @@ import { asHookSyncTotalRows } from './asHookSyncTotalRows';
 import { getBrainsOfRootHookPass } from './getBrainsOfRootHookPass';
 import { getOneHookChangeTally } from './getOneHookChangeTally';
 import { getOneHookOrphanCount } from './getOneHookOrphanCount';
-import { isBrainClaudeCode } from './isBrainClaudeCode';
 import { syncRoleHooksIntoTarget } from './syncRoleHooksIntoTarget';
 
 /**

@@ -5,6 +5,10 @@ import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import {
+  getAllHookDispatchManifestRows,
+  HOOK_DISPATCH_AUTHOR,
+} from '@/blackbox/.test/infra/getAllHookDispatchManifestRows';
+import {
   asSnapshotSafe,
   invokeRhachetCliBinary,
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
@@ -148,26 +152,27 @@ describe('rhachet init --hooks', () => {
         expect(config.hooks.PreToolUse.length).toBeGreaterThan(0);
       });
 
-      then('hooks have correct author namespace', async () => {
-        const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
-        const content = await fs.readFile(configPath, 'utf-8');
-        const config = JSON.parse(content);
-        const firstHook = asFlatHooks(config.hooks.SessionStart)[0]!;
-        expect(firstHook.author).toContain('repo=test/role=tester');
+      then('role rules have correct author namespace', async () => {
+        const rows = await getAllHookDispatchManifestRows({
+          claudeDir: path.join(repo.path, '.claude'),
+        });
+        const firstRule = rows.find((row) => row.event === 'SessionStart')!;
+        expect(firstRule.author).toContain('repo=test/role=tester');
       });
 
       then('the written hooks take the NESTED claude shape, never the legacy flat one', async () => {
         // `asFlatHooks` reads both shapes on purpose (a seeded prior config may be flat), so
-        //   the author asserts above cannot tell a writer that reverted to the flat shape.
-        //   this reads the raw file and pins the shape the writer must emit
+        //   it cannot tell a writer that reverted to the flat shape. this reads the raw file
+        //   and pins the shape the writer must emit: one dispatcher per event, nested
         const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
         const content = await fs.readFile(configPath, 'utf-8');
         const config = JSON.parse(content);
+        expect(config.hooks.SessionStart).toHaveLength(1);
         for (const entry of config.hooks.SessionStart) {
           expect(entry).toHaveProperty('hooks');
           expect(entry).not.toHaveProperty('command');
           expect(entry.hooks[0]).toHaveProperty('command');
-          expect(entry.hooks[0].author).toContain('repo=test/role=tester');
+          expect(entry.hooks[0].author).toEqual(HOOK_DISPATCH_AUTHOR);
         }
       });
     });
@@ -281,11 +286,20 @@ describe('rhachet init --hooks', () => {
     });
 
     when('[t0] hooks are initially applied', () => {
-      then('claude settings.json has 2 SessionStart hooks', async () => {
+      then('the manifest has 2 SessionStart rules', async () => {
+        const rows = await getAllHookDispatchManifestRows({
+          claudeDir: path.join(repo.path, '.claude'),
+        });
+        expect(rows.filter((row) => row.event === 'SessionStart')).toHaveLength(2);
+      });
+
+      then('claude settings.json has 1 SessionStart hook, the dispatcher', async () => {
         const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
         const content = await fs.readFile(configPath, 'utf-8');
         const config = JSON.parse(content);
-        expect(config.hooks.SessionStart).toHaveLength(2);
+        const hooks = asFlatHooks(config.hooks.SessionStart);
+        expect(hooks).toHaveLength(1);
+        expect(hooks[0]!.author).toEqual(HOOK_DISPATCH_AUTHOR);
       });
     });
 
@@ -342,13 +356,13 @@ module.exports = { getRoleRegistry };
         expect(result.stdout).toContain('deleted');
       });
 
-      then('claude settings.json now has only 1 SessionStart hook', async () => {
-        const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
-        const content = await fs.readFile(configPath, 'utf-8');
-        const config = JSON.parse(content);
-        const hooks = asFlatHooks(config.hooks.SessionStart);
-        expect(hooks).toHaveLength(1);
-        expect(hooks[0]!.command).toContain('boot-hook-1');
+      then('the manifest now has only 1 SessionStart rule', async () => {
+        const rows = await getAllHookDispatchManifestRows({
+          claudeDir: path.join(repo.path, '.claude'),
+        });
+        const rules = rows.filter((row) => row.event === 'SessionStart');
+        expect(rules).toHaveLength(1);
+        expect(rules[0]!.command).toContain('boot-hook-1');
       });
     });
   });
@@ -432,17 +446,22 @@ module.exports = { getRoleRegistry };
       then(
         'the actor`s OWN brain config gets the role SessionStart hooks (not just root)',
         async () => {
+          // the actor's settings start the dispatcher; its own manifest holds the rules
           const actorConfigPath = path.join(
             repo.actorBrainClaudeDir,
             'settings.of.repo.json',
           );
           const content = await fs.readFile(actorConfigPath, 'utf-8');
           const config = JSON.parse(content);
-          expect(config.hooks.SessionStart).toBeDefined();
-          expect(config.hooks.SessionStart.length).toBeGreaterThan(0);
-          const authors = asFlatHooks(config.hooks.SessionStart).map(
-            (h) => h.author,
-          );
+          expect(asFlatHooks(config.hooks.SessionStart)).toEqual([
+            expect.objectContaining({ author: HOOK_DISPATCH_AUTHOR }),
+          ]);
+          const rows = await getAllHookDispatchManifestRows({
+            claudeDir: repo.actorBrainClaudeDir,
+          });
+          const authors = rows
+            .filter((row) => row.event === 'SessionStart')
+            .map((row) => row.author);
           expect(authors).toContainEqual(
             expect.stringContaining('role=tester'),
           );
@@ -450,10 +469,12 @@ module.exports = { getRoleRegistry };
       );
 
       then('the repo root config ALSO still carries the role hooks', async () => {
-        const rootConfigPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
-        const content = await fs.readFile(rootConfigPath, 'utf-8');
-        const config = JSON.parse(content);
-        expect(config.hooks.SessionStart.length).toBeGreaterThan(0);
+        const rows = await getAllHookDispatchManifestRows({
+          claudeDir: path.join(repo.path, '.claude'),
+        });
+        expect(
+          rows.filter((row) => row.event === 'SessionStart').length,
+        ).toBeGreaterThan(0);
       });
     });
   });
@@ -535,6 +556,8 @@ module.exports = { getRoleRegistry };
           cwd: repo.path,
         }),
       );
+      // every SessionStart command that runs: the settings' own hooks, plus the manifest's rules
+      //   the dispatcher runs
       const commands = useBeforeAll(async () => {
         const config = JSON.parse(
           await fs.readFile(
@@ -542,10 +565,18 @@ module.exports = { getRoleRegistry };
             'utf-8',
           ),
         );
+        const rows = await getAllHookDispatchManifestRows({
+          claudeDir: path.join(repo.path, '.claude'),
+        });
         return {
-          list: asFlatHooks(config.hooks.SessionStart).map(
-            (hook) => hook.command,
-          ),
+          list: [
+            ...asFlatHooks(config.hooks.SessionStart).map(
+              (hook) => hook.command,
+            ),
+            ...rows
+              .filter((row) => row.event === 'SessionStart')
+              .map((row) => row.command),
+          ],
         };
       });
 
@@ -606,21 +637,21 @@ module.exports = { getRoleRegistry };
         expect(result.status).toEqual(0);
       });
 
-      then('claude settings.json has hooks from both roles', async () => {
-        const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
-        const content = await fs.readFile(configPath, 'utf-8');
-        const config = JSON.parse(content);
+      then('the manifest has rules from both roles', async () => {
+        const rows = await getAllHookDispatchManifestRows({
+          claudeDir: path.join(repo.path, '.claude'),
+        });
         // tester has 2 onBoot hooks, reviewer has 1
-        expect(config.hooks.SessionStart).toHaveLength(3);
+        expect(rows.filter((row) => row.event === 'SessionStart')).toHaveLength(3);
       });
 
       then('hooks have distinct author namespaces', async () => {
-        const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
-        const content = await fs.readFile(configPath, 'utf-8');
-        const config = JSON.parse(content);
-        const authors = asFlatHooks(config.hooks.SessionStart).map(
-          (h) => h.author,
-        );
+        const rows = await getAllHookDispatchManifestRows({
+          claudeDir: path.join(repo.path, '.claude'),
+        });
+        const authors = rows
+          .filter((row) => row.event === 'SessionStart')
+          .map((row) => row.author);
         expect(authors).toContainEqual(
           expect.stringContaining('role=tester'),
         );
@@ -630,10 +661,10 @@ module.exports = { getRoleRegistry };
       });
 
       then('each role has correct commands', async () => {
-        const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
-        const content = await fs.readFile(configPath, 'utf-8');
-        const config = JSON.parse(content);
-        const hooks = asFlatHooks(config.hooks.SessionStart);
+        const rows = await getAllHookDispatchManifestRows({
+          claudeDir: path.join(repo.path, '.claude'),
+        });
+        const hooks = rows.filter((row) => row.event === 'SessionStart');
         const testerHooks = hooks.filter((h) => h.author.includes('role=tester'));
         const reviewerHooks = hooks.filter((h) =>
           h.author.includes('role=reviewer'),
@@ -668,21 +699,25 @@ module.exports = { getRoleRegistry };
         const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
         const content = await fs.readFile(configPath, 'utf-8');
         const config = JSON.parse(content);
-        const authors = asFlatHooks(config.hooks.SessionStart).map(
-          (h) => h.author,
-        );
+        const rows = await getAllHookDispatchManifestRows({
+          claudeDir: path.join(repo.path, '.claude'),
+        });
+        const authors = [
+          ...asFlatHooks(config.hooks.SessionStart).map((h) => h.author),
+          ...rows.map((row) => row.author),
+        ];
         expect(authors).not.toContainEqual(
           expect.stringContaining('role=tester'),
         );
       });
 
       then('reviewer hooks remain', async () => {
-        const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
-        const content = await fs.readFile(configPath, 'utf-8');
-        const config = JSON.parse(content);
-        const hooks = asFlatHooks(config.hooks.SessionStart);
-        expect(hooks).toHaveLength(1);
-        expect(hooks[0]!.author).toContain('role=reviewer');
+        const rows = await getAllHookDispatchManifestRows({
+          claudeDir: path.join(repo.path, '.claude'),
+        });
+        const rules = rows.filter((row) => row.event === 'SessionStart');
+        expect(rules).toHaveLength(1);
+        expect(rules[0]!.author).toContain('role=reviewer');
       });
     });
   });

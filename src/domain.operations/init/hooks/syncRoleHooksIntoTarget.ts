@@ -2,6 +2,7 @@ import type { BrainSpecifier } from '@src/domain.objects/BrainSpecifier';
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { HasRepo } from '@src/domain.objects/HasRepo';
 import type { Role } from '@src/domain.objects/Role';
+import { setHookDispatchersForTarget } from '@src/domain.operations/brains/dispatch/setHookDispatchersForTarget';
 import { pruneOrphanedRoleHooksFromAllBrains } from '@src/domain.operations/brains/pruneOrphanedRoleHooksFromAllBrains';
 import { syncAllRoleHooksIntoEachBrainRepl } from '@src/domain.operations/brains/syncAllRoleHooksIntoEachBrainRepl';
 
@@ -51,18 +52,34 @@ export const syncRoleHooksIntoTarget = async (
     };
 
   // sync; a fault here keeps the prune's real removals in the report
+  const syncResult = await (async () => {
+    try {
+      return await syncAllRoleHooksIntoEachBrainRepl(
+        { roles: input.roles, brains, configTargetDir },
+        context,
+      );
+    } catch (error) {
+      if (!isActorHookSyncFault(error)) throw error;
+      return { error };
+    }
+  })();
+  if ('error' in syncResult)
+    return {
+      pruneResult,
+      syncResult: { applied: [], errors: [] },
+      faults: [{ error: syncResult.error }],
+    };
+
+  // then, with every manifest whole, swap each brain's per-rule hooks for its dispatchers;
+  //   a fault here keeps the rules the sync already wrote in the report
   try {
-    const syncResult = await syncAllRoleHooksIntoEachBrainRepl(
-      { roles: input.roles, brains, configTargetDir },
+    await setHookDispatchersForTarget(
+      { brains: input.brains, configTargetDir: input.configTargetDir },
       context,
     );
     return { pruneResult, syncResult, faults: [] };
   } catch (error) {
     if (!isActorHookSyncFault(error)) throw error;
-    return {
-      pruneResult,
-      syncResult: { applied: [], errors: [] },
-      faults: [{ error }],
-    };
+    return { pruneResult, syncResult, faults: [{ error }] };
   }
 };

@@ -1,0 +1,21 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t4] a Bash call where one rule hangs past its timeout then: the stderr matches the snapshot 1`] = `
+"
+🪨 run solid skill repo=test/role=tester/skill=block
+   └─ ✋ blocked by constraints
+
+✋ ConstraintError: block.sh refuses --skill block --mode hook
+   └─ hint: drop the word deny
+✋ trap.sh refuses
+trap fired in trap.sh, src=trap.sh
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t7] the manifest is absent then: the refusal matches the snapshot 1`] = `
+"✋ ConstraintError: hook dispatch manifest not found
+   ├─ manifest = .claude/absent.manifest
+   ├─ event = PreToolUse
+   └─ fix = run \`npx rhx init --hooks\` to rewrite it
+"
+`;

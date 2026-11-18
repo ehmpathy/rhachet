@@ -10,6 +10,10 @@ import { join } from 'node:path';
 import { ConstraintError } from 'helpful-errors';
 import { genTempDir, given, then, useThen, when } from 'test-fns';
 
+import {
+  getAllHookDispatchManifestRows,
+  HOOK_DISPATCH_AUTHOR,
+} from '@/blackbox/.test/infra/getAllHookDispatchManifestRows';
 import { getOneFocusReceiptBlock } from '@/blackbox/.test/infra/getOneFocusReceiptBlock';
 import {
   asSnapshotSafe,
@@ -28,7 +32,13 @@ const asFociPath = (input: { dir: string }): string =>
   join(input.dir, '.agent/.actors/actor.via.repo=ambient/roles.foci.json');
 
 /**
- * .what = the repo actor's role settings, where the linked roles' hooks land
+ * .what = the repo actor's brain dir, where the dispatch manifest of the linked roles' hooks lands
+ */
+const asRepoClaudeDir = (input: { dir: string }): string =>
+  join(input.dir, '.agent/.actors/actor.via.repo=ambient/brain/.claude');
+
+/**
+ * .what = the repo actor's role settings, where the one dispatcher per event lands
  */
 const asRepoSettingsPath = (input: { dir: string }): string =>
   join(
@@ -175,10 +185,11 @@ describe('rhx init --roles <role>::<subject> (acceptance)', () => {
         ).toEqual({ mechanic: ['flow'] });
       });
 
-      then('the role keeps its hooks — hooks follow the role, never the focus', () => {
-        expect(readFileSync(asRepoSettingsPath({ dir: testDir }), 'utf8')).toContain(
-          'role=mechanic',
-        );
+      then('the role keeps its hooks — hooks follow the role, never the focus', async () => {
+        const rows = await getAllHookDispatchManifestRows({
+          claudeDir: asRepoClaudeDir({ dir: testDir }),
+        });
+        expect(rows.some((row) => row.author.endsWith('/role=mechanic'))).toEqual(true);
       });
 
       then('the repo actor boot holds the flow subject and none of the others', () => {
@@ -533,9 +544,16 @@ describe('rhx init --roles <role>::<subject> (acceptance)', () => {
         ).toEqual({ mechanic: ['flow'] });
       });
 
-      then("mechanic's hooks land in the repo actor's settings", () => {
+      then("mechanic's hooks land in the repo actor's dispatch manifest", async () => {
+        const rows = await getAllHookDispatchManifestRows({
+          claudeDir: asRepoClaudeDir({ dir: testDir }),
+        });
+        expect(rows.some((row) => row.author.endsWith('/role=mechanic'))).toEqual(true);
+      });
+
+      then("the repo actor's settings start mechanic's hooks via the dispatcher", () => {
         expect(readFileSync(asRepoSettingsPath({ dir: testDir }), 'utf8')).toContain(
-          'role=mechanic',
+          HOOK_DISPATCH_AUTHOR,
         );
       });
     });
