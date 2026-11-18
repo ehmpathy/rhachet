@@ -60,7 +60,7 @@ is a brief edit to `rule.forbid.framework-owned-hooks`.
   repo-wide stop sweep
 - as built, the sweep stays one entry per repo, authored by a `.this` role: the first budgeted one,
   else `role=any`. a mod is never a hook author (`repo=.mods/role=$slug` stays reserved, per
-  requirement 20), which narrows option (a)'s coordinate above
+  requirement 23), which narrows option (a)'s coordinate above
 - a refused or stale mod is still the boot's and the render's to refuse; the stop holds on a pin
   drift alone
 

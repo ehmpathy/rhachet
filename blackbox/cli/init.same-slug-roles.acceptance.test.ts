@@ -21,7 +21,7 @@ const invoke = (
   });
 
 /**
- * .what = the proof of requirements case 10: two repos that ship one role slug both boot
+ * .what = the proof of requirements case 13: two repos that ship one role slug both boot
  */
 describe('rhachet init — two repos that ship one role slug', () => {
   given('[case1] alpha and beta each ship role surfer', () => {

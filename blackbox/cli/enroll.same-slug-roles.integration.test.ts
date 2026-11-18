@@ -80,7 +80,7 @@ const asEnrollOutputSafe = (input: {
 });
 
 /**
- * .what = the proof of requirements case 10's two enroll clauses: a bare slug unions every
+ * .what = the proof of requirements case 13's two enroll clauses: a bare slug unions every
  *         repo's role of that slug, and a bare-slug actor's identity is unchanged by it
  */
 describe('rhx enroll — two repos that ship one role slug', () => {

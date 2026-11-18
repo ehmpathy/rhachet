@@ -9,7 +9,7 @@ part of the [requirements inventory](./inventory.of=requirements._.md).
 - `rhx init` tries no install of a `rhachet-roles-.mods` package
 - the framework reads the mod dir to render it (the view sync), to cost it (`roles cost`), and to
   check its pins at the stop; a mod dir arms the repo-wide stop sweep, which a `.this` role
-  authors, never `repo=.mods` (case 22, amended 2026-11-17)
+  authors, never `repo=.mods` (case 25, amended 2026-11-17)
 
 ## .clamp
 

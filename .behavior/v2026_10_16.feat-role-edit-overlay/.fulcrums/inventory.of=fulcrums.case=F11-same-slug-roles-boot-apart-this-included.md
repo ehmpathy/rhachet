@@ -48,7 +48,7 @@ release, but c2 would move every extant actor dir.
 
 - `1.vision.yield.md` — `### same-slug roles boot apart`, `## .what is awkward`
 - `1.vision.experience.case=10.two-repos-ship-one-slug.md` `[t3]`, `[t4]`
-- requirement 10
+- requirement 13
 
 ## .verdict
 

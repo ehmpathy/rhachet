@@ -15,7 +15,7 @@ import { getAllNativeRoleRefs } from './getAllNativeRoleRefs';
  *   same spec is where the role opts into its budget, so one file marks a role as live
  * .note = package repos are read in code-unit order, so the set is the same on any fs
  * .note = two repos that ship one role slug both appear, each its own ref; neither is dropped
- *   (F11, requirements case 10)
+ *   (F11, requirements case 13)
  */
 export const getAllLinkedRoleRefs = (
   _input: Record<string, never>,

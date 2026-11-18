@@ -18,6 +18,6 @@ on the vision's line that a mod arms no stop hook; the commander's review of #70
 - `src/contract/cli/invokeRolesCost.ts` — the stop arm holds on a drifted pin
 - `src/domain.operations/brains/getAllRepoThisRolesWithHooks.ts` — a mod dir arms the one sweep
 - `.agent/repo=.this/role=any/briefs/rule.forbid.framework-owned-hooks.md` — the mod pin, the sweep's second arm
-- requirements case 14 and case 22 — amended
+- requirements case 17 and case 25 — amended
 - `.fulcrums/` F23, F19, F4 — verdicts
 - `1.vision.yield.md`, `2.1.criteria.blackbox.yield.md` usecase 5, `howto.mod-a-role.md`

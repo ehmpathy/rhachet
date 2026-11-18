@@ -76,7 +76,7 @@ so the follow-up was pulled in at i004 of `5.1.execution.from_vision`:
 - `src/domain.operations/mods/assertRoleModdedViewFresh.integration.test.ts`,
   `setRoleModdedView.integration.test.ts`, `asRoleModFaultsHookReadout.test.ts`,
   `src/domain.operations/role/asRepoSlugKind.scanners.integration.test.ts`
-- the requirements inventory, cases 11–23, one per mod behavior, each with its proof by path
+- the requirements inventory, cases 14–26, one per mod behavior, each with its proof by path
 
 - `blackbox/cli/upgrade.mods.acceptance.test.ts` — `rhx upgrade --which local` over a mod pinned
   behind the install: exit 0, the drift notice, its snapshot

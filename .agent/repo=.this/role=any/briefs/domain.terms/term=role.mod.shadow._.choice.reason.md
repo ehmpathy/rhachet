@@ -9,7 +9,7 @@ path the mod does not name still reads through to it.
 
 it is also the word this repo already used one grain up: a `.this` role of a package role's slug
 used to hide that role whole, by name collision. that whole-role shadow is gone (roles of one slug
-now boot apart, requirements case 10), so the word moves down a grain, to the file, with its sense
+now boot apart, requirements case 13), so the word moves down a grain, to the file, with its sense
 intact.
 
 ## .disputes

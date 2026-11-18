@@ -22,4 +22,4 @@ on the 🩹 edit marker (F7, 70%):
 - `1.vision.yield.md` — scope, `### same-slug roles boot apart`, refusals, questions 6 and 9, groundwork
 - `1.vision.experience.case=10.two-repos-ship-one-slug.md`, case 6, the inventory, dimension D8
 - `.fulcrums/` — F7 (settled), F11
-- `.agent/repo=.this/role=any/briefs/behavior/inventory.of=requirements.case=10.same-slug-roles-boot-apart.md`
+- `.agent/repo=.this/role=any/briefs/behavior/inventory.of=requirements.case=13.same-slug-roles-boot-apart.md`
