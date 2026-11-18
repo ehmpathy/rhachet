@@ -1,4 +1,5 @@
 import { RoleSkillExecutable } from '@src/domain.objects/RoleSkillExecutable';
+import { getAllRepoDirsOfKind } from '@src/domain.operations/role/getAllRepoDirsOfKind';
 import { getAllFilesFromDir } from '@src/infra/filesystem/getAllFilesFromDir';
 
 import { existsSync, readdirSync } from 'node:fs';
@@ -28,10 +29,13 @@ export const discoverSkillExecutables = (input: {
   // skip if .agent directory does not exist
   if (!existsSync(agentDir)) return [];
 
-  // discover repo directories
-  const repoEntries = readdirSync(agentDir).filter((entry) =>
-    entry.startsWith('repo='),
-  );
+  // discover repo directories; a modded skill is reached through its role's view, never
+  //   through the mod dir, so a shadow is no second skill of one name (usecase 9)
+  //   sorted, so a list of matches reads the same on every filesystem
+  const repoEntries = getAllRepoDirsOfKind({
+    agentDir,
+    kinds: ['native', 'package'],
+  });
 
   const skills: RoleSkillExecutable[] = [];
 
@@ -44,9 +48,9 @@ export const discoverSkillExecutables = (input: {
     const repoDir = resolve(agentDir, repoEntry);
 
     // discover role directories
-    const roleEntries = readdirSync(repoDir).filter((entry) =>
-      entry.startsWith('role='),
-    );
+    const roleEntries = readdirSync(repoDir)
+      .filter((entry) => entry.startsWith('role='))
+      .sort();
 
     for (const roleEntry of roleEntries) {
       const slugRole = roleEntry.replace('role=', '');

@@ -3,6 +3,7 @@ import { writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
+import { genKeyrackRuntimeDir } from '@/blackbox/.test/infra/genKeyrackRuntimeDir';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import {
   asSnapshotSafe,
@@ -259,7 +260,7 @@ env.test:
           cwd: repo.path,
           env: {
             HOME: repo.path,
-            XDG_RUNTIME_DIR: join(repo.path, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: genKeyrackRuntimeDir({ dir: repo.path }),
             // no env var set → key not available
           },
           logOnError: false,
@@ -289,7 +290,7 @@ env.test:
           cwd: repo.path,
           env: {
             HOME: repo.path,
-            XDG_RUNTIME_DIR: join(repo.path, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: genKeyrackRuntimeDir({ dir: repo.path }),
           },
           logOnError: false,
         }),
@@ -440,7 +441,7 @@ env.test:
           cwd: repo.path,
           env: {
             HOME: repo.path,
-            XDG_RUNTIME_DIR: join(repo.path, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: genKeyrackRuntimeDir({ dir: repo.path }),
             // no env var set, daemon not unlocked → key is locked
           },
           logOnError: false,
@@ -470,7 +471,7 @@ env.test:
           cwd: repo.path,
           env: {
             HOME: repo.path,
-            XDG_RUNTIME_DIR: join(repo.path, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: genKeyrackRuntimeDir({ dir: repo.path }),
           },
           logOnError: false,
         }),
@@ -539,7 +540,7 @@ console.log('should not reach here');
           env: {
             ...process.env,
             HOME: testDir,
-            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: genKeyrackRuntimeDir({ dir: testDir }),
             // no env var for absent key
           },
         });
@@ -609,7 +610,7 @@ console.log('lenient mode completed');
           env: {
             ...process.env,
             HOME: testDir,
-            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: genKeyrackRuntimeDir({ dir: testDir }),
             // no env var for absent key
           },
         });
@@ -686,7 +687,7 @@ console.log('granted value:', process.env.${envKeyGranted});
           env: {
             ...process.env,
             HOME: testDir,
-            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: genKeyrackRuntimeDir({ dir: testDir }),
             [envKeyGranted]: envValue,
           },
         });
@@ -779,7 +780,7 @@ console.log('key2:', process.env.${envKey2} || 'undefined');
           env: {
             ...process.env,
             HOME: testDir,
-            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: genKeyrackRuntimeDir({ dir: testDir }),
             [envKey1]: envValue1,
             [envKey2]: envValue2,
           },
@@ -856,7 +857,7 @@ console.log('should not reach here');
           env: {
             ...process.env,
             HOME: testDir,
-            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: genKeyrackRuntimeDir({ dir: testDir }),
             // no env var for key1
           },
         });
@@ -927,7 +928,7 @@ console.log('key1:', process.env.${envKey1} || 'undefined');
           env: {
             ...process.env,
             HOME: testDir,
-            XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: genKeyrackRuntimeDir({ dir: testDir }),
             // no env var for key1
           },
         });
@@ -1025,7 +1026,7 @@ console.log('sourced:', process.env.${envKey} || 'undefined');
         env: {
           ...process.env,
           HOME: testDir,
-          XDG_RUNTIME_DIR: join(testDir, '.xdg-runtime'),
+          XDG_RUNTIME_DIR: genKeyrackRuntimeDir({ dir: testDir }),
           ...input.env,
         },
       });

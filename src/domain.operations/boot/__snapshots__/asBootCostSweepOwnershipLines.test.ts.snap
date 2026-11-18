@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asBootCostSweepOwnershipLines given: [case3] a linked spec this repo mods when: [t0] the lines are rendered then: the lines match the snapshot 1`] = `
+"   .note = a \`(linked)\` spec is owned by another repo — not yours to trim. its budget is
+           that repo's to raise, so \`roles boot\` warns on it rather than halts. upgrade
+           the package, or raise it upstream. (1 of 2 here)
+   .note = a \`(linked)\` spec marked \`[~] modded\` carries your mod's shadows and adds,
+           and those are yours to trim in .agent/repo=.mods/. a shadow with no \`.md.min\`
+           beside it boots at full size. (1 of 1 linked here)
+"
+`;

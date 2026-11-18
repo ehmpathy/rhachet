@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asRoleModNoticeLines given: [case1] a mod that shadows, adds, and nots when: [t0] the notice is rendered then: the notice matches its snapshot 1`] = `
+"<mod of="ehmpathy/mechanic@1.39.5">
+role ehmpathy/mechanic@1.39.5 is modded in this repo — 1 shadow, 1 add, 1 not
+[-] not briefs/rule.forbid.wipeouts.md
+[~] shadow briefs/rule.require.surf-wax.md drops the published briefs/rule.require.surf-wax.md.min
+</mod>
+"
+`;

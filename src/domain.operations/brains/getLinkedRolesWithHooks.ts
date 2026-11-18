@@ -4,7 +4,9 @@ import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { HasRepo } from '@src/domain.objects/HasRepo';
 import type { Role } from '@src/domain.objects/Role';
 import type { RoleRegistry } from '@src/domain.objects/RoleRegistry';
+import { toRolePackageFromRepo } from '@src/domain.objects/RoleSupplierSlug';
 import { isRolesBootCommand } from '@src/domain.operations/boot/isRolesBootCommand';
+import { getAllRepoDirsOfKind } from '@src/domain.operations/role/getAllRepoDirsOfKind';
 import { importPackageExports } from '@src/infra/importEsmSafe/importPackageExports';
 
 import { existsSync, readdirSync } from 'node:fs';
@@ -38,8 +40,8 @@ const asRoleWithoutRolesBootHooks = (input: { role: Role }): Role => {
  * .why = enables hook application for roles already linked into .agent/
  *
  * .note = scans .agent/repo=* directories to find linked roles; repo=.this has no package and
- *   declares no hooks of its own. it gets only the framework-owned budget gate, armed when a
- *   `.this` boot.yml declares a budget (getAllRepoThisRolesWithHooks)
+ *   declares no hooks of its own. it gets only the framework-owned stop sweep, armed when a
+ *   `.this` boot.yml declares a budget or a role is modded (getAllRepoThisRolesWithHooks)
  * .note = imports packages dynamically to get full Role objects with hooks.onBrain
  * .note = returns HasRepo<Role> so caller knows which repo each role came from
  */
@@ -61,11 +63,9 @@ export const getLinkedRolesWithHooks = async (
     return { roles: [], errors: [] };
   }
 
-  // scan for repo=* directories (skip repo=.this)
+  // scan for repo=* directories of role packages (skip repo=.this and repo=.mods)
   // sorted: the roster is a function of the SET of dirs, never of readdir order
-  const repoDirs = readdirSync(agentDir)
-    .filter((name) => name.startsWith('repo=') && name !== 'repo=.this')
-    .sort();
+  const repoDirs = getAllRepoDirsOfKind({ agentDir, kinds: ['package'] });
 
   // 🟡 .note = DELIBERATE MUTATION — `roles` and `errors` grow by `push` across the async
   //   per-repo walk. each import may land a role or an error, never both, so two accumulators
@@ -87,7 +87,7 @@ export const getLinkedRolesWithHooks = async (
       .filter((name) => name.startsWith('role='))
       .sort();
 
-    const packageName = `rhachet-roles-${repoSlug}`;
+    const packageName = toRolePackageFromRepo(repoSlug);
 
     // record a failure for EVERY linked role in this repo, tagged by the phase that faulted
     // (load vs use) so the caller can point at the true layer — the same phase-accuracy the
@@ -171,7 +171,7 @@ export const getLinkedRolesWithHooks = async (
     }
   }
 
-  // a budgeted `.this` boot arms the built-in gate, which joins the same sync as a supplier's
+  // a budgeted `.this` boot or a mod arms the built-in sweep, which joins the same sync as a supplier's
   const repoThis = getAllRepoThisRolesWithHooks({ gitroot: context.gitroot });
   roles.push(...repoThis.roles);
   errors.push(

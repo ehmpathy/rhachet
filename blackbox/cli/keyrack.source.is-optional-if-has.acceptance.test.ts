@@ -2,6 +2,7 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { given, then, useBeforeAll, useThen, when } from 'test-fns';
 
+import { genKeyrackRuntimeDir } from '@/blackbox/.test/infra/genKeyrackRuntimeDir';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import {
   asSnapshotSafe,
@@ -62,7 +63,7 @@ env.test:
           cwd: repo.path,
           env: {
             HOME: repo.path,
-            XDG_RUNTIME_DIR: join(repo.path, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: genKeyrackRuntimeDir({ dir: repo.path }),
             // primary key NOT set
             [alternativeKey]: alternativeValue, // alternative IS set
           },
@@ -95,7 +96,7 @@ env.test:
           cwd: repo.path,
           env: {
             HOME: repo.path,
-            XDG_RUNTIME_DIR: join(repo.path, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: genKeyrackRuntimeDir({ dir: repo.path }),
             // neither key set
           },
           logOnError: false,
@@ -209,7 +210,7 @@ env.test:
           cwd: repo.path,
           env: {
             HOME: repo.path,
-            XDG_RUNTIME_DIR: join(repo.path, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: genKeyrackRuntimeDir({ dir: repo.path }),
             // primary NOT set
             [alternativeKey]: '', // empty string - should not waive
           },
@@ -266,7 +267,7 @@ env.test:
           cwd: repo.path,
           env: {
             HOME: repo.path,
-            XDG_RUNTIME_DIR: join(repo.path, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: genKeyrackRuntimeDir({ dir: repo.path }),
             // primary NOT set
             [alternativeKey]: alternativeValue, // alternative IS set
           },
@@ -327,7 +328,7 @@ env.test:
           cwd: repo.path,
           env: {
             HOME: repo.path,
-            XDG_RUNTIME_DIR: join(repo.path, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: genKeyrackRuntimeDir({ dir: repo.path }),
             // primary NOT set (absent from keyrack)
             [alternativeKey]: alternativeValue, // alternative IS set in env (not in manifest)
           },
@@ -361,7 +362,7 @@ env.test:
           cwd: repo.path,
           env: {
             HOME: repo.path,
-            XDG_RUNTIME_DIR: join(repo.path, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: genKeyrackRuntimeDir({ dir: repo.path }),
             // neither key set
           },
           logOnError: false,
@@ -417,7 +418,7 @@ env.test:
           cwd: repo.path,
           env: {
             HOME: repo.path,
-            XDG_RUNTIME_DIR: join(repo.path, '.xdg-runtime'),
+            XDG_RUNTIME_DIR: genKeyrackRuntimeDir({ dir: repo.path }),
             [primaryKey]: primaryValue, // primary IS set
             // alternative NOT set
           },

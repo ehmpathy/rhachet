@@ -1,0 +1,42 @@
+declare the blackbox criteria required to fulfill
+- this wish .behavior/v2026_10_16.feat-role-edit-overlay/0.wish.md
+- this vision .behavior/v2026_10_16.feat-role-edit-overlay/1.vision.yield.md
+- its experience cases .behavior/v2026_10_16.feat-role-edit-overlay/1.vision.experience.case=*.md
+
+via bdd declarations, per your briefs. every critipath in 1.vision.experience.case=_.md owes a usecase here.
+
+emit into .behavior/v2026_10_16.feat-role-edit-overlay/2.1.criteria.blackbox.yield.md
+
+---
+
+blackbox criteria = experience boundaries (no implementation details)
+
+## episode experience
+a sequence of exchanges — the narrative flow
+- what workflows do users go through?
+- what do they see, do, and receive at each step?
+- what are the critical paths through the episode?
+- what are the edge cases in the narrative?
+
+## exchange experience
+atomic — a single input→output contract
+- what inputs does the system accept?
+- what outputs does the system return?
+- what errors does the system surface?
+- what are the boundary conditions?
+
+---
+
+DO NOT include mechanism details or implementation details.
+
+---
+
+## template
+
+```
+# usecase.1 = ...
+given()
+  when()
+    then()
+      sothat()
+```

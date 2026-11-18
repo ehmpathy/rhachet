@@ -3,7 +3,7 @@ import type { RoleSpecifier } from '@src/domain.objects/RoleSpecifier';
 import { getRolesFoundFromSlugs } from '@src/domain.operations/init/roles/link/getRolesFoundFromSlugs';
 import { getRolesLinkedFromFound } from '@src/domain.operations/init/roles/link/getRolesLinkedFromFound';
 import { getRolesUnlinkedFromSlugs } from '@src/domain.operations/init/roles/link/getRolesUnlinkedFromSlugs';
-import { discoverLinkedRoles } from '@src/domain.operations/upgrade/discoverLinkedRoles';
+import { discoverLinkedRoles } from '@src/domain.operations/role/discoverLinkedRoles';
 
 import { getRolesIncrementalSummaryTree } from './getRolesIncrementalSummaryTree';
 import { getRolesNewlyEnrolled } from './getRolesNewlyEnrolled';
@@ -45,7 +45,7 @@ export const setIncrementalRoles = async (
   );
 
   // remove phase: unlink each subtraction, report only the roles actually removed
-  const rolesRemoved = getRolesUnlinkedFromSlugs(
+  const rolesRemoved = await getRolesUnlinkedFromSlugs(
     { slugs: input.subtractions },
     context,
   );

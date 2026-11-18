@@ -122,6 +122,33 @@ const isSummaryLine = (input: { lines: string[]; index: number }): boolean => {
 };
 
 /**
+ * .what = reads the count of hooks the summary reports as created
+ * .why  = a summary that `maskPublishedHookCount` masks still owes a check that hooks landed
+ */
+const getHookCountCreated = (input: { summary: string }): number => {
+  const match = input.summary.match(/✨ hooks\n {3}└─ (\d+) created/);
+  if (!match)
+    throw new ConstraintError('the summary holds no `✨ hooks` created row', {
+      hint: 'the hooks row moved or was renamed — repair the read, never mask the absence',
+      summary: input.summary,
+    });
+  return Number(match[1]);
+};
+
+/**
+ * .what = masks the count of hooks created under `✨ hooks` to a stable token
+ * .why  = an upgrade installs the latest published role package, whose hook count is that
+ *   package's to change. measured 2026-11-16: `rhachet-roles-ehmpathy@1.43.0` took mechanic from
+ *   14 hooks to 16 and turned two snapshots red with no change here
+ * .note = a caller pairs it with `getHookCountCreated`, so the count is asserted, never dropped
+ */
+const maskPublishedHookCount = (input: { summary: string }): string =>
+  input.summary.replace(
+    /(✨ hooks\n {3}└─ )\d+( created)/,
+    '$1$HOOK_COUNT$2',
+  );
+
+/**
  * .what = drops ansi color escape sequences from a string
  * .why = a raw node error dump carries ansi color codes (e.g. `\u001b[33m`),
  *        which render as garbled `[33m` noise in a snapshot. strip them so the
@@ -976,11 +1003,18 @@ describe('rhachet upgrade', () => {
         expect(result.upgradeResult.stdout).toContain('🔧 init');
       });
 
+      then('the published role creates at least one hook', () => {
+        const { summary } = extractRhachetOutput({
+          stdout: result.upgradeResult.stdout,
+        });
+        expect(getHookCountCreated({ summary })).toBeGreaterThan(0);
+      });
+
       then('stdout.summary matches snapshot', () => {
         const { summary } = extractRhachetOutput({
           stdout: result.upgradeResult.stdout,
         });
-        expect(summary).toMatchSnapshot();
+        expect(maskPublishedHookCount({ summary })).toMatchSnapshot();
       });
     });
   });
@@ -1049,11 +1083,18 @@ describe('rhachet upgrade', () => {
         ).toMatchSnapshot();
       });
 
+      then('the published role creates at least one hook', () => {
+        const { summary } = extractRhachetOutput({
+          stdout: result.upgradeResult.stdout,
+        });
+        expect(getHookCountCreated({ summary })).toBeGreaterThan(0);
+      });
+
       then('stdout.summary matches snapshot', () => {
         const { summary } = extractRhachetOutput({
           stdout: result.upgradeResult.stdout,
         });
-        expect(summary).toMatchSnapshot();
+        expect(maskPublishedHookCount({ summary })).toMatchSnapshot();
       });
     });
   });

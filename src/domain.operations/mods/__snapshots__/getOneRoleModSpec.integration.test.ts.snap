@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`getOneRoleModSpec given: [case1] a mod dir that holds no boot.yml when: [t0] its spec is read then: it is refused: the mod names no role, and the fix names the boot.yml to add 1`] = `
+"✋ ConstraintError: the mod of role=surfer is refused: it holds no boot.yml
+
+{
+  "mod": ".agent/repo=.mods/role=surfer/",
+  "subject": "boot.yml",
+  "fix": "add .agent/repo=.mods/role=surfer/boot.yml with \`of: <repo>/surfer\`"
+}"
+`;

@@ -1,6 +1,9 @@
 import type { Command } from 'commander';
 
 import { genContextCli } from '@src/domain.objects/ContextCli';
+import { asRoleModDriftReadout } from '@src/domain.operations/mods/asRoleModDriftReadout';
+import { asRoleModRefusalsUpgradeReadout } from '@src/domain.operations/mods/asRoleModRefusalsUpgradeReadout';
+import { getAllRoleModDriftsOfRepo } from '@src/domain.operations/mods/getAllRoleModDriftsOfRepo';
 import { getRoleDeltaTokens } from '@src/domain.operations/roles/deltas/getRoleDeltaTokens';
 import { assertUpgradeRoleSpecsUnfocused } from '@src/domain.operations/upgrade/assertUpgradeRoleSpecsUnfocused';
 import { execUpgrade } from '@src/domain.operations/upgrade/execUpgrade';
@@ -82,6 +85,20 @@ export const invokeUpgrade = ({ program }: { program: Command }): void => {
             'hint: hooks did not land — fix the hook sync faults above, then rerun `rhx upgrade`',
           );
         console.log('');
+
+        // a mod pinned to the version this upgrade moved off is named, to re-read (usecase 5)
+        //   a mod the new release refuses is named too; the upgrade landed, so it sets no exit
+        const { drifts, refusals } = getAllRoleModDriftsOfRepo({}, context);
+        for (const drift of drifts) {
+          console.log('🧢 the modded role moved');
+          console.log(asRoleModDriftReadout(drift).join('\n'));
+          console.log('');
+        }
+        const linesRefused = asRoleModRefusalsUpgradeReadout({ refusals });
+        if (linesRefused.length > 0) {
+          console.log(linesRefused.join('\n'));
+          console.log('');
+        }
 
         // exit by the brain dir sync's own rule: 2 for a human fix, 1 for a malfunction
         if (result.bootsExitCode !== 0) process.exit(result.bootsExitCode);

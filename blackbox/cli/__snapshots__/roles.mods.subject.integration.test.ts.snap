@@ -1,0 +1,144 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhachet roles — a subject-mode role modded via .agent/repo=.mods given: [case1] a repo that mods a linked subject-mode package role when: [t0] the role is booted then: the boot matches its snapshot 1`] = `
+"<stats>
+quant
+  ├── files = 7
+  │   ├── briefs = 4
+  │   │   ├── say = 1
+  │   │   └── ref = 3
+  │   └── skills = 0
+  │       ├── say = 0
+  │       └── ref = 0
+  ├── chars = 95
+  └── tokens ≈ 24 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+<mod of="test/surfer@1.0.0">
+role test/surfer@1.0.0 is modded in this repo — 2 shadow, 1 add, 1 not
+[-] not skills/fins.check.sh
+</mod>
+
+<readme path=".agent/repo=test/role=surfer/readme.md">
+# surfer
+
+a test subject-mode role, as published
+
+</readme>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.require.read-the-set.md">
+published: read the set before you paddle out
+
+</brief.say>
+
+<briefs.ref base=".agent/repo=test/role=surfer/briefs/">
+rule.require.reef-etiquette.md mod="add"
+rule.require.surf-wax.md mod="shadow"
+howto.paddle-out.md
+</briefs.ref>
+
+<also>
+  <briefs.ref base=".agent/repo=test/role=surfer/briefs/">
+  rule.prefer.dawn-patrol.md mod="shadow"
+  </briefs.ref>
+
+  <skills.ref base=".agent/repo=test/role=surfer/skills/">
+  wax.board.sh
+  </skills.ref>
+</also>
+
+<stats>
+quant
+  ├── files = 7
+  │   ├── briefs = 4
+  │   │   ├── say = 1
+  │   │   └── ref = 3
+  │   └── skills = 0
+  │       ├── say = 0
+  │       └── ref = 0
+  ├── chars = 95
+  └── tokens ≈ 24 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles — a subject-mode role modded via .agent/repo=.mods given: [case1] a repo that mods a linked subject-mode package role when: [t1] the not-ed skill is run then: the not-found stderr matches its snapshot 1`] = `
+"
+✋ ConstraintError: no skill "fins.check" found — a mod in this repo nots it
+
+  - .agent/repo=.mods/role=surfer/boot.yml nots skills/fins.check.sh (of test/surfer)
+
+fix: drop the path from the mod's \`not:\` to run the published skill, or ship a skill of that path in the mod dir to shadow it
+
+{
+  "input": {
+    "slugSkill": "fins.check"
+  },
+  "nots": [
+    {
+      "role": "surfer",
+      "target": {
+        "repo": "test",
+        "role": "surfer"
+      },
+      "path": "skills/fins.check.sh",
+      "modSpecPath": ".agent/repo=.mods/role=surfer/boot.yml"
+    }
+  ]
+}
+
+[args] run,--skill,fins.check
+
+"
+`;
+
+exports[`rhachet roles — a subject-mode role modded via .agent/repo=.mods given: [case1] a repo that mods a linked subject-mode package role when: [t2] a skill the mod leaves alone is run then: the run stdout matches its snapshot 1`] = `
+"
+🪨 run solid skill repo=test/role=surfer/skill=wax.board
+
+waxed
+"
+`;
+
+exports[`rhachet roles — a subject-mode role modded via .agent/repo=.mods given: [case2] a clone enrolled at a subject of the modded role when: [t0] \`enroll claude --roles surfer::waves\` then: the actor boot carries the mod notice, the subject, and the tags 1`] = `
+"<brief.say path="rhachet/intro">
+# rhachet
+
+you are enrolled via rhachet. your roles' briefs and skills follow.
+
+- \`rhx list\` — every skill your roles grant. check it before you improvise
+- \`rhx <skill> --help\` — how to call one
+- \`rhx init · roles · list · run · enroll · actor · clone · keyrack · ask · act · upgrade\` — the commands; \`rhx <command> --help\` for each
+
+entool: a tactic worth repeat becomes a skill — \`.agent/repo=.this/role=any/skills/<name>.sh\` — so the next clone runs it, never rediscovers it.
+
+</brief.say>
+
+<mod of="test/surfer@1.0.0">
+role test/surfer@1.0.0 is modded in this repo — 2 shadow, 1 add, 1 not
+[-] not skills/fins.check.sh
+</mod>
+
+<focus given="waves" elsewhere="" always="kept"/>
+
+<readme path=".agent/repo=test/role=surfer/readme.md">
+# surfer
+
+a test subject-mode role, as published
+
+</readme>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.require.read-the-set.md">
+published: read the set before you paddle out
+
+</brief.say>
+
+<brief.ref path=".agent/repo=test/role=surfer/briefs/rule.require.reef-etiquette.md" mod="add"/>
+
+<brief.ref path=".agent/repo=test/role=surfer/briefs/rule.require.surf-wax.md" mod="shadow"/>
+
+<brief.ref path=".agent/repo=test/role=surfer/briefs/howto.paddle-out.md"/>
+
+"
+`;

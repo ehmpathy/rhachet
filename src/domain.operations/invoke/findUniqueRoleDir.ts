@@ -1,5 +1,7 @@
 import { ConstraintError } from 'helpful-errors';
 
+import { getAllRepoDirsOfKind } from '@src/domain.operations/role/getAllRepoDirsOfKind';
+
 import { existsSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -32,10 +34,11 @@ export const findUniqueRoleDir = (input: {
     );
   }
 
-  // discover repo directories
-  const repoEntries = readdirSync(agentDir).filter((entry) =>
-    entry.startsWith('repo='),
-  );
+  // discover repo directories; a mod dir is no role (its role lives under its package)
+  const repoEntries = getAllRepoDirsOfKind({
+    agentDir,
+    kinds: ['native', 'package'],
+  });
 
   for (const repoEntry of repoEntries) {
     const slugRepo = repoEntry.replace('repo=', '');

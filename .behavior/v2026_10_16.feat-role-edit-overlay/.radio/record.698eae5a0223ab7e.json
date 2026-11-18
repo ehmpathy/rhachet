@@ -1,0 +1,19 @@
+{
+  "key": "698eae5a0223ab7e",
+  "kind": "create",
+  "repo": {
+    "owner": "ehmpathy",
+    "name": "rhachet-roles-bhuild"
+  },
+  "exid": null,
+  "title": "feat(behaver): add review.by, with a coherence rubric for behavior artifacts",
+  "description": "## .what\n\ngive the behaver role its own `review.by`, so `rhx review.by --role behaver` runs the behaver's\nstandard review set. one of its rubrics must be **coherence**: do the behavior artifacts still agree\nwith each other?\n\n## .why\n\na vision is patched many times as the wisher settles questions: a contract is simplified, a term is\nrenamed, a scope is widened. each patch lands in the yield, but the artifacts that hang off it — the\nexperience case files, the `case=_` inventory, the dimensions, the fulcrums, the seeds, the self\nreviews — are left in incoherent states. they still cite withdrawn verbs, dropped states, and old\nfile names, and no current reviewer reads for that. a brain should review against it, from the\nbehaver's perspective, for behavior artifacts above all.\n\nmeasured in `ehmpathy/rhachet` @ `beav/feat-role-edit-overlay`, route\n`.behavior/v2026_10_16.feat-role-edit-overlay/`: the wisher withdrew a hash-based contract\n(`edit.yml`, per-file bases, the `edit gen` / `set --rebase` verbs, the stale / orphan / redundant /\ncollision states) in favor of a `boot.yml`-shaped declaration. the yield was rewritten, and eight\ncase files, the inventory and five fulcrums still described the old contract. both extant peer lanes\non that stone (`dimensional-decomposition`, `experience-coverage`) had approved the prior set 0/0 —\nneither reads one artifact against another.\n\n## .how\n\nfollow `howto.add-review-by-to-a-role` (bhrain/reviewer), the sanctioned shape:\n\n1. `briefs/reviews/rubrics.yml` for the behaver, with at least a `coherence` rubric\n2. a one-line `review.by` wrapper that delegates to the bhrain base engine\n   (`rule.require.review-by-wrapper-pattern`)\n3. the rule the coherence rubric reads, e.g. `rule.require.behavior-artifact-coherence`, which grades:\n   - every term, verb, state, path and file name a peer artifact cites still exists in the current yield\n   - the inventory, dimensions and case files cover the same experiences the yield lists, under the same names\n   - fulcrums and seeds marked as landed point at sections that still hold what they claim\n   - a self review or fulcrum that describes a withdrawn design says so, rather than read as current\n4. add the coherence lane to the route guards that review behavior artifacts (at least `1.vision`,\n   and the criteria and blueprint stones), so it runs after every patch round\n\n## .done when\n\n- `rhx review.by --role behaver --rubric coherence` runs over a route dir\n- a fixture route whose yield renames a verb, and whose case file still cites the old verb, yields\n  one blocker that names both files",
+  "status": null,
+  "via": "gh.issues",
+  "auth": "as-human",
+  "idem": "findsert",
+  "heldSeq": 1,
+  "recordStatus": "DELIVERED",
+  "reason": null,
+  "deliveredExid": "473"
+}

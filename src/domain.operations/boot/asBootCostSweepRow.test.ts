@@ -1,6 +1,7 @@
 import { given, then, when } from 'test-fns';
 
 import { genSampleBootSpecCost as asCost } from '@src/.test/assets/genSampleBootSpecCost';
+import { genSampleRoleModPlan } from '@src/.test/assets/genSampleRoleModPlan';
 import { asBootCostSweepRow } from '@src/domain.operations/boot/asBootCostSweepRow';
 
 /**
@@ -20,6 +21,7 @@ describe('asBootCostSweepRow', () => {
         one: asCost({ tokens: 668 }),
         cwd,
         widthTokens,
+        plan: null,
       });
 
       then('its count is padded to the roster width', () => {
@@ -39,6 +41,7 @@ describe('asBootCostSweepRow', () => {
         one: asCost({ tokens: 62_986 }),
         cwd,
         widthTokens,
+        plan: null,
       });
 
       then('it takes no pad — it already fills the width', () => {
@@ -51,6 +54,7 @@ describe('asBootCostSweepRow', () => {
         one: asCost({ tokens: 668, budget: 5_000 }),
         cwd,
         widthTokens,
+        plan: null,
       });
 
       then('the pad applies to the payload count, not the budget', () => {
@@ -67,6 +71,7 @@ describe('asBootCostSweepRow', () => {
         one: asCost({ tokens: 1_480 }),
         cwd,
         widthTokens: 5,
+        plan: null,
       });
 
       then('no pad is added — the width is its own', () => {
@@ -81,6 +86,7 @@ describe('asBootCostSweepRow', () => {
         one: asCost({ tokens: 668, isForeign: true }),
         cwd,
         widthTokens: 6,
+        plan: null,
       });
 
       then(
@@ -92,6 +98,55 @@ describe('asBootCostSweepRow', () => {
           expect(row).toContain('boot.yml (linked)');
         },
       );
+
+      then('an unmodded row carries no mod mark', () => {
+        expect(row).not.toContain('modded');
+      });
+    });
+  });
+
+  given('[case4] a modded role', () => {
+    const plan = genSampleRoleModPlan({
+      shadows: ['briefs/a.md', 'skills/b.sh'],
+      adds: ['briefs/c.md'],
+      nots: ['briefs/d.md', 'briefs/e.md'],
+      minsDropped: [],
+    });
+
+    when('[t0] the row is rendered', () => {
+      const row = asBootCostSweepRow({
+        one: asCost({ tokens: 668, isForeign: true, budget: 5_000 }),
+        cwd,
+        widthTokens: 6,
+        plan,
+      });
+
+      then('the mark trails every other tag, with each count', () => {
+        expect(row).toMatch(
+          /boot\.yml \(linked\) {2}\[~\] modded · 2 shadow · 1 add · 2 not$/,
+        );
+      });
+
+      then('the columns before the mark hold', () => {
+        expect(row).toContain('├─    668 / 5,000 tokens (13%)');
+      });
+    });
+  });
+
+  given('[case5] a modded role whose view the boot would refuse', () => {
+    when('[t0] the row is rendered', () => {
+      const row = asBootCostSweepRow({
+        one: asCost({ tokens: 668, isForeign: true, budget: 5_000 }),
+        cwd,
+        widthTokens: 6,
+        plan: 'stale',
+      });
+
+      then('the row is marked and names the render that fixes it', () => {
+        expect(row).toMatch(
+          /\(linked\) {2}\[~\] modded, view not current \(rhx init --hooks\)$/,
+        );
+      });
     });
   });
 });

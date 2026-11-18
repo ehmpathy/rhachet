@@ -108,23 +108,34 @@ inside it.
 name the trigger you actually need, then find the extant one — a boot, a link, a build, a role's
 own declared hook — before you author a new one at a layer that owns no roles.
 
-## 🟡 .the sole exception — the `.this` budget gate
+## 🟡 .the sole exception — the repo-wide stop sweep, and its two arms
 
-a `.agent/repo=.this` boot that declares `budget.tokens` needs a stop hook to enforce it. rhachet
-arms that one hook itself — `roles cost --all --when hook.onStop` — and supports no other
-framework-owned hook. it keeps every property the rule protects except the declaration site:
+rhachet arms one hook itself — `roles cost --all --when hook.onStop` — and supports no other
+framework-owned hook. two repo-owned declarations arm it, and each drifts with no upkeep:
 
-| the property | how the gate keeps it |
+| the arm | the declaration | the drift the stop holds for |
+|---|---|---|
+| the budget gate | a `.agent/repo=.this` boot that declares `budget.tokens` | the boot grows past its cap |
+| the mod pin | a mod under `.agent/repo=.mods/role=<role>/` whose `of:` names an `@version` | the installed role moves off the pin |
+
+the mod pin is an arm because a clone that never boots the modded role still stops in the repo, so
+the stop is the one moment every clone learns its repo's mod now reads against a release the mod was
+not written for.
+
+the sweep keeps every property the rule protects except the declaration site:
+
+| the property | how the sweep keeps it |
 |---|---|
-| a human asked | 🔴 only a `.this` role whose `boot.yml` declares a budget arms it. no budget, no hook |
-| a coordinate | relayed under the first budgeted role, `author: repo=.this/role=$slug` |
-| a consumer can switch it off | delete the budget. the next `init --hooks` removes the entry |
-| one sweep, never N | armed once per repo, since the sweep is repo-wide |
+| a human asked | 🔴 only a budget in a `.this` `boot.yml`, or a mod dir, arms it. neither, no hook |
+| a coordinate | relayed under the first budgeted role, else `role=any`: `author: repo=.this/role=$slug` |
+| a consumer can switch it off | delete the budget and the mods. the next `init --hooks` removes the entry |
+| one sweep, never N | armed once per repo, never once per arm, role, or mod, since the sweep is repo-wide |
+| silent unless a human must act | within budget and on a matched pin, the stop prints naught and exits 0 |
 
-⇒ the usecase is the human's — the budget they wrote. the hook is the mechanism that budget means,
-so rhachet couriers a declaration that lives in `boot.yml` rather than in a hook file. no peer may
-copy this path: a new framework hook is still a blocker, and *"it is like the budget gate"* is the
-trap to refuse.
+⇒ the usecase is the human's — the budget or the pin they wrote. the hook is the mechanism that
+declaration means, so rhachet couriers a declaration that lives in a `boot.yml` rather than in a hook
+file. no peer may copy this path: a new framework hook, or a third arm no human set, is still a
+blocker, and *"it is like the budget gate"* is the trap to refuse.
 
 ## 🟡 .the peer question — a framework-grain BRIEF or SKILL
 
@@ -148,7 +159,7 @@ the framework's own briefs today.
 | *"every repo needs this, so the framework declares it"* | *"every repo needs this, so every repo links the role"* |
 | framework knowledge shipped as resident agent payload by rhachet | the same knowledge in the **readme**, or lifted into **`rhachet-roles-rhachet`** |
 
-blocker: a hook declared by rhachet's own source, other than the `.this` budget gate · a sync path that writes a config entry
+blocker: a hook declared by rhachet's own source, other than the repo-wide stop sweep · a sync path that writes a config entry
 attributed to no role · a new framework hook authored where an extant trigger would serve.
 
 ⇒ see also: `rule.require.when-names-the-caller` (a hook-invoked command declares its CALLER, never

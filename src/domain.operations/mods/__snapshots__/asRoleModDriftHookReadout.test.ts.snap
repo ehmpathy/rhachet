@@ -1,0 +1,45 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asRoleModDriftHookReadout given: [case1] one pinned mod whose role moved when: [t0] the hold is rendered then: the hold matches its snapshot 1`] = `
+"🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 modded role moved off the version its mod pins
+   │  └─ ehmpathy/mechanic
+   │     ├─ role    = ehmpathy/mechanic
+   │     ├─ mods    = 1.39.5   (declared in .agent/repo=.mods/role=mechanic/boot.yml)
+   │     ├─ now     = 1.40.0
+   │     ├─ review each mod against the new release
+   │     │  ├─ [~] shadow briefs/rule.require.surf-wax.md
+   │     │  ├─ [+] add briefs/rule.require.reef-etiquette.md
+   │     │  └─ [-] not skills/wax.board.sh
+   │     └─ then set \`of: ehmpathy/mechanic@1.40.0\` in the mod boot.yml
+   │
+   └─ the stop holds until each mod's \`of:\` names the installed version
+"
+`;
+
+exports[`asRoleModDriftHookReadout given: [case2] two pinned mods whose roles moved when: [t0] the hold is rendered then: the hold matches its snapshot 1`] = `
+"🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 2 modded roles moved off the version their mods pin
+   │  ├─ ehmpathy/mechanic
+   │  │  ├─ role    = ehmpathy/mechanic
+   │  │  ├─ mods    = 1.39.5   (declared in .agent/repo=.mods/role=mechanic/boot.yml)
+   │  │  ├─ now     = 1.40.0
+   │  │  ├─ review each mod against the new release
+   │  │  │  ├─ [~] shadow briefs/rule.require.surf-wax.md
+   │  │  │  ├─ [+] add briefs/rule.require.reef-etiquette.md
+   │  │  │  └─ [-] not skills/wax.board.sh
+   │  │  └─ then set \`of: ehmpathy/mechanic@1.40.0\` in the mod boot.yml
+   │  │
+   │  └─ test/surfer
+   │     ├─ role    = test/surfer
+   │     ├─ mods    = 0.9.0   (declared in .agent/repo=.mods/role=surfer/boot.yml)
+   │     ├─ now     = 1.0.0
+   │     ├─ review each mod against the new release
+   │     │  ├─ [~] shadow briefs/rule.require.surf-wax.md
+   │     │  ├─ [+] add briefs/rule.require.reef-etiquette.md
+   │     │  └─ [-] not skills/wax.board.sh
+   │     └─ then set \`of: test/surfer@1.0.0\` in the mod boot.yml
+   │
+   └─ the stop holds until each mod's \`of:\` names the installed version
+"
+`;

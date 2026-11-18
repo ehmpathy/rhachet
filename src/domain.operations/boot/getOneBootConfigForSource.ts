@@ -1,7 +1,8 @@
+import { parseRoleBootYaml } from '@src/domain.operations/role/parseRoleBootYaml';
+import { readOneBootSpecFile } from '@src/domain.operations/role/readOneBootSpecFile';
+
 import { statSync } from 'node:fs';
 import type { BootSource } from './BootSource';
-import { parseRoleBootYaml } from './parseRoleBootYaml';
-import { readOneBootSpecFile } from './readOneBootSpecFile';
 
 /**
  * .what = the parsed boot spec of a source, or null where a computed spec is absent

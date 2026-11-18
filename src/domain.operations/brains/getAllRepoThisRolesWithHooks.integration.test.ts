@@ -203,4 +203,106 @@ describe('getAllRepoThisRolesWithHooks', () => {
       );
     });
   });
+
+  given('[case8] a role mod, and no budgeted .this role', () => {
+    const scene = useBeforeAll(async () => {
+      const repo = genRepoWithRoleBoots({
+        slug: 'repo-this-hooks-mods',
+        roles: { any: BOOT_YML_UNBUDGETED },
+      });
+      genSampleFileTree({
+        dir: join(repo, '.agent', 'repo=.mods', 'role=surfer'),
+        files: { 'boot.yml': 'of: test/surfer@1.0.0\n' },
+      });
+      genSampleFileTree({
+        dir: join(repo, '.agent', 'repo=.mods', 'role=mechanic'),
+        files: { 'boot.yml': 'of: ehmpathy/mechanic@1.0.0\n' },
+      });
+      return { result: getAllRepoThisRolesWithHooks({ gitroot: repo }) };
+    });
+
+    when('[t0] the roles are read', () => {
+      then(
+        'the mods arm the one stop sweep, once, carried by role=any under repo=.this',
+        () => {
+          expect(scene.result.errors).toEqual([]);
+          expect(
+            scene.result.roles.map((role) => [role.repo, role.slug]),
+          ).toEqual([['.this', 'any']]);
+          expect(scene.result.roles[0]?.hooks?.onBrain).toEqual({
+            onStop: [
+              { command: REPO_THIS_BUDGET_HOOK_COMMAND, timeout: 'PT60S' },
+            ],
+          });
+        },
+      );
+    });
+  });
+
+  given('[case8.1] a role mod, in a repo with no .agent/repo=.this dir', () => {
+    const scene = useBeforeAll(async () => {
+      const repo = genTempDir({ slug: 'repo-this-hooks-mods-only' });
+      genSampleFileTree({
+        dir: join(repo, '.agent', 'repo=.mods', 'role=surfer'),
+        files: { 'boot.yml': 'of: test/surfer@1.0.0\n' },
+      });
+      return { result: getAllRepoThisRolesWithHooks({ gitroot: repo }) };
+    });
+
+    when('[t0] the roles are read', () => {
+      then('the mod alone arms the stop sweep, carried by role=any', () => {
+        expect(scene.result.errors).toEqual([]);
+        expect(
+          scene.result.roles.map((role) => [role.repo, role.slug]),
+        ).toEqual([['.this', 'any']]);
+      });
+    });
+  });
+
+  given('[case8.2] a mods dir that holds only a stray entry', () => {
+    const scene = useBeforeAll(async () => {
+      const repo = genTempDir({ slug: 'repo-this-hooks-mods-stray' });
+      genSampleFileTree({
+        dir: join(repo, '.agent', 'repo=.mods'),
+        files: { 'notes.md': 'not a role\n' },
+      });
+      return { result: getAllRepoThisRolesWithHooks({ gitroot: repo }) };
+    });
+
+    when('[t0] the roles are read', () => {
+      then('no sweep is armed, since no role is modded', () => {
+        expect(scene.result).toEqual({ roles: [], errors: [] });
+      });
+    });
+  });
+
+  given('[case9] a role mod beside a budgeted .this role', () => {
+    const scene = useBeforeAll(async () => {
+      const repo = genRepoWithRoleBoots({
+        slug: 'repo-this-hooks-mods-budgeted',
+        roles: { tuner: BOOT_YML_BUDGETED },
+      });
+      genSampleFileTree({
+        dir: join(repo, '.agent', 'repo=.mods', 'role=surfer'),
+        files: { 'boot.yml': 'of: test/surfer@1.0.0\n' },
+      });
+      return { result: getAllRepoThisRolesWithHooks({ gitroot: repo }) };
+    });
+
+    when('[t0] the roles are read', () => {
+      then(
+        'the budget carrier carries the one sweep; the mod adds no second',
+        () => {
+          expect(
+            scene.result.roles.map((role) => [role.repo, role.slug]),
+          ).toEqual([['.this', 'tuner']]);
+          expect(scene.result.roles[0]?.hooks?.onBrain).toEqual({
+            onStop: [
+              { command: REPO_THIS_BUDGET_HOOK_COMMAND, timeout: 'PT60S' },
+            ],
+          });
+        },
+      );
+    });
+  });
 });

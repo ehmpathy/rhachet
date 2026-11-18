@@ -1,5 +1,6 @@
 import { ConstraintError } from 'helpful-errors';
 
+import { ContextCli } from '@src/domain.objects/ContextCli';
 import { asRoleBootBody } from '@src/domain.operations/boot/asRoleBootBody';
 import { asRoleBriefFiles } from '@src/domain.operations/boot/asRoleBriefFiles';
 import { asRoleFocusSummary } from '@src/domain.operations/boot/asRoleFocusSummary';
@@ -10,9 +11,14 @@ import {
   type BootSayResource,
   getAllBootSayResources,
 } from '@src/domain.operations/boot/getAllBootSayResources';
-import { getOneRoleBootSpecFromRef } from '@src/domain.operations/boot/getOneRoleBootSpecFromRef';
+import { assertRoleModdedViewFresh } from '@src/domain.operations/mods/assertRoleModdedViewFresh';
+import { assertRoleModSparesNativeRole } from '@src/domain.operations/mods/assertRoleModSparesNativeRole';
+import { withRoleModReadConfirmed } from '@src/domain.operations/mods/withRoleModReadConfirmed';
+import { asRepoSlugKind } from '@src/domain.operations/role/asRepoSlugKind';
 import { assertZeroOrphanMinifiedBriefs } from '@src/domain.operations/role/briefs/assertZeroOrphanMinifiedBriefs';
 import { getRoleBriefRefs } from '@src/domain.operations/role/briefs/getRoleBriefRefs';
+import { getAllLinkedRoleRefs } from '@src/domain.operations/role/getAllLinkedRoleRefs';
+import { getOneRoleBootSpecFromRef } from '@src/domain.operations/role/getOneRoleBootSpecFromRef';
 import { getAllFilesFromDir } from '@src/infra/filesystem/getAllFilesFromDir';
 
 import { existsSync } from 'node:fs';
@@ -53,6 +59,36 @@ export const getOneRoleBootContent = async (input: {
       },
     );
 
+  // a native role is never modded (F18); a mod that names it is refused here, at its boot
+  if (asRepoSlugKind({ slug: input.slugRepo }) !== 'package')
+    assertRoleModSparesNativeRole({
+      cwd: input.cwd,
+      ref: { repo: input.slugRepo, role: input.slugRole },
+      getRefsLinked: () =>
+        getAllLinkedRoleRefs(
+          {},
+          new ContextCli({ cwd: input.cwd, gitroot: input.cwd }),
+        ),
+    });
+
+  // a modded role boots its view only once that view is proven fresh; a boot never heals it.
+  //   a `.this` role is never modded (F18), so its boot never reads a mod of its slug. a read
+  //   that refuses is confirmed under the role view lock, so a render mid-swap never fails it
+  const mod =
+    asRepoSlugKind({ slug: input.slugRepo }) === 'package'
+      ? await withRoleModReadConfirmed({ cwd: input.cwd }, () =>
+          assertRoleModdedViewFresh({
+            cwd: input.cwd,
+            ref: { repo: input.slugRepo, role: input.slugRole },
+            getRefsLinked: () =>
+              getAllLinkedRoleRefs(
+                {},
+                new ContextCli({ cwd: input.cwd, gitroot: input.cwd }),
+              ),
+          }),
+        )
+      : null;
+
   // read all files, then split into readme, briefs, and skills
   const allFiles = [...getAllFilesFromDir({ dir: roleDir })].sort();
   const briefsDir = resolve(roleDir, 'briefs');
@@ -90,6 +126,7 @@ export const getOneRoleBootContent = async (input: {
   // decide what to say and what to ref
   const bootPlan = await computeBootPlan({
     config: bootConfig,
+    configMod: mod?.spec.sections ?? null,
     briefRefs,
     skillPaths: skillFiles,
     cwd: roleDir,
@@ -124,5 +161,6 @@ export const getOneRoleBootContent = async (input: {
     briefsSaid,
     skillsSaid,
     focus,
+    mod: mod ? { ofLabel: mod.ofLabel, plan: mod.plan } : null,
   });
 };

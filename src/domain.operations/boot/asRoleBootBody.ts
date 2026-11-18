@@ -1,3 +1,7 @@
+import type { RoleModPlan } from '@src/domain.objects/RoleModPlan';
+import { asRoleModAttr } from '@src/domain.operations/mods/asRoleModAttr';
+import { asRoleModNoticeLines } from '@src/domain.operations/mods/asRoleModNoticeLines';
+
 import { relative } from 'node:path';
 import type { BootStats } from './BootStats';
 import type { BootPlan } from './computeBootPlan';
@@ -24,8 +28,20 @@ export const asRoleBootBody = (input: {
    *   other subjects exist, and whether the role's `always` block was shed
    */
   focus: { given: string[]; elsewhere: string[]; alwaysShed: boolean } | null;
+
+  /**
+   * the mod this role boots under; null for an unmodded role
+   *
+   * .note = a modded role opens with a notice, and each modded resource carries a `mod` attr
+   */
+  mod: { ofLabel: string; plan: RoleModPlan } | null;
 }): { body: string; stats: BootStats } => {
-  const { bootPlan, readme, briefsSaid, skillsSaid, focus } = input;
+  const { bootPlan, readme, briefsSaid, skillsSaid, focus, mod } = input;
+
+  // a modded role names its mod first, so the clone knows its role differs from the published
+  const linesMod = mod
+    ? asRoleModNoticeLines({ of: mod.ofLabel, plan: mod.plan })
+    : [];
 
   // a focused role names its focus first, so the clone reads the scope before the content
   const linesFocus = focus
@@ -39,6 +55,16 @@ export const asRoleBootBody = (input: {
   const asBodyPath = (filepath: string): string =>
     `.agent/repo=${input.slugRepo}/role=${input.slugRole}/${relative(input.roleDir, filepath)}`;
 
+  // a modded resource names what the mod did to it; the path attr stays first
+  const asModAttr = (filepath: string): string => {
+    if (!mod) return '';
+    return asRoleModAttr({
+      plan: mod.plan,
+      roleDir: input.roleDir,
+      path: filepath,
+    });
+  };
+
   // the also section lists unclaimed resources in subject mode
   const hasAlso =
     bootPlan.also.briefs.length > 0 || bootPlan.also.skills.length > 0;
@@ -46,10 +72,12 @@ export const asRoleBootBody = (input: {
     ? [
         '<also>',
         ...bootPlan.also.briefs.map(
-          (ref) => `  <brief.ref path="${asBodyPath(ref.pathToOriginal)}"/>`,
+          (ref) =>
+            `  <brief.ref path="${asBodyPath(ref.pathToOriginal)}"${asModAttr(ref.pathToOriginal)}/>`,
         ),
         ...bootPlan.also.skills.map(
-          (filepath) => `  <skill.ref path="${asBodyPath(filepath)}"/>`,
+          (filepath) =>
+            `  <skill.ref path="${asBodyPath(filepath)}"${asModAttr(filepath)}/>`,
         ),
         '</also>',
         '',
@@ -58,6 +86,7 @@ export const asRoleBootBody = (input: {
 
   // compose the body, in the order the prior per-line print used
   const lines: string[] = [
+    ...linesMod,
     ...linesFocus,
     ...(readme
       ? [
@@ -68,23 +97,23 @@ export const asRoleBootBody = (input: {
         ]
       : []),
     ...briefsSaid.flatMap((said) => [
-      `<brief.say path="${asBodyPath(said.path)}">`,
+      `<brief.say path="${asBodyPath(said.path)}"${asModAttr(said.path)}>`,
       said.content,
       '</brief.say>',
       '',
     ]),
     ...bootPlan.briefs.ref.flatMap((ref) => [
-      `<brief.ref path="${asBodyPath(ref.pathToOriginal)}"/>`,
+      `<brief.ref path="${asBodyPath(ref.pathToOriginal)}"${asModAttr(ref.pathToOriginal)}/>`,
       '',
     ]),
     ...skillsSaid.flatMap((said) => [
-      `<skill.say path="${asBodyPath(said.path)}">`,
+      `<skill.say path="${asBodyPath(said.path)}"${asModAttr(said.path)}>`,
       said.content,
       '</skill.say>',
       '',
     ]),
     ...bootPlan.skills.ref.flatMap((filepath) => [
-      `<skill.ref path="${asBodyPath(filepath)}"/>`,
+      `<skill.ref path="${asBodyPath(filepath)}"${asModAttr(filepath)}/>`,
       '',
     ]),
     ...linesAlso,

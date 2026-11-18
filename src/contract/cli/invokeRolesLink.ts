@@ -6,6 +6,7 @@ import type { ContextConfigOfUsage } from '@src/domain.operations/config/Context
 import { syncAndReportBrainDirBoots } from '@src/domain.operations/init/boots/syncAndReportBrainDirBoots';
 import { getRoleBySpecifier } from '@src/domain.operations/invoke/getRoleBySpecifier';
 import { execRoleLink } from '@src/domain.operations/invoke/link/execRoleLink';
+import { withRoleViewLock } from '@src/domain.operations/role/withRoleViewLock';
 
 /**
  * .what = adds the "roles link" subcommand to the CLI
@@ -41,7 +42,9 @@ export const invokeRolesLink = (
       // report that follows opens with exactly one — the same separation every other
       // render of a `🧠 brain dir` tree uses (`rule.forbid.snapshot-visual-blemishes`). a
       // second `console.log('')` here rendered TWO, and only on this path
-      execRoleLink({ role: resolved.role, repo: resolved.repo }, contextCli);
+      await withRoleViewLock({ cwd: contextCli.cwd }, async () =>
+        execRoleLink({ role: resolved.role, repo: resolved.repo }, contextCli),
+      );
 
       // re-render every corpus the linked set feeds, after the link lands
       const { exitCode } = await syncAndReportBrainDirBoots(

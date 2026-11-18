@@ -1,0 +1,19 @@
+{
+  "key": "f97e92004b5b9efd",
+  "kind": "create",
+  "repo": {
+    "owner": "ehmpathy",
+    "name": "rhachet-roles-ehmpathy"
+  },
+  "exid": null,
+  "title": "feat(mechanic): terms.rename — many literal swaps over many globs, one call",
+  "description": "## .what\n\nadd a mechanic skill `terms.rename` beside `sedreplace` in `claude.tools/`: many literal swaps,\nover many globs, in one call, plan then apply.\n\n```sh\nrhx terms.rename --pair 'edit dir=>mod dir' --pair 'edited=>modded' --glob 'docs/*.md' --glob 'src/**/*.ts'               # plan\nrhx terms.rename --pair 'edit dir=>mod dir' --pair 'edited=>modded' --glob 'docs/*.md' --glob 'src/**/*.ts' --mode apply  # apply\n```\n\n## .why\n\n- a vocabulary change is N pairs over M globs. sedreplace takes one pair and one glob and wants a\n  plan before each apply, so a rename is ~2·N·M calls\n- a shell loop over sedreplace is not paved (check-permissions refuses `for`), so the only paved\n  route today is the hand loop\n- measured 2026-10-17, ehmpathy/rhachet @ beav/feat-role-edit-overlay: an edit → mod rename was 38\n  pairs over 4 globs; the skill did it in two calls\n\n## .shape\n\na draft that works lives in ehmpathy/rhachet at `.agent/repo=.this/role=any/skills/terms.rename.sh`.\n\n- `--pair 'old=>new'` repeats; pairs run in order, so a later pair sees earlier swaps\n- `--glob` repeats; each swap is a literal sedreplace (repo-bound, gitignore-aware)\n- plan prints the match count per pair × glob; apply runs plan then apply for each nonzero cell\n- exit 0 / 1 / 2 per `rule.require.exit-code-semantics`\n\n## .caveats the upstream version should cure\n\n- partial-word traps: `edits` also hits `credits`. a `--word` flag (word-boundary match) would\n  close it\n- a multi-line pair matched far too wide in the draft. refuse a newline in a pair, or support it on\n  purpose\n- the draft parses `matches: N` from sedreplace stdout; upstream can call the shared op directly\n- owes an integration test and a snapshot of the plan stdout",
+  "status": null,
+  "via": "gh.issues",
+  "auth": "as-human",
+  "idem": "findsert",
+  "heldSeq": 2,
+  "recordStatus": "DELIVERED",
+  "reason": null,
+  "deliveredExid": "975"
+}

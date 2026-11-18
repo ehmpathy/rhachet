@@ -22,9 +22,11 @@ export const discoverRoleKeyracks = async (
   if (!existsSync(dirAgent)) return [];
 
   // glob for role keyracks
+  // a mod dir is no role, and a mod never holds a keyrack (usecase 11)
   const allPaths = await glob('.agent/repo=*/role=*/keyrack.yml', {
     cwd: context.gitroot,
     onlyFiles: true,
+    ignore: ['.agent/repo=.mods/**'],
   });
 
   // filter to only specified roles; a keyrack follows the role, never its focus, so a

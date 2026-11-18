@@ -1,3 +1,4 @@
+import { sep } from 'node:path';
 import type { BootSource } from './BootSource';
 
 /**
@@ -36,9 +37,9 @@ const isWithinBriefUniverse = (input: {
   source: BootSource;
 }): boolean =>
   input.source.dirBriefs
-    ? input.path.startsWith(input.source.dirBriefs)
+    ? input.path.startsWith(`${input.source.dirBriefs}${sep}`)
     : input.path !== input.source.pathToReadme &&
-      !input.path.startsWith(input.source.dirSkills);
+      !input.path.startsWith(`${input.source.dirSkills}${sep}`);
 
 /**
  * .what = whether a path sits under a blocklisted subdir

@@ -9,6 +9,7 @@ import {
 } from '@src/domain.operations/boot/asBrainDirSyncReportLines';
 import { getSupportedBrainCommand } from '@src/domain.operations/brain/getSupportedBrainCommand';
 import { assertBrainCliVersionFloor } from '@src/domain.operations/enroll/assertBrainCliVersionFloor';
+import { asRoleModViewsChangedReadout } from '@src/domain.operations/mods/asRoleModViewsChangedReadout';
 import { asTreeBranchLines } from '@src/utils/asTreeBranchLines';
 
 import { relative } from 'node:path';
@@ -72,10 +73,29 @@ export const syncAndReportBrainDirBoots = async (
     console.log('');
   }
 
-  const { renders, failures, symlink } = await syncBootsForBrainDirs(
+  const {
+    renders,
+    failures,
+    symlink,
+    modsChanged,
+    modsReverted,
+    modsUnplaced,
+  } = await syncBootsForBrainDirs(
     { repoPath: input.repoPath, symlinkPrior: input.symlinkPrior },
     context,
   );
+
+  // a rewritten modded view reaches a live clone only on re-enroll; say so, once (usecase 8).
+  //   a mod no linked role carries is named here, since no boot raises it (usecase 6)
+  const linesMods = asRoleModViewsChangedReadout({
+    roles: modsChanged,
+    reverted: modsReverted,
+    unplaced: modsUnplaced,
+  });
+  if (linesMods.length > 0) {
+    for (const line of linesMods) console.log(line);
+    console.log('');
+  }
 
   // one treestruct per brain dir this run CHANGED, on stdout. only the repo actor's render has a
   //   `<repo>/.claude` link beneath it; an actor's brain dir is reached by its own path

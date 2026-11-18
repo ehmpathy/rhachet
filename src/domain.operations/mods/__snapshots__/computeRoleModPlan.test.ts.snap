@@ -1,0 +1,73 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`computeRoleModPlan given: [case3] a mod file the plan cannot place when: [t0] a typo of a held path, which no say names then: it is refused, never read as an add, and names the nearest held path 1`] = `
+"✋ ConstraintError: the mod of role=mechanic is refused: it holds briefs/rule.require.surf-wux.md, a path the role does not hold, and no say or ref names it
+
+{
+  "mod": ".agent/repo=.mods/role=mechanic/",
+  "subject": "briefs/rule.require.surf-wux.md",
+  "did you mean": "briefs/rule.require.surf-wax.md",
+  "fix": "to shadow, move it to the held path; to add, say it in the mod boot.yml (briefs.say: [briefs/rule.require.surf-wux.md])"
+}"
+`;
+
+exports[`computeRoleModPlan given: [case3] a mod file the plan cannot place when: [t1] an orphan minification then: it is refused 1`] = `
+"✋ ConstraintError: the mod of role=mechanic is refused: it holds briefs/rule.require.ghost.md.min, a minified brief with no .md beside it
+
+{
+  "mod": ".agent/repo=.mods/role=mechanic/",
+  "subject": "briefs/rule.require.ghost.md.min",
+  "fix": "add briefs/rule.require.ghost.md beside it, or remove the orphan"
+}"
+`;
+
+exports[`computeRoleModPlan given: [case3] a mod file the plan cannot place when: [t2] a file outside briefs and skills then: it is refused as out of scope 1`] = `
+"✋ ConstraintError: the mod of role=mechanic is refused: it holds keyrack.yml, a kind a mod cannot change
+
+{
+  "mod": ".agent/repo=.mods/role=mechanic/",
+  "subject": "keyrack.yml",
+  "fix": "a mod holds only briefs/ and skills/ files; for a readme, an init, or a keyrack.yml, use a .this role or an upstream pr"
+}"
+`;
+
+exports[`computeRoleModPlan given: [case4] a not that removes naught when: [t0] the glob matches no held file of its kind then: it is refused, and names the nearest held path 1`] = `
+"✋ ConstraintError: the mod of role=mechanic is refused: its not \`skills/wax.bored.sh\` matches no skills file the role holds
+
+{
+  "mod": ".agent/repo=.mods/role=mechanic/",
+  "subject": "skills/wax.bored.sh",
+  "did you mean": "skills/wax.board.sh",
+  "fix": "point the not at a held path, or delete the line"
+}"
+`;
+
+exports[`computeRoleModPlan given: [case6] a not that covers a path the mod also shadows when: [t0] the plan is computed then: it is refused, and names the path and the glob 1`] = `
+"✋ ConstraintError: the mod of role=mechanic is refused: its not \`briefs/rule.*.md\` removes briefs/rule.require.surf-wax.md, a path the mod also shadows
+
+{
+  "mod": ".agent/repo=.mods/role=mechanic/",
+  "subject": "briefs/rule.require.surf-wax.md",
+  "fix": "to shadow it, narrow the not so it leaves briefs/rule.require.surf-wax.md; to drop it, delete the mod file"
+}"
+`;
+
+exports[`computeRoleModPlan given: [case7] an add that a not glob matches when: [t0] the mod nots a glob its own add matches then: it is refused, never planned as an add the boot would drop 1`] = `
+"✋ ConstraintError: the mod of role=mechanic is refused: its not \`briefs/rule.forbid.wipeouts*.md\` removes briefs/rule.forbid.wipeouts-renamed.md, a path the mod adds
+
+{
+  "mod": ".agent/repo=.mods/role=mechanic/",
+  "subject": "briefs/rule.forbid.wipeouts-renamed.md",
+  "fix": "to add it, narrow the not so it leaves briefs/rule.forbid.wipeouts-renamed.md; to drop it, delete the mod file"
+}"
+`;
+
+exports[`computeRoleModPlan given: [case7] an add that a not glob matches when: [t1] the role's own not matches the add then: it is refused, since the boot would drop the add with no word 1`] = `
+"✋ ConstraintError: the mod of role=mechanic is refused: the role's not \`briefs/howto.*.md\` removes briefs/howto.paddle-back.md, a path the mod adds
+
+{
+  "mod": ".agent/repo=.mods/role=mechanic/",
+  "subject": "briefs/howto.paddle-back.md",
+  "fix": "rename the add to a path the role's not leaves, or delete the mod file"
+}"
+`;

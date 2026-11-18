@@ -3,6 +3,8 @@ import { ConstraintError } from 'helpful-errors';
 import type { Artifact } from 'rhachet-artifact';
 import { type GitFile, genArtifactGitFile } from 'rhachet-artifact-git';
 
+import { getAllRepoDirsOfKind } from '@src/domain.operations/role/getAllRepoDirsOfKind';
+
 import { existsSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -28,10 +30,11 @@ export const getRoleBriefs = async (input: {
       'no .agent directory found. did you forget to `npx rhachet roles link`?',
     );
 
-  // scan for repo directories
-  const dirsRepo = readdirSync(dirAgent)
-    .filter((d) => d.startsWith('repo='))
-    .map((d) => ({ slug: d.replace('repo=', ''), path: resolve(dirAgent, d) }));
+  // scan for repo directories; a mod dir is no role, its briefs reach through its role's view
+  const dirsRepo = getAllRepoDirsOfKind({
+    agentDir: dirAgent,
+    kinds: ['native', 'package'],
+  }).map((d) => ({ slug: d.replace('repo=', ''), path: resolve(dirAgent, d) }));
 
   // find matching roles
   interface RoleLinked {

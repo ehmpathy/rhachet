@@ -2,6 +2,7 @@ import type { Command } from 'commander';
 import { ConstraintError } from 'helpful-errors';
 
 import type { BrainHookEvent } from '@src/domain.objects/BrainHookEvent';
+import { ContextCli } from '@src/domain.objects/ContextCli';
 import { asBootCostReadout } from '@src/domain.operations/boot/asBootCostReadout';
 import { asBootCostSweepOwnershipLines } from '@src/domain.operations/boot/asBootCostSweepOwnershipLines';
 import { asBootCostSweepReachLines } from '@src/domain.operations/boot/asBootCostSweepReachLines';
@@ -20,9 +21,13 @@ import { getAllRepoBootSpecCosts } from '@src/domain.operations/boot/getAllRepoB
 import { getAllSpecsOverBudget } from '@src/domain.operations/boot/getAllSpecsOverBudget';
 import { getOneBootSource } from '@src/domain.operations/boot/getOneBootSource';
 import { getOneBrainTokenCounter } from '@src/domain.operations/brainCost/getOneBrainTokenCounter';
+import { asRoleModDriftHookReadout } from '@src/domain.operations/mods/asRoleModDriftHookReadout';
+import { genRoleModsUncostedReadout } from '@src/domain.operations/mods/genRoleModsUncostedReadout';
+import { getAllRoleModDriftsOfRepo } from '@src/domain.operations/mods/getAllRoleModDriftsOfRepo';
+import { getOneRoleModMarkForRoleDir } from '@src/domain.operations/mods/getOneRoleModMarkForRoleDir';
 import { getOneTokensColumnWidth } from '@src/utils/getOneTokensColumnWidth';
 
-import { relative } from 'node:path';
+import { dirname, relative } from 'node:path';
 import { asFlagList } from './asFlagList';
 import { asSubjectFlagValues } from './asSubjectFlagValues';
 import {
@@ -75,34 +80,57 @@ const isHookWhenValue = (input: { value: string }): boolean =>
   WHEN_HOOK_VALUES.includes(input.value);
 
 /**
- * .what = the hook arm — this repo's own `.agent/repo=.this` boots, checked against their cap
- * .why = a repo's own role boots grow with no upkeep, and a stop hook is the one moment
- *        every session passes through. so the hook holds the stop the moment an owned spec
- *        exceeds its cap, and says naught otherwise
+ * .what = the hook arm — this repo's own `.agent/repo=.this` boots checked against their cap,
+ *         and each mod's `of:` pin checked against the role installed
+ * .why = both drift with no upkeep, and a stop hook is the one moment every session passes
+ *        through. a clone that never boots a modded role still stops, so the stop is where it
+ *        learns its repo's mod now reads against a release it was not written for. the hook
+ *        holds the stop the moment either drifts, and says naught otherwise
  *
- * 🔴 .note = it sweeps `.agent/repo=.this/role=*` ALONE. a linked role is its supplier's to
- *   cap (`rule.forbid.framework-owned-hooks`).
+ * 🔴 .note = it caps `.agent/repo=.this/role=*` ALONE. a linked role is its supplier's to
+ *   cap (`rule.forbid.framework-owned-hooks`); a mod pin is this repo's own declaration
  *
- * .note = silent within budget, so the hook prints only when a human must act
+ * .note = silent within budget and on a matched pin, so the hook prints only when a human must act
+ * .note = a refused mod is the boot's and the render's to refuse, never the stop's
  */
 const invokeRolesCostForHook = async (): Promise<void> => {
   const cwd = process.cwd();
-  const { over } = await genOneRepoThisBootBudgetVerdict({ cwd });
-  if (over.length === 0) return;
+  const invocation = 'roles cost --all --when hook.onStop';
 
-  // the readout is the human surface; the error carries the same facts for a caller to branch on
-  console.error(
-    asBootSweepOverBudgetReadout({
-      invocation: 'roles cost --all --when hook.onStop',
-      over,
-      cwd,
-    }).join('\n'),
+  // the two drifts the sweep holds a stop for: an owned boot past its cap, a mod pin past its role
+  const { over } = await genOneRepoThisBootBudgetVerdict({ cwd });
+  const { drifts } = getAllRoleModDriftsOfRepo(
+    {},
+    new ContextCli({ cwd, gitroot: cwd }),
   );
+  if (over.length === 0 && drifts.length === 0) return;
+
+  // each readout is the human surface; both print, so one stop names every drift at once
+  if (over.length > 0)
+    console.error(
+      asBootSweepOverBudgetReadout({ invocation, over, cwd }).join('\n'),
+    );
+  if (drifts.length > 0)
+    console.error(asRoleModDriftHookReadout({ invocation, drifts }).join('\n'));
+
+  // the error carries the same facts for a caller to branch on; a mod drift alone has its own
+  if (over.length === 0)
+    throw new ConstraintError(
+      'modded roles moved off the version their mods pin',
+      {
+        hint: 'review each mod against the installed release, then set its `of:` to the installed version',
+        modsDrifted: drifts.map((one) => one.pathToSpec),
+      },
+    );
   throw new ConstraintError('boot specs exceed their declared budget', {
     hint: 'trim a resource — catalogize a set, condense or ref a say entry, list one under `not` — or raise budget.tokens deliberately',
     // `specsOver`, never `over` — the boot halt's `over` is a token COUNT, and one key name
     // across the two refusals must hold one type
     specsOver: over.map((one) => relative(cwd, one.pathToSpec)),
+    // named only when a mod drifted too, so a plain budget breach reads as it always has
+    ...(drifts.length > 0 && {
+      modsDrifted: drifts.map((one) => one.pathToSpec),
+    }),
   });
 };
 
@@ -141,22 +169,42 @@ const invokeRolesCostForAll = async (): Promise<void> => {
   //    about four paths that a reader would otherwise read as a claim about their repo
   const linesReach = asBootCostSweepReachLines({ globs });
 
+  // a modded role the roster could not price has no row, so it is named apart (usecase 4);
+  //   on both arms, since a repo whose only spec is stale sweeps zero rows
+  //   a role the roster already priced is named by its row's mark, never a second time here
+  const { lines: linesUncosted, withheld } = genRoleModsUncostedReadout(
+    { roleDirsPriced: costs.map((one) => dirname(one.pathToSpec)) },
+    new ContextCli({ cwd, gitroot: cwd }),
+  );
+  // the reach and ownership blocks each close on a blank line, so this one opens on none
+  //   and closes on one, like its peers
+  const printUncosted = (): void =>
+    [...linesUncosted, ...(linesUncosted.length > 0 ? [''] : [])].forEach(
+      (line) => console.log(line),
+    );
+
   const over = getAllSpecsOverBudget({ costs });
   if (costs.length === 0) {
-    console.log(asBootCostSweepSummary({ costs, over }));
+    console.log(asBootCostSweepSummary({ costs, over, withheld }));
     linesReach.forEach((line) => console.log(line));
+    printUncosted();
     return;
   }
 
-  console.log(asBootCostSweepSummary({ costs, over }));
+  console.log(asBootCostSweepSummary({ costs, over, withheld }));
 
   // the width is a property of the ROSTER, never of a row, so it is computed once here and
   // handed down — the same shape `asBootCostReadout` and `asBootSubjectMarginLines` use
   const widthTokens = getOneTokensColumnWidth({
     counts: getAllTokensOfCosts({ costs }),
   });
-  costs.forEach((one) => {
-    console.log(asBootCostSweepRow({ one, cwd, widthTokens }));
+  const marks = costs.map((one) => ({
+    one,
+    plan: getOneRoleModMarkForRoleDir({ roleDir: dirname(one.pathToSpec) }),
+  }));
+  marks.forEach(({ one, plan }) => {
+    // a modded role's row carries the mark of what its mod does
+    console.log(asBootCostSweepRow({ one, cwd, widthTokens, plan }));
 
     // each declared subject, as the focus a seat may enroll at (`role::subject`)
     asBootCostSweepSubjectLines({ one, widthTokens }).forEach((line) =>
@@ -168,7 +216,14 @@ const invokeRolesCostForAll = async (): Promise<void> => {
   // 🔴 the ownership note follows the reach, because both are DISCLOSURES about the roster
   //    rather than rows of it — the reach bounds which specs were seen, this one bounds which
   //    of them the reader can act on. it prints naught where no spec is linked
-  asBootCostSweepOwnershipLines({ costs }).forEach((line) => console.log(line));
+  asBootCostSweepOwnershipLines({
+    costs,
+    pathsToSpecModded: marks
+      .filter(({ plan }) => plan !== null)
+      .map(({ one }) => one.pathToSpec),
+  }).forEach((line) => console.log(line));
+
+  printUncosted();
 };
 
 /**

@@ -1,0 +1,15 @@
+move each foreign-role extension in uladkasach/nheuron from .agent/repo=.this into .agent/repo=.mods, once the .mods overlay works
+
+.why = a repo=.this role that shares a slug with a package role is an extension of a role the repo does not own. the .mods overlay is the sanctioned home for that, so nheuron should be its first consumer.
+
+---
+
+1. census. list every .agent/repo=.this/role=<r> in uladkasach/nheuron whose <r> is also a role a linked package ships (a foreign role). the commander named role=learner (one brief). on 2026-11-03 neither the github default branch nor the local clone of main held role=learner, so take the census on the current default branch and record what you find.
+2. per foreign role <r>, write .agent/repo=.mods/role=<r>/boot.yml with `of: <repo>/<r>@<version>`, and move each brief there. a file that keeps the path of a role file is a shadow; any other file is an add, said by a say: or ref: glob.
+3. delete the repo=.this/role=<r> copy.
+4. prove it. a clone that enrolls <r> boots the same briefs as before the move, and `rhx roles cost` marks <r> as [~] modded.
+5. push it as a pr on uladkasach/nheuron, beside the overlay pr on ehmpathy/rhachet, and cite each pr in the other.
+
+---
+
+emit into $route/6.adopt.mods.in.nheuron.yield.md: the census, each move as a filediff with the bhuild legend ([+] [~] [-]), the boot before and after, and both pr links.
