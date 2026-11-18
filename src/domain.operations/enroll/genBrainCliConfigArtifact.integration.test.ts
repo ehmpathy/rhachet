@@ -465,7 +465,14 @@ describe('genBrainCliConfigArtifact', () => {
           exid: HASH_EXID,
           repoPath: scene.repoPath,
         });
-        const args = asBrainCliSpawnArgs({ configPath, passthrough: [] });
+        const args = asBrainCliSpawnArgs({
+          configPath,
+          bootMdPath: path.join(
+            asBrainDir({ repoPath: scene.repoPath, exid: HASH_EXID }),
+            'boot.md',
+          ),
+          passthrough: [],
+        });
         const settingsPath = args[args.indexOf('--settings') + 1]!;
         const settings = JSON.parse(
           await fs.readFile(settingsPath, 'utf-8'),
