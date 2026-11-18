@@ -289,9 +289,10 @@ clone's own `actorHash`, so a clone can `clone list @<actorHash>` to enumerate i
 **bake** — make from a declared actor today; fork and wake are planned (the [`rhx clone` dream](.dream/2026_08_07.clone-actor-from-actors-yml.dream.md)):
 
 ```bash
-rhx clone @<slug> [+role|-role] [--brain <brain>] [--as @:<slug>]   # from an actor in .agent/actors.yml (≡ rhx enroll @<slug>)
-rhx clone fork @:<serial|slug>  [--as @:<slug>]                       # (planned) from an extant clone
-rhx clone wake @:<serial|slug>                                        # (planned) reopen an extant clone
+rhx clone make @<slug> [+role|-role] [--brain <brain>] [--as @:<slug>]   # from an actor in .agent/actors.yml
+rhx clone @<slug>      [+role|-role] [--brain <brain>] [--as @:<slug>]   # alias of rhx clone make @<slug>
+rhx clone fork @:<serial|slug>  [--as @:<slug>]                            # (planned) from an extant clone
+rhx clone wake @:<serial|slug>                                             # (planned) reopen an extant clone
 ```
 
 address an actor with `@<slug>` (≡ `actor://<slug>`) and a clone with `@:<serial>` (≡

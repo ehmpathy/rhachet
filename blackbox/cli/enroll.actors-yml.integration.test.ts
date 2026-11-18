@@ -338,7 +338,7 @@ describe('rhx clone @<slug> under .agent/actors.yml (integration)', () => {
           expect(run.status).toEqual(2);
           expect(run.stderr).toContain("rhx clone has no verb 'claude'");
           expect(run.stderr).toContain('rhx enroll <brain> --roles <roles>');
-          expect(run.stderr).toContain('rhx clone @<slug>');
+          expect(run.stderr).toContain('rhx clone make @<slug>');
         },
       );
       then('the refusal holds its shape', () => {

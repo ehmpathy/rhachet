@@ -1,0 +1,19 @@
+{
+  "key": "6d51a2ea2abb0f4d",
+  "kind": "create",
+  "repo": {
+    "owner": "ehmpathy",
+    "name": "rhachet"
+  },
+  "exid": null,
+  "title": "actors.yml brain takes a full namespace, cli@atom",
+  "description": "## .wish\n\n`actors.yml` `brain:` takes a full brain namespace: `$brainCli@$brainAtom`, e.g.\n`anthropic/claude/code@anthropic/claude/opus/v5.5[1m]`, where the cli half picks the boot adapter\nand the atom half picks the model.\n\n## .why\n\nthe extant notation names a repl or a cli alone, so an actor cannot pin the model its brain cli\nruns. the boot adapter is keyed on the cli half; the atom half is passed through to it.\n\n## .open questions\n\n- does `brain:` take the new shape directly, or behind the extant repl/cli notation as an alias?\n- which adapters accept an atom, and what does an adapter that cannot do with one?\n\n## .see\n\n- ehmpathy/rhachet pr 699, review thread 4612926203\n\n---\n\ndispatched by human + beaver 🦫",
+  "status": null,
+  "via": "gh.issues",
+  "auth": null,
+  "idem": null,
+  "heldSeq": 4,
+  "recordStatus": "DELIVERED",
+  "reason": null,
+  "deliveredExid": "778"
+}

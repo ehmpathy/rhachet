@@ -7,7 +7,6 @@ import { setRepoActorBrainDirLayoutBeforeInits } from '@src/domain.operations/in
 import { syncAndReportBrainDirBoots } from '@src/domain.operations/init/boots/syncAndReportBrainDirBoots';
 import { syncHooksForLinkedRoles } from '@src/domain.operations/init/hooks/syncHooksForLinkedRoles';
 import { initRolesFromPackages } from '@src/domain.operations/init/roles/link/initRolesFromPackages';
-import { getAllLinkedRoleRefs } from '@src/domain.operations/role/getAllLinkedRoleRefs';
 import { asThrownValueText } from '@src/utils/asThrownValueText';
 
 import type { NpmInstallFailureKind } from './asNpmInstallFailureKind';
@@ -357,23 +356,14 @@ export const execUpgrade = async (
           await import(
             '@src/domain.operations/actor/manifest/getActorsManifestLinkPlan'
           )
-        ).getActorsManifestLinkPlan(
-          {
-            manifest: actorsManifest,
-            refsLinked: getAllLinkedRoleRefs({}, context),
-          },
-          context,
-        )
+        ).getActorsManifestLinkPlan({ manifest: actorsManifest }, context)
       : null;
-    manifestLinkPlan?.reportLines.forEach((line) => console.log(line));
 
-    // the roles to re-init: every linked role, plus each role the manifest declares
-    const specifiers = [
-      ...new Set([
-        ...buildRoleSpecifiers({ linkedRoles: roleExpanded.linkedRoles }),
-        ...(manifestLinkPlan?.roleSpecifiers ?? []),
-      ]),
-    ];
+    // the roles to re-init: under a manifest, the roles it declares (an undeclared link is
+    //   unlinked below, so it is not re-inited first); else every linked role
+    const specifiers = manifestLinkPlan
+      ? manifestLinkPlan.roleSpecifiers
+      : buildRoleSpecifiers({ linkedRoles: roleExpanded.linkedRoles });
     if (specifiers.length === 0) return { exitCode: 0, hookErrors: [] };
 
     // put the repo actor's brain dir in the split layout BEFORE the role inits, so an init
@@ -383,6 +373,25 @@ export const execUpgrade = async (
       repoPath: context.gitroot,
     });
     await initRolesFromPackages({ specifiers }, context);
+
+    // manifest => converge the links to the declaration, after the link pass, and name each
+    //   change made, so a clean upgrade prints `in sync` (rule.forbid.defective-defaults)
+    if (actorsManifest && manifestLinkPlan) {
+      const { reportLines } = await (
+        await import(
+          '@src/domain.operations/actor/manifest/setActorsManifestConverged'
+        )
+      ).setActorsManifestConverged(
+        {
+          manifest: actorsManifest,
+          declared: manifestLinkPlan.declared,
+          warnings: manifestLinkPlan.warnings,
+        },
+        context,
+      );
+      console.log('');
+      reportLines.forEach((line) => console.log(line));
+    }
 
     // re-render the boots before the hook sync, so the boot hooks never go first
     const synced = await syncAndReportBrainDirBoots(

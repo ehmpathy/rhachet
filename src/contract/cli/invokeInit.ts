@@ -178,13 +178,7 @@ export const invokeInit = ({ program }: { program: Command }): void => {
               await import(
                 '@src/domain.operations/actor/manifest/getActorsManifestLinkPlan'
               )
-            ).getActorsManifestLinkPlan(
-              {
-                manifest: actorsManifest,
-                refsLinked: getAllLinkedRoleRefs({}, context),
-              },
-              context,
-            )
+            ).getActorsManifestLinkPlan({ manifest: actorsManifest }, context)
           : null;
 
         // flag: --roles => put the repo actor's brain dir in the split layout BEFORE the role
@@ -196,12 +190,6 @@ export const invokeInit = ({ program }: { program: Command }): void => {
                 repoPath: context.gitroot,
               })
             : null;
-
-        // manifest => print the drift report before any link, so a change is never silent (F6)
-        if (manifestLinkPlan) {
-          console.log('');
-          manifestLinkPlan.reportLines.forEach((line) => console.log(line));
-        }
 
         // flag: --roles => init roles from packages (absolute or incremental).
         // absolute mode may accumulate errors; incremental fails fast (throws).
@@ -254,6 +242,25 @@ export const invokeInit = ({ program }: { program: Command }): void => {
 
           return false;
         })();
+
+        // manifest => converge the links to the declaration, after the link pass, and name
+        //   each change made, so a clean init prints `in sync` (F6)
+        if (actorsManifest && manifestLinkPlan) {
+          const { reportLines } = await (
+            await import(
+              '@src/domain.operations/actor/manifest/setActorsManifestConverged'
+            )
+          ).setActorsManifestConverged(
+            {
+              manifest: actorsManifest,
+              declared: manifestLinkPlan.declared,
+              warnings: manifestLinkPlan.warnings,
+            },
+            context,
+          );
+          console.log('');
+          reportLines.forEach((line) => console.log(line));
+        }
 
         // record the foci beside the repo actor, and name each focus change
         //   .note = stdout, as every init receipt is; enroll writes its receipts to stderr,

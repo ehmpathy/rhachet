@@ -48,8 +48,8 @@ import { findsertRepoActorRecordOndisk } from './findsertRepoActorRecordOndisk';
  *   which init just computed; its `boot.md` is `setRepoActorBrainDir`'s to render
  * .note = a derived actor re-derives from its base's roles today ⊕ the delta its record holds
  * .note = an actor whose base slug is no longer declared is left as it was: no `actors.yml`
- *   entry says what it should hold now, and its clones still live in its dir. the drift report
- *   names it, with both fixes (`asActorExidsUndeclared`, F15)
+ *   entry says what it should hold now, and its clones still live in its dir. init neither
+ *   touches nor prints it; `rhx clone prune` owns its reap
  * .note = one actor that fails is collected, and the rest still re-derive
  */
 export const setDeclaredActorsOndisk = async (

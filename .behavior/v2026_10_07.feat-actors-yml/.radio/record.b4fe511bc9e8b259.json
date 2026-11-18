@@ -1,0 +1,19 @@
+{
+  "key": "b4fe511bc9e8b259",
+  "kind": "create",
+  "repo": {
+    "owner": "ehmpathy",
+    "name": "rhachet-roles-ehmpathy"
+  },
+  "exid": null,
+  "title": "git.repo.test --auth skip runs a tier without keyrack",
+  "description": "## .wish\n\n`rhx git.repo.test --auth skip` runs a test tier without a keyrack unlock.\n\n## .why\n\na repo whose acceptance tier has a credential-free subset (e.g. `ehmpathy/rhachet`) can run that\nsubset locally with no keyrack. today `ehmpathy/rhachet` carries its own\n`test.acceptance.credfree` skill to do it; that skill retires once this flag lands.\n\n## .the outcome\n\n- `--auth skip` skips the keyrack unlock that `--what integration|acceptance` performs\n- the tier runs as asked; a test that needs a credential fails loud, never skipped silently\n- `--help` names the flag\n\n## .see\n\n- ehmpathy/rhachet pr 699, review thread 4612853930\n\n---\n\ndispatched by human + beaver 🦫",
+  "status": null,
+  "via": "gh.issues",
+  "auth": null,
+  "idem": null,
+  "heldSeq": 3,
+  "recordStatus": "DELIVERED",
+  "reason": null,
+  "deliveredExid": "1387"
+}

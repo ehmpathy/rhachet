@@ -1,0 +1,19 @@
+{
+  "key": "d6cf2d836bd5cc75",
+  "kind": "create",
+  "repo": {
+    "owner": "ehmpathy",
+    "name": "rhachet"
+  },
+  "exid": null,
+  "title": "grove arrow of the repo actor carries no host home path in git",
+  "description": "## .wish\n\nthe repo actor's `settings.of.grove.json` arrow stops to carry a host-specific home path in git.\n\n## .why\n\n`.agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.grove.json` is a symlink to\n`~/.claude/settings.json`, written with the absolute home of whoever last ran `rhx init` or\n`rhx upgrade` (e.g. `/home/camper/...` vs `/home/vlad/...`). each box that runs init flips the\ntracked target, so every upgrade diff carries a box-local change that must be held out by hand.\nthe same holds for the `claudeMdExcludes` home path in `settings.of.repo.json`.\n\n## .the outcome, one of\n\n- the grove arrow is untracked by git (gitignored, findserted by init on each box), or\n- its target is `~`-relative or otherwise box-neutral, so the tracked bytes are the same on every box\n\nand a clean `rhx init` on a second box leaves `git status` clean.\n\n## .see\n\n- ehmpathy/rhachet pr 699, the upgrade commit held the arrow out by hand\n\n---\n\ndispatched by human + beaver 🦫",
+  "status": null,
+  "via": "gh.issues",
+  "auth": null,
+  "idem": null,
+  "heldSeq": 5,
+  "recordStatus": "DELIVERED",
+  "reason": null,
+  "deliveredExid": "779"
+}

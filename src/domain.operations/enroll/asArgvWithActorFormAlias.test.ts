@@ -2,9 +2,25 @@ import { asArgvWithActorFormAlias } from './asArgvWithActorFormAlias';
 
 const TEST_CASES = [
   {
-    description: 'maps clone @<slug> onto enroll @<slug>',
+    description: 'maps clone make @<slug> onto the enroll spawn',
+    given: { args: ['clone', 'make', '@builder', '+librarian'] },
+    expect: { args: ['enroll', '@builder', '+librarian'] },
+  },
+  {
+    description: 'maps the alias clone @<slug> as clone make @<slug>',
     given: { args: ['clone', '@builder', '+librarian'] },
     expect: { args: ['enroll', '@builder', '+librarian'] },
+  },
+  {
+    description: 'keeps clone make with no actor address on the make verb',
+    given: { args: ['clone', 'make', '--help'] },
+    expect: { args: ['clone', 'make', '--help'] },
+  },
+  {
+    description:
+      'keeps clone make @:<clone> on the make verb, which refuses it',
+    given: { args: ['clone', 'make', '@:peer1'] },
+    expect: { args: ['clone', 'make', '@:peer1'] },
   },
   {
     description: 'maps past a lead global -c <path>',

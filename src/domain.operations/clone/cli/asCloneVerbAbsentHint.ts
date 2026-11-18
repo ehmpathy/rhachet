@@ -29,8 +29,8 @@ export const asCloneVerbAbsentHint = (input: {
 
   // name every road: the verbs, the actor form, the inline form
   const roads = [
-    `reach a clone: rhx clone ${input.verbs.join(' | ')}`,
-    'spawn from a declared actor: rhx clone @<slug> (declared in .agent/actors.yml)',
+    `reach a clone: rhx clone ${input.verbs.filter((verb) => verb !== 'make').join(' | ')}`,
+    'spawn from a declared actor: rhx clone make @<slug> (declared in .agent/actors.yml)',
     'compose a one-off: rhx enroll <brain> --roles <roles>',
   ];
   return { hint, roads };

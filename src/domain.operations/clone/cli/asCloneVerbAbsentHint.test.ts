@@ -1,10 +1,10 @@
 import { asCloneVerbAbsentHint } from './asCloneVerbAbsentHint';
 
-const VERBS = ['list', 'say', 'get', 'whoami', 'prune'];
+const VERBS = ['make', 'list', 'say', 'get', 'whoami', 'prune'];
 
 const ROADS_EXPECTED = [
   'reach a clone: rhx clone list | say | get | whoami | prune',
-  'spawn from a declared actor: rhx clone @<slug> (declared in .agent/actors.yml)',
+  'spawn from a declared actor: rhx clone make @<slug> (declared in .agent/actors.yml)',
   'compose a one-off: rhx enroll <brain> --roles <roles>',
 ];
 

@@ -94,7 +94,7 @@ describe('rhx actor/clone --help (acceptance)', () => {
         expect(result.status).toEqual(2);
         expect(result.stderr).toContain("rhx clone has no verb 'claude'");
         expect(result.stderr).toContain('rhx enroll <brain> --roles <roles>');
-        expect(result.stderr).toContain('rhx clone @<slug>');
+        expect(result.stderr).toContain('rhx clone make @<slug>');
       });
 
       then('the refusal is locked (visual spot-check)', () => {

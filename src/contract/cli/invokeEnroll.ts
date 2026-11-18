@@ -987,7 +987,7 @@ export const invokeEnroll = ({ program }: { program: Command }): void => {
         '',
         'actor form:',
         '  rhx enroll @<slug>   spawn a clone of an actor declared in .agent/actors.yml',
-        '                       (≡ rhx clone @<slug>)',
+        '                       (≡ rhx clone make @<slug>)',
       ].join('\n'),
     )
     .option('--brain <brain>', 'the brain to enroll (alias of the positional)')

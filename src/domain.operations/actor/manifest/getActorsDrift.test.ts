@@ -74,31 +74,29 @@ describe('getActorsDrift', () => {
 });
 
 describe('asActorsDriftReportLines', () => {
-  given('[case1] drift both ways, with a caution', () => {
+  given('[case1] an undeclared role unlinked, with a caution', () => {
     when('[t0] the report is rendered', () => {
       const lines = asActorsDriftReportLines({
         ambient: '@builder',
         countActors: 2,
         countRoles: 6,
-        drift: {
-          short: [{ role: 'bhrain/learner', via: '@ehmpathy/builder' }],
-          extra: ['ghlitch/observer'],
-          nativeUndeclared: [],
-        },
+        unlinked: ['ghlitch/observer'],
+        unlinkedDeclared: [],
         warnings: [
           '@builder removes -driver, which @ehmpathy/builder does not hold',
         ],
-        actorsUndeclared: [],
       });
 
-      then('it names the repo actor, each drift row and both fixes', () => {
+      then('it names the repo actor and one line per change', () => {
         const text = lines.join('\n');
         expect(text).toContain('repo actor = @builder');
-        expect(text).toContain('bhrain/learner, via @ehmpathy/builder');
-        expect(text).toContain('extra → kept, undeclared');
-        expect(text).toContain(
-          'to drop it, rm .agent/repo=ghlitch/role=observer',
-        );
+        expect(text).toContain('- unlinked ghlitch/observer, undeclared');
+        expect(text).toContain('⚠️ @builder removes -driver');
+      });
+      then('it prints no fix trees', () => {
+        const text = lines.join('\n');
+        expect(text).not.toContain('to drop it');
+        expect(text).not.toContain('to keep it');
       });
       then('it matches the snapshot', () => {
         expect(lines.join('\n')).toMatchSnapshot();
@@ -106,21 +104,21 @@ describe('asActorsDriftReportLines', () => {
     });
   });
 
-  given('[case2] no drift', () => {
+  given('[case2] no change', () => {
     when('[t0] the report is rendered', () => {
       const lines = asActorsDriftReportLines({
         ambient: '@scholar',
         countActors: 1,
         countRoles: 3,
-        drift: { short: [], extra: [], nativeUndeclared: [] },
+        unlinked: [],
+        unlinkedDeclared: [],
         warnings: [],
-        actorsUndeclared: [],
       });
 
-      then('it says the set is in sync', () => {
-        expect(lines.join('\n')).toContain(
-          'in sync, every declared role linked',
-        );
+      then('it says in sync, and naught else', () => {
+        const text = lines.join('\n');
+        expect(text).toContain('└─ in sync');
+        expect(text).not.toContain('to link');
       });
       then('it matches the snapshot', () => {
         expect(lines.join('\n')).toMatchSnapshot();
@@ -128,49 +126,23 @@ describe('asActorsDriftReportLines', () => {
     });
   });
 
-  given('[case3] a native `.this` role no actor declares', () => {
+  given('[case3] a declared role the link pass could not reach', () => {
     when('[t0] the report is rendered', () => {
       const lines = asActorsDriftReportLines({
         ambient: '@builder',
         countActors: 1,
         countRoles: 1,
-        drift: { short: [], extra: [], nativeUndeclared: ['.this/any'] },
+        unlinked: [],
+        unlinkedDeclared: [
+          { role: 'bhrain/learner', via: '@ehmpathy/builder' },
+        ],
         warnings: [],
-        actorsUndeclared: [],
       });
 
-      then('it names the role and the fix, under the ambient actor', () => {
-        const text = lines.join('\n');
-        expect(text).toContain('native → not booted, undeclared');
-        expect(text).toContain(
-          'to boot it, declare `.this/any` under @builder in .agent/actors.yml',
+      then('it names the role, with its source', () => {
+        expect(lines.join('\n')).toContain(
+          '✋ declared, not linked bhrain/learner, via @ehmpathy/builder',
         );
-      });
-      then('it matches the snapshot', () => {
-        expect(lines.join('\n')).toMatchSnapshot();
-      });
-    });
-  });
-
-  given('[case4] actor dirs whose base slug left actors.yml (F15)', () => {
-    when('[t0] the report is rendered', () => {
-      const lines = asActorsDriftReportLines({
-        ambient: '@builder',
-        countActors: 1,
-        countRoles: 2,
-        drift: { short: [], extra: [], nativeUndeclared: [] },
-        warnings: [],
-        actorsUndeclared: ['slug=scholar', 'slug=scholar._.delta=f00d'],
-      });
-
-      then('it names each kept dir and both fixes', () => {
-        const text = lines.join('\n');
-        expect(text).toContain('actor dirs → kept, slug undeclared');
-        expect(text).toContain('actor.via.slug=scholar._.delta=f00d');
-        expect(text).toContain(
-          'to keep it, re-declare `@scholar` in .agent/actors.yml',
-        );
-        expect(text).toContain('to reap its dead clones, rhx clone prune');
       });
       then('it matches the snapshot', () => {
         expect(lines.join('\n')).toMatchSnapshot();
