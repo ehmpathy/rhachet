@@ -29,4 +29,7 @@ it interim until the passthrough lands upstream.
 
 ## .verdict
 
-owed — a council rules at the close.
+overturned by ci, 2026-11-19. the ci runner's gh refuses the body even into a pipe: `the response
+contains terminal escape sequences; pass --allow-escape-sequences to output it anyway` (job
+135395376496). the premise held for this host's older gh only. the skill now passes the flag where
+`gh api --help` names it, and omits it on a gh that lacks it — the reviewer's fork **b**, guarded.
