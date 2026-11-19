@@ -33,3 +33,4 @@
 | `F29-three-probe-skills-stay-manual-instruments` | the bash trap, bash 3.2 and payload read probes stay manual instruments; each claim the yield cites from them holds its own test | clean | open, best-guessed | 85% |
 | `F30-a-crash-stderr-passes-byte-for-byte-unnamed` | a rule's crash stderr passes as the rule wrote it; the dispatcher names only a silent crash or a timeout, and the trace names every rule | clean | open, best-guessed | 85% |
 | `F31-the-sync-report-keeps-three-views-of-one-swap` | the role row, the dispatch block and the run total each keep their own job on a sync | clean | open, best-guessed | 80% |
+| `F32-actors-yml-actors-keep-per-rule-hooks` | under `.agent/actors.yml` each actor renders per-rule hooks, as main does; the dispatcher serves the no-manifest layout; one dispatcher per actor there is a dream | clean | open, best-guessed | 90% |

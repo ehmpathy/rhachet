@@ -246,11 +246,19 @@ describe('setActorSettingsDerived', () => {
             repoPath,
             brain: 'claude',
             roles: ['zeta'],
+            exidDeclared: null,
             delta: 'zeta',
             reason: null,
             logEnrollment: false,
           },
-          { repo: { ambient: { roles: ['any', 'zeta', 'omega'] } } },
+          {
+            repo: {
+              ambient: {
+                exid: 'repo=ambient',
+                roles: ['any', 'zeta', 'omega'],
+              },
+            },
+          },
         );
         const brainDir = getBrainOndiskDir({
           actorDir: getActorOndiskDir({ repoPath, exid: actor.exid }),
@@ -376,11 +384,12 @@ describe('setActorSettingsDerived', () => {
             repoPath,
             brain: 'claude',
             roles: ['zeta'],
+            exidDeclared: null,
             delta: 'zeta',
             reason: null,
             logEnrollment: false,
           },
-          { repo: { ambient: { roles: ['zeta'] } } },
+          { repo: { ambient: { exid: 'repo=ambient', roles: ['zeta'] } } },
         );
         const brainDir = getBrainOndiskDir({
           actorDir: getActorOndiskDir({ repoPath, exid: actor.exid }),

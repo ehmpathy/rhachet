@@ -1,6 +1,5 @@
 import type { BrainSpecifier } from '@src/domain.objects/BrainSpecifier';
-
-import { isBrainClaudeCode } from './isBrainClaudeCode';
+import { isBrainClaudeCode } from '@src/domain.operations/brains/isBrainClaudeCode';
 
 /**
  * .what = the brains the root hook pass writes into: every brain, save claude under a manifest
