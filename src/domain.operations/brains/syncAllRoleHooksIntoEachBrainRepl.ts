@@ -4,6 +4,7 @@ import type { BrainSpecifier } from '@src/domain.objects/BrainSpecifier';
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { HasRepo } from '@src/domain.objects/HasRepo';
 import type { Role } from '@src/domain.objects/Role';
+import { getBrainHooksAdapterByConfigImplicit } from '@src/domain.operations/config/getBrainHooksAdapterByConfigImplicit';
 
 import { detectBrainReplsInRepo } from './detectBrainReplsInRepo';
 import { getOneBrainHooksAdapterForSync } from './dispatch/getOneBrainHooksAdapterForSync';
@@ -12,12 +13,17 @@ import { syncOneRoleHooksIntoOneBrainRepl } from './syncOneRoleHooksIntoOneBrain
 /**
  * .what = syncs all role hooks into each detected brain repl
  * .why = orchestrates hook sync across multiple brains and roles
+ *
+ * .note = `hooksVia: 'brain'` renders each role hook as its own brain hook, for a caller that
+ *   reads the hooks back in-mem (`getAllHooksOfLinkedRolesForClaudeCode`); a dispatch render
+ *   there would park the rules in a manifest the caller never reads
  */
 export const syncAllRoleHooksIntoEachBrainRepl = async (
   input: {
     roles: HasRepo<Role>[];
     brains?: BrainSpecifier[];
     configTargetDir?: string;
+    hooksVia?: 'dispatch' | 'brain';
   },
   context: ContextCli,
 ): Promise<{
@@ -68,14 +74,20 @@ export const syncAllRoleHooksIntoEachBrainRepl = async (
   if (input.roles.length > 0)
     for (const brain of brainSlugs) {
       try {
-        // for claude code, the role hooks land as rules in the dispatch manifest
+        // via dispatch (the default), claude code's role hooks land as rules in the dispatch
+        //   manifest; via brain, every brain writes its own per-rule hooks, as before dispatch
         const adapter =
-          (
-            await getOneBrainHooksAdapterForSync(
-              { brain, configTargetDir: input.configTargetDir ?? null },
-              context,
-            )
-          )?.adapter ?? null;
+          input.hooksVia === 'brain'
+            ? await getBrainHooksAdapterByConfigImplicit(
+                { brain, configTargetDir: input.configTargetDir },
+                context,
+              )
+            : ((
+                await getOneBrainHooksAdapterForSync(
+                  { brain, configTargetDir: input.configTargetDir ?? null },
+                  context,
+                )
+              )?.adapter ?? null);
         adapters.push({ adapter, fault: null });
       } catch (error) {
         adapters.push({ adapter: null, fault: error });

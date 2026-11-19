@@ -63,12 +63,27 @@ jest.mock('./detectBrainReplsInRepo', () => ({
   detectBrainReplsInRepo: jest.fn(),
 }));
 
+// spy the dispatch selector: it delegates to the real one, so [case5] can see whether the
+//   sync went through it at all
+jest.mock('./dispatch/getOneBrainHooksAdapterForSync', () => {
+  const actual = jest.requireActual(
+    './dispatch/getOneBrainHooksAdapterForSync',
+  );
+  return {
+    getOneBrainHooksAdapterForSync: jest.fn(
+      actual.getOneBrainHooksAdapterForSync,
+    ),
+  };
+});
+
 import { getBrainHooksAdapterByConfigImplicit } from '@src/domain.operations/config/getBrainHooksAdapterByConfigImplicit';
 
 import { detectBrainReplsInRepo } from './detectBrainReplsInRepo';
+import { getOneBrainHooksAdapterForSync } from './dispatch/getOneBrainHooksAdapterForSync';
 
 const mockGetAdapter = getBrainHooksAdapterByConfigImplicit as jest.Mock;
 const mockDetectBrains = detectBrainReplsInRepo as jest.Mock;
+const spyGetAdapterForSync = getOneBrainHooksAdapterForSync as jest.Mock;
 
 describe('syncAllRoleHooksIntoEachBrainRepl', () => {
   beforeEach(() => {
@@ -295,4 +310,54 @@ describe('syncAllRoleHooksIntoEachBrainRepl', () => {
       });
     });
   });
+
+  given(
+    '[case5] claude code, with hooks via brain (an in-mem union read)',
+    () => {
+      const role: HasRepo<Role> = {
+        ...new Role({
+          slug: 'mechanic',
+          name: 'Mechanic',
+          purpose: 'test role',
+          readme: { uri: 'readme.md' },
+          traits: [],
+          skills: { dirs: { uri: 'skills' }, refs: [] },
+          briefs: { dirs: { uri: 'briefs' } },
+          hooks: {
+            onBrain: {
+              onBoot: [{ command: 'echo boot', timeout: 'PT30S' }],
+            },
+          },
+        }),
+        repo: 'test-registry',
+      };
+
+      const adapter = createMockAdapter('claude-code', []);
+
+      const result = useBeforeAll(async () => {
+        mockGetAdapter.mockResolvedValue(adapter);
+        const context = new ContextCli({
+          cwd: '/tmp/test-repo',
+          gitroot: '/tmp/test-repo',
+        });
+        return syncAllRoleHooksIntoEachBrainRepl(
+          { roles: [role], brains: ['claude-code'], hooksVia: 'brain' },
+          context,
+        );
+      });
+
+      when('[t0] sync is executed', () => {
+        then('the dispatch selector is never asked for an adapter', () => {
+          expect(spyGetAdapterForSync).not.toHaveBeenCalled();
+        });
+
+        then("the brain's own adapter receives the role hook as is", () => {
+          expect(result.errors).toHaveLength(0);
+          expect(adapter.calls.upsert.map((hook) => hook.command)).toEqual([
+            'echo boot',
+          ]);
+        });
+      });
+    },
+  );
 });

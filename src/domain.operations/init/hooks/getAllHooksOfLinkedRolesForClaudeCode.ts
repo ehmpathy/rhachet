@@ -7,12 +7,12 @@ import {
 } from '@src/domain.operations/brains/claudeCodeSettings';
 import { getBrainsDetectedAndSupplied } from '@src/domain.operations/brains/getBrainsDetectedAndSupplied';
 import { getLinkedRolesWithHooks } from '@src/domain.operations/brains/getLinkedRolesWithHooks';
+import { isBrainClaudeCode } from '@src/domain.operations/brains/isBrainClaudeCode';
 import { syncAllRoleHooksIntoEachBrainRepl } from '@src/domain.operations/brains/syncAllRoleHooksIntoEachBrainRepl';
 import { asRoleFocusParts } from '@src/domain.operations/roles/focus/asRoleFocusParts';
 import { withScratchDir } from '@src/utils/withScratchDir';
 
 import { join } from 'node:path';
-import { isBrainClaudeCode } from './isBrainClaudeCode';
 
 /**
  * .what = the claude hooks of every linked role, as the claude adapter writes them — rendered
@@ -76,8 +76,15 @@ export const getAllHooksOfLinkedRolesForClaudeCode = async (input: {
       prefix: 'render-',
     },
     async (scratchDir) => {
+      // via brain: the union is read back from the settings, so each hook must land there as
+      //   its own entry, never as a rule in a scratch manifest the read would miss
       const synced = await syncAllRoleHooksIntoEachBrainRepl(
-        { roles, brains: brainsClaude, configTargetDir: scratchDir },
+        {
+          roles,
+          brains: brainsClaude,
+          configTargetDir: scratchDir,
+          hooksVia: 'brain',
+        },
         context,
       );
 
