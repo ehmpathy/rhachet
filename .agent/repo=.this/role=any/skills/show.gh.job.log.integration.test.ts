@@ -134,7 +134,11 @@ describe('show.gh.job.log', () => {
       );
 
       then('it exits 0 with the repo, the line count, and the tail', () => {
-        expect(shown.status).toEqual(0);
+        // the stderr rides beside the status, so a red run names why gh refused the read
+        expect({ status: shown.status, stderr: shown.stderr }).toEqual({
+          status: 0,
+          stderr: '',
+        });
         expect(shown.stdout).toContain(`show.gh.job.log --job ${scene.jobId}`);
         expect(shown.stdout).toContain('repo = ehmpathy/rhachet');
         expect(shown.stdout).toMatch(/├─ \d+ lines/);
@@ -154,7 +158,11 @@ describe('show.gh.job.log', () => {
       );
 
       then('it exits 0 and each shown line holds the match', () => {
-        expect(grepped.status).toEqual(0);
+        // the stderr rides beside the status, so a red run names why gh refused the read
+        expect({ status: grepped.status, stderr: grepped.stderr }).toEqual({
+          status: 0,
+          stderr: '',
+        });
         expect(grepped.stdout).toContain("lines that match 'Complete job'");
         const shown = grepped.stdout
           .split('\n')
