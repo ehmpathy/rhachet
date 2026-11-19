@@ -55,15 +55,37 @@ export const syncAllRoleHooksIntoEachBrainRepl = async (
     error: Error;
   }> = [];
 
-  // sync each role × brain combination
-  for (const role of input.roles) {
+  // derive each brain's adapter once (the config write path may be an actor dir); a lookup
+  //   that throws is kept as that brain's fault, recorded per role below as before
+  //   .note = sequential, so an adapter's own console output stays in brain order
+  //   .note = only when a role exists: no role, no lookup, as before
+  // .note = deliberate mutation — the list grows one brain at a time, in order
+  const adapters: Array<{
+    adapter: Awaited<ReturnType<typeof getBrainHooksAdapterByConfigImplicit>>;
+    fault: unknown;
+  }> = [];
+  if (input.roles.length > 0)
     for (const brain of brainSlugs) {
       try {
-        // derive the adapter for this brain (the config write path may be an actor dir)
         const adapter = await getBrainHooksAdapterByConfigImplicit(
           { brain, configTargetDir: input.configTargetDir },
           context,
         );
+        adapters.push({ adapter, fault: null });
+      } catch (error) {
+        adapters.push({ adapter: null, fault: error });
+      }
+    }
+
+  // sync each role × brain combination
+  for (const role of input.roles) {
+    for (const [index, brain] of brainSlugs.entries()) {
+      try {
+        const { adapter, fault } = adapters[index] ?? {
+          adapter: null,
+          fault: null,
+        };
+        if (fault) throw fault;
 
         if (!adapter) {
           errors.push({

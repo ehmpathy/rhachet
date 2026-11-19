@@ -44,6 +44,10 @@ exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case1] a 
    └─ boot.md
       └─ created — 1 role
 
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
+
 "
 `;
 

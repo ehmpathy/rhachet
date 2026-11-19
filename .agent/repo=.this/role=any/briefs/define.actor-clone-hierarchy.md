@@ -128,22 +128,37 @@ in sync, and no stale-serial reap: findsert the clone dir, leave the socket, and
 for itself. (observe is read from the brain-cli's own transcripts in `history/`; a streamed stdout
 mirror is a **future todo**, not needed to reach a clone.)
 
-a bare `rhx enroll claude` enrolls the **ambient roles** (`term=ambient`) into the **repo actor**,
-`actor.via.repo=ambient` — bare means ambient, and the ambient roles live only there. an enroll with
-**absolute roles** (`rhx enroll claude -r mechanic`) derives `actor.via.hash=genEnrollmentHash({brain, roles})`;
-an enroll with a **delta** (`rhx enroll claude -r -driver`) derives
-`actor.via.hash=genEnrollmentHashOfDelta({brain, base: 'ambient', delta})`, so it stays one actor while the
-ambient set moves under it (`define.enrollment-identity-is-the-roleset-hash`). neither consults
-`actors.yml`; a `--roles` equal to the ambient set collapses into the repo actor, never a hash twin of it. (a repo from before the rename holds `actor.via.slug=.default`; the next `rhx init` moves
-it to `actor.via.repo=ambient`.) the **slug** namespace is `rhx clone`'s: a `slug:` entry declared in
-`.agent/repo=.this/actors.yml` (its roleset recorded as concrete roles, or a base peer actor `@<slug>`
-with deltas — never the repo default, an enroll-time concept actor scope cannot reference) is reached
-via `rhx clone actor://foreman`. no cli flag mints an actor — enroll derives the hash actor, clone reads
-the slug actor.
+enroll takes two forms, and its first token tells them apart (F10):
+
+| form | call | lands in |
+|---|---|---|
+| **actor form** | `rhx clone @<slug>` ≡ `rhx enroll @<slug>` | `actor.via.slug=<slug>`; a `+r` / `-r` / `--brain` override → `actor.via.slug=<slug>._.delta=<h>` |
+| **inline form**, absolute roles | `rhx enroll claude -r mechanic` | `actor.via.hash=genEnrollmentHash({brain, roles})` |
+| **inline form**, a delta | `rhx enroll claude -r -driver` | `actor.via.hash=genEnrollmentHashOfDelta({brain, base: 'ambient', delta})` |
+| **bare** | `rhx enroll` | the **repo actor** — `actor.via.slug=<x>` under `ambient: '@<x>'`, else `actor.via.repo=ambient` |
+
+- **the inline form is never named by `actors.yml`** (F7): it stays hash-identified, so a declared
+  slug never captures it. the delta hash keeps one actor while the ambient set moves under it
+  (`define.enrollment-identity-is-the-roleset-hash`), and a `--roles` equal to the ambient set collapses
+  into the repo actor, never a hash twin of it
+- **its base is the repo actor, roles and brain**: a delta (or no `--roles`) applies over the repo
+  actor's roles, and with no brain named it boots the repo actor's brain. so under a manifest the base
+  is the `ambient:` actor's, and a brain is an input to the hash — a repo that adopts `actors.yml`
+  with an `ambient:` brain other than `claude` moves an inline delta actor to a new hash dir. a named
+  brain (`rhx enroll codex …`) always wins and reads no actor's brain
+- **the actor form reads only `actors.yml`**: a `slug:` entry, its roleset recorded as concrete roles
+  or as one base `@<slug>` (local) / `@<repo>/<slug>` (published) with `+`/`-` deltas. a plain role
+  list beside `@<slug>` is refused (it would replace the actor wholesale — that is the inline form),
+  and an undeclared `@<slug>` fails fast with the declared actors listed
+- **the repo actor** holds the ambient roles (`term=ambient`): the `ambient:` actor's roles under a
+  manifest, the linked roles without one. (a repo from before the rename holds `actor.via.slug=.default`;
+  the next `rhx init` moves it to `actor.via.repo=ambient`.)
+
+no cli flag mints an actor — the inline form derives a hash actor, the actor form reads a declared one.
 
 a **role-derived** slug (no custom name) is **always fully-qualified**, mirroring `.agent/repo=*/role=*`:
 an external role → `actor.via.slug=ehmpathy.mechanic`; a native role → `actor.via.slug=.this.redteamer`,
-where `.this` is this repo's own `.agent/repo=.this/actors.yml`.
+where `.this` is this repo's own `.agent/actors.yml`.
 
 ## derived actors — a base ⊕ a durable delta
 
@@ -242,7 +257,7 @@ extant clone by its handle).
 ## see also
 
 - `../../role=user/briefs/actors/howto.use.clones.md` — bake (make/fork/wake) and talk (list/say/get) to clones.
-- `../../role=user/briefs/actors/howto.author-actors-yml.md` — how to declare reusable actors by slug in `actors.yml`, spawnable via `rhx clone actor://<slug>`.
+- `../../role=user/briefs/actors/howto.author-actors-yml.md` — how to declare reusable actors by slug in `actors.yml`, spawnable via `rhx clone @<slug>`.
 - `define.actor-clone-partitions.md` — the on-disk vs in-mem partitions, and why every contract speaks the bare `Clone`/`Actor`.
 - `define.address-sigils.md` — the `@` actor / `@:` clone address sigils and why they were chosen.
 - `define.rhachet.v3.md` — actor = 🧠 brain ⊕ 🧢 role; the core-objects brief this extends.

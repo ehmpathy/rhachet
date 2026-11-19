@@ -302,5 +302,44 @@ process.stdin.on('data', (chunk) => {
   }
 });
 
-// stay alive until an `exit` command or a signal
+/**
+ * 🔴 .exit once the parent is gone.
+ *
+ * .why = a stub whose parent dies (a test torn down, a jest worker killed) used to park on
+ *   stdin forever — reparented to init, never read again. one suite left 310 of them alive
+ *   (measured 2026-11-14, ~18G heap). a real brain-cli exits when its pty closes; so must this
+ * .how = stdin end/close/error means the pty master is gone. a short unref()d interval
+ *   catches a parent that died with the pty held open elsewhere: a changed ppid (reparented)
+ *   or an ESRCH from a signal-0 probe of the start ppid. the same interval exits once the
+ *   cwd is deleted — the test repo was pruned, so the stub is unreachable even where its
+ *   detached host still lives
+ */
+const ppidStart = process.ppid;
+const exitOnParentLoss = () => process.exit(0);
+process.stdin.on('end', exitOnParentLoss);
+process.stdin.on('close', exitOnParentLoss);
+process.stdin.on('error', exitOnParentLoss);
+const isParentGone = () => {
+  if (process.ppid !== ppidStart) return true;
+  try {
+    process.kill(ppidStart, 0);
+    return false;
+  } catch (error) {
+    return error.code === 'ESRCH';
+  }
+};
+// a deleted cwd means the test repo was pruned: the clone host may still live (a detached
+//   enroll host outlives its test), but no test will ever reach this stub again
+const isCwdGone = () => {
+  try {
+    return !fs.existsSync(process.cwd());
+  } catch {
+    return true;
+  }
+};
+setInterval(() => {
+  if (isParentGone() || isCwdGone()) exitOnParentLoss();
+}, 500).unref();
+
+// stay alive until an `exit` command, a signal, or the parent is gone
 process.stdin.resume();

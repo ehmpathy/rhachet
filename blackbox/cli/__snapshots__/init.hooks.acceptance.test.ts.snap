@@ -54,5 +54,9 @@ exports[`rhachet init --hooks given: [case8] a role that declares a role boot ho
    ├─ 1 created
    └─ 1 deleted
 
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
+
 "
 `;

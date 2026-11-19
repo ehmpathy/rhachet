@@ -1,6 +1,7 @@
 import type { Command } from 'commander';
 import { ConstraintError } from 'helpful-errors';
 
+import { BrainCliEnrollmentManifest } from '@src/domain.objects/BrainCliEnrollmentManifest';
 import type { BrainCliEnrollmentSpec } from '@src/domain.objects/BrainCliEnrollmentSpec';
 import type { BrainSlug } from '@src/domain.objects/BrainSlug';
 import { ContextCli } from '@src/domain.objects/ContextCli';
@@ -14,9 +15,12 @@ import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActo
 import { getActorsRootDir } from '@src/domain.operations/actor/enrolled/getActorsRootDir';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
 import { getOneActorOndiskExid } from '@src/domain.operations/actor/enrolled/getOneActorOndiskExid';
+import { getOneRepoActorExid } from '@src/domain.operations/actor/enrolled/getOneRepoActorExid';
 import { getOneRepoActorOndiskDir } from '@src/domain.operations/actor/enrolled/getOneRepoActorOndiskDir';
 import { setBrainDirAuthMigrated } from '@src/domain.operations/actor/enrolled/setBrainDirAuthMigrated';
 import { setBrainDirSettingsLayout } from '@src/domain.operations/actor/enrolled/setBrainDirSettingsLayout';
+import { asRoleRefsOfActorExpanded } from '@src/domain.operations/actor/manifest/asRoleRefsOfActorExpanded';
+import { getOneActorExpandedOfRepo } from '@src/domain.operations/actor/manifest/getOneActorExpandedOfRepo';
 import { assertRoleFociDeclared } from '@src/domain.operations/boot/assertRoleFociDeclared';
 import { getAllRolesAtFocusAlwaysShed } from '@src/domain.operations/boot/getAllRolesAtFocusAlwaysShed';
 import { setBrainDirBoot } from '@src/domain.operations/boot/setBrainDirBoot';
@@ -40,12 +44,14 @@ import { getOneCloneLiveCountForActor } from '@src/domain.operations/clone/getOn
 import { isSafeCloneSlug } from '@src/domain.operations/clone/isSafeCloneSlug';
 import { asCloneEnrollModeAsked } from '@src/domain.operations/clone/pty/asCloneEnrollModeAsked';
 import { computeCloneEnrollMode } from '@src/domain.operations/clone/pty/computeCloneEnrollMode';
+import { asActorFormEnrollment } from '@src/domain.operations/enroll/asActorFormEnrollment';
 import { asBrainCliSpawnArgs } from '@src/domain.operations/enroll/asBrainCliSpawnArgs';
 import { asEnrollBareRoleDeltas } from '@src/domain.operations/enroll/asEnrollBareRoleDeltas';
 import { asEnrollRoleFocusChanges } from '@src/domain.operations/enroll/asEnrollRoleFocusChanges';
 import { assertBrainCliPassthroughLeavesSystemPromptOwned } from '@src/domain.operations/enroll/assertBrainCliPassthroughLeavesSystemPromptOwned';
 import { assertBrainCliVersionFloor } from '@src/domain.operations/enroll/assertBrainCliVersionFloor';
 import { assertCloneSettingsLayersHoldOnlyEnrolledRoles } from '@src/domain.operations/enroll/assertCloneSettingsLayersHoldOnlyEnrolledRoles';
+import { assertEnrollBareDeltasLinked } from '@src/domain.operations/enroll/assertEnrollBareDeltasLinked';
 import { computeBrainCliEnrollment } from '@src/domain.operations/enroll/computeBrainCliEnrollment';
 import { computeBrainCliInput } from '@src/domain.operations/enroll/computeBrainCliInput';
 import { genBrainCliConfigArtifact } from '@src/domain.operations/enroll/genBrainCliConfigArtifact';
@@ -94,15 +100,46 @@ import { withCliOutputErrors } from './withCliOutputErrors';
 const DEFAULT_BRAIN: BrainSlug = 'claude';
 
 /**
- * .what = every raw token that followed `enroll` on the command line
+ * .what = every raw token that followed `enroll` (or its actor-form alias `clone`) on the
+ *   command line
  * .why = the brain passthrough goes verbatim to the child cli, so we capture the
  *   full tail and let getBrainCliPassthroughArgs strip only enroll's own flags
  */
 const getRawArgsAfterEnroll = (): string[] => {
   const argv = process.argv;
-  const idx = argv.indexOf('enroll');
+  const idx = argv.findIndex((arg) => arg === 'enroll' || arg === 'clone');
   if (idx === -1) return [];
   return argv.slice(idx + 1);
+};
+
+/**
+ * .what = the invocation echo with the verb the human typed — `clone` where they wrote
+ *   `rhx clone @<slug>`, which `invoke` maps onto enroll before the parse
+ * .why = a refusal echoes what was typed (`rule.require.refusals-carry-context`); an echo of a
+ *   verb the human never typed is a surprise, and they cannot paste it back to retry
+ */
+const asArgsWithVerbTyped = (input: { args: string[] }): string[] => {
+  const verbTyped = process.argv.find(
+    (arg) => arg === 'enroll' || arg === 'clone',
+  );
+  if (verbTyped !== 'clone') return input.args;
+  const verbIndex = input.args.indexOf('enroll');
+  return input.args.map((token, index) =>
+    index === verbIndex ? 'clone' : token,
+  );
+};
+
+/**
+ * .what = the slug a positional `@<slug>` names — the actor form — or null for a brain
+ * .why = `@<slug>` addresses a declared actor, `@:<slug>` a clone (`define.address-sigils`);
+ *   only the actor grain is an enroll target
+ */
+const asActorFormSlugOrNull = (input: {
+  token: string | null;
+}): string | null => {
+  if (input.token === null) return null;
+  if (!input.token.startsWith('@') || input.token.startsWith('@:')) return null;
+  return input.token.slice(1);
 };
 
 /**
@@ -272,6 +309,58 @@ const setCloneHostHandoffConsumedAfterDepthRead = (input: {
  * .why = this IS the invisible hot path — the human sees the brain open exactly as
  *   before, while a durable, addressable clone is left behind for crons/comms
  */
+/**
+ * .what = the repo actor, expanded, and its roles at their recorded foci — the ambient set
+ * .why = the inline form patches the ambient set, so a repo actor that cannot expand its roles
+ *   refuses it. the actor form never reads that set, so the same refusal there would block
+ *   `rhx clone @<slug>` on a role `@<slug>` never holds
+ * .note = only a ConstraintError is tolerated, and only for the actor form; a code defect throws
+ */
+const getRepoAmbientForEnroll = async (
+  input: {
+    repoPath: string;
+    refsLinked: ReturnType<typeof getAllLinkedRoleRefs>;
+    isActorForm: boolean;
+  },
+  context: ContextCli,
+): Promise<{
+  repoActorExpanded: Awaited<ReturnType<typeof getOneActorExpandedOfRepo>>;
+  rolesAmbient: RoleSlug[];
+}> => {
+  // the repo actor; under the actor form a refusal leaves it unread
+  const repoActorExpanded = await getOneActorExpandedOfRepo(
+    { actor: { ambient: true } },
+    context,
+  ).catch((error: unknown) => {
+    if (input.isActorForm && error instanceof ConstraintError) return null;
+    throw error;
+  });
+
+  // its roles at the foci `rhx init` recorded; the actor form tolerates an unlinked one
+  try {
+    const rolesAmbient = asRoleSlugsAmbientAtFocus({
+      rolesLinked: asRoleSlugsOfRefs({
+        refs: asRoleRefsOfActorExpanded({
+          refsLinked: input.refsLinked,
+          expanded: repoActorExpanded,
+        }),
+      }),
+      foci: getRepoAmbientRoleFoci({ repoPath: input.repoPath }),
+    });
+    return { repoActorExpanded, rolesAmbient };
+  } catch (error) {
+    if (input.isActorForm && error instanceof ConstraintError)
+      return { repoActorExpanded, rolesAmbient: [] };
+    throw error;
+  }
+};
+
+/**
+ * .what = derive one enrollment from argv — the actor form (`@<slug>`), the bare form, or the
+ *         inline form — then render its actor dir and spawn the brain-cli clone
+ * .why = one path for every enroll form, so each lands in the namespace its form decides (F7)
+ *        and every form meets the same validation before any write
+ */
 const performEnroll = async (input: {
   positionalBrain: BrainSlug | null;
   flagBrain: BrainSlug | null;
@@ -335,43 +424,73 @@ const performEnroll = async (input: {
       hint: 'run `rhachet roles link` first to link roles',
     });
 
-  // the repo's ambient roles — the linked roles a bare enroll inherits, each at the focus
-  //   `rhx init` recorded for it. a memoized prefetch of repo facts each downstream
-  //   operation would otherwise look up itself, so it is threaded through as context,
-  //   never passed as an input
-  const rolesAmbient = asRoleSlugsAmbientAtFocus({
-    rolesLinked,
-    foci: getRepoAmbientRoleFoci({ repoPath }),
-  });
+  // the repo actor — every linked role with no manifest, or the `ambient:` actor under one.
+  //   its roles, each at the focus `rhx init` recorded for it, are the ambient roles a bare
+  //   enroll inherits: a memoized prefetch of repo facts each downstream operation would
+  //   otherwise look up itself, so it is threaded through as context, never as an input
+  const contextCli = new ContextCli({ cwd: repoPath, gitroot: repoPath });
+
+  // the actor form: `@<slug>` names a declared actor, which supplies brain and roles (F10)
+  const actorFormSlug = asActorFormSlugOrNull({ token: input.positionalBrain });
+
+  // the ambient roles feed only the inline form; the actor form derives its exid and roles
+  //   from its own actor, so a repo actor with an unlinked role never refuses `@<slug>`
+  const { repoActorExpanded, rolesAmbient } = await getRepoAmbientForEnroll(
+    { repoPath, refsLinked, isActorForm: actorFormSlug !== null },
+    contextCli,
+  );
   const context: ContextOfRepoRoles = {
-    repo: { ambient: { roles: rolesAmbient } },
+    repo: {
+      ambient: { exid: getOneRepoActorExid({ repoPath }), roles: rolesAmbient },
+    },
   };
 
-  // a bare delta in the brain's slot (`rhx enroll -driver`) is a role, not a brain
-  const positionalBrain = asPositionalBrainOrNull({
-    token: input.positionalBrain,
-    rolesLinked,
-  });
+  const actorFormExpanded =
+    actorFormSlug === null
+      ? null
+      : ((await getOneActorExpandedOfRepo(
+          { actor: { slug: actorFormSlug } },
+          contextCli,
+        )) ??
+        ConstraintError.throw(
+          `@${actorFormSlug} is not reachable — this repo has no .agent/actors.yml to declare it`,
+          {
+            actor: `@${actorFormSlug}`,
+            hint: `declare @${actorFormSlug} in .agent/actors.yml (see howto.author-actors-yml), or use the inline form: rhx enroll <brain> --roles <roles>`,
+          },
+        ));
 
-  // one brain from the three forms (absent → default, flag, positional)
+  // a bare delta in the brain's slot (`rhx enroll -driver`) is a role, not a brain
+  const positionalBrain =
+    actorFormSlug === null
+      ? asPositionalBrainOrNull({ token: input.positionalBrain, rolesLinked })
+      : null;
+
+  // one brain from the three forms (absent → the repo actor's brain, else the default)
   const brain = computeBrainCliInput({
     positional: positionalBrain,
     flag: input.flagBrain,
-    default: DEFAULT_BRAIN,
+    default: repoActorExpanded?.brain ?? DEFAULT_BRAIN,
   });
 
   // the brain's own passthrough, less the bare role deltas it carries — `rhx enroll
   //   claude -driver` is an alias of `--roles -driver` (`inventory.of=requirements.case=4`).
-  //   it is refused before any write if it would override the system prompt rhachet owns
+  //   it is refused before any write if it would override the system prompt rhachet owns.
+  //   the `@<slug>` token is enroll's own, so it never passes through
   const rawArgs = getRawArgsAfterEnroll();
   const bare = asEnrollBareRoleDeltas({
-    passthrough: getBrainCliPassthroughArgs({ args: rawArgs, positionalBrain }),
+    passthrough: getBrainCliPassthroughArgs({
+      args: rawArgs,
+      positionalBrain:
+        actorFormSlug === null ? positionalBrain : input.positionalBrain,
+    }),
     rolesLinked,
   });
   const passthrough = bare.passthrough;
+  assertEnrollBareDeltasLinked({ passthrough, rolesLinked });
   assertBrainCliPassthroughLeavesSystemPromptOwned({ passthrough });
 
-  // the roleset: `--roles` and the bare deltas patch the linked default; none takes it whole
+  // the roleset: `--roles` and the bare deltas patch the default; none takes it whole
   const spec = asEnrollmentSpec({
     rolesSpec: input.rolesSpec,
     bareDeltas: bare.deltas,
@@ -379,12 +498,25 @@ const performEnroll = async (input: {
     rolesLinked,
     brain,
   });
-  const enrollment = computeBrainCliEnrollment({
-    brain,
-    spec,
-    rolesAmbient,
-    rolesLinked,
-  });
+
+  // the actor form lands in its declared actor; the inline form derives its actor from the
+  //   roleset
+  const actorForm =
+    actorFormExpanded === null
+      ? null
+      : asActorFormEnrollment({
+          expanded: actorFormExpanded,
+          brainFlag: input.flagBrain,
+          spec,
+          refsLinked,
+        });
+  const enrollment =
+    actorForm === null
+      ? computeBrainCliEnrollment({ brain, spec, rolesAmbient, rolesLinked })
+      : new BrainCliEnrollmentManifest({
+          brain: actorForm.brain,
+          roles: actorForm.roles,
+        });
 
   // the enrolled refs, each at its focus; a focus the role does not declare halts here,
   //   before any dir or manifest is written
@@ -405,8 +537,12 @@ const performEnroll = async (input: {
   });
 
   // a delta enrollment is keyed by its delta, so it stays one actor while the ambient
-  //   set moves under it (`inventory.of=requirements.case=2`)
-  const rolesDelta = asActorRolesDelta({ spec });
+  //   set moves under it (`inventory.of=requirements.case=2`); the actor form lands in its
+  //   declared actor, and a derived one records its delta over its base, so `rhx init`
+  //   re-derives it as the base's declared roles move (`setDeclaredActorsOndisk`)
+  const rolesDelta =
+    actorForm === null ? asActorRolesDelta({ spec }) : actorForm.rolesDelta;
+  const exidDeclared = actorForm?.exid ?? null;
 
   // the `--as` handle (optional) — validated to the safe clone-slug charset
   const slug =
@@ -564,10 +700,12 @@ const performEnroll = async (input: {
     });
 
   // the actor's brain dir — the one config dir every clone of this actor reads
-  const exid = getOneActorOndiskExid(
-    { brain: enrollment.brain, roles: enrollment.roles, rolesDelta },
-    context,
-  );
+  const exid =
+    exidDeclared ??
+    getOneActorOndiskExid(
+      { brain: enrollment.brain, roles: enrollment.roles, rolesDelta },
+      context,
+    );
   const actorDir = getActorOndiskDir({ repoPath, exid });
   const brainDir = getBrainOndiskDir({ actorDir });
   mkdirSync(brainDir, { recursive: true });
@@ -681,6 +819,7 @@ const performEnroll = async (input: {
       brain: enrollment.brain,
       roles: enrollment.roles,
       rolesDelta,
+      exidDeclared,
       delta: input.rolesSpec ?? null,
       reason,
       command,
@@ -842,6 +981,15 @@ export const invokeEnroll = ({ program }: { program: Command }): void => {
   program
     .command('enroll [brain]')
     .description('enroll a brain cli as a managed, addressable clone')
+    .addHelpText(
+      'after',
+      [
+        '',
+        'actor form:',
+        '  rhx enroll @<slug>   spawn a clone of an actor declared in .agent/actors.yml',
+        '                       (≡ rhx clone make @<slug>)',
+      ].join('\n'),
+    )
     .option('--brain <brain>', 'the brain to enroll (alias of the positional)')
     .option(
       '-r, --roles <spec>',
@@ -907,12 +1055,15 @@ export const invokeEnroll = ({ program }: { program: Command }): void => {
         const helpFirst =
           tailAfterEnroll[0] === '--help' || tailAfterEnroll[0] === '-h';
         if (helpFirst && opts.brain === undefined) {
-          process.stdout.write(command.helpInformation());
+          // outputHelp, not helpInformation: only it emits the addHelpText footnote
+          command.outputHelp();
           return;
         }
 
         await withCliOutputErrors({
-          args: getCliInvocationArgs({ command }),
+          args: asArgsWithVerbTyped({
+            args: getCliInvocationArgs({ command }),
+          }),
           outputRaw: opts.output,
           run: async () => {
             const gitroot = process.cwd();

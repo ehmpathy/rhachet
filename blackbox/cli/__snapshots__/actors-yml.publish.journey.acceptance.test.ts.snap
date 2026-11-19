@@ -1,0 +1,126 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`actors.yml, published by a role package and adopted by a repo (journey) given: [case1] the package introspects, the consumer adopts and extends its actor when: [t0] \`repo introspect\` in the package then: rhachet.repo.yml holds its shape — the actors block a consumer reads 1`] = `
+"slug: surfschool
+readme: readme.md
+roles:
+  - slug: coach
+    readme: roles/coach/readme.md
+    briefs:
+      dirs: roles/coach/briefs
+    skills:
+      dirs: roles/coach/skills
+  - slug: lifeguard
+    readme: roles/lifeguard/readme.md
+    briefs:
+      dirs: roles/lifeguard/briefs
+    skills:
+      dirs: roles/lifeguard/skills
+  - slug: scholar
+    readme: roles/scholar/readme.md
+    briefs:
+      dirs: roles/scholar/briefs
+    skills:
+      dirs: roles/scholar/skills
+actors:
+  - slug: instructor
+    brain: claude
+    roles:
+      - surfschool/coach
+"
+`;
+
+exports[`actors.yml, published by a role package and adopted by a repo (journey) given: [case1] the package introspects, the consumer adopts and extends its actor when: [t1] the package is packed and installed, the consumer writes actors.yml, then \`init\` then: the report block holds its shape 1`] = `
+"🎭 actors.yml
+   ├─ repo actor = @crew
+   ├─ 1 actor(s), 2 role(s) declared
+   └─ in sync"
+`;
+
+exports[`actors.yml, published by a role package and adopted by a repo (journey) given: [case1] the package introspects, the consumer adopts and extends its actor when: [t2] the package grows instructor by a role, bumps its version, re-introspects and re-installs, then the consumer \`init\`s then: the report block holds its shape — the role that arrived through the grown base 1`] = `
+"🎭 actors.yml
+   ├─ repo actor = @crew
+   ├─ 1 actor(s), 3 role(s) declared
+   └─ in sync"
+`;
+
+exports[`actors.yml, published by a role package and adopted by a repo (journey) given: [case2] an empty, comment-only actors.yml when: [t0] \`init\` then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: actors.yml is empty
+
+{
+  "hint": "declare \`ambient: '@<slug>'\` and an \`actor:\` list, or delete the file to use \`rhx init --roles\`",
+  "path": "/TMP_TEST_DIR/repo/.agent/actors.yml"
+}
+
+[args] init
+
+"
+`;
+
+exports[`actors.yml, published by a role package and adopted by a repo (journey) given: [case4] a package whose published actors yml names an \`ambient:\` key when: [t0] \`repo introspect\` in the package then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: published actors yml declares \`ambient:\`
+
+{
+  "hint": "remove \`ambient:\` — the consumer names its repo actor in its own \`.agent/actors.yml\`, e.g. \`ambient: '@builder'\`",
+  "path": "/TMP_TEST_DIR/pkg-ambient/actors.yml"
+}
+
+[args] repo,introspect
+
+"
+`;
+
+exports[`actors.yml, published by a role package and adopted by a repo (journey) given: [case5] a package whose published actors yml is unsound, at the command when: [t0] \`repo introspect\` over a role the package does not hold then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: published actor @surfschool/instructor names a role this package does not declare: 'surfschool/coahc'
+
+{
+  "hint": "check the role slug for a typo, or add the role to getRoleRegistry",
+  "path": "/TMP_TEST_DIR/pkg-typo/actors.yml",
+  "roles": [
+    "coach",
+    "lifeguard",
+    "scholar"
+  ]
+}
+
+[args] repo,introspect
+
+"
+`;
+
+exports[`actors.yml, published by a role package and adopted by a repo (journey) given: [case5] a package whose published actors yml is unsound, at the command when: [t0] \`repo introspect\` over a yaml syntax fault then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: published actors yml has invalid yaml
+
+{
+  "hint": "fix the yaml at the line the error names; quote each value that opens with \`@\`",
+  "path": "/TMP_TEST_DIR/pkg-yaml/actors.yml",
+  "excerpt": [
+    "Nested mappings are not allowed in compact mappings at line 2, column 11:",
+    "  - slug: : :",
+    "          ^"
+  ]
+}
+
+[args] repo,introspect
+
+"
+`;
+
+exports[`actors.yml, published by a role package and adopted by a repo (journey) given: [case5] a package whose published actors yml is unsound, at the command when: [t0] \`repo introspect\` over two actors that extend each other then: the refusal holds its shape 1`] = `
+"
+✋ ConstraintError: published actors yml has an extension cycle
+
+{
+  "hint": "break the cycle: one actor in the path must list concrete roles",
+  "path": "/TMP_TEST_DIR/pkg-cycle/actors.yml",
+  "cycle": "@ebb → @flow → @ebb"
+}
+
+[args] repo,introspect
+
+"
+`;

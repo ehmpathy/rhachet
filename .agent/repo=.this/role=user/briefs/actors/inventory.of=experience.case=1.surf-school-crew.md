@@ -22,13 +22,13 @@ actor:
   - slug: longboarder           # base + longboard
     brain: claude
     roles:
-      - @instructor
+      - '@instructor'
       - +longboard
 
   - slug: bigwaver              # base, drop introducer, add bigwave
     brain: claude
     roles:
-      - @instructor
+      - '@instructor'
       - -introducer
       - +bigwave
 ```

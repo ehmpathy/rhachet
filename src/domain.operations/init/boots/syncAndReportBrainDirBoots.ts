@@ -2,6 +2,7 @@ import type { BrainSlug } from '@src/domain.objects/BrainSlug';
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
 import { getOneRepoActorOndiskDir } from '@src/domain.operations/actor/enrolled/getOneRepoActorOndiskDir';
+import { getActorsManifestPath } from '@src/domain.operations/actor/manifest/getActorsManifest';
 import { asBrainDirBootFailureLines } from '@src/domain.operations/boot/asBrainDirBootFailureLines';
 import {
   asBrainDirSyncReportLines,
@@ -12,6 +13,7 @@ import { assertBrainCliVersionFloor } from '@src/domain.operations/enroll/assert
 import { asRoleModViewsChangedReadout } from '@src/domain.operations/mods/asRoleModViewsChangedReadout';
 import { asTreeBranchLines } from '@src/utils/asTreeBranchLines';
 
+import { existsSync } from 'node:fs';
 import { relative } from 'node:path';
 import { asBootGuardReportLines } from './asBootGuardReportLines';
 import { asExitCodeForBrainDirSyncFailures } from './asExitCodeForBrainDirSyncFailures';
@@ -110,11 +112,15 @@ export const syncAndReportBrainDirBoots = async (
   //   (`execRoleLink`, the role delta, `🔭` hooks, `✨` summary). the next root then opens
   //   clean whether it is a second brain dir, the `🔭` hook sweep, or a `💡` tip — and a
   //   no-op tree prints naught, blank included, so silence stays silent
+  const isManifestRepo = existsSync(
+    getActorsManifestPath({ repoPath: input.repoPath }),
+  );
   for (const render of renders) {
     const lines = asBrainDirSyncReportLines({
       render,
       symlink: render.scope.kind === 'repo' ? symlink : null,
       repoActorBrainDirRel,
+      isManifestRepo,
     });
     if (lines.length === 0) continue;
     for (const line of lines) console.log(line);

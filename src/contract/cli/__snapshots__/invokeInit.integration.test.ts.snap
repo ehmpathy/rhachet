@@ -9,7 +9,11 @@ exports[`invokeInit (integration) given: [case2] init against the brain dirs whe
    ├─ linked
    │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
-      └─ created — 1 role"
+      └─ created — 1 role
+
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md"
 `;
 
 exports[`invokeInit (integration) given: [case2] init against the brain dirs when: [t0b] <repo>/.claude holds an UNTRACKED hand AGENTS.md then: it refuses with exit 2 and the hand file survives 1`] = `

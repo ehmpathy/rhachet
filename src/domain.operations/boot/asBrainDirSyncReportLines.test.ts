@@ -16,11 +16,12 @@ const REPO_ACTOR_BRAIN_DIR_REL =
 const genRender = (
   overrides: Partial<BrainDirBootRender> = {},
 ): BrainDirBootRender => ({
-  scope: { kind: 'repo' },
+  scope: { kind: 'repo', actorExid: 'repo=ambient' },
   bootMdPath: `/repo/${REPO_ACTOR_BRAIN_DIR_REL}/boot.md`,
   stats: { ...BOOT_STATS_ZERO, roles: 2, chars: 4096 },
   agentsMdReset: false,
   bootMdCreated: false,
+  bootMdChanged: false,
   ...overrides,
 });
 
@@ -34,6 +35,7 @@ const genSymlink = (
   drops: [],
   moves: [],
   overwrites: [],
+  carries: [],
   ...overrides,
 });
 
@@ -43,13 +45,14 @@ describe('asBrainDirSyncReportLines', () => {
     () => {
       when('[t0] the lines are rendered', () => {
         const lines = asBrainDirSyncReportLines({
-          render: genRender({ bootMdCreated: true }),
+          render: genRender({ bootMdCreated: true, bootMdChanged: true }),
           symlink: genSymlink({
             effect: 'MIGRATED',
             drops: ['CLAUDE.md'],
             moves: ['settings.json', 'keep.json'],
           }),
           repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+          isManifestRepo: false,
         });
 
         then('every group sits under one header, in the one order', () => {
@@ -69,9 +72,10 @@ describe('asBrainDirSyncReportLines', () => {
   given('[case2] a link this run created, with naught to migrate', () => {
     when('[t0] the lines are rendered', () => {
       const lines = asBrainDirSyncReportLines({
-        render: genRender({ bootMdCreated: true }),
+        render: genRender({ bootMdCreated: true, bootMdChanged: true }),
         symlink: genSymlink({ effect: 'CREATED' }),
         repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+        isManifestRepo: false,
       });
 
       then('it names the link and the corpus, and naught else', () => {
@@ -86,6 +90,7 @@ describe('asBrainDirSyncReportLines', () => {
         render: genRender(),
         symlink: genSymlink({ effect: 'FOUND' }),
         repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+        isManifestRepo: false,
       });
 
       then('it says NAUGHT — success is not news', () => {
@@ -97,6 +102,79 @@ describe('asBrainDirSyncReportLines', () => {
   });
 
   given(
+    '[case3b] a link already in place, and a corpus whose bytes changed',
+    () => {
+      when('[t0] the lines are rendered, in a repo with actors.yml', () => {
+        const lines = asBrainDirSyncReportLines({
+          render: genRender({ bootMdChanged: true }),
+          symlink: genSymlink({ effect: 'FOUND' }),
+          repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+          isManifestRepo: true,
+        });
+
+        then(
+          'it names the upgrade — a live brain dir changed under its clones',
+          () => {
+            // a roleset edit re-renders boot.md with new roles. silence here would hide
+            //   that every clone of this actor now boots a different corpus
+            expect(lines.join('\n')).toContain('changed — now 2 roles');
+            expect(lines).toMatchSnapshot();
+          },
+        );
+      });
+      when('[t1] the last role left — the corpus now holds 0 roles', () => {
+        const lines = asBrainDirSyncReportLines({
+          render: genRender({
+            bootMdChanged: true,
+            stats: { ...BOOT_STATS_ZERO, roles: 0, chars: 0 },
+          }),
+          symlink: genSymlink({ effect: 'FOUND' }),
+          repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+          isManifestRepo: true,
+        });
+
+        then('it reads `emptied`, never `changed — now 0 roles`', () => {
+          expect(lines.join('\n')).toContain('emptied — 0 roles');
+          expect(lines.join('\n')).not.toContain('changed');
+        });
+      });
+      when('[t2] the same changed corpus, in a repo with no actors.yml', () => {
+        const lines = asBrainDirSyncReportLines({
+          render: genRender({ bootMdChanged: true }),
+          symlink: genSymlink({ effect: 'FOUND' }),
+          repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+          isManifestRepo: false,
+        });
+
+        then('it says NAUGHT — an absent actors.yml keeps today', () => {
+          // the wish: an absent manifest keeps today's output. the news is a manifest's
+          expect(lines).toEqual([]);
+        });
+      });
+      when(
+        '[t3] a migration beside a live corpus, in a repo with no actors.yml',
+        () => {
+          const lines = asBrainDirSyncReportLines({
+            render: genRender({ bootMdChanged: true }),
+            symlink: genSymlink({ effect: 'MIGRATED', moves: ['keep.json'] }),
+            repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+            isManifestRepo: false,
+          });
+
+          then(
+            "the corpus row keeps main's words, `upgraded — N roles`",
+            () => {
+              // case=5: a repo with no manifest sees the frame main ships, byte for byte
+              expect(lines.join('\n')).toContain('upgraded — 2 roles');
+              expect(lines.join('\n')).not.toContain('changed — now');
+            },
+          );
+        },
+      );
+    },
+  );
+
+  given(
     '[case4] an actor brain dir, which has no <repo>/.claude beneath it',
     () => {
       when('[t0] a first render, with no symlink', () => {
@@ -104,10 +182,12 @@ describe('asBrainDirSyncReportLines', () => {
           render: genRender({
             scope: { kind: 'actor', actorExid: 'hash=051970ec' },
             bootMdCreated: true,
+            bootMdChanged: true,
             stats: { ...BOOT_STATS_ZERO, roles: 1, chars: 512 },
           }),
           symlink: null,
           repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+          isManifestRepo: false,
         });
 
         then(
@@ -125,6 +205,7 @@ describe('asBrainDirSyncReportLines', () => {
           }),
           symlink: null,
           repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+          isManifestRepo: false,
         });
 
         then('it says NAUGHT', () => {
@@ -144,6 +225,7 @@ describe('asBrainDirSyncReportLines', () => {
           overwrites: ['settings.json'],
         }),
         repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+        isManifestRepo: false,
       });
 
       then(
@@ -163,6 +245,7 @@ describe('asBrainDirSyncReportLines', () => {
         render: genRender({ agentsMdReset: true }),
         symlink: genSymlink({ effect: 'FOUND' }),
         repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+        isManifestRepo: false,
       });
 
       then(
@@ -171,6 +254,32 @@ describe('asBrainDirSyncReportLines', () => {
           expect(lines).toMatchSnapshot();
         },
       );
+    });
+  });
+
+  given('[case6] a change of repo actor that carried its settings', () => {
+    when('[t0] the lines are rendered', () => {
+      const lines = asBrainDirSyncReportLines({
+        render: genRender({
+          scope: { kind: 'repo', actorExid: 'slug=crew' },
+        }),
+        symlink: genSymlink({
+          effect: 'REWRITTEN',
+          carries: [
+            '.agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json',
+          ],
+        }),
+        repoActorBrainDirRel:
+          '.agent/.actors/actor.via.slug=crew/brain/.claude',
+        isManifestRepo: true,
+      });
+
+      then('the carry is named, from the former dir into the new', () => {
+        expect(lines.join('\n')).toContain(
+          '.agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json → .agent/.actors/actor.via.slug=crew/brain/.claude/settings.of.repo.json',
+        );
+        expect(lines).toMatchSnapshot();
+      });
     });
   });
 });

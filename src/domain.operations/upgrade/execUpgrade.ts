@@ -344,11 +344,27 @@ export const execUpgrade = async (
     hookErrors: { source: string; error: Error }[];
   }> => {
     if (!whichTargets.includes('local')) return { exitCode: 0, hookErrors: [] };
-    if (roleExpanded.linkedRoles.length === 0)
-      return { exitCode: 0, hookErrors: [] };
-    const specifiers = buildRoleSpecifiers({
-      linkedRoles: roleExpanded.linkedRoles,
-    });
+
+    // manifest => plan the link of every declared actor's roles, from the packages as they
+    //   stand after the install, so a published base that grew reaches this repo now (A3)
+    const { getActorsManifest } = await import(
+      '@src/domain.operations/actor/manifest/getActorsManifest'
+    );
+    const actorsManifest = getActorsManifest({ repoPath: context.gitroot });
+    const manifestLinkPlan = actorsManifest
+      ? await (
+          await import(
+            '@src/domain.operations/actor/manifest/getActorsManifestLinkPlan'
+          )
+        ).getActorsManifestLinkPlan({ manifest: actorsManifest }, context)
+      : null;
+
+    // the roles to re-init: under a manifest, the roles it declares (an undeclared link is
+    //   unlinked below, so it is not re-inited first); else every linked role
+    const specifiers = manifestLinkPlan
+      ? manifestLinkPlan.roleSpecifiers
+      : buildRoleSpecifiers({ linkedRoles: roleExpanded.linkedRoles });
+    if (specifiers.length === 0) return { exitCode: 0, hookErrors: [] };
 
     // put the repo actor's brain dir in the split layout BEFORE the role inits, so an init
     //   that writes through `<repo>/.claude` meets the layout it lives in
@@ -357,6 +373,26 @@ export const execUpgrade = async (
       repoPath: context.gitroot,
     });
     await initRolesFromPackages({ specifiers }, context);
+
+    // manifest => converge the links to the declaration, after the link pass, and name each
+    //   change made, so a clean upgrade prints `in sync` (rule.forbid.defective-defaults)
+    if (actorsManifest && manifestLinkPlan) {
+      const { reportLines } = await (
+        await import(
+          '@src/domain.operations/actor/manifest/setActorsManifestConverged'
+        )
+      ).setActorsManifestConverged(
+        {
+          manifest: actorsManifest,
+          declared: manifestLinkPlan.declared,
+          warnings: manifestLinkPlan.warnings,
+        },
+        context,
+      );
+      // the tree closes on its own blank line, as every block of upgrade does
+      reportLines.forEach((line) => console.log(line));
+      console.log('');
+    }
 
     // re-render the boots before the hook sync, so the boot hooks never go first
     const synced = await syncAndReportBrainDirBoots(

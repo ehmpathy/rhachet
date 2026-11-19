@@ -63,6 +63,9 @@ export const setBrainDirBoot = async (input: {
   // read BEFORE the write, so the report can say `created` rather than `upgraded`.
   //   after `setFileAtomic` the two cases are indistinguishable
   const bootMdCreated = !existsSync(bootMdPath);
+  // read BEFORE the write, so the report can tell a changed corpus from an identical re-render
+  const bootMdBefore = bootMdCreated ? null : readFileSync(bootMdPath, 'utf8');
+  const bootMdChanged = bootMdBefore !== corpus.body;
   try {
     mkdirSync(input.brainDir, { recursive: true });
     setFileAtomic({ path: bootMdPath, content: corpus.body });
@@ -88,5 +91,6 @@ export const setBrainDirBoot = async (input: {
     stats: corpus.stats,
     agentsMdReset,
     bootMdCreated,
+    bootMdChanged,
   };
 };

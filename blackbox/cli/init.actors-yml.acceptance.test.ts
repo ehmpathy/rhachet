@@ -1,0 +1,833 @@
+import { MalfunctionError } from 'helpful-errors';
+import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+import { genTempDir, given, then, useBeforeAll, useThen, when } from 'test-fns';
+
+import {
+  asSnapshotSafe,
+  invokeRhachetCliBinary,
+} from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import {
+  getOneIsRoleLinked,
+  setupRoleFixtureRepo,
+} from '@/blackbox/.test/infra/roleFixtureRepo';
+import { setActorsYml } from '@/blackbox/.test/infra/setActorsYml';
+
+/**
+ * .what = slice one block out of `init` stdout — from the line that opens with `header` to the
+ *         next blank line
+ * .why = each case snaps the block it is about; the rest of the stdout belongs to the extant init
+ *        surface and carries host-varied counts this case has no stake in
+ * .note = an absent header yields the whole stdout, so the snapshot shows what was printed instead
+ */
+const asStdoutBlock = (input: { stdout: string; header: string }): string => {
+  const lines = input.stdout.split('\n');
+  const start = lines.findIndex((line) => line.startsWith(input.header));
+  if (start === -1) return input.stdout;
+  const end = lines.findIndex((line, index) => index > start && line === '');
+  return lines.slice(start, end === -1 ? undefined : end).join('\n');
+};
+
+/**
+ * .what = slice a run of blocks out of `init` stdout, from the block that opens on `from` through
+ *         the end of the block that opens on `through`
+ * .why = a segment like the hook sync spans several blocks (`🔭` → `🪝` → `✨ hooks` → `🧢`); one
+ *        block alone can be a header with no outcome under it
+ * .note = an absent header yields the whole stdout, so the snapshot shows what was printed instead
+ */
+const asStdoutSegment = (input: { stdout: string; from: string; through: string }): string => {
+  const lines = input.stdout.split('\n');
+  const start = lines.findIndex((line) => line.startsWith(input.from));
+  const last = lines.findIndex((line, index) => index > start && line.startsWith(input.through));
+  if (start === -1 || last === -1) return input.stdout;
+  const end = lines.findIndex((line, index) => index > last && line === '');
+  return lines.slice(start, end === -1 ? undefined : end).join('\n');
+};
+
+/**
+ * .what = slice the `🎭 actors.yml` report block out of `init` stdout
+ */
+const asActorsReportBlock = (input: { stdout: string }): string =>
+  asStdoutBlock({ stdout: input.stdout, header: '🎭 actors.yml' });
+
+/**
+ * .what = mask the installed role package's version and its carried role list in a refusal frame
+ * .why = both belong to the role package, not to this repo's contract; unmasked, a version bump of
+ *        `rhachet-roles-ehmpathy` turns the snapshot red on a change that never touched actors.yml
+ *        (rule.require.snapshot-verified-on-independent-run)
+ */
+const asStderrWithPackageCarriageMasked = (input: { stderr: string }): string => {
+  if (!input.stderr.includes('"package": "rhachet-roles-')) return input.stderr;
+  return input.stderr
+    .replace(/(rhachet-roles-[a-z0-9-]+)@\d+\.\d+\.\d+[^\s",']*/g, '$1@$VERSION')
+    .replace(/"roles": \[[^\]]*\]/g, '"roles": ["$ROLES_CARRIED"]');
+  // .note = the placeholder is a quoted element, so the frame stays valid json for a reader
+};
+
+/**
+ * .what = the path of an actor's rendered `boot.md`
+ */
+const getBootPath = (input: { dir: string; actorDirName: string }): string =>
+  join(input.dir, '.agent', '.actors', input.actorDirName, 'brain', '.claude', 'boot.md');
+
+/**
+ * .what = declares the anthropic brain package in the fixture's package.json
+ * .why = `init --hooks` needs the brain's adapter, which the fixture's linked node_modules holds
+ *   but its package.json does not declare
+ */
+const setPackageBrainAnthropicDeclared = (input: { dir: string }): void => {
+  const packagePath = join(input.dir, 'package.json');
+  const packageJson = JSON.parse(readFileSync(packagePath, 'utf8'));
+  writeFileSync(
+    packagePath,
+    JSON.stringify(
+      {
+        ...packageJson,
+        dependencies: { ...packageJson.dependencies, 'rhachet-brains-anthropic': '*' },
+      },
+      null,
+      2,
+    ),
+  );
+};
+
+const ACTORS_YML_CREW = [
+  "ambient: '@crew'",
+  'actor:',
+  '  - slug: crew',
+  '    brain: claude',
+  '    roles: [ehmpathy/mechanic, bhuild/behaver]',
+  '  - slug: reader',
+  '    roles:',
+  "      - '@crew'",
+  '      - -behaver',
+  '      - +bhrain/librarian',
+  '',
+];
+
+describe('rhx init under .agent/actors.yml (acceptance)', () => {
+  given('[case1] a manifest with a repo actor and a peer extension', () => {
+    const testDir = genTempDir({ slug: 'init-actors-yml' });
+    beforeAll(() => {
+      setupRoleFixtureRepo({ dir: testDir });
+      setActorsYml({ dir: testDir, lines: ACTORS_YML_CREW });
+    });
+
+    when('[t0] `init` with no --roles', () => {
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinary({ args: ['init'], cwd: testDir }),
+      );
+
+      then('the union of every actor roles is linked (F6)', () => {
+        expect(run.status).toEqual(0);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(true);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'behaver' })).toEqual(true);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'librarian' })).toEqual(true);
+      });
+      then('the report names the repo actor, and reads in sync once the link pass ran (D)', () => {
+        const block = asActorsReportBlock({ stdout: run.stdout });
+        expect(block).toContain('repo actor = @crew');
+        expect(block).toContain('2 actor(s), 3 role(s) declared');
+        expect(block).toContain('└─ in sync');
+        expect(block).not.toContain('to link');
+      });
+      then('the report block holds its shape', () => {
+        expect(asActorsReportBlock({ stdout: run.stdout })).toMatchSnapshot();
+      });
+      then('the whole init frame holds its shape — block order and blank lines included', () => {
+        expect(asSnapshotSafe(run.stdout)).toMatchSnapshot();
+      });
+      then('the brain dir header names the repo actor, `brain://slug=crew`', () => {
+        const block = asStdoutBlock({ stdout: run.stdout, header: '🧠 brain://' });
+        expect(block).toContain('brain://slug=crew');
+        expect(block).toMatchSnapshot();
+      });
+      then('`<repo>/.claude` points at the `ambient:` actor, `actor.via.slug=crew`', () => {
+        expect(realpathSync(join(testDir, '.claude'))).toEqual(
+          realpathSync(join(testDir, '.agent', '.actors', 'actor.via.slug=crew', 'brain', '.claude')),
+        );
+        expect(existsSync(join(testDir, '.agent', '.actors', 'actor.via.repo=ambient'))).toEqual(
+          false,
+        );
+      });
+      then('the repo actor boots `@crew` roles alone, never the whole union', () => {
+        const bootMd = readFileSync(
+          join(testDir, '.agent', '.actors', 'actor.via.slug=crew', 'brain', '.claude', 'boot.md'),
+          'utf8',
+        );
+        expect(bootMd).toContain('role=mechanic');
+        expect(bootMd).toContain('role=behaver');
+        expect(bootMd).not.toContain('role=librarian');
+      });
+    });
+
+    when('[t1] `init` again, no change', () => {
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinary({ args: ['init'], cwd: testDir }),
+      );
+
+      then('the report says the set is in sync', () => {
+        expect(run.status).toEqual(0);
+        expect(asActorsReportBlock({ stdout: run.stdout })).toContain('└─ in sync');
+      });
+      then('the whole no-change frame holds its shape — the common `pnpm prepare` replay', () => {
+        expect(asSnapshotSafe(run.stdout)).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case2] a role linked by hand, then a manifest that omits it', () => {
+    const testDir = genTempDir({ slug: 'init-actors-yml-extra' });
+    beforeAll(() => {
+      setupRoleFixtureRepo({ dir: testDir });
+      const prior = invokeRhachetCliBinary({
+        args: ['init', '--roles', 'mechanic', 'architect'],
+        cwd: testDir,
+      });
+      if (prior.status !== 0)
+        throw new MalfunctionError('fixture init failed', {
+          stderr: prior.stderr,
+          hint: 'the fixture setup broke, not the case under test; read the stderr above, then rebuild (`npm run build`) if dist/ is stale',
+        });
+
+      // a hand-added hook in the repo actor's own settings — the human's, kept by F14
+      const settingsAmbientPath = join(
+        testDir,
+        '.agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json',
+      );
+      const settingsAmbient = JSON.parse(readFileSync(settingsAmbientPath, 'utf8'));
+      writeFileSync(
+        settingsAmbientPath,
+        JSON.stringify({
+          ...settingsAmbient,
+          hooks: {
+            ...settingsAmbient.hooks,
+            Notification: [{ hooks: [{ type: 'command', command: 'echo hand-added' }] }],
+          },
+        }),
+      );
+
+      setActorsYml({
+        dir: testDir,
+        lines: [
+          "ambient: '@solo'",
+          'actor:',
+          '  - slug: solo',
+          '    brain: claude',
+          '    roles: [ehmpathy/mechanic]',
+          '',
+        ],
+      });
+    });
+
+    when('[t0] `init` with no --roles', () => {
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinary({ args: ['init'], cwd: testDir }),
+      );
+
+      then('the extra role is unlinked, converged to the declaration (E)', () => {
+        expect(run.status).toEqual(0);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'architect' })).toEqual(false);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(true);
+      });
+      then('`<repo>/.claude` repoints from `repo=ambient` to the `ambient:` actor', () => {
+        expect(realpathSync(join(testDir, '.claude'))).toEqual(
+          realpathSync(join(testDir, '.agent', '.actors', 'actor.via.slug=solo', 'brain', '.claude')),
+        );
+      });
+      then('the hand-added hook of the former repo actor is carried to the new one', () => {
+        const settingsSolo = readFileSync(
+          join(
+            testDir,
+            '.agent/.actors/actor.via.slug=solo/brain/.claude/settings.of.repo.json',
+          ),
+          'utf8',
+        );
+        expect(settingsSolo).toContain('echo hand-added');
+      });
+      then('the carry is named in the brain dir report', () => {
+        const block = asStdoutBlock({ stdout: run.stdout, header: '🧠 brain://' });
+        expect(block).toContain(
+          '.agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json → .agent/.actors/actor.via.slug=solo/brain/.claude/settings.of.repo.json',
+        );
+        expect(block).toMatchSnapshot();
+      });
+      then('the unlink is named, one line, with no fix tree', () => {
+        const block = asActorsReportBlock({ stdout: run.stdout });
+        expect(block).toContain('- unlinked ehmpathy/architect, undeclared');
+        expect(block).not.toContain('to drop it');
+      });
+      then('the report block holds its shape', () => {
+        expect(asActorsReportBlock({ stdout: run.stdout })).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case3] `--roles` beside a manifest', () => {
+    const testDir = genTempDir({ slug: 'init-actors-yml-roles' });
+    beforeAll(() => {
+      setupRoleFixtureRepo({ dir: testDir });
+      setActorsYml({ dir: testDir, lines: ACTORS_YML_CREW });
+    });
+
+    when('[t0] `init --roles mechanic`', () => {
+      const run = useThen('exits 2', () =>
+        invokeRhachetCliBinary({ args: ['init', '--roles', 'mechanic'], cwd: testDir }),
+      );
+
+      then('it is refused, and names the actors.yml edit', () => {
+        expect(run.status).toEqual(2);
+        expect(run.stderr).toContain('--roles is refused beside .agent/actors.yml');
+        expect(run.stderr).toContain('declare the roles in .agent/actors.yml');
+      });
+      then('the refusal holds its shape', () => {
+        expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+      });
+      then('no role is linked', () => {
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(false);
+      });
+    });
+
+    when('[t1] `init --roles -behaver`, an incremental delta', () => {
+      const run = useThen('exits 2', () =>
+        invokeRhachetCliBinary({ args: ['init', '--roles', '-behaver'], cwd: testDir }),
+      );
+
+      then('it is refused too, and names the actors.yml edit (requirement 1, F13)', () => {
+        expect(run.status).toEqual(2);
+        expect(run.stderr).toContain('--roles is refused beside .agent/actors.yml');
+        expect(run.stderr).toContain('declare the roles in .agent/actors.yml');
+      });
+      then('the refusal holds its shape', () => {
+        expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+      });
+    });
+
+    when('[t2] `init --prep`', () => {
+      const run = useThen('exits 2', () =>
+        invokeRhachetCliBinary({ args: ['init', '--prep'], cwd: testDir }),
+      );
+
+      then('it is refused, and names the bare `rhx init` replay', () => {
+        expect(run.status).toEqual(2);
+        expect(run.stderr).toContain('--prep is refused beside .agent/actors.yml');
+        expect(run.stderr).toContain('the manifest is the replay');
+      });
+      then('the refusal holds its shape', () => {
+        expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+      });
+      then('no role is linked', () => {
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(false);
+      });
+    });
+  });
+
+  given('[case4] a manifest with no `ambient:` key', () => {
+    const testDir = genTempDir({ slug: 'init-actors-yml-invalid' });
+    beforeAll(() => {
+      setupRoleFixtureRepo({ dir: testDir });
+      setActorsYml({
+        dir: testDir,
+        lines: [
+          'actor:',
+          '  - slug: solo',
+          '    brain: claude',
+          '    roles: [ehmpathy/mechanic]',
+          '',
+        ],
+      });
+    });
+
+    when('[t0] `init`', () => {
+      const run = useThen('exits 2', () =>
+        invokeRhachetCliBinary({ args: ['init'], cwd: testDir }),
+      );
+
+      then('it fails fast and names the key (S9)', () => {
+        expect(run.status).toEqual(2);
+        expect(run.stderr).toContain('actors.yml has no `ambient:` key');
+        expect(run.stderr).toContain("'@solo'");
+      });
+      then('the refusal holds its shape', () => {
+        expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+      });
+      then('no write happened (case=7)', () => {
+        expect(existsSync(join(testDir, '.agent', 'repo=ehmpathy'))).toEqual(false);
+      });
+    });
+  });
+
+  given('[case5] a native `.this` role that no actor declares', () => {
+    const testDir = genTempDir({ slug: 'init-actors-yml-native' });
+    beforeAll(() => {
+      setupRoleFixtureRepo({ dir: testDir });
+      const roleDir = join(testDir, '.agent', 'repo=.this', 'role=tuner');
+      mkdirSync(join(roleDir, 'briefs'), { recursive: true });
+      writeFileSync(join(roleDir, 'readme.md'), '# tuner\n');
+      writeFileSync(join(roleDir, 'briefs', 'perf.md'), '# perf\n');
+      // a native role is live only once it declares a boot.yml
+      writeFileSync(
+        join(roleDir, 'boot.yml'),
+        ['always:', '  briefs:', '    say:', '      - briefs/perf.md', ''].join('\n'),
+      );
+      setActorsYml({
+        dir: testDir,
+        lines: [
+          "ambient: '@solo'",
+          'actor:',
+          '  - slug: solo',
+          '    brain: claude',
+          '    roles: [ehmpathy/mechanic]',
+          '',
+        ],
+      });
+    });
+    const getBootOfSolo = (): string =>
+      readFileSync(
+        join(testDir, '.agent', '.actors', 'actor.via.slug=solo', 'brain', '.claude', 'boot.md'),
+        'utf8',
+      );
+
+    when('[t0] `init` with no --roles', () => {
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinary({ args: ['init'], cwd: testDir }),
+      );
+
+      then('the native role is left as is, and printed naught for now (E, question open)', () => {
+        expect(run.status).toEqual(0);
+        const block = asActorsReportBlock({ stdout: run.stdout });
+        expect(block).toContain('└─ in sync');
+        expect(block).not.toContain('.this/tuner');
+        expect(existsSync(join(testDir, '.agent', 'repo=.this', 'role=tuner', 'boot.yml'))).toEqual(
+          true,
+        );
+      });
+      then('the report block holds its shape', () => {
+        expect(asActorsReportBlock({ stdout: run.stdout })).toMatchSnapshot();
+      });
+      then('no role is added by itself — the repo actor does not boot it', () => {
+        expect(getBootOfSolo()).not.toContain('role=tuner');
+      });
+    });
+
+    when('[t1] the fix is applied — `.this/tuner` declared under @solo — then `init`', () => {
+      const run = useThen('exits 0', () => {
+        setActorsYml({
+          dir: testDir,
+          lines: [
+            "ambient: '@solo'",
+            'actor:',
+            '  - slug: solo',
+            '    brain: claude',
+            '    roles: [ehmpathy/mechanic, .this/tuner]',
+            '',
+          ],
+        });
+        return invokeRhachetCliBinary({ args: ['init'], cwd: testDir });
+      });
+
+      then('the native row is gone, and the repo actor boots the role', () => {
+        expect(run.status).toEqual(0);
+        expect(asActorsReportBlock({ stdout: run.stdout })).not.toContain('native →');
+        expect(getBootOfSolo()).toContain('role=tuner');
+      });
+    });
+  });
+
+  given('[case6] `--keys` beside a manifest, with no --roles', () => {
+    const testDir = genTempDir({ slug: 'init-actors-yml-keys' });
+    beforeAll(() => {
+      setupRoleFixtureRepo({ dir: testDir });
+      setActorsYml({ dir: testDir, lines: ACTORS_YML_CREW });
+    });
+
+    when('[t0] `init --keys`', () => {
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinary({ args: ['init', '--keys'], cwd: testDir }),
+      );
+
+      then('the manifest names the roles, so --keys needs no --roles', () => {
+        expect(run.status).toEqual(0);
+        expect(run.stderr).not.toContain('--keys requires --roles');
+      });
+      then('the keyrack init runs over the declared union', () => {
+        expect(run.stdout).toContain('🔑 keyrack init');
+        expect(existsSync(join(testDir, '.agent', 'keyrack.yml'))).toEqual(true);
+      });
+      then('the keyrack block holds its shape', () => {
+        expect(
+          asSnapshotSafe(asStdoutBlock({ stdout: run.stdout, header: '🔑 keyrack init' })),
+        ).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case7] a declared actor, then a manifest that drops its slug (F15)', () => {
+    const testDir = genTempDir({ slug: 'init-actors-yml-orphan' });
+    beforeAll(() => {
+      setupRoleFixtureRepo({ dir: testDir });
+      setActorsYml({ dir: testDir, lines: ACTORS_YML_CREW });
+      const prior = invokeRhachetCliBinary({ args: ['init'], cwd: testDir });
+      if (prior.status !== 0)
+        throw new MalfunctionError('fixture init failed', {
+          stderr: prior.stderr,
+          hint: 'the fixture setup broke, not the case under test; read the stderr above, then rebuild (`npm run build`) if dist/ is stale',
+        });
+      // an `@reader` clone once ran here; its actor dir (and any clone in it) outlives the slug
+      mkdirSync(
+        join(testDir, '.agent', '.actors', 'actor.via.slug=reader', 'clones'),
+        { recursive: true },
+      );
+      setActorsYml({
+        dir: testDir,
+        lines: [
+          "ambient: '@crew'",
+          'actor:',
+          '  - slug: crew',
+          '    brain: claude',
+          '    roles: [ehmpathy/mechanic, bhuild/behaver]',
+          '',
+        ],
+      });
+    });
+
+    when('[t0] `init` with no --roles', () => {
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinary({ args: ['init'], cwd: testDir }),
+      );
+
+      then('the dropped actor dir is kept, never removed', () => {
+        expect(run.status).toEqual(0);
+        expect(
+          existsSync(join(testDir, '.agent', '.actors', 'actor.via.slug=reader')),
+        ).toEqual(true);
+      });
+      then('the report names the role it unlinked, and leaves the kept dir unprinted (E)', () => {
+        const block = asActorsReportBlock({ stdout: run.stdout });
+        expect(block).toContain('- unlinked bhrain/librarian, undeclared');
+        expect(block).not.toContain('actor.via.slug=reader');
+      });
+      then('the report block holds its shape', () => {
+        expect(asActorsReportBlock({ stdout: run.stdout })).toMatchSnapshot();
+      });
+    });
+  });
+
+  /**
+   * .note = init re-derives the repo actor, the one actor whose dir it owns; a peer's dir is minted
+   *   at its first enroll, and its re-derive is proven where a clone spawns
+   *   (`enroll.actors-yml.integration.test.ts` [case2][t3])
+   */
+  given('[case9] two declared actors, then a manifest that swaps their roles (the sync invariant)', () => {
+    const testDir = genTempDir({ slug: 'init-actors-yml-rederive' });
+    const actorsLinesOf = (input: { crew: string; peer: string }): string[] => [
+      "ambient: '@crew'",
+      'actor:',
+      '  - slug: crew',
+      '    brain: claude',
+      `    roles: [${input.crew}]`,
+      '  - slug: peer',
+      '    brain: claude',
+      `    roles: [${input.peer}]`,
+      '',
+    ];
+    const scene = useBeforeAll(async () => {
+      setupRoleFixtureRepo({ dir: testDir });
+      setActorsYml({
+        dir: testDir,
+        lines: actorsLinesOf({ crew: 'ehmpathy/mechanic', peer: 'bhuild/behaver' }),
+      });
+      const before = invokeRhachetCliBinary({ args: ['init'], cwd: testDir });
+      if (before.status !== 0)
+        throw new MalfunctionError('the first init of the re-derive case failed', {
+          stderr: before.stderr,
+        });
+      return { testDir };
+    });
+
+    when('[t0] the manifest swaps the roles of @crew and @peer, then `init`', () => {
+      const run = useThen('exits 0', () => {
+        setActorsYml({
+          dir: scene.testDir,
+          lines: actorsLinesOf({ crew: 'bhuild/behaver', peer: 'ehmpathy/mechanic' }),
+        });
+        return invokeRhachetCliBinary({ args: ['init'], cwd: scene.testDir });
+      });
+
+      then("the repo actor's boot.md is re-rendered for its new roles, with no edit by hand", () => {
+        expect(run.status).toEqual(0);
+        const bootCrew = readFileSync(getBootPath({ dir: scene.testDir, actorDirName: 'actor.via.slug=crew' }), 'utf8');
+        expect(bootCrew).toContain('role=behaver');
+        expect(bootCrew).not.toContain('role=mechanic');
+      });
+      then('both roles stay linked — the union of every actor', () => {
+        expect(getOneIsRoleLinked({ dir: scene.testDir, role: 'mechanic' })).toEqual(true);
+        expect(getOneIsRoleLinked({ dir: scene.testDir, role: 'behaver' })).toEqual(true);
+      });
+      then('a peer is minted at its first enroll, never by init', () => {
+        expect(existsSync(join(scene.testDir, '.agent', '.actors', 'actor.via.slug=peer'))).toEqual(false);
+      });
+      then('the report block holds its shape', () => {
+        expect(asActorsReportBlock({ stdout: run.stdout })).toMatchSnapshot();
+      });
+      then('the repo actor brain block names the upgrade — never a silent re-render', () => {
+        const block = asStdoutBlock({ stdout: run.stdout, header: '🧠 brain://slug=crew' });
+        expect(block.startsWith('🧠 brain://slug=crew')).toEqual(true);
+        expect(block).toContain('changed — now 1 role');
+        expect(asSnapshotSafe(block)).toMatchSnapshot();
+      });
+    });
+  });
+
+  /**
+   * .what = every manifest mistake a human can author, each refused by `init` with a named fix
+   * .why = the manifest is a new surface a human writes by hand; each refusal frame is snapped so
+   *        its headline, hint and metadata cannot drift unseen
+   */
+  const CASES_MANIFEST_REFUSED = [
+    {
+      description: 'an unquoted `@` value',
+      lines: ['ambient: @crew', 'actor:', '  - slug: crew', '    brain: claude', '    roles: [ehmpathy/mechanic]', ''],
+      message: 'actors.yml has an unquoted `@` value',
+    },
+    {
+      description: 'invalid yaml',
+      lines: ["ambient: '@crew'", 'actor:', '  - slug: crew', '   brain: [claude', ''],
+      message: 'actors.yml has invalid yaml',
+    },
+    {
+      description: 'a base that names an undeclared peer',
+      lines: ["ambient: '@crew'", 'actor:', '  - slug: crew', "    roles: ['@nobody']", ''],
+      message: 'actors.yml names an actor not declared: @nobody',
+    },
+    {
+      description: 'a published base whose package is not installed',
+      lines: ["ambient: '@crew'", 'actor:', '  - slug: crew', "    roles: ['@ghlitch/watcher']", ''],
+      message: 'published actor whose package is not installed: @ghlitch/watcher',
+    },
+    {
+      description: 'an extension cycle',
+      lines: ["ambient: '@a'", 'actor:', '  - slug: a', "    roles: ['@b']", '  - slug: b', "    roles: ['@a']", ''],
+      message: 'actors.yml has an extension cycle',
+    },
+    {
+      description: 'concrete roles mixed with deltas',
+      lines: ["ambient: '@a'", 'actor:', '  - slug: a', '    brain: claude', '    roles: [ehmpathy/mechanic, -driver]', ''],
+      message: 'actors.yml actor @a mixes concrete roles with a base or deltas',
+    },
+    {
+      description: 'deltas with no base',
+      lines: ["ambient: '@a'", 'actor:', '  - slug: a', '    brain: claude', "    roles: ['+mechanic']", ''],
+      message: 'actors.yml actor @a has deltas with no base',
+    },
+    {
+      description: 'two bases',
+      lines: ["ambient: '@a'", 'actor:', '  - slug: a', "    roles: ['@b', '@c']", ''],
+      message: 'actors.yml actor @a names more than one base',
+    },
+    {
+      description: 'an actor that reaches no brain',
+      lines: ["ambient: '@a'", 'actor:', '  - slug: a', '    roles: [ehmpathy/mechanic]', ''],
+      message: 'actors.yml actor @a reaches no brain',
+    },
+    {
+      description: 'a role slug with a typo',
+      lines: ["ambient: '@a'", 'actor:', '  - slug: a', '    brain: claude', '    roles: [ehmpathy/mechnaic]', ''],
+      message: "actors.yml declares role 'ehmpathy/mechnaic', which rhachet-roles-ehmpathy@",
+    },
+    {
+      description: 'an unknown key on an actor',
+      lines: ["ambient: '@a'", 'actor:', '  - slug: a', '    brain: claude', '    brian: codex', '    roles: [ehmpathy/mechanic]', ''],
+      message: "actors.yml actor[0] has an unknown key: 'brian'",
+    },
+    {
+      description: 'a role of a package not installed',
+      lines: ["ambient: '@a'", 'actor:', '  - slug: a', '    brain: claude', '    roles: [surfschool/coach]', ''],
+      message: "actors.yml declares role 'surfschool/coach', which no installed role package carries",
+    },
+    {
+      description: 'a role focus (F25)',
+      lines: ["ambient: '@a'", 'actor:', '  - slug: a', '    brain: claude', "    roles: ['ehmpathy/mechanic::flow']", ''],
+      message: "names a role focus 'ehmpathy/mechanic::flow', which actors.yml does not support yet",
+    },
+    {
+      description: 'a typo in `ambient:`',
+      lines: ["ambient: '@crw'", 'actor:', '  - slug: crew', '    brain: claude', '    roles: [ehmpathy/mechanic]', ''],
+      message: "did you mean '@crew'?",
+    },
+    {
+      // .note = the fixture's installed role package publishes no actors at its pinned version, so
+      //   this frame is the upgrade branch of row 50; the nearest-slug branch is proven against a
+      //   package that publishes (genGetPublishedActorOfPackages.integration [t1b])
+      description: 'a published actor slug the installed package does not publish',
+      lines: ["ambient: '@crew'", 'actor:', '  - slug: crew', "    roles: ['@ehmpathy/buidler']", ''],
+      message: 'rhachet-roles-ehmpathy is installed, and publishes no actor @ehmpathy/buidler',
+    },
+  ];
+
+  given('[case8] a manifest with an authored mistake', () => {
+    CASES_MANIFEST_REFUSED.map((thisCase, index) =>
+      when(`[t${index}] ${thisCase.description}, then \`init\``, () => {
+        const testDir = genTempDir({ slug: 'init-actors-yml-refused' });
+        const run = useThen('exits 2', () => {
+          setupRoleFixtureRepo({ dir: testDir });
+          setActorsYml({ dir: testDir, lines: thisCase.lines });
+          return invokeRhachetCliBinary({
+            args: ['init'],
+            cwd: testDir,
+            logOnError: false,
+          });
+        });
+
+        then('it fails fast and names the mistake', () => {
+          expect(run.status).toEqual(2);
+          expect(run.stderr).toContain(thisCase.message);
+          expect(run.stderr).toContain('hint');
+        });
+        then('the refusal holds its shape', () => {
+          expect(
+            asStderrWithPackageCarriageMasked({ stderr: asSnapshotSafe(run.stderr) }),
+          ).toMatchSnapshot();
+        });
+        then('no role is linked', () => {
+          expect(existsSync(join(testDir, '.agent', 'repo=ehmpathy'))).toEqual(
+            false,
+          );
+        });
+        then('the repo actor brain dir is never written — the refusal precedes every write', () => {
+          expect(
+            existsSync(
+              join(testDir, '.agent', '.actors', 'actor.via.repo=ambient'),
+            ),
+          ).toEqual(false);
+        });
+      }),
+    );
+  });
+
+  given('[case10] a manifest, linked, then `init --hooks` — the `prepare:rhachet` journey', () => {
+    const testDir = genTempDir({ slug: 'init-actors-yml-hooks' });
+    beforeAll(() => {
+      setupRoleFixtureRepo({ dir: testDir });
+      setPackageBrainAnthropicDeclared({ dir: testDir });
+      setActorsYml({ dir: testDir, lines: ACTORS_YML_CREW });
+      invokeRhachetCliBinary({ args: ['init'], cwd: testDir });
+    });
+
+    when('[t0] `init --hooks`, as `prepare:rhachet` runs it', () => {
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinary({ args: ['init', '--hooks'], cwd: testDir }),
+      );
+
+      then('it exits 0', () => {
+        expect(run.status).toEqual(0);
+      });
+      then('the per-actor apply tree names the repo actor by its exid', () => {
+        const block = asStdoutBlock({ stdout: run.stdout, header: '🧢' });
+        expect(block).toContain('apply hooks to enrolled actors');
+        expect(block).toContain('slug=crew');
+        expect(block).not.toContain('actor.via.slug=crew');
+      });
+      then('the actor row adds exactly the hooks `settings.of.repo.json` now holds', () => {
+        // the count belongs to the installed role packages, so it is derived from the file the
+        //   init wrote rather than pinned. a `+0`, or a count that disagrees with the file, fails
+        const settings = JSON.parse(
+          readFileSync(
+            join(
+              testDir,
+              '.agent',
+              '.actors',
+              'actor.via.slug=crew',
+              'brain',
+              '.claude',
+              'settings.of.repo.json',
+            ),
+            'utf8',
+          ),
+        ) as { hooks?: Record<string, Array<{ hooks?: unknown[] }>> };
+        const hooksHeld = Object.values(settings.hooks ?? {}).reduce(
+          (sum, entries) =>
+            sum + entries.reduce((sumInner, entry) => sumInner + (entry.hooks?.length ?? 0), 0),
+          0,
+        );
+        const block = asStdoutBlock({ stdout: run.stdout, header: '🧢' });
+        const addedMatch = block.match(/slug=crew: \+(\d+)/);
+        expect(hooksHeld).toBeGreaterThan(0);
+        expect(Number(addedMatch?.[1])).toEqual(hooksHeld);
+      });
+      then('the hook sync segment holds its shape, `🔭` through `🧢`', () => {
+        // .note = the count is asserted against the file in the then above; here it is masked, so a
+        //   routine bump of a role package does not turn this snapshot red
+        expect(
+          asStdoutSegment({ stdout: run.stdout, from: '🔭', through: '🧢' }).replace(
+            /(slug=crew: )\+\d+/g,
+            '$1+<N>',
+          ),
+        ).toMatchSnapshot();
+      });
+      then('the repo actor `settings.of.repo.json` carries the `@crew` roles hooks', () => {
+        const settings = JSON.parse(
+          readFileSync(
+            join(
+              testDir,
+              '.agent',
+              '.actors',
+              'actor.via.slug=crew',
+              'brain',
+              '.claude',
+              'settings.of.repo.json',
+            ),
+            'utf8',
+          ),
+        );
+        expect(Object.keys(settings.hooks ?? {}).length).toBeGreaterThan(0);
+        expect(JSON.stringify(settings.hooks)).not.toContain('librarian');
+      });
+      then('no `actor.via.repo=ambient` dir is written beside the manifest actor', () => {
+        expect(existsSync(join(testDir, '.agent', '.actors', 'actor.via.repo=ambient'))).toEqual(
+          false,
+        );
+      });
+    });
+  });
+
+  given('[case11] an extension that removes a role its base never held', () => {
+    const testDir = genTempDir({ slug: 'init-actors-yml-cautions' });
+    beforeAll(() => {
+      setupRoleFixtureRepo({ dir: testDir });
+      setActorsYml({
+        dir: testDir,
+        lines: [
+          "ambient: '@crew'",
+          'actor:',
+          '  - slug: crew',
+          '    brain: claude',
+          '    roles: [ehmpathy/mechanic, bhuild/behaver]',
+          '  - slug: reader',
+          '    roles:',
+          "      - '@crew'",
+          '      - -librarian',
+          '',
+        ],
+      });
+    });
+
+    when('[t0] `init`', () => {
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinary({ args: ['init'], cwd: testDir }),
+      );
+
+      then('it exits 0 — the intent holds, so it warns and never refuses', () => {
+        expect(run.status).toEqual(0);
+      });
+      then('the report names the caution, one ⚠️ line', () => {
+        const block = asActorsReportBlock({ stdout: run.stdout });
+        expect(block).toContain('⚠️ @reader removes -librarian, which @crew does not hold');
+      });
+      then('the report block holds its shape', () => {
+        expect(asActorsReportBlock({ stdout: run.stdout })).toMatchSnapshot();
+      });
+    });
+  });
+});

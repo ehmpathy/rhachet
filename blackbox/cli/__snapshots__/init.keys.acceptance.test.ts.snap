@@ -33,6 +33,10 @@ exports[`rhachet init --keys given: [case1] repo with role keyrack and scoped pa
    └─ boot.md
       └─ created — 1 role
 
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
+
 "
 `;
 
@@ -76,6 +80,10 @@ exports[`rhachet init --keys given: [case3] idempotent re-run when: [t0] init --
    │  └─ .agent/repo=test-repo/role=tester/keyrack.yml
    └─ found .agent/keyrack.yml (no changes)
 
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
+
 "
 `;
 
@@ -108,6 +116,10 @@ exports[`rhachet init --keys given: [case4] role lacks keyrack (skip, create man
    │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
       └─ created — 1 role
+
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
 
 "
 `;

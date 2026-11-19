@@ -92,6 +92,7 @@ export const execRoleLink = (
   findsertAgentEphemeralGitignore({
     dir: resolve(agentDir, '.actors'),
     kind: 'actors',
+    repoPath: process.cwd(),
   });
   findsertAgentEphemeralGitignore({
     dir: resolve(agentDir, '.cache'),

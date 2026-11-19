@@ -1,4 +1,5 @@
-import { ACTORS_GITIGNORE_LINE } from '@src/domain.operations/actor/enrolled/constants';
+import { asActorOndiskDirName } from '@src/domain.operations/actor/enrolled/asActorOndiskDirName';
+import { getOneRepoActorExid } from '@src/domain.operations/actor/enrolled/getOneRepoActorExid';
 import { asTextWithLinesConverged } from '@src/infra/asTextWithLinesConverged';
 import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 import { setFileAtomic } from '@src/infra/setFileAtomic';
@@ -6,6 +7,7 @@ import { setFileAtomic } from '@src/infra/setFileAtomic';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { asActorsGitignoreContent } from './asActorsGitignoreContent';
+import { asGitignoreWithoutFormerActorNegations } from './asGitignoreWithoutFormerActorNegations';
 
 /**
  * .what = make the repo `.gitignore` spare the repo actor dir (D10)
@@ -26,26 +28,34 @@ export const genRepoActorGitignoreExclusion = async (input: {
   negation: 'FOUND' | 'APPENDED' | 'CREATED';
 }> => {
   const path = join(input.repoPath, '.gitignore');
+  const negation = `!.agent/.actors/${asActorOndiskDirName({
+    exid: getOneRepoActorExid({ repoPath: input.repoPath }),
+  })}/`;
   return withRepoMutex({ repoPath: input.repoPath, path }, async () =>
-    genRepoActorGitignoreExclusionWithinLock({ path }),
+    genRepoActorGitignoreExclusionWithinLock({ path, negation }),
   );
 };
 
 /**
  * .what = the findsert itself, once the repo `.gitignore` mutex is held
+ * .note = a negation for any other actor dir is dropped (`asGitignoreWithoutFormerActorNegations`)
  */
 const genRepoActorGitignoreExclusionWithinLock = (input: {
   path: string;
+  negation: string;
 }): { rewritten: boolean; negation: 'FOUND' | 'APPENDED' | 'CREATED' } => {
-  const { path } = input;
-  const negation = ACTORS_GITIGNORE_LINE.repoRepoActorNegation;
+  const { path, negation } = input;
 
-  // rewrite a dir exclusion of `.actors` to its children form, only if one is present
+  // rewrite a dir exclusion of `.actors` to its children form, and drop the negation of a
+  //   former repo actor dir, only if one is present
   const contentBefore = existsSync(path) ? readFileSync(path, 'utf8') : null;
   const contentRewritten =
     contentBefore === null
       ? null
-      : asActorsGitignoreContent({ content: contentBefore });
+      : asGitignoreWithoutFormerActorNegations({
+          content: asActorsGitignoreContent({ content: contentBefore }),
+          negation,
+        });
 
   // findsert the negation after it; the whole edit lands in one write
   const contentAfter = asTextWithLinesConverged({

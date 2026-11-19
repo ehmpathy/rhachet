@@ -1,7 +1,6 @@
-import {
-  ACTORS_GITIGNORE_LINE,
-  REPO_ACTOR_DIR_NAME,
-} from '@src/domain.operations/actor/enrolled/constants';
+import { asActorOndiskDirName } from '@src/domain.operations/actor/enrolled/asActorOndiskDirName';
+import { REPO_ACTOR_DIR_NAME } from '@src/domain.operations/actor/enrolled/constants';
+import { getOneRepoActorExid } from '@src/domain.operations/actor/enrolled/getOneRepoActorExid';
 
 import { findsertDirGitignore } from './findsertDirGitignore';
 import type { LinkResult } from './findsertFile';
@@ -21,7 +20,8 @@ const GITIGNORE_CONTENT = `${GITIGNORE_HEADER}*
  *   actor's brain dir, which holds the repo's tracked brain config (D10)
  * .why = the patterns are anchored (`/*`), so the root `.gitignore` patterns
  *   (`*.local.json`, `*.bak.*`) still apply inside the repo actor dir. the file converges
- *   whole, so the legacy `!/actor.via.slug=.default/` line drops on the next write
+ *   whole, so a negation for a prior repo actor dir (the legacy `slug=.default`, or a
+ *   former `ambient:` actor) drops on the next write
  * .why = only `brain/.claude/` is re-included, and its own allowlist `.gitignore` picks
  *   the tracked names. a bare enroll lands on the repo actor, so its runtime records
  *   (`actor.json`, `roles/`, `clones/`) are written there on every everyday `claude` —
@@ -29,15 +29,20 @@ const GITIGNORE_CONTENT = `${GITIGNORE_HEADER}*
  * .note = git never re-includes a path under an excluded dir, so each level is
  *   re-included, then its children ignored, one level at a time
  */
-const GITIGNORE_CONTENT_ACTORS = `${GITIGNORE_HEADER}# .note = the repo actor's brain dir is the one exception: it holds the ambient roles' brain config
+const asActorsGitignoreContentSelf = (input: {
+  repoActorDirName: string;
+}): string => {
+  const dir = input.repoActorDirName;
+  return `${GITIGNORE_HEADER}# .note = the repo actor's brain dir is the one exception: it holds the ambient roles' brain config
 /*
 !/.gitignore
-${ACTORS_GITIGNORE_LINE.selfRepoActorNegation}
-/${REPO_ACTOR_DIR_NAME}/*
-!/${REPO_ACTOR_DIR_NAME}/brain/
-/${REPO_ACTOR_DIR_NAME}/brain/*
-!/${REPO_ACTOR_DIR_NAME}/brain/.claude/
+!/${dir}/
+/${dir}/*
+!/${dir}/brain/
+/${dir}/brain/*
+!/${dir}/brain/.claude/
 `;
+};
 
 /**
  * .what = creates a self-ignore .gitignore inside a .agent ephemeral dir
@@ -48,26 +53,39 @@ ${ACTORS_GITIGNORE_LINE.selfRepoActorNegation}
  *
  * .note = `.actors` spares its repo actor dir from both the ignore and the
  *   create-time untrack; every other dir ignores all it holds
+ * .note = `.actors` takes the repo path from its caller, so the spared repo actor dir is never
+ *   derived from the shape of a path string
  */
-export const findsertAgentEphemeralGitignore = (input: {
-  dir: string;
-  kind: 'actors' | 'cache';
-}): LinkResult =>
-  input.kind === 'actors'
-    ? findsertDirGitignore({
-        dir: input.dir,
-        content: GITIGNORE_CONTENT_ACTORS,
-        spare: [REPO_ACTOR_DIR_NAME],
-      })
-    : findsertDirGitignore({
-        dir: input.dir,
-        content: GITIGNORE_CONTENT,
-        spare: [],
-      });
+export const findsertAgentEphemeralGitignore = (
+  input:
+    | { dir: string; kind: 'cache' }
+    | { dir: string; kind: 'actors'; repoPath: string },
+): LinkResult => {
+  // a cache dir ignores all it holds
+  if (input.kind === 'cache')
+    return findsertDirGitignore({
+      dir: input.dir,
+      content: GITIGNORE_CONTENT,
+      spare: [],
+    });
+
+  // the actors dir spares the repo actor dir, named by the repo the caller holds
+  const repoActorDirName = asActorOndiskDirName({
+    exid: getOneRepoActorExid({ repoPath: input.repoPath }),
+  });
+  return findsertDirGitignore({
+    dir: input.dir,
+    content: asActorsGitignoreContentSelf({ repoActorDirName }),
+    spare: [repoActorDirName],
+  });
+};
 
 /**
  * .what = exports the gitignore content for a test to assert against
  * .why = enables a test to verify exact content match
+ * .note = the actors content is the one with no manifest — the repo actor `repo=ambient`
  */
 export const AGENT_EPHEMERAL_GITIGNORE_CONTENT = GITIGNORE_CONTENT;
-export const AGENT_ACTORS_GITIGNORE_CONTENT = GITIGNORE_CONTENT_ACTORS;
+export const AGENT_ACTORS_GITIGNORE_CONTENT = asActorsGitignoreContentSelf({
+  repoActorDirName: REPO_ACTOR_DIR_NAME,
+});

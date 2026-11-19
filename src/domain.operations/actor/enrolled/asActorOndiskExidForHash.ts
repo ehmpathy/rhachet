@@ -4,7 +4,6 @@ import type { BrainSlug } from '@src/domain.objects/BrainSlug';
 import type { ContextOfRepoRoles } from '@src/domain.objects/ContextOfRepoRoles';
 import type { RoleSlug } from '@src/domain.objects/RoleSlug';
 
-import { REPO_ACTOR_EXID } from './constants';
 import { genEnrollmentHash } from './genEnrollmentHash';
 import { genEnrollmentHashOfDelta } from './genEnrollmentHashOfDelta';
 import { isRolesetAmbient } from './isRolesetAmbient';
@@ -38,7 +37,7 @@ export const asActorOndiskExidForHash = (
       {
         roles: input.roles,
         rolesAmbient,
-        hint: `route through getOneActorOndiskExid, which maps the ambient roles to '${REPO_ACTOR_EXID}'`,
+        hint: `route through getOneActorOndiskExid, which maps the ambient roles to the repo actor '${context.repo.ambient.exid}'`,
       },
     );
 

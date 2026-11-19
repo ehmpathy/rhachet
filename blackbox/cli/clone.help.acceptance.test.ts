@@ -80,5 +80,64 @@ describe('rhx actor/clone --help (acceptance)', () => {
         });
       });
     });
+
+    when('[t8] clone claude --roles mechanic (the inline form, typed on clone)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['clone', 'claude', '--roles', 'mechanic'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('it is refused, and names the inline form and the actor form', () => {
+        expect(result.status).toEqual(2);
+        expect(result.stderr).toContain("rhx clone has no verb 'claude'");
+        expect(result.stderr).toContain('rhx enroll <brain> --roles <roles>');
+        expect(result.stderr).toContain('rhx clone make @<slug>');
+      });
+
+      then('the refusal is locked (visual spot-check)', () => {
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
+      });
+    });
+
+    when('[t9] clone @:scout (a clone address, typed with no verb)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['clone', '@:scout'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('it is refused, and names the verb to reach that clone', () => {
+        expect(result.status).toEqual(2);
+        expect(result.stderr).toContain('to reach @:scout, name a verb first: rhx clone get @:scout');
+      });
+
+      then('the refusal is locked (visual spot-check)', () => {
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
+      });
+    });
+
+    when('[t10] clone lst (a near verb, mistyped)', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['clone', 'lst'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('it is refused, and names the near verb', () => {
+        expect(result.status).toEqual(2);
+        expect(result.stderr).toContain("did you mean 'rhx clone list'?");
+      });
+
+      then('the refusal is locked (visual spot-check)', () => {
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
+      });
+    });
   });
 });

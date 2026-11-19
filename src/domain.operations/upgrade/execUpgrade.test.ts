@@ -205,6 +205,10 @@ describe('execUpgrade', () => {
     mockExecNpmInstallGlobal.mockReturnValue({ upgraded: true });
   });
 
+  // .note = the manifest path (`.agent/actors.yml` present) is proven with real collaborators
+  //   at `upgrade.acceptance.test.ts` [case12.4]; no manifest sits at `/test`, so every case
+  //   here reads the flag-list path
+
   given('no flags provided', () => {
     when('execUpgrade is called', () => {
       then(

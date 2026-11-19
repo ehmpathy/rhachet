@@ -6,7 +6,12 @@ import type { ContextOfRepoRoles } from '@src/domain.objects/ContextOfRepoRoles'
 import { asActorOndiskExidForHash } from './asActorOndiskExidForHash';
 
 const context: ContextOfRepoRoles = {
-  repo: { ambient: { roles: ['mechanic', 'driver', 'ergonomist'] } },
+  repo: {
+    ambient: {
+      exid: 'repo=ambient',
+      roles: ['mechanic', 'driver', 'ergonomist'],
+    },
+  },
 };
 
 describe('asActorOndiskExidForHash', () => {
@@ -52,11 +57,25 @@ describe('asActorOndiskExidForHash', () => {
               roles: ['mechanic', 'xyz'],
               rolesDelta: ['-driver'],
             },
-            { repo: { ambient: { roles: ['mechanic', 'driver', 'xyz'] } } },
+            {
+              repo: {
+                ambient: {
+                  exid: 'repo=ambient',
+                  roles: ['mechanic', 'driver', 'xyz'],
+                },
+              },
+            },
           );
           const after = asActorOndiskExidForHash(
             { brain: 'claude', roles: ['mechanic'], rolesDelta: ['-driver'] },
-            { repo: { ambient: { roles: ['mechanic', 'driver'] } } },
+            {
+              repo: {
+                ambient: {
+                  exid: 'repo=ambient',
+                  roles: ['mechanic', 'driver'],
+                },
+              },
+            },
           );
           expect(after).toEqual(before);
         });
@@ -68,7 +87,9 @@ describe('asActorOndiskExidForHash', () => {
     when('[t0] both exids are minted', () => {
       then('the delta actor and the absolute actor are two actors', () => {
         const contextTwo = {
-          repo: { ambient: { roles: ['mechanic', 'driver'] } },
+          repo: {
+            ambient: { exid: 'repo=ambient', roles: ['mechanic', 'driver'] },
+          },
         };
         const delta = asActorOndiskExidForHash(
           { brain: 'claude', roles: ['mechanic'], rolesDelta: ['-driver'] },

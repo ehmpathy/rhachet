@@ -1,0 +1,23 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asActorsDriftReportLines given: [case1] an undeclared role unlinked, with a caution when: [t0] the report is rendered then: it matches the snapshot 1`] = `
+"🎭 actors.yml
+   ├─ repo actor = @builder
+   ├─ 2 actor(s), 6 role(s) declared
+   ├─ - unlinked ghlitch/observer, undeclared
+   └─ ⚠️ @builder removes -driver, which @ehmpathy/builder does not hold"
+`;
+
+exports[`asActorsDriftReportLines given: [case2] no change when: [t0] the report is rendered then: it matches the snapshot 1`] = `
+"🎭 actors.yml
+   ├─ repo actor = @scholar
+   ├─ 1 actor(s), 3 role(s) declared
+   └─ in sync"
+`;
+
+exports[`asActorsDriftReportLines given: [case3] a declared role the link pass could not reach when: [t0] the report is rendered then: it matches the snapshot 1`] = `
+"🎭 actors.yml
+   ├─ repo actor = @builder
+   ├─ 1 actor(s), 1 role(s) declared
+   └─ ✋ declared, not linked bhrain/learner, via @ehmpathy/builder"
+`;

@@ -62,5 +62,9 @@ exports[`rhachet init (full output) given: [case1] repo with multiple roles, ini
 ✨ hooks
    └─ 2 created
 
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
+
 "
 `;

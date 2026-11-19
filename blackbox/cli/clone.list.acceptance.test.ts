@@ -242,8 +242,8 @@ describe('rhx clone reach (acceptance)', () => {
         roles: ['mechanic'],
         delta: null,
         reason: null,
-        logEnrollment: true,
-      }, { repo: { ambient: { roles: [] } } });
+        exidDeclared: null, logEnrollment: true,
+      }, { repo: { ambient: { exid: 'repo=ambient', roles: [] } } });
       return {
         dir,
         exid: actor.exid,
@@ -337,8 +337,8 @@ describe('rhx clone reach (acceptance)', () => {
           roles: ['architect'],
           delta: null,
           reason: null,
-          logEnrollment: true,
-        }, { repo: { ambient: { roles: [] } } });
+          exidDeclared: null, logEnrollment: true,
+        }, { repo: { ambient: { exid: 'repo=ambient', roles: [] } } });
         return {
           dir,
           ownerExid: owner.actorExid,
@@ -420,16 +420,16 @@ describe('rhx clone reach (acceptance)', () => {
           roles: ['mechanic'],
           delta: null,
           reason: null,
-          logEnrollment: true,
-        }, { repo: { ambient: { roles: [] } } });
+          exidDeclared: null, logEnrollment: true,
+        }, { repo: { ambient: { exid: 'repo=ambient', roles: [] } } });
         await findsertActorOndisk({
           repoPath: dir,
           brain: 'claude',
           roles: ['architect'],
           delta: null,
           reason: null,
-          logEnrollment: true,
-        }, { repo: { ambient: { roles: [] } } });
+          exidDeclared: null, logEnrollment: true,
+        }, { repo: { ambient: { exid: 'repo=ambient', roles: [] } } });
         return { dir, env: { PATH: process.env.PATH ?? '' } };
       });
 

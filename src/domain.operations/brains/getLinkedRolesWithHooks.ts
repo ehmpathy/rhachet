@@ -44,8 +44,12 @@ const asRoleWithoutRolesBootHooks = (input: { role: Role }): Role => {
  *   `.this` boot.yml declares a budget or a role is modded (getAllRepoThisRolesWithHooks)
  * .note = imports packages dynamically to get full Role objects with hooks.onBrain
  * .note = returns HasRepo<Role> so caller knows which repo each role came from
+ * .note = `rolesHeld` narrows by role slug BEFORE the import: a repo with no held role is never
+ *   loaded, so an actor's derivation imports only its own roles' packages, and a broken package
+ *   it does not hold can never fail it. null = every linked role (the root hook sync)
  */
 export const getLinkedRolesWithHooks = async (
+  input: { rolesHeld: string[] | null },
   context: ContextCli,
 ): Promise<{
   roles: HasRepo<Role>[];
@@ -57,6 +61,9 @@ export const getLinkedRolesWithHooks = async (
   }>;
 }> => {
   const agentDir = join(context.gitroot, '.agent');
+  const rolesHeld = input.rolesHeld ? new Set(input.rolesHeld) : null;
+  const isHeld = (roleSlug: string): boolean =>
+    !rolesHeld || rolesHeld.has(roleSlug);
 
   // check if .agent/ exists
   if (!existsSync(agentDir)) {
@@ -82,10 +89,12 @@ export const getLinkedRolesWithHooks = async (
     const repoSlug = repoDir.replace('repo=', '');
     const repoPath = join(agentDir, repoDir);
 
-    // scan for role=* directories within this repo
+    // scan for the held role=* directories within this repo; a repo with none is never imported
     const roleDirs = readdirSync(repoPath)
       .filter((name) => name.startsWith('role='))
+      .filter((name) => isHeld(name.replace('role=', '')))
       .sort();
+    if (roleDirs.length === 0) continue;
 
     const packageName = toRolePackageFromRepo(repoSlug);
 
@@ -173,9 +182,11 @@ export const getLinkedRolesWithHooks = async (
 
   // a budgeted `.this` boot or a mod arms the built-in sweep, which joins the same sync as a supplier's
   const repoThis = getAllRepoThisRolesWithHooks({ gitroot: context.gitroot });
-  roles.push(...repoThis.roles);
+  roles.push(...repoThis.roles.filter((role) => isHeld(role.slug)));
   errors.push(
-    ...repoThis.errors.map((one) => ({ ...one, phase: 'load' as const })),
+    ...repoThis.errors
+      .filter((one) => isHeld(one.roleSlug))
+      .map((one) => ({ ...one, phase: 'load' as const })),
   );
 
   return { roles, errors };

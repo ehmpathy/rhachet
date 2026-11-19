@@ -6,5 +6,9 @@ exports[`init role delta → a delta actor with a live clone (acceptance) given:
    │  └─ - bhrain/driver
    └─ untouched (2)
 
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
+
 "
 `;

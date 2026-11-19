@@ -77,10 +77,10 @@ const main = async () => {
 
   // GREEN: the real peer site loads the esm fixture through node's require lookup +
   // importEsmSafe, reads its getRoleRegistry, and keeps the hooks.onBrain role
-  const { roles, errors } = await getLinkedRolesWithHooks({
-    cwd: workDir,
-    gitroot: workDir,
-  });
+  const { roles, errors } = await getLinkedRolesWithHooks(
+    { rolesHeld: null },
+    { cwd: workDir, gitroot: workDir },
+  );
 
   const report = {
     requireShimThrew,

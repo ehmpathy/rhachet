@@ -22,7 +22,9 @@ export const getBrainTranscriptDir = (input: {
   brainDir: string;
   cwd: string;
 }): string | null => {
-  const isClaude = input.brain === 'claude' || input.brain === 'claude-code';
+  const isClaude = ['claude', 'claude-code', 'anthropic/claude/code'].includes(
+    input.brain,
+  );
   if (!isClaude) return null;
   return join(
     input.brainDir,

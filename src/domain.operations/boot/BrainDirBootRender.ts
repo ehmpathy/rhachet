@@ -6,7 +6,7 @@ import type { BootStats } from './BootStats';
  * .why = a census line and a failure line each name which brain dir they speak of
  */
 export type BrainDirBootScope =
-  | { kind: 'repo' }
+  | { kind: 'repo'; actorExid: string }
   | { kind: 'actor'; actorExid: string }
   | { kind: 'actors' };
 
@@ -26,6 +26,13 @@ export type BrainDirBootRender = {
    *        distinction is knowable only at write time, so it is captured here
    */
   bootMdCreated: boolean;
+  /**
+   * .what = true where this render wrote bytes that differ from the boot.md it replaced
+   *         (always true on a create)
+   * .why = a corpus that changed under a live brain dir is news — its clones boot a new roleset;
+   *        an identical re-render is not. like `bootMdCreated`, it is knowable only at write time
+   */
+  bootMdChanged: boolean;
 };
 
 /**

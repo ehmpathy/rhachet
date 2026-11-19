@@ -64,7 +64,7 @@ describe('syncBootsForBrainDirs', () => {
       then('the default and the DEAF actor render, and none fail', () => {
         expect(scene.result.failures).toEqual([]);
         expect(scene.result.renders.map((render) => render.scope)).toEqual([
-          { kind: 'repo' },
+          { kind: 'repo', actorExid: 'repo=ambient' },
           { kind: 'actor', actorExid: scene.deaf.actorExid },
         ]);
       });
@@ -197,6 +197,7 @@ describe('syncBootsForBrainDirs', () => {
           drops: ['AGENTS.md'],
           moves: ['settings.json'],
           overwrites: [],
+          carries: [],
         });
       });
     });
@@ -221,7 +222,10 @@ describe('syncBootsForBrainDirs', () => {
     when('[t0] the brain dirs are synced', () => {
       then('the repo actor failure is collected under the repo scope', () => {
         expect(scene.result.failures).toHaveLength(1);
-        expect(scene.result.failures[0]!.scope).toEqual({ kind: 'repo' });
+        expect(scene.result.failures[0]!.scope).toEqual({
+          kind: 'repo',
+          actorExid: 'repo=ambient',
+        });
         expect(scene.result.failures[0]!.cause).not.toBeInstanceOf(
           ConstraintError,
         );
@@ -302,7 +306,7 @@ describe('syncBootsForBrainDirs', () => {
               .sort((a, b) => (a.kind < b.kind ? -1 : 1)),
           ).toEqual([
             { kind: 'actor', actorExid: scene.healthy.actorExid },
-            { kind: 'repo' },
+            { kind: 'repo', actorExid: 'repo=ambient' },
           ]);
         });
       });
@@ -333,7 +337,7 @@ describe('syncBootsForBrainDirs', () => {
 
       then('the default still renders', () => {
         expect(scene.result.renders.map((render) => render.scope)).toEqual([
-          { kind: 'repo' },
+          { kind: 'repo', actorExid: 'repo=ambient' },
         ]);
       });
     });

@@ -58,7 +58,7 @@ export const invokeInit = ({ program }: { program: Command }): void => {
     .description('initialize roles from packages or generate rhachet.use.ts')
     .option(
       '--roles <roles...>',
-      'role specifiers: bare names replace the set (mechanic behaver), or +role to add / -role to remove incrementally; role::<subject> boots one subject of the role, with all its hooks (mechanic::flow); list subjects via npx rhachet roles cost --all',
+      'role specifiers: bare names replace the set (mechanic behaver), or +role to add / -role to remove incrementally; role::<subject> boots one subject of the role, with all its hooks (mechanic::flow); list subjects via npx rhachet roles cost --all. refused beside .agent/actors.yml, which declares the roles instead',
     )
     .option(
       '--hooks [brains...]',
@@ -90,6 +90,32 @@ export const invokeInit = ({ program }: { program: Command }): void => {
           ? getRoleDeltaTokens({ raw: options.roles })
           : undefined;
 
+        // read `.agent/actors.yml`, if the repo declares one; absent → today's behavior (case=5)
+        const { getActorsManifest } = await import(
+          '@src/domain.operations/actor/manifest/getActorsManifest'
+        );
+        const actorsManifest = getActorsManifest({ repoPath: context.gitroot });
+
+        // refuse: `--roles` beside a manifest is two sources of truth
+        if (actorsManifest && rolesDecoded && rolesDecoded.length > 0)
+          throw new ConstraintError(
+            '--roles is refused beside .agent/actors.yml',
+            {
+              roles: rolesDecoded,
+              hint: 'drop `--roles …` from `prepare:rhachet` in package.json (keep `--hooks`), and declare the roles in .agent/actors.yml. to keep a --roles list instead, remove .agent/actors.yml',
+            },
+          );
+
+        // refuse: `--prep` writes a `--roles` replay, and a manifest is already the replay
+        if (actorsManifest && options.prep)
+          throw new ConstraintError(
+            '--prep is refused beside .agent/actors.yml',
+            {
+              prep: options.prep,
+              hint: 'the manifest is the replay: set `prepare:rhachet` to `rhachet init --hooks` (no --roles, no --prep), and declare the roles in .agent/actors.yml',
+            },
+          );
+
         // validate: --prep requires --roles
         if (options.prep && (!rolesDecoded || rolesDecoded.length === 0)) {
           throw new ConstraintError('--prep requires --roles', {
@@ -98,8 +124,12 @@ export const invokeInit = ({ program }: { program: Command }): void => {
           });
         }
 
-        // validate: --keys requires --roles
-        if (options.keys && (!rolesDecoded || rolesDecoded.length === 0)) {
+        // validate: --keys requires --roles, or a manifest to name them
+        if (
+          options.keys &&
+          !actorsManifest &&
+          (!rolesDecoded || rolesDecoded.length === 0)
+        ) {
           throw new ConstraintError(
             '--keys requires --roles to specify which role keyracks to extend',
             {
@@ -141,11 +171,21 @@ export const invokeInit = ({ program }: { program: Command }): void => {
         if (deltas !== null)
           await assertInitRoleFociDeclared({ deltas }, context);
 
+        // manifest => plan the link of every declared actor's roles. the plan only reads, and
+        //   runs before the first write, so a manifest that cannot expand halts on a clean tree
+        const manifestLinkPlan = actorsManifest
+          ? await (
+              await import(
+                '@src/domain.operations/actor/manifest/getActorsManifestLinkPlan'
+              )
+            ).getActorsManifestLinkPlan({ manifest: actorsManifest }, context)
+          : null;
+
         // flag: --roles => put the repo actor's brain dir in the split layout BEFORE the role
         //   inits, so an init that writes through `<repo>/.claude` meets the layout it lives in
         //   (inventory.of=requirements.case=8). bare `rhx init` and `--hooks` run no inits
         const layoutBeforeInits =
-          deltas !== null
+          deltas !== null || actorsManifest
             ? await setRepoActorBrainDirLayoutBeforeInits({
                 repoPath: context.gitroot,
               })
@@ -155,6 +195,14 @@ export const invokeInit = ({ program }: { program: Command }): void => {
         // absolute mode may accumulate errors; incremental fails fast (throws).
         // the iife yields a boolean so the error state stays an immutable const
         const rolesInitHasErrors = await (async (): Promise<boolean> => {
+          // manifest: link the declared union; extant links stay (F4)
+          if (manifestLinkPlan) {
+            const result = await initRolesFromPackages(
+              { specifiers: manifestLinkPlan.roleSpecifiers },
+              context,
+            );
+            return result.errors.length > 0;
+          }
           if (!deltasUnfocused) return false;
 
           const mode = getRoleDeltaMode({ deltas: deltasUnfocused });
@@ -195,6 +243,26 @@ export const invokeInit = ({ program }: { program: Command }): void => {
           return false;
         })();
 
+        // manifest => converge the links to the declaration, after the link pass, and name
+        //   each change made, so a clean init prints `in sync` (F6)
+        if (actorsManifest && manifestLinkPlan) {
+          const { reportLines } = await (
+            await import(
+              '@src/domain.operations/actor/manifest/setActorsManifestConverged'
+            )
+          ).setActorsManifestConverged(
+            {
+              manifest: actorsManifest,
+              declared: manifestLinkPlan.declared,
+              warnings: manifestLinkPlan.warnings,
+            },
+            context,
+          );
+          // the tree closes on its own blank line, as every block of init does
+          reportLines.forEach((line) => console.log(line));
+          console.log('');
+        }
+
         // record the foci beside the repo actor, and name each focus change
         //   .note = stdout, as every init receipt is; enroll writes its receipts to stderr,
         //   since its stdout belongs to the brain-cli it hands the terminal to
@@ -213,10 +281,20 @@ export const invokeInit = ({ program }: { program: Command }): void => {
           context,
         );
 
-        // flag: --keys => init keyrack manifest (after roles); plain slugs only
-        if (options.keys && roleSlugsUnfocused.length > 0) {
+        // flag: --keys => init keyrack manifest (after roles); plain slugs only.
+        //   under a manifest, the slugs are the declared union's
+        const roleSlugsForKeys = manifestLinkPlan
+          ? (
+              await import(
+                '@src/domain.operations/actor/manifest/asRoleSlugsOfSpecifiers'
+              )
+            ).asRoleSlugsOfSpecifiers({
+              specifiers: manifestLinkPlan.roleSpecifiers,
+            })
+          : roleSlugsUnfocused;
+        if (options.keys && roleSlugsForKeys.length > 0) {
           const result = await initKeyrackRepoManifest(
-            { roles: roleSlugsUnfocused },
+            { roles: roleSlugsForKeys },
             context,
           );
 
@@ -252,7 +330,7 @@ export const invokeInit = ({ program }: { program: Command }): void => {
         //   the render graph loads here, at call time: `init --help` and a bare `init` never
         //   reach it (rule.require.thinnest-import-path)
         const boots = await (async () => {
-          if (deltas === null && options.hooks === undefined)
+          if (deltas === null && !actorsManifest && options.hooks === undefined)
             return { exitCode: 0 as const, repoActorRendered: true };
           const { syncAndReportBrainDirBoots } = await import(
             '../../domain.operations/init/boots/syncAndReportBrainDirBoots'
@@ -311,9 +389,26 @@ export const invokeInit = ({ program }: { program: Command }): void => {
         // exit by the brain dir sync's own rule: 2 for a human fix, 1 for a malfunction
         if (boots.exitCode !== 0) process.exit(boots.exitCode);
 
+        // no manifest + --roles => one hint that names the manifest, LAST, once every block of
+        //   the init has reported and only on a run that succeeded (case=5)
+        //   .note = last, so the advisory never splits the report of what the init did
+        //   .note = plain text, no ansi: the same bytes reach a pipe, a pty, and every snapshot
+        //   .note = the `💡 tip` emoji-header treestruct, the repo's standard for an advisory
+        //     (asCloneListView); the link is a url, since a consumer repo holds no rhachet briefs
+        if (!actorsManifest && deltas !== null)
+          console.log(
+            [
+              '💡 tip',
+              '   ├─ declare these roles in .agent/actors.yml, and `rhx init` reads them',
+              '   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md',
+              '',
+            ].join('\n'),
+          );
+
         // no flags => show usage instructions
         const hasAnyFlag =
           rolesDecoded ||
+          actorsManifest ||
           options.keys ||
           options.hooks !== undefined ||
           options.prep ||

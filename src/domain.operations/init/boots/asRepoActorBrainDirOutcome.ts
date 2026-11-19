@@ -25,6 +25,8 @@ export const asRepoActorBrainDirOutcome = (input: {
   settled: PromiseSettledResult<
     Awaited<ReturnType<typeof setRepoActorBrainDir>>
   >;
+  /** the repo actor's exid (`getOneRepoActorExid`), so a failure names its dir */
+  actorExid: string;
 }): {
   render: BrainDirBootRender | null;
   symlink: BrainDirSyncSymlink | null;
@@ -51,7 +53,7 @@ export const asRepoActorBrainDirOutcome = (input: {
     symlink: null,
     settings: null,
     failure: {
-      scope: { kind: 'repo' },
+      scope: { kind: 'repo', actorExid: input.actorExid },
       cause:
         reason instanceof Error
           ? reason
