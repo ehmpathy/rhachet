@@ -1142,6 +1142,8 @@ describe('rhachet upgrade', () => {
       then('the manifest drift report prints, so the declared set is never silent', () => {
         expect(result.upgradeResult.stdout).toContain('🎭 actors.yml');
         expect(result.upgradeResult.stdout).toContain('repo actor = @crew');
+        expect(result.upgradeResult.stdout).toContain('└─ in sync');
+        expect(result.upgradeResult.stdout).not.toContain('to link');
       });
 
       then('a role the manifest declares and no flag named is linked', () => {

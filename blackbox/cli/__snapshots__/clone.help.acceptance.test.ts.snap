@@ -28,12 +28,15 @@ Options:
 exports[`rhx actor/clone --help (acceptance) given: [case1] a repo where the commands are registered when: [t2] clone --help then: the help text is locked (visual spot-check) 1`] = `
 "Usage: rhachet clone [options] [command]
 
-reach an enrolled clone: list, say, get, whoami, prune
+reach an enrolled clone: make, list, say, get, whoami, prune
 
 Options:
   -h, --help               display help for command
 
 Commands:
+  make [actor]             spawn a clone of an actor declared in
+                           .agent/actors.yml: rhx clone make @<slug>
+                           [+role|-role] [--brain <brain>] [--as @:<slug>]
   list [options] [actor]   list clones (all, or scoped to one actor by
                            @<exid-prefix>, e.g. @repo=ambient or @hash=9c1e)
   say [options] <address>  dispatch a message into a live clone (by
@@ -46,8 +49,7 @@ Commands:
   help [command]           display help for command
 
 actor form:
-  rhx clone @<slug>   spawn a clone of an actor declared in .agent/actors.yml
-                      (≡ rhx enroll @<slug>)
+  rhx clone @<slug>   alias of rhx clone make @<slug>
 "
 `;
 
@@ -147,7 +149,7 @@ exports[`rhx actor/clone --help (acceptance) given: [case1] a repo where the com
   "operand": "claude",
   "roads": [
     "reach a clone: rhx clone list | say | get | whoami | prune",
-    "spawn from a declared actor: rhx clone @<slug> (declared in .agent/actors.yml)",
+    "spawn from a declared actor: rhx clone make @<slug> (declared in .agent/actors.yml)",
     "compose a one-off: rhx enroll <brain> --roles <roles>"
   ]
 }
@@ -166,7 +168,7 @@ exports[`rhx actor/clone --help (acceptance) given: [case1] a repo where the com
   "operand": "@:scout",
   "roads": [
     "reach a clone: rhx clone list | say | get | whoami | prune",
-    "spawn from a declared actor: rhx clone @<slug> (declared in .agent/actors.yml)",
+    "spawn from a declared actor: rhx clone make @<slug> (declared in .agent/actors.yml)",
     "compose a one-off: rhx enroll <brain> --roles <roles>"
   ]
 }
@@ -185,7 +187,7 @@ exports[`rhx actor/clone --help (acceptance) given: [case1] a repo where the com
   "operand": "lst",
   "roads": [
     "reach a clone: rhx clone list | say | get | whoami | prune",
-    "spawn from a declared actor: rhx clone @<slug> (declared in .agent/actors.yml)",
+    "spawn from a declared actor: rhx clone make @<slug> (declared in .agent/actors.yml)",
     "compose a one-off: rhx enroll <brain> --roles <roles>"
   ]
 }

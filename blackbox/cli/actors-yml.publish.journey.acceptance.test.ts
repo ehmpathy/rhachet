@@ -225,10 +225,21 @@ describe('actors.yml, published by a role package and adopted by a repo (journey
         expect(getOneIsRoleLinked({ dir: repoDir, role: 'scholar' })).toEqual(true);
         expect(getOneIsRoleLinked({ dir: repoDir, role: 'lifeguard' })).toEqual(false);
       });
-      then('the report names the repo actor and the published base', () => {
+      then('the published role arrives via the base: linked on disk, booted by the extension, report in sync', () => {
+        // the proof that a published base reaches its extension
+        expect(existsSync(join(repoDir, '.agent', 'repo=surfschool', 'role=coach'))).toEqual(true);
+        const bootMd = readFileSync(
+          join(repoDir, '.agent', '.actors', 'actor.via.slug=crew', 'brain', '.claude', 'boot.md'),
+          'utf8',
+        );
+        expect(bootMd).toContain('role=coach');
+        expect(bootMd).toContain('role=scholar');
+
+        // the report names the repo actor, and reads in sync once the link pass ran
         const block = asActorsReportBlock({ stdout: run.stdout });
         expect(block).toContain('repo actor = @crew');
-        expect(block).toContain('via @surfschool/instructor');
+        expect(block).toContain('1 actor(s), 2 role(s) declared');
+        expect(block).toContain('└─ in sync');
       });
       then('the report block holds its shape', () => {
         expect(asSnapshotSafe(asActorsReportBlock({ stdout: run.stdout }))).toMatchSnapshot();
@@ -256,10 +267,19 @@ describe('actors.yml, published by a role package and adopted by a repo (journey
         expect(run.status).toEqual(0);
         expect(getOneIsRoleLinked({ dir: repoDir, role: 'lifeguard' })).toEqual(true);
       });
-      then('the report lists the new role, via the published base', () => {
+      then('the grown role arrives via the published base: linked on disk, booted by the extension, report in sync', () => {
+        // the proof that a grown base reaches its extension: the role is on disk and in the boot
+        expect(existsSync(join(repoDir, '.agent', 'repo=surfschool', 'role=lifeguard'))).toEqual(true);
+        const bootMd = readFileSync(
+          join(repoDir, '.agent', '.actors', 'actor.via.slug=crew', 'brain', '.claude', 'boot.md'),
+          'utf8',
+        );
+        expect(bootMd).toContain('role=lifeguard');
+
+        // the report counts it among the declared roles, and reads in sync once linked
         const block = asActorsReportBlock({ stdout: run.stdout });
-        expect(block).toContain('surfschool/lifeguard');
-        expect(block).toContain('via @surfschool/instructor');
+        expect(block).toContain('1 actor(s), 3 role(s) declared');
+        expect(block).toContain('└─ in sync');
       });
       then('the report block holds its shape — the role that arrived through the grown base', () => {
         expect(asSnapshotSafe(asActorsReportBlock({ stdout: run.stdout }))).toMatchSnapshot();

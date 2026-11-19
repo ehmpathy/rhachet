@@ -34,17 +34,14 @@ exports[`actors.yml, published by a role package and adopted by a repo (journey)
 "🎭 actors.yml
    ├─ repo actor = @crew
    ├─ 1 actor(s), 2 role(s) declared
-   └─ declared, unlinked → to link
-      ├─ surfschool/coach, via @surfschool/instructor
-      └─ surfschool/scholar"
+   └─ in sync"
 `;
 
 exports[`actors.yml, published by a role package and adopted by a repo (journey) given: [case1] the package introspects, the consumer adopts and extends its actor when: [t2] the package grows instructor by a role, bumps its version, re-introspects and re-installs, then the consumer \`init\`s then: the report block holds its shape — the role that arrived through the grown base 1`] = `
 "🎭 actors.yml
    ├─ repo actor = @crew
    ├─ 1 actor(s), 3 role(s) declared
-   └─ declared, unlinked → to link
-      └─ surfschool/lifeguard, via @surfschool/instructor"
+   └─ in sync"
 `;
 
 exports[`actors.yml, published by a role package and adopted by a repo (journey) given: [case2] an empty, comment-only actors.yml when: [t0] \`init\` then: the refusal holds its shape 1`] = `

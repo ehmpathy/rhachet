@@ -258,8 +258,9 @@ export const invokeInit = ({ program }: { program: Command }): void => {
             },
             context,
           );
-          console.log('');
+          // the tree closes on its own blank line, as every block of init does
           reportLines.forEach((line) => console.log(line));
+          console.log('');
         }
 
         // record the foci beside the repo actor, and name each focus change

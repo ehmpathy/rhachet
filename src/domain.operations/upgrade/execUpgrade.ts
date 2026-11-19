@@ -389,8 +389,9 @@ export const execUpgrade = async (
         },
         context,
       );
-      console.log('');
+      // the tree closes on its own blank line, as every block of upgrade does
       reportLines.forEach((line) => console.log(line));
+      console.log('');
     }
 
     // re-render the boots before the hook sync, so the boot hooks never go first

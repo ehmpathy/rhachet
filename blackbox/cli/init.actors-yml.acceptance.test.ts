@@ -125,12 +125,12 @@ describe('rhx init under .agent/actors.yml (acceptance)', () => {
         expect(getOneIsRoleLinked({ dir: testDir, role: 'behaver' })).toEqual(true);
         expect(getOneIsRoleLinked({ dir: testDir, role: 'librarian' })).toEqual(true);
       });
-      then('the report names the repo actor and the declared roles it linked', () => {
+      then('the report names the repo actor, and reads in sync once the link pass ran (D)', () => {
         const block = asActorsReportBlock({ stdout: run.stdout });
         expect(block).toContain('repo actor = @crew');
         expect(block).toContain('2 actor(s), 3 role(s) declared');
-        expect(block).toContain('declared, unlinked → to link');
-        expect(block).toContain('bhrain/librarian');
+        expect(block).toContain('└─ in sync');
+        expect(block).not.toContain('to link');
       });
       then('the report block holds its shape', () => {
         expect(asActorsReportBlock({ stdout: run.stdout })).toMatchSnapshot();
@@ -169,7 +169,7 @@ describe('rhx init under .agent/actors.yml (acceptance)', () => {
 
       then('the report says the set is in sync', () => {
         expect(run.status).toEqual(0);
-        expect(asActorsReportBlock({ stdout: run.stdout })).toContain('in sync, every declared role linked');
+        expect(asActorsReportBlock({ stdout: run.stdout })).toContain('└─ in sync');
       });
       then('the whole no-change frame holds its shape — the common `pnpm prepare` replay', () => {
         expect(asSnapshotSafe(run.stdout)).toMatchSnapshot();
@@ -226,9 +226,10 @@ describe('rhx init under .agent/actors.yml (acceptance)', () => {
         invokeRhachetCliBinary({ args: ['init'], cwd: testDir }),
       );
 
-      then('the extra role is kept, never removed (F4)', () => {
+      then('the extra role is unlinked, converged to the declaration (E)', () => {
         expect(run.status).toEqual(0);
-        expect(getOneIsRoleLinked({ dir: testDir, role: 'architect' })).toEqual(true);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'architect' })).toEqual(false);
+        expect(getOneIsRoleLinked({ dir: testDir, role: 'mechanic' })).toEqual(true);
       });
       then('`<repo>/.claude` repoints from `repo=ambient` to the `ambient:` actor', () => {
         expect(realpathSync(join(testDir, '.claude'))).toEqual(
@@ -252,11 +253,10 @@ describe('rhx init under .agent/actors.yml (acceptance)', () => {
         );
         expect(block).toMatchSnapshot();
       });
-      then('the extra role is named, with both fixes', () => {
+      then('the unlink is named, one line, with no fix tree', () => {
         const block = asActorsReportBlock({ stdout: run.stdout });
-        expect(block).toContain('extra → kept, undeclared');
-        expect(block).toContain('ehmpathy/architect');
-        expect(block).toContain('to drop it, rm .agent/repo=ehmpathy/role=architect');
+        expect(block).toContain('- unlinked ehmpathy/architect, undeclared');
+        expect(block).not.toContain('to drop it');
       });
       then('the report block holds its shape', () => {
         expect(asActorsReportBlock({ stdout: run.stdout })).toMatchSnapshot();
@@ -394,12 +394,13 @@ describe('rhx init under .agent/actors.yml (acceptance)', () => {
         invokeRhachetCliBinary({ args: ['init'], cwd: testDir }),
       );
 
-      then('the loss is named, with the fix under the ambient actor', () => {
+      then('the native role is left as is, and printed naught for now (E, question open)', () => {
         expect(run.status).toEqual(0);
         const block = asActorsReportBlock({ stdout: run.stdout });
-        expect(block).toContain('native → not booted, undeclared');
-        expect(block).toContain(
-          'to boot it, declare `.this/tuner` under @solo in .agent/actors.yml',
+        expect(block).toContain('└─ in sync');
+        expect(block).not.toContain('.this/tuner');
+        expect(existsSync(join(testDir, '.agent', 'repo=.this', 'role=tuner', 'boot.yml'))).toEqual(
+          true,
         );
       });
       then('the report block holds its shape', () => {
@@ -502,12 +503,10 @@ describe('rhx init under .agent/actors.yml (acceptance)', () => {
           existsSync(join(testDir, '.agent', '.actors', 'actor.via.slug=reader')),
         ).toEqual(true);
       });
-      then('the report names the kept dir, with both fixes', () => {
+      then('the report names the role it unlinked, and leaves the kept dir unprinted (E)', () => {
         const block = asActorsReportBlock({ stdout: run.stdout });
-        expect(block).toContain('actor dirs → kept, slug undeclared');
-        expect(block).toContain('actor.via.slug=reader');
-        expect(block).toContain('re-declare `@reader` in .agent/actors.yml');
-        expect(block).toContain('rhx clone prune');
+        expect(block).toContain('- unlinked bhrain/librarian, undeclared');
+        expect(block).not.toContain('actor.via.slug=reader');
       });
       then('the report block holds its shape', () => {
         expect(asActorsReportBlock({ stdout: run.stdout })).toMatchSnapshot();
@@ -822,11 +821,9 @@ describe('rhx init under .agent/actors.yml (acceptance)', () => {
       then('it exits 0 — the intent holds, so it warns and never refuses', () => {
         expect(run.status).toEqual(0);
       });
-      then('the report names the caution and the fix to quiet it', () => {
+      then('the report names the caution, one ⚠️ line', () => {
         const block = asActorsReportBlock({ stdout: run.stdout });
-        expect(block).toContain('cautions');
-        expect(block).toContain('@reader removes -librarian, which @crew does not hold');
-        expect(block).toContain('to quiet it, drop that `-role` from .agent/actors.yml');
+        expect(block).toContain('⚠️ @reader removes -librarian, which @crew does not hold');
       });
       then('the report block holds its shape', () => {
         expect(asActorsReportBlock({ stdout: run.stdout })).toMatchSnapshot();
