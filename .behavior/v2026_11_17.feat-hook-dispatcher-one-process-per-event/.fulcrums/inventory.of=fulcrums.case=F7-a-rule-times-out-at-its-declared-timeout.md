@@ -2,38 +2,39 @@
 
 ## .the fork
 
-the claude adapter writes a role hook's timeout into `settings.json` in milliseconds
-(`rhachet-brains-anthropic/src/hooks/translateHook.ts:40`, `PT30S` → `30000`). claude reads a hook
-`timeout` in seconds, so before this change a rule declared `PT30S` ran under a ~30000s limit — in
-effect, none. the dispatcher's per-rule watchdog can:
+the dispatcher runs every rule of an event in one process, so claude's per-hook limit now bounds
+the whole event, not each rule. the per-rule limit must come from the dispatcher. its watchdog can:
 
-- **(a)** enforce the declared timeout, in seconds (`PT30S` → 30s): the role author's intent
-- **(b)** mimic the old effect: the declared number of milliseconds read as seconds, or no per-rule
-  limit at all
+- **(a)** enforce each rule's declared timeout, in seconds (`PT30S` → 30s)
+- **(b)** enforce no per-rule limit, only claude's limit on the dispatcher
 
 ## .taken
 
-(a). the manifest stores `asTimeoutSecondsOfBrainHook(declared)`; a rule past it is killed with code
+(a). the manifest stores `asTimeoutSecondsOfBrainHook(declared)`. a rule past it is killed with code
 124 and a `💥 MalfunctionError: hook rule timed out` notice, a non-block. claude's own limit on the
 dispatcher sits 5s above the slowest rule's.
 
+(a) is what each rule had before. the published claude adapter (`rhachet-brains-anthropic@0.4.3`,
+`dist/domain.operations/hooks/translateHook.js:41`) writes a role hook's timeout in seconds, and claude
+read it in seconds. so a rule declared `PT30S` was cut off at 30s before, and is cut off at 30s now.
+
 ## .rework
 
-clean. (b) is the seconds value in `getHookDispatchRuleOfBrainHook.ts` multiplied by 1000, or the
-watchdog skipped.
+clean. (b) skips the watchdog in `bin/hooks.dispatch.sh`.
 
 ## .confidence
 
-85%. the wish asks that every rule decide as today. a rule that ran longer than its own declared
-timeout decided before and is now cut off as a crash (exit 124, a non-block). no live rule is known
-to run that long (the per-call read shows the whole event at ~1.3s of cpu), and (b) would carry an
-adapter defect forward as a contract. the adapter's unit is a separate defect, owed upstream.
+95%. the limit per rule equals the limit claude applied per hook before. the residue: claude's kill
+and the watchdog's kill may differ in signal and in what the transcript shows for the cut rule
+(exit 124 plus a notice, here).
 
 ## .where
 
-`src/domain.operations/brains/dispatch/getHookDispatchRuleOfBrainHook.ts` · `bin/hooks.dispatch.sh`
-(the watchdog)
+`src/domain.operations/brains/dispatch/getOneHookDispatchRuleOfBrainHook.ts` · `bin/hooks.dispatch.sh`
+(the watchdog) · `src/domain.operations/enroll/setActorSettingsDerived.ts` (reads a settings timeout
+in seconds, clamped by its [case4])
 
 ## .verdict
 
-open, for the director at the pr. listed in the pr's known differences.
+taken; the premise of an earlier draft (an adapter that wrote milliseconds) held only for the
+unpublished `src/_topublish` copy, never for the shipped adapter.

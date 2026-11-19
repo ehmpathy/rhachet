@@ -30,6 +30,25 @@ const RUN_FLAGS = new Set(HOOK_DISPATCH_RUN_FLAGS);
 const RHX_SHORT_CIRCUITS = new Set(HOOK_DISPATCH_RHX_SHORT_CIRCUITS);
 
 /**
+ * .what = whether commander could read a word as a `rhachet run` flag, in any form it accepts:
+ *   the flag alone (`--role`), a long flag with its value glued on (`--role=x`), or a short flag
+ *   with its value glued on (`-rx`)
+ * .why = such a word past the skill name may be read by rhx, not the skill; uncertain → foreign
+ */
+const isRunFlagWord = (input: { word: string }): boolean => {
+  if (RUN_FLAGS.has(input.word)) return true;
+  const flagLong = input.word.startsWith('--')
+    ? input.word.split('=')[0]!
+    : null;
+  if (flagLong && input.word.includes('=') && RUN_FLAGS.has(flagLong))
+    return true;
+  const flagShort = /^-[A-Za-z]/.test(input.word)
+    ? input.word.slice(0, 2)
+    : null;
+  return !!flagShort && RUN_FLAGS.has(flagShort);
+};
+
+/**
  * .what = the dispatcher rule for one declared role hook: its kind, the file it runs, its args
  * .why = the dispatcher runs each rule as rhx or bash ran it, minus the boot. that needs the file
  *   `rhx <skill>` would find, computed once here at sync, never per tool call
@@ -46,27 +65,16 @@ export const getOneHookDispatchRuleOfBrainHook = (input: {
 }): HookDispatchRule => {
   const { hook } = input;
 
-  // a newline or a field separator cannot sit in one manifest row
-  const isRowBreaker = ['\n', '\r', '\x1e', '\x1f'].some((char) =>
-    hook.command.includes(char),
-  );
-  if (isRowBreaker)
-    throw new ConstraintError('a role hook command holds a line break', {
-      author: hook.author,
-      command: hook.command,
-      hint: 'declare the hook command on one line, in the role that authors it',
-    });
-
   // a matcher the dispatcher's bash would read otherwise than claude did is refused here, at sync
   const matcher = hook.filter?.what ?? '*';
   if (!isHookMatcherPortable({ matcher }))
     throw new ConstraintError(
-      'a role hook matcher uses regex syntax the hook dispatcher reads otherwise',
+      'a role hook matcher uses regex syntax that bash and claude would match differently',
       {
         author: hook.author,
         command: hook.command,
         matcher,
-        hint: 'declare the matcher as an exact list (`Read|Write`) or a posix ere: no \\d \\w \\s \\b, no (?…), no lazy quantifier',
+        hint: 'declare the matcher as an exact list (`Read|Write`) or a plain regex (`mcp__.*`): no \\d \\w \\s \\b, no (?…), no lazy quantifier',
       },
     );
 
@@ -84,7 +92,10 @@ export const getOneHookDispatchRuleOfBrainHook = (input: {
     path: string;
     frame: string;
     args: string[];
-  }): HookDispatchRule => new HookDispatchRule({ ...shared, ...body });
+  }): HookDispatchRule =>
+    asRuleRefusedOnRowBreaker({
+      rule: new HookDispatchRule({ ...shared, ...body }),
+    });
   const asForeign = () =>
     ofKind({ kind: 'foreign', path: '', frame: '', args: [] });
 
@@ -108,7 +119,7 @@ export const getOneHookDispatchRuleOfBrainHook = (input: {
     const [slug, ...rest] = rhxTail;
     if (!slug || slug.startsWith('-') || RHX_SHORT_CIRCUITS.has(slug))
       return asForeign();
-    if (rest.some((word) => RUN_FLAGS.has(word))) return asForeign();
+    if (rest.some((word) => isRunFlagWord({ word }))) return asForeign();
     return getOneRuleOfRoleFile({
       repoPath: input.repoPath,
       dir: 'skills',
@@ -144,6 +155,40 @@ export const getOneHookDispatchRuleOfBrainHook = (input: {
 
   // any other command runs as declared
   return asForeign();
+};
+
+/**
+ * .what = the rule as given, or a refusal when any of its fields holds a newline or a field
+ *   separator
+ * .why = every field lands in one manifest row; such a character would split the row, and the
+ *   dispatcher would read a rule no role declared. refused here, at sync, for every field
+ */
+const asRuleRefusedOnRowBreaker = (input: {
+  rule: HookDispatchRule;
+}): HookDispatchRule => {
+  const { rule } = input;
+  const fields: Record<string, string> = {
+    matcher: rule.matcher,
+    author: rule.author,
+    command: rule.command,
+    path: rule.path,
+    frame: rule.frame,
+    when: rule.when ?? '',
+    ...Object.fromEntries(rule.args.map((arg, at) => [`args[${at}]`, arg])),
+  };
+  const fieldsBroken = Object.entries(fields)
+    .filter(([, value]) =>
+      ['\n', '\r', '\x1e', '\x1f'].some((char) => value.includes(char)),
+    )
+    .map(([name]) => name);
+  if (fieldsBroken.length)
+    throw new ConstraintError('a role hook holds a line break', {
+      author: rule.author,
+      command: rule.command,
+      fieldsBroken,
+      hint: 'declare the hook on one line, in the role that authors it',
+    });
+  return rule;
 };
 
 /**
@@ -206,7 +251,7 @@ const asRunFlagsLead = (input: {
   const keysLead = pairsLead.map((pair) => pair.key);
   if (new Set(keysLead).size !== keysLead.length) return null;
   const wordsPast = input.words.slice(pairsLead.length * 2);
-  if (wordsPast.some((word) => RUN_FLAGS.has(word))) return null;
+  if (wordsPast.some((word) => isRunFlagWord({ word }))) return null;
 
   // the value of each run flag the lead names
   const getValueOfFlag = (

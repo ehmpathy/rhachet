@@ -4,12 +4,13 @@ import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActo
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
 import { setBrainDirSettingsLayout } from '@src/domain.operations/actor/enrolled/setBrainDirSettingsLayout';
 import { readClaudeCodeSettings } from '@src/domain.operations/brains/claudeCodeSettings';
+import { asHookUniqueKey } from '@src/domain.operations/brains/dispatch/asHookUniqueKey';
 import { HOOK_DISPATCH } from '@src/domain.operations/brains/dispatch/constants';
+import { getHookDispatchManifestPathOfBrainDir } from '@src/domain.operations/brains/dispatch/getHookDispatchManifestPathOfBrainDir';
 import { getOneHookDispatchManifest } from '@src/domain.operations/brains/dispatch/getOneHookDispatchManifest';
-import { isHookAuthorOfRole } from '@src/domain.operations/brains/isHookAuthorOfRole';
 import { getHomeDir } from '@src/infra/getHomeDir';
 
-import { dirname, join } from 'node:path';
+import { dirname } from 'node:path';
 import { genBrainCliConfigArtifact } from './genBrainCliConfigArtifact';
 
 /**
@@ -20,7 +21,7 @@ import { genBrainCliConfigArtifact } from './genBrainCliConfigArtifact';
  *        over actors (init's hook sync) calls ONE operation here rather than compose the layout,
  *        the brain dir paths and the derivation itself. enroll reads actor, never the reverse
  *
- * .note = the hooks come back as two maps, keyed by `event|author|command` and valued by the
+ * .note = the hooks come back as two maps, keyed by identity (`asHookUniqueKey`) and valued by the
  *   whole hook body (matcher included); the caller tallies them in its own report vocabulary
  */
 export const setActorSettingsDerived = async (input: {
@@ -54,28 +55,15 @@ export const setActorSettingsDerived = async (input: {
 };
 
 /**
- * .what = a settings hook's timeout in the manifest's unit, whole seconds
- * .why = the claude adapter wrote a role hook's timeout in milliseconds; the manifest holds
- *   seconds. read both in seconds, so a role hook that moves into the manifest keeps its body
- * .note = a hook no role authored keeps its timeout as written (claude's own unit, seconds)
- */
-const asTimeoutSecondsOfSettingsHook = (input: {
-  hook: { author?: string; timeout?: number };
-}): number | undefined => {
-  const isRoleHook = isHookAuthorOfRole({ author: input.hook.author ?? '' });
-  if (!isRoleHook || input.hook.timeout === undefined)
-    return input.hook.timeout;
-  return Math.max(1, Math.ceil(input.hook.timeout / 1000)); // as asTimeoutSecondsOfBrainHook rounds
-};
-
-/**
- * .what = every hook that runs for a brain dir, keyed by `event|author|command`, valued by its
+ * .what = every hook that runs for a brain dir, keyed by identity (`asHookUniqueKey`), valued by its
  *         body (matcher and timeout): each settings hook but the dispatcher, plus each rule of
  *         the dispatch manifest beside it
  * .why = a before/after pair of these tallies what one derivation added, changed, and
  *        removed — a changed timeout or matcher keeps the key and moves the body. a role hook
  *        that moved from the settings into the manifest keeps its key and its body, so the
  *        move itself reads as no change
+ * .note = a settings hook's timeout is in claude's unit, seconds, as the published claude
+ *   adapter writes it; the manifest holds seconds too, so both read as written
  */
 const getAllHooksByKeyOfBrainDir = async (input: {
   brainDir: string;
@@ -84,7 +72,7 @@ const getAllHooksByKeyOfBrainDir = async (input: {
     from: dirname(input.brainDir),
   });
   const manifest = await getOneHookDispatchManifest({
-    path: join(input.brainDir, HOOK_DISPATCH.manifest),
+    path: getHookDispatchManifestPathOfBrainDir({ brainDir: input.brainDir }),
   });
   const asBody = (body: { matcher: string | undefined; timeout: unknown }) =>
     JSON.stringify({ matcher: body.matcher || '*', timeout: body.timeout });
@@ -96,11 +84,14 @@ const getAllHooksByKeyOfBrainDir = async (input: {
           .map(
             (hook) =>
               [
-                `${event}|${hook.author ?? ''}|${hook.command}`,
-                asBody({
-                  matcher: entry.matcher,
-                  timeout: asTimeoutSecondsOfSettingsHook({ hook }),
+                asHookUniqueKey({
+                  hook: {
+                    author: hook.author ?? '',
+                    event,
+                    command: hook.command,
+                  },
                 }),
+                asBody({ matcher: entry.matcher, timeout: hook.timeout }),
               ] as const,
           ),
       ),
@@ -108,7 +99,7 @@ const getAllHooksByKeyOfBrainDir = async (input: {
     ...(manifest?.rules ?? []).map(
       (rule) =>
         [
-          `${rule.event}|${rule.author}|${rule.command}`,
+          asHookUniqueKey({ hook: rule }),
           asBody({ matcher: rule.matcher, timeout: rule.timeoutSeconds }),
         ] as const,
     ),

@@ -1,11 +1,11 @@
 import type { BrainHook } from '@src/domain.objects/BrainHook';
 import type { BrainHooksAdapter } from '@src/domain.objects/BrainHooksAdapter';
 import type { HookDispatchRule } from '@src/domain.objects/HookDispatchRule';
-import { isHookAuthorOfRole } from '@src/domain.operations/brains/isHookAuthorOfRole';
 
 import { asBrainHookOfHookDispatchRule } from './asBrainHookOfHookDispatchRule';
 import { getOneHookDispatchManifest } from './getOneHookDispatchManifest';
 import { getOneHookDispatchRuleOfBrainHook } from './getOneHookDispatchRuleOfBrainHook';
+import { type HookUnique, isHookOfUnique } from './isHookOfUnique';
 import { setHookDispatchManifest } from './setHookDispatchManifest';
 
 /**
@@ -27,31 +27,12 @@ export const genBrainHooksAdapterViaDispatchManifest = (input: {
   const { manifestPath, repoPath } = input;
 
   /**
-   * .what = the manifest's rules; an absent manifest is seeded first, then read
-   * .why = every dao verb diffs against the manifest, so the seed must land before any diff
-   * .note = the seed is a findsert of the manifest itself: it writes only where no manifest is,
-   *   so it fires once per brain dir, on the first sync that meets one
+   * .what = the manifest's rules; an absent manifest holds none
+   * .note = a read never writes: the one-time seed from the settings is its own step
+   *   (`setHookDispatchManifestMigratedFromSettings`), run before this adapter is handed out
    */
-  const getRules = async (): Promise<HookDispatchRule[]> => {
-    const manifest = await getOneHookDispatchManifest({ path: manifestPath });
-    if (manifest) return manifest.rules;
-    return setRulesSeededFromSettings();
-  };
-
-  /**
-   * .what = write the manifest from each role hook the brain's settings hold, and return its rules
-   * .why = the first sync diffs against what claude ran until then: a role hook no longer declared
-   *   reports as deleted, and one still declared reports unchanged. the dispatcher step then takes
-   *   each one out of the settings
-   */
-  const setRulesSeededFromSettings = async (): Promise<HookDispatchRule[]> => {
-    const rules = getAllRulesOfRoleHooks({
-      hooks: await input.adapter.dao.get.all(),
-      repoPath,
-    });
-    await setHookDispatchManifest({ path: manifestPath, rules });
-    return rules;
-  };
+  const getRules = async (): Promise<HookDispatchRule[]> =>
+    (await getOneHookDispatchManifest({ path: manifestPath }))?.rules ?? [];
 
   /**
    * .what = every rule, as a declared hook
@@ -116,15 +97,13 @@ export const genBrainHooksAdapterViaDispatchManifest = (input: {
 /**
  * .what = the unique key of a hook
  */
-type HookKey = { author: string; event: string; command: string };
+type HookKey = HookUnique;
 
 /**
  * .what = whether a hook carries a unique key
  */
 const isHookOfKey = (input: { hook: BrainHook; key: HookKey }): boolean =>
-  input.hook.author === input.key.author &&
-  input.hook.event === input.key.event &&
-  input.hook.command === input.key.command;
+  isHookOfUnique({ hook: input.hook, unique: input.key });
 
 /**
  * .what = whether a rule is the hook of a unique key
@@ -151,19 +130,6 @@ const isHookOfQuery = (input: {
   if (by.command && input.hook.command !== by.command) return false;
   return true;
 };
-
-/**
- * .what = the rules each role-authored hook becomes; a hook no role authored is left out
- */
-const getAllRulesOfRoleHooks = (input: {
-  hooks: BrainHook[];
-  repoPath: string;
-}): HookDispatchRule[] =>
-  input.hooks
-    .filter((hook) => isHookAuthorOfRole({ author: hook.author }))
-    .map((hook) =>
-      getOneHookDispatchRuleOfBrainHook({ hook, repoPath: input.repoPath }),
-    );
 
 /**
  * .what = the rules with one rule upserted: the rule of the same key replaced in place, else

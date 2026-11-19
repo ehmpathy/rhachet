@@ -1,0 +1,34 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asManifestPathOfHookDispatcherCommand the builder refuses a word the shell would split or expand: $HOME/hooks.dispatch.manifest Stop 1`] = `
+"{
+  "message": "✋ ConstraintError: a hook dispatcher manifest path holds a character the shell would split or expand\\n\\n{\\n  \\"manifestPathRel\\": \\"$HOME/hooks.dispatch.manifest\\",\\n  \\"event\\": \\"Stop\\",\\n  \\"hint\\": \\"the manifest path is the actor dir, relative to the repo; rename the actor (its slug in actors.yml) to plain characters (letters, digits, \`_-./=+@:,\`), then rerun \`rhx init --hooks\`\\"\\n}",
+  "metadata": {
+    "manifestPathRel": "$HOME/hooks.dispatch.manifest",
+    "event": "Stop",
+    "hint": "the manifest path is the actor dir, relative to the repo; rename the actor (its slug in actors.yml) to plain characters (letters, digits, \`_-./=+@:,\`), then rerun \`rhx init --hooks\`"
+  }
+}"
+`;
+
+exports[`asManifestPathOfHookDispatcherCommand the builder refuses a word the shell would split or expand: hooks.dispatch.manifest Stop;id 1`] = `
+"{
+  "message": "💥 MalfunctionError: a hook dispatcher event holds a character the shell would split or expand\\n\\n{\\n  \\"manifestPathRel\\": \\"hooks.dispatch.manifest\\",\\n  \\"event\\": \\"Stop;id\\",\\n  \\"hint\\": \\"the brain supplier mapped a hook to this event name; upgrade or report the brain supplier package (e.g. rhachet-brains-anthropic)\\"\\n}",
+  "metadata": {
+    "manifestPathRel": "hooks.dispatch.manifest",
+    "event": "Stop;id",
+    "hint": "the brain supplier mapped a hook to this event name; upgrade or report the brain supplier package (e.g. rhachet-brains-anthropic)"
+  }
+}"
+`;
+
+exports[`asManifestPathOfHookDispatcherCommand the builder refuses a word the shell would split or expand: my repo/hooks.dispatch.manifest Stop 1`] = `
+"{
+  "message": "✋ ConstraintError: a hook dispatcher manifest path holds a character the shell would split or expand\\n\\n{\\n  \\"manifestPathRel\\": \\"my repo/hooks.dispatch.manifest\\",\\n  \\"event\\": \\"Stop\\",\\n  \\"hint\\": \\"the manifest path is the actor dir, relative to the repo; rename the actor (its slug in actors.yml) to plain characters (letters, digits, \`_-./=+@:,\`), then rerun \`rhx init --hooks\`\\"\\n}",
+  "metadata": {
+    "manifestPathRel": "my repo/hooks.dispatch.manifest",
+    "event": "Stop",
+    "hint": "the manifest path is the actor dir, relative to the repo; rename the actor (its slug in actors.yml) to plain characters (letters, digits, \`_-./=+@:,\`), then rerun \`rhx init --hooks\`"
+  }
+}"
+`;

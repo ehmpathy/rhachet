@@ -1,0 +1,133 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`hooks.dispatch.cost given: [case1] a before shape of two blocker hooks, and an after shape of one dispatcher over them when: [t0] the verdicts are read then: the read matches the snapshot 1`] = `
+"heres the read...
+
+🧮 hooks.dispatch.cost --what verdicts --event PreToolUse --tool Bash
+   ├─ before exit = 2 (2 hooks)
+   ├─ after exit = 2 (1 hook)
+   ├─ blocker stderr byte-equal = yes
+   ├─ stdout byte-equal = n/a (block)
+   └─ blocked-by lines after = 2
+"
+`;
+
+exports[`hooks.dispatch.cost given: [case1] a before shape of two blocker hooks, and an after shape of one dispatcher over them when: [t1] the cost is read, one run per shape then: the cost read matches the snapshot, with its measured numbers masked 1`] = `
+"heres the read...
+
+🧮 hooks.dispatch.cost --event PreToolUse --tool Bash --runs 1
+   ├─ before = $DIR/settings.before.json
+   │  ├─ hooks claude starts = 2
+   │  ├─ processes forked = __N__ (__N__ execs)
+   │  ├─ cpu per call = __N__ ms
+   │  └─ peak rss of one process = __N__ MB
+   └─ after = $DIR/settings.after.json
+      ├─ hooks claude starts = 1
+      ├─ processes forked = __N__ (__N__ execs)
+      ├─ cpu per call = __N__ ms
+      └─ peak rss of one process = __N__ MB
+"
+`;
+
+exports[`hooks.dispatch.cost given: [case1] a before shape of two blocker hooks, and an after shape of one dispatcher over them when: [t2] a settings file is absent then: the refusal matches the snapshot 1`] = `
+"✋ ConstraintError: no settings file at $DIR/absent.json
+"
+`;
+
+exports[`hooks.dispatch.cost given: [case1] a before shape of two blocker hooks, and an after shape of one dispatcher over them when: [t3] strace is absent from the PATH then: the refusal matches the snapshot 1`] = `
+"✋ ConstraintError: strace is required
+   └─ hint: install strace; this read is linux-only (strace and GNU time have no darwin build)
+"
+`;
+
+exports[`hooks.dispatch.cost given: [case1] a before shape of two blocker hooks, and an after shape of one dispatcher over them when: [t5] two shapes that allow the call but print different stdout then: the read and the diff match the snapshot 1`] = `
+"--- stdout ---
+heres the read...
+
+🧮 hooks.dispatch.cost --what verdicts --event PreToolUse --tool Bash
+   ├─ before exit = 0 (1 hook)
+   ├─ after exit = 0 (1 hook)
+   ├─ blocker stderr byte-equal = n/a (no block)
+   ├─ stdout byte-equal = no
+   └─ blocked-by lines after = 0
+
+--- stderr ---
+💥 MalfunctionError: the dispatcher stdout differs from the per-rule stdout
+   └─ diff, before as < and after as >, first 40 lines
+      1c1
+      < one
+      ---
+      > two
+"
+`;
+
+exports[`hooks.dispatch.cost given: [case1] a before shape of two blocker hooks, and an after shape of one dispatcher over them when: [t6] a before hook outlives its declared timeout then: the read matches the snapshot 1`] = `
+"heres the read...
+
+🧮 hooks.dispatch.cost --what verdicts --event PreToolUse --tool Bash
+   ├─ before exit = 124 (1 hook)
+   ├─ after exit = 0 (1 hook)
+   ├─ blocker stderr byte-equal = n/a (no block)
+   ├─ stdout byte-equal = yes
+   └─ blocked-by lines after = 0
+"
+`;
+
+exports[`hooks.dispatch.cost given: [case1] a before shape of two blocker hooks, and an after shape of one dispatcher over them when: [t7] the execs are read then: the read matches the snapshot, with each program and count masked 1`] = `
+"🧮 hooks.dispatch.cost --what execs (before)
+   ├─ __PROGRAM__ = __N__ execs
+   └─ __PROGRAM__ = __N__ execs
+
+🧮 hooks.dispatch.cost --what execs (after)
+   ├─ __PROGRAM__ = __N__ execs
+   └─ __PROGRAM__ = __N__ execs
+
+"
+`;
+
+exports[`hooks.dispatch.cost given: [case1] a before shape of two blocker hooks, and an after shape of one dispatcher over them when: [t8] the help is asked for then: the help matches the snapshot 1`] = `
+".what = measure what one claude tool call costs in hook processes,
+        for two settings files side by side: before and after
+.why  = the hook dispatcher claims one process per event in place of
+        one per rule. this reads the claim the same way twice: every
+        hook a settings file fires for one payload, run as claude runs
+        it, timed and traced
+usage:
+  rhx hooks.dispatch.cost --before .log/settings.before.json
+  rhx hooks.dispatch.cost --before <file> --after <file> --tool Bash --command pwd --runs 5
+  rhx hooks.dispatch.cost --what verdicts --before <file> --payload @<file>
+options:
+  --what      cost (default) | verdicts | execs (which programs one call execs, counted)
+  --before    settings file of the before shape (default: when the after settings start the
+              dispatcher, its own manifest rules as one hook each, so both shapes run the same
+              rules; else the repo actor's)
+  --after     settings file of the after shape (default: the repo actor's)
+  --event     claude event (default: PreToolUse)
+  --tool      tool name the matcher reads (default: Bash)
+  --command   Bash command in the payload (default: pwd)
+  --payload   a whole payload json, or @<file>; overrides --tool and --command
+  --payload-bytes
+              a Write payload whose content holds this many bytes, to read the cost of a large
+              payload; overrides --tool, --command and --payload
+  --runs     runs per shape; the median is reported (default: 5)
+guarantee:
+  - cpu is read untraced (GNU /usr/bin/time, user + sys, whole tree);
+    process counts are read in a separate traced pass (strace -f), so
+    the trace never inflates the cpu figure
+  - verdicts: the after stdout, stderr and exit code are compared with
+    the merge of the before hooks (every blocker's stderr, in order)
+  - read-only; writes only to a temp dir it removes
+  - exit 0 = measured, 1 = malfunction, 2 = bad input
+"
+`;
+
+exports[`hooks.dispatch.cost given: [case1] a before shape of two blocker hooks, and an after shape of one dispatcher over them when: [t9] the input is refused then: the refusals match the snapshot 1`] = `
+"✋ ConstraintError: unknown arg '--bogus'; see --help
+
+✋ ConstraintError: --payload-bytes takes a byte count, got 'lots'
+   └─ hint: rhx hooks.dispatch.cost --payload-bytes 1000000
+
+✋ ConstraintError: --what must be cost, verdicts, or execs, got 'vibes'
+   └─ hint: rhx hooks.dispatch.cost --what cost
+"
+`;

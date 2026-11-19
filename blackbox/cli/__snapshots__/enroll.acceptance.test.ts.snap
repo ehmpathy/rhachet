@@ -390,7 +390,7 @@ exports[`rhx enroll --roles (acceptance) given: [case2e] 🔴 core invariant —
 ✋ ConstraintError: a clone would load hooks from roles it is not enrolled in
 
 {
-  "hint": "your home claude settings hold role hooks; remove every hook whose \`author\` names a \`role=\` from the file(s) above, then enroll again",
+  "hint": "your home claude settings hold role hooks, or name a hook dispatcher whose manifest holds role rules; remove every hook or manifest row whose \`author\` names a \`role=\` from each file in \`leaks\`, then enroll again",
   "rolesEnrolled": [
     "architect",
     "mechanic"
@@ -408,6 +408,38 @@ exports[`rhx enroll --roles (acceptance) given: [case2e] 🔴 core invariant —
 [args] enroll,claude,--roles,-driver
 
 "
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case2e] 🔴 core invariant — a \`-driver\` clone loads no driver hook from ANY layer when: [t3] a \`-driver\` enroll in a repo on the hook dispatcher then: the clone's dispatcher hooks and manifest rows match the snapshot 1`] = `
+"{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ./node_modules/rhachet/bin/hooks.dispatch.sh .agent/.actors/actor.via.hash=__HEX__/brain/.claude/hooks.dispatch.manifest SessionStart",
+            "timeout": 10,
+            "author": "rhachet/hooks.dispatch"
+          }
+        ]
+      }
+    ]
+  },
+  "rows": [
+    {
+      "event": "SessionStart",
+      "matcher": "*",
+      "author": "repo=ehmpathy/role=mechanic"
+    },
+    {
+      "event": "SessionStart",
+      "matcher": "*",
+      "author": "repo=ehmpathy/role=architect"
+    }
+  ]
+}"
 `;
 
 exports[`rhx enroll --roles (acceptance) given: [case2e] 🔴 core invariant — a \`-driver\` clone loads no driver hook from ANY layer when: [t4] the repo actor settings name a dispatcher, but its manifest is absent then: the refusal is locked to a snapshot 1`] = `

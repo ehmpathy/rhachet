@@ -3,6 +3,7 @@ import type { ContextCli } from '@src/domain.objects/ContextCli';
 import { detectBrainReplsInRepo } from '@src/domain.operations/brains/detectBrainReplsInRepo';
 
 import { relative } from 'node:path';
+import { asRuleCountsByEvent } from './asRuleCountsByEvent';
 import { getOneBrainHooksAdapterForSync } from './getOneBrainHooksAdapterForSync';
 import { setHookDispatchersViaAdapter } from './setHookDispatchersViaAdapter';
 import { setHookDispatchManifestRederived } from './setHookDispatchManifestRederived';
@@ -22,9 +23,14 @@ import { setHookDispatchManifestRederived } from './setHookDispatchManifestReder
 export const setHookDispatchersForTarget = async (
   input: { brains: BrainSpecifier[] | null; configTargetDir: string | null },
   context: ContextCli,
-): Promise<{ errors: Array<{ brain: BrainSpecifier; error: Error }> }> => {
+): Promise<{
+  errors: Array<{ brain: BrainSpecifier; error: Error }>;
+  swaps: HookDispatchSwap[];
+}> => {
   const brains = input.brains ?? (await detectBrainReplsInRepo(context));
+  // .note = deliberate mutation — one brain at a time, in order; both lists are local
   const errors: Array<{ brain: BrainSpecifier; error: Error }> = [];
+  const swaps: HookDispatchSwap[] = [];
   for (const brain of brains) {
     const found = await getOneBrainHooksAdapterForSync(
       { brain, configTargetDir: input.configTargetDir },
@@ -40,15 +46,39 @@ export const setHookDispatchersForTarget = async (
         manifestPath: dispatch.manifestPath,
         repoPath: context.cwd,
       });
-      await setHookDispatchersViaAdapter({
+      const manifestPathRel = relative(context.cwd, dispatch.manifestPath);
+      const swap = await setHookDispatchersViaAdapter({
         adapter: dispatch.adapterOfBrain,
         rules,
-        manifestPathRel: relative(context.cwd, dispatch.manifestPath),
+        manifestPathRel,
+      });
+      swaps.push({
+        brain,
+        rules: rules.length,
+        rulesByEvent: asRuleCountsByEvent({ rules }),
+        manifestPathRel,
+        ...swap,
       });
     } catch (error) {
       if (!(error instanceof Error)) throw error;
       errors.push({ brain, error });
     }
   }
-  return { errors };
+  return { errors, swaps };
 };
+
+/**
+ * .what = what one brain's swap wrote: its rule count, its dispatcher count, and what moved
+ * .why = the sync reports the shape it wrote, so a human sees `N rules → M dispatchers` and the
+ *   role hooks that left the settings, never a silent `no changes needed`
+ */
+export interface HookDispatchSwap {
+  brain: BrainSpecifier;
+  rules: number;
+  /** each claude event's rule count, in the order the manifest first names the event */
+  rulesByEvent: Array<{ event: string; rules: number }>;
+  manifestPathRel: string;
+  dispatchers: number;
+  dispatchersSet: number;
+  roleHooksTakenBack: number;
+}

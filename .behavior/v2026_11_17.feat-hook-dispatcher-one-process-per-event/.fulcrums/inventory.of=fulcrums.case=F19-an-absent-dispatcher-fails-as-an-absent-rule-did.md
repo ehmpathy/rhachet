@@ -24,6 +24,11 @@ a sync preflight would also prove little: the sync itself runs from that same `n
 the dispatcher file is always present when the sync runs. the gap appears only when
 `node_modules` is removed afterward.
 
+i007 r011 nitpick.8 adds a case: `rhx` run from another install (a global one) over a repo whose
+`node_modules` lacks rhachet. there the prior per-rule commands, `./node_modules/.bin/rhx …`,
+lacked their bin too and exited 127, the same non-block. so that case also changes naught; a
+preflight would refuse a sync whose result fails exactly as the sync before it did.
+
 ## .rework
 
 clean: a `statSync` of `HOOK_DISPATCH.bin` in `setHookDispatchersForTarget`.

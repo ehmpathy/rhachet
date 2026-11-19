@@ -1,4 +1,4 @@
-import { MalfunctionError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import { getError } from 'test-fns';
 
 import { asHookDispatcherCommand } from './asHookDispatcherCommand';
@@ -23,6 +23,54 @@ describe('asManifestPathOfHookDispatcherCommand', () => {
       expect(asManifestPathOfHookDispatcherCommand({ command })).toEqual(
         thisCase.manifestPathRel,
       );
+    }),
+  );
+
+  // an unplain manifest path is the human's to fix (the actor slug); an unplain event is the brain
+  //   supplier's, so each names its own fix
+  const UNPLAIN_CASES = [
+    {
+      manifestPathRel: 'my repo/hooks.dispatch.manifest',
+      event: 'Stop',
+      errorClass: ConstraintError,
+      fix: 'rhx init --hooks',
+    },
+    {
+      manifestPathRel: '$HOME/hooks.dispatch.manifest',
+      event: 'Stop',
+      errorClass: ConstraintError,
+      fix: 'rhx init --hooks',
+    },
+    {
+      manifestPathRel: 'hooks.dispatch.manifest',
+      event: 'Stop;id',
+      errorClass: MalfunctionError,
+      fix: 'brain supplier',
+    },
+  ];
+  UNPLAIN_CASES.map((thisCase) =>
+    test(`the builder refuses a word the shell would split or expand: ${thisCase.manifestPathRel} ${thisCase.event}`, async () => {
+      const error = await getError(async () =>
+        asHookDispatcherCommand({
+          manifestPathRel: thisCase.manifestPathRel,
+          event: thisCase.event,
+        }),
+      );
+      expect(error).toBeInstanceOf(thisCase.errorClass);
+      expect(JSON.stringify((error as ConstraintError).metadata)).toContain(
+        thisCase.fix,
+      );
+      // json form, so the newlines the message embeds read escaped in the snapshot
+      expect(
+        JSON.stringify(
+          {
+            message: error.message,
+            metadata: (error as ConstraintError).metadata,
+          },
+          null,
+          2,
+        ),
+      ).toMatchSnapshot();
     }),
   );
 

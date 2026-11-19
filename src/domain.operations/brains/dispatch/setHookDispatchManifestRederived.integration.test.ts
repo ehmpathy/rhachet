@@ -116,7 +116,43 @@ describe('setHookDispatchManifestRederived', () => {
     },
   );
 
-  given('[case3] no manifest', () => {
+  given(
+    '[case3] a manifest of an older text shape, its rows still true (no label lines)',
+    () => {
+      // a manifest written before the label lines held the same rules, so a diff of rules alone
+      //   called it unchanged and it never converged to the readable form a sync writes
+      const scene = useBeforeAll(async () => {
+        const base = await genScene({ slug: 'dispatch-rederive-older-shape' });
+        const textCurrent = readFileSync(base.manifestPath, 'utf-8');
+        const textOlder = textCurrent
+          .split('\n')
+          .filter((line, index) => index === 0 || !line.startsWith('# '))
+          .join('\n');
+        writeFileSync(base.manifestPath, textOlder);
+        return { ...base, textCurrent, textOlder };
+      });
+
+      when('[t0] the rules are derived again', () => {
+        const result = useBeforeAll(async () => {
+          await setHookDispatchManifestRederived({
+            manifestPath: scene.manifestPath,
+            repoPath: scene.repoPath,
+          });
+          return { textAfter: readFileSync(scene.manifestPath, 'utf-8') };
+        });
+
+        then('the older text differs from the current one', () => {
+          expect(scene.textOlder).not.toEqual(scene.textCurrent);
+        });
+
+        then('the manifest is rewritten to the text a sync writes', () => {
+          expect(result.textAfter).toEqual(scene.textCurrent);
+        });
+      });
+    },
+  );
+
+  given('[case4] no manifest', () => {
     when('[t0] the rules are derived again', () => {
       const result = useBeforeAll(async () =>
         setHookDispatchManifestRederived({

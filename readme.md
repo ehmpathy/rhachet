@@ -147,6 +147,30 @@ the `.agent/` directory is a curated & shared source of truth. robots get their 
 
 browse the same briefs robots get booted with. invoke the same skills they dispatch. edit and iterate — changes take effect immediately.
 
+#### role hooks — one dispatcher per event
+
+for claude code, `rhx init --hooks` writes each role's hook rules into one manifest per brain dir, and one dispatcher hook per claude event into the settings:
+
+```
+.agent/.actors/<actor>/brain/.claude/
+  hooks.dispatch.manifest   # one row per role rule; tracked, beside the settings
+  settings.of.repo.json     # one hook per event: bash ./node_modules/rhachet/bin/hooks.dispatch.sh <manifest> <Event>
+```
+
+- a tool call starts one process, which runs every rule whose matcher fits, each as it ran alone, and merges their verdicts as claude merges separate hooks
+- the manifest reads as plain text: each row follows a `#` line that names its event, matcher, timeout, author and command
+- `/hooks` and `claude --debug` show the dispatcher, not each rule. a blocked call ends with one `🪝 hooks.dispatch <Event> blocked by <rule file>` line per blocker
+- to see why a rule did or did not fire, replay the call by hand (no restart), or trace every event a seat dispatches (set before the seat starts):
+
+```sh
+printf '%s' '{"tool_name":"Bash","tool_input":{"command":"pwd"}}' \
+  | bash ./node_modules/rhachet/bin/hooks.dispatch.sh <manifest> PreToolUse; echo "exit $?"
+export RHACHET_HOOKS_DISPATCH_TRACE=/tmp/hooks.trace.log   # each event appends here; stdout and stderr are unchanged
+export RHACHET_HOOKS_DISPATCH_SOURCE=0                     # run each rule as `bash <file>`, never sourced, as on bash < 5
+```
+
+- a manifest that is absent, of another version, or malformed fails closed and names the fix: `npx rhx init --hooks`. after a merge conflict in the manifest, take either side and rerun `npx rhx init --hooks`; it rewrites the manifest from the roles
+
 ### enroll
 
 #### how

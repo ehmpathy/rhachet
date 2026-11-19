@@ -50,6 +50,13 @@ exports[`rhachet init --hooks given: [case8] a role that declares a role boot ho
 🪝 apply hooks to brains...
    └─ test/tester → anthropic/claude/code: +1, -1
 
+🪝 hook dispatchers set
+   └─ anthropic/claude/code
+      ├─ 1 rule → 1 dispatcher, one per event
+      │  └─ SessionStart = 1 rule
+      ├─ 1 role hook moved from the settings into the manifest
+      └─ manifest = .claude/hooks.dispatch.manifest
+
 ✨ hooks
    ├─ 1 created
    └─ 1 deleted
@@ -58,5 +65,94 @@ exports[`rhachet init --hooks given: [case8] a role that declares a role boot ho
    ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
    └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
 
+"
+`;
+
+exports[`rhachet init --hooks given: [case9] a hook a human added by hand beside the dispatchers when: [t0] init --hooks re-syncs the roles then: the PreToolUse hooks match the snapshot 1`] = `
+"[
+  {
+    "matcher": "*",
+    "hooks": [
+      {
+        "type": "command",
+        "command": "bash ./node_modules/rhachet/bin/hooks.dispatch.sh .claude/hooks.dispatch.manifest PreToolUse",
+        "timeout": "__FIXTURE_TIMEOUT__",
+        "author": "rhachet/hooks.dispatch"
+      }
+    ]
+  },
+  {
+    "matcher": "Bash",
+    "hooks": [
+      {
+        "type": "command",
+        "command": "echo hand-added-guard",
+        "timeout": 7
+      }
+    ]
+  }
+]"
+`;
+
+exports[`rhachet init --hooks given: [case10] a role hook whose matcher the dispatcher cannot read when: [t0] init --roles tester,reviewer --hooks then: the stdout and stderr are locked: stderr 1`] = `""`;
+
+exports[`rhachet init --hooks given: [case10] a role hook whose matcher the dispatcher cannot read when: [t0] init --roles tester,reviewer --hooks then: the stdout and stderr are locked: stdout 1`] = `
+"
+🔧 init 2 role(s)...
+
+📚 link role repo=test/role=tester
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=test/readme.md
+   │  ├─ + .agent/repo=test/.gitignore
+   │  ├─ + .agent/repo=test/role=tester/readme.md
+   │  ├─ + .agent/repo=test/role=tester/briefs
+   │  └─ + .agent/repo=test/role=tester/skills
+   └─ stats
+      ├─ 1 brief(s)
+      └─ 1 skill(s)
+
+📚 link role repo=test/role=reviewer
+   └─ links
+      ├─ ✓ .agent/readme.md (unchanged)
+      ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+      ├─ ↻ .agent/repo=test/readme.md (updated)
+      ├─ ✓ .agent/repo=test/.gitignore (unchanged)
+      └─ + .agent/repo=test/role=reviewer/readme.md
+
+✨ 2 role(s) linked
+✨ 2 role(s) initialized
+
+🧠 brain://repo=ambient
+   ├─ moved
+   │  └─ .claude/settings.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+   └─ boot.md
+      └─ created — 2 roles
+
+🔭 search for linked roles with hooks...
+   ├─ test/reviewer
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   ├─ test/reviewer → anthropic/claude/code: +1
+   └─ ✗ test/tester → anthropic/claude/code: ✋ ConstraintError: a role hook matcher uses regex syntax that bash and claude would match differently
+      ├─ author = repo=test/role=tester
+      ├─ command = echo digit-tool
+      ├─ matcher = Bash\\d
+      └─ hint = declare the matcher as an exact list (\`Read|Write\`) or a plain regex (\`mcp__.*\`): no \\d \\w \\s \\b, no (?…), no lazy quantifier
+
+🪝 hook dispatchers set
+   └─ anthropic/claude/code
+      ├─ 1 rule → 1 dispatcher, one per event
+      │  └─ SessionStart = 1 rule
+      └─ manifest = .claude/hooks.dispatch.manifest
+
+✨ hooks
+   └─ 1 created
+
+💥 MalfunctionError: 1 hook sync error — role hooks may be uninstalled
 "
 `;

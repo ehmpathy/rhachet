@@ -106,6 +106,8 @@ const maskStubBrainPaths = (input: string): string =>
  *   as its own entry — a newline or space join would erase it
  * .note = `--version` answers the floor and records naught, so the record holds the spawn
  *   argv alone, never the floor probe
+ * .note = the record lands by rename, never by `>` in place: `>` creates the file empty before
+ *   printf fills it, and the reader polls for existence only, so under load it read `[]`
  */
 const setupArgvRecorderBrainPath = (input: {
   dir: string;
@@ -119,7 +121,8 @@ const setupArgvRecorderBrainPath = (input: {
     [
       '#!/usr/bin/env bash',
       'if [ "$1" = "--version" ]; then echo "2.1.277 (Claude Code)"; exit 0; fi',
-      `printf '%s\\0' "$@" > "${recordPath}"`,
+      `printf '%s\\0' "$@" > "${recordPath}.tmp.$$"`,
+      `mv "${recordPath}.tmp.$$" "${recordPath}"`,
       'exit 0',
       '',
     ].join('\n'),
@@ -1062,6 +1065,28 @@ describe('rhx enroll --roles (acceptance)', () => {
         expect(content).toContain(HOOK_DISPATCH_AUTHOR);
         expect(content).toContain(`${getOneEnrolledActorDirName({ dir: scene.dir })}/brain/.claude/hooks.dispatch.manifest`);
         expect(content).not.toContain('actor.via.repo=ambient/brain/.claude/hooks.dispatch.manifest');
+      });
+
+      then("the clone's dispatcher hooks and manifest rows match the snapshot", () => {
+        // a reader's view of what the clone loads: one dispatcher per event, and the rules it runs
+        const flagIndex = scene.argv.indexOf('--settings');
+        const settings = JSON.parse(readFileSync(scene.argv[flagIndex + 1]!, 'utf-8'));
+        const view = JSON.stringify(
+          {
+            hooks: settings.hooks,
+            rows: scene.rows.map((row) => ({ event: row.event, matcher: row.matcher, author: row.author })),
+          },
+          null,
+          2,
+        );
+        // the actor hash derives from the roleset, not from this behavior; it is masked so a
+        //   roleset change elsewhere never reds this snap
+        expect(
+          view
+            .split(scene.dir)
+            .join('$DIR')
+            .replace(/actor\.via\.hash=[0-9a-f]+/g, 'actor.via.hash=__HEX__'),
+        ).toMatchSnapshot();
       });
     });
 

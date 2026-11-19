@@ -3,13 +3,15 @@ import type { ClaudeCodeSettings } from '@src/domain.operations/brains/claudeCod
 
 import { asHookDispatchersOfRules } from './asHookDispatchersOfRules';
 import { HOOK_DISPATCH } from './constants';
+import { isHookReplacedByDispatch } from './isHookReplacedByDispatch';
 
 /**
  * .what = claude settings whose dispatcher hooks match a set of rules and a manifest path
  * .why = an actor's settings carry dispatchers for its own rules alone, named at its own
  *   manifest; the repo actor's dispatchers name the repo actor's
  *
- * .note = every prior dispatcher hook leaves; every other hook stays as it is
+ * .note = every prior dispatcher hook and every role hook leaves (`isHookReplacedByDispatch`),
+ *   since a role hook kept beside a dispatcher would run twice; a hand-added hook stays as it is
  * .note = an event whose matcher entry already holds hooks takes the dispatcher at its end
  */
 export const asSettingsWithHookDispatchers = (input: {
@@ -20,7 +22,7 @@ export const asSettingsWithHookDispatchers = (input: {
   type Hooks = NonNullable<ClaudeCodeSettings['hooks']>;
   type Entry = NonNullable<Hooks[keyof Hooks]>[number];
 
-  // drop every prior dispatcher hook, and every entry left empty by the drop
+  // drop every hook the dispatch shape replaces, and every entry left empty by the drop
   const hooksPrior: Record<string, Entry[]> = Object.fromEntries(
     Object.entries(input.settings.hooks ?? {}).map(([event, entries]) => [
       event,
@@ -28,7 +30,7 @@ export const asSettingsWithHookDispatchers = (input: {
         .map((entry: Entry) => ({
           ...entry,
           hooks: entry.hooks.filter(
-            (hook) => hook.author !== HOOK_DISPATCH.author,
+            (hook) => !isHookReplacedByDispatch({ hook }),
           ),
         }))
         .filter((entry: Entry) => entry.hooks.length > 0),

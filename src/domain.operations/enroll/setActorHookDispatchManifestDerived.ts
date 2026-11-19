@@ -2,13 +2,13 @@ import { ConstraintError } from 'helpful-errors';
 
 import type { ClaudeCodeSettings } from '@src/domain.operations/brains/claudeCodeSettings';
 import { asSettingsWithHookDispatchers } from '@src/domain.operations/brains/dispatch/asSettingsWithHookDispatchers';
-import { HOOK_DISPATCH } from '@src/domain.operations/brains/dispatch/constants';
+import { getHookDispatchManifestPathOfBrainDir } from '@src/domain.operations/brains/dispatch/getHookDispatchManifestPathOfBrainDir';
 import { getOneHookDispatchManifest } from '@src/domain.operations/brains/dispatch/getOneHookDispatchManifest';
 import { isSettingsWithHookDispatchers } from '@src/domain.operations/brains/dispatch/isSettingsWithHookDispatchers';
 import { setHookDispatchManifest } from '@src/domain.operations/brains/dispatch/setHookDispatchManifest';
 import { asHookDispatchRulesForRoles } from '@src/domain.operations/enroll/asHookDispatchRulesForRoles';
 
-import { join, relative } from 'node:path';
+import { relative } from 'node:path';
 
 /**
  * .what = write one actor's dispatch manifest — the repo actor's, narrowed to the actor's roles
@@ -37,7 +37,9 @@ export const setActorHookDispatchManifestDerived = async (input: {
   if (input.isRepoActor) return input.settings;
 
   // read the source rules
-  const sourcePath = join(input.repoActorBrainDir, HOOK_DISPATCH.manifest);
+  const sourcePath = getHookDispatchManifestPathOfBrainDir({
+    brainDir: input.repoActorBrainDir,
+  });
   const source = await getOneHookDispatchManifest({ path: sourcePath });
 
   // refuse a dispatcher whose rules are absent; a clone with no guards must never spawn silently
@@ -61,7 +63,9 @@ export const setActorHookDispatchManifestDerived = async (input: {
     rules: source.rules,
     roles: input.roles,
   });
-  const manifestPath = join(input.actorBrainDir, HOOK_DISPATCH.manifest);
+  const manifestPath = getHookDispatchManifestPathOfBrainDir({
+    brainDir: input.actorBrainDir,
+  });
   await setHookDispatchManifest({ path: manifestPath, rules });
   return asSettingsWithHookDispatchers({
     settings: input.settings,

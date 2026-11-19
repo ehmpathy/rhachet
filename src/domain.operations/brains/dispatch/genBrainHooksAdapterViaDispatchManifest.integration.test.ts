@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { HOOK_DISPATCH } from './constants';
 import { genBrainHooksAdapterViaDispatchManifest } from './genBrainHooksAdapterViaDispatchManifest';
 import { getOneHookDispatchManifest } from './getOneHookDispatchManifest';
+import { setHookDispatchManifestMigratedFromSettings } from './setHookDispatchManifestMigratedFromSettings';
 
 /**
  * .what = a temp repo whose claude settings hold one role hook and one hand-added hook, and the
@@ -46,36 +47,77 @@ describe('genBrainHooksAdapterViaDispatchManifest', () => {
       genScene({ slug: 'dispatch-adapter-seed' }),
     );
 
-    when('[t0] the hooks are read through the adapter', () => {
-      const result = useBeforeAll(async () => ({
-        hooks: await scene.adapter.dao.get.all(),
-        manifest: await getOneHookDispatchManifest({
-          path: scene.manifestPath,
-        }),
-      }));
+    when(
+      '[t0] the hooks are read through the adapter, before the migration',
+      () => {
+        const result = useBeforeAll(async () => ({
+          hooks: await scene.adapter.dao.get.all(),
+          isManifestPresent: existsSync(scene.manifestPath),
+        }));
 
-      then('the manifest is seeded from the settings', () => {
-        expect(existsSync(scene.manifestPath)).toEqual(true);
-      });
+        then('the read writes no manifest, and finds no rule', () => {
+          expect(result.isManifestPresent).toEqual(false);
+          expect(result.hooks).toEqual([]);
+        });
+      },
+    );
 
-      then('it holds the role hook and not the hand-added one', () => {
-        const authors = (result.manifest?.rules ?? []).map(
-          (rule) => rule.author,
-        );
-        expect(authors).toEqual(['repo=test/role=tester']);
-      });
+    when(
+      '[t1] the migration runs, then the hooks are read through the adapter',
+      () => {
+        const result = useBeforeAll(async () => {
+          const migration = await setHookDispatchManifestMigratedFromSettings({
+            adapterOfBrain: scene.inner,
+            manifestPath: scene.manifestPath,
+            repoPath: scene.repoPath,
+          });
+          const migrationAgain =
+            await setHookDispatchManifestMigratedFromSettings({
+              adapterOfBrain: scene.inner,
+              manifestPath: scene.manifestPath,
+              repoPath: scene.repoPath,
+            });
+          return {
+            migration,
+            migrationAgain,
+            hooks: await scene.adapter.dao.get.all(),
+            manifest: await getOneHookDispatchManifest({
+              path: scene.manifestPath,
+            }),
+          };
+        });
 
-      then('the read returns the role hook as a declared hook', () => {
-        expect(result.hooks.map((hook) => hook.command)).toEqual(['echo boot']);
-        expect(result.hooks[0]!.event).toEqual('onBoot');
-      });
-    });
+        then('the manifest is seeded from the settings, once', () => {
+          expect(existsSync(scene.manifestPath)).toEqual(true);
+          expect(result.migration.migrated).toEqual(true);
+          expect(result.migrationAgain.migrated).toEqual(false);
+        });
+
+        then('it holds the role hook and not the hand-added one', () => {
+          const authors = (result.manifest?.rules ?? []).map(
+            (rule) => rule.author,
+          );
+          expect(authors).toEqual(['repo=test/role=tester']);
+        });
+
+        then('the read returns the role hook as a declared hook', () => {
+          expect(result.hooks.map((hook) => hook.command)).toEqual([
+            'echo boot',
+          ]);
+          expect(result.hooks[0]!.event).toEqual('onBoot');
+        });
+      },
+    );
   });
 
   given('[case2] a manifest the adapter already seeded', () => {
     const scene = useBeforeAll(async () => {
       const base = await genScene({ slug: 'dispatch-adapter-write' });
-      await base.adapter.dao.get.all();
+      await setHookDispatchManifestMigratedFromSettings({
+        adapterOfBrain: base.inner,
+        manifestPath: base.manifestPath,
+        repoPath: base.repoPath,
+      });
       return base;
     });
 

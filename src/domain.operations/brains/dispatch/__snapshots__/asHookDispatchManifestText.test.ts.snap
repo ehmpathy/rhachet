@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asHookDispatchManifestText text the manifest matches the snapshot, so a human can read it 1`] = `
+"# rhachet hooks.dispatch manifest v1 — written by \`rhx init --hooks\`; fields split by \\x1f
+# PreToolUse · * · 30s · repo=demo/role=tester · one
+PreToolUse␟*␟30␟repo=demo/role=tester␟foreign␟␟␟␟one␟
+# Stop · * · 30s · repo=demo/role=tester · two
+Stop␟␟30␟repo=demo/role=tester␟foreign␟␟␟␟two␟
+"
+`;
