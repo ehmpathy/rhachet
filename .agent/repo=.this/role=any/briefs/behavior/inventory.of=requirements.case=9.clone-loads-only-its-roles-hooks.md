@@ -39,6 +39,12 @@ linked role's hooks, so a `-driver` peer booted the driver's hooks and drove the
   - `src/domain.operations/enroll/genBrainCliConfigArtifact.ts` — each actor's hooks narrow from the
     linked roles' declared hooks, computed in-mem (`getAllHooksOfLinkedRolesForClaudeCode.ts`); with no
     manifest the source stays the repo actor's file, byte-identical to main
+- 🔴 the same guard reads through each hook dispatcher (`rhachet#764`). a dispatcher hook's author names
+  no role; the role rules it runs sit in the `hooks.dispatch.manifest` its command names, so the guard
+  reads that manifest and checks each rule's author as it checks a settings hook
+- `src/domain.operations/enroll/setActorHookDispatchManifestDerived.ts` — with no `.agent/actors.yml`,
+  each actor's manifest is narrowed to the actor's roles, and its dispatcher names that manifest, never
+  the repo actor's. under `.agent/actors.yml` the hooks stay per rule, from the linked roles
 
 ## .proof
 
@@ -49,6 +55,7 @@ linked role's hooks, so a `-driver` peer booted the driver's hooks and drove the
 | integration | `src/domain.operations/enroll/assertCloneSettingsLayersHoldOnlyEnrolledRoles.integration.test.ts` [case1]–[case4] — clean passes; a repo-layer leak is a malfunction; a grove leak is a constraint; a repo `settings.local.json` is not read; with the role filter disabled, the clamp goes red | ✅ green 2026-10-13 |
 | acceptance | `blackbox/cli/enroll.acceptance.test.ts` [case2e] [t0] — a real `-driver` enroll: no layer of the recorded spawn argv carries a driver hook; [t1] — a driver hook in the HOME grove makes enroll refuse with exit 2 before the brain spawns; with the role filter disabled, the clamp goes red | ✅ green 2026-10-13 |
 | integration | `blackbox/cli/enroll.actors-yml.integration.test.ts` [case2] — under a manifest, with a hook held only by a peer actor: a bare enroll spawns clean and holds the repo actor's hooks alone [t0]; the peer holds its own alone [t1]; an edit to a declared actor's roles reaches its dir at `init` [t3]. with both fix sites disabled, the clamp goes red. integration, since it spawns a stub brain cli rather than a real one | ✅ green 2026-11-13, log `.log/role=mechanic/skill=git.repo.test/what=integration/2026-11-14T01-24-03Z.stdout.log` |
+| acceptance | `blackbox/cli/enroll.acceptance.test.ts` [case2e] [t2] — a HOME grove dispatcher whose manifest holds a driver rule makes a `-driver` enroll refuse with exit 2 and name the manifest; with the read-through removed, the clamp goes red (2 failed, 224 passed) | ✅ green 2026-11-17 |
 
 ## .source
 

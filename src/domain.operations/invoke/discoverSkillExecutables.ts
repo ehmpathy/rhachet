@@ -18,13 +18,16 @@ const extractSlugFromFilename = (filename: string): string => {
 /**
  * .what = discovers executable skill files from linked role directories
  * .why = enables `rhachet run --skill` to find and execute skills
+ * .note = `repoPath` defaults to the process cwd, where `rhx` looks; the hook sync names the repo
+ *   it targets, so the dispatcher runs the very file `rhx` would
  */
 export const discoverSkillExecutables = (input: {
   slugRepo?: string;
   slugRole?: string;
   slugSkill?: string;
+  repoPath: string | null;
 }): RoleSkillExecutable[] => {
-  const agentDir = resolve(process.cwd(), '.agent');
+  const agentDir = resolve(input.repoPath ?? process.cwd(), '.agent');
 
   // skip if .agent directory does not exist
   if (!existsSync(agentDir)) return [];

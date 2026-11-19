@@ -5,6 +5,10 @@ import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import {
+  getAllHookDispatchManifestRows,
+  HOOK_DISPATCH_AUTHOR,
+} from '@/blackbox/.test/infra/getAllHookDispatchManifestRows';
+import {
   asSnapshotSafe,
   invokeRhachetCliBinary,
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
@@ -148,26 +152,27 @@ describe('rhachet init --hooks', () => {
         expect(config.hooks.PreToolUse.length).toBeGreaterThan(0);
       });
 
-      then('hooks have correct author namespace', async () => {
-        const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
-        const content = await fs.readFile(configPath, 'utf-8');
-        const config = JSON.parse(content);
-        const firstHook = asFlatHooks(config.hooks.SessionStart)[0]!;
-        expect(firstHook.author).toContain('repo=test/role=tester');
+      then('role rules have correct author namespace', async () => {
+        const rows = await getAllHookDispatchManifestRows({
+          claudeDir: path.join(repo.path, '.claude'),
+        });
+        const firstRule = rows.find((row) => row.event === 'SessionStart')!;
+        expect(firstRule.author).toContain('repo=test/role=tester');
       });
 
       then('the written hooks take the NESTED claude shape, never the legacy flat one', async () => {
         // `asFlatHooks` reads both shapes on purpose (a seeded prior config may be flat), so
-        //   the author asserts above cannot tell a writer that reverted to the flat shape.
-        //   this reads the raw file and pins the shape the writer must emit
+        //   it cannot tell a writer that reverted to the flat shape. this reads the raw file
+        //   and pins the shape the writer must emit: one dispatcher per event, nested
         const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
         const content = await fs.readFile(configPath, 'utf-8');
         const config = JSON.parse(content);
+        expect(config.hooks.SessionStart).toHaveLength(1);
         for (const entry of config.hooks.SessionStart) {
           expect(entry).toHaveProperty('hooks');
           expect(entry).not.toHaveProperty('command');
           expect(entry.hooks[0]).toHaveProperty('command');
-          expect(entry.hooks[0].author).toContain('repo=test/role=tester');
+          expect(entry.hooks[0].author).toEqual(HOOK_DISPATCH_AUTHOR);
         }
       });
     });
@@ -281,11 +286,20 @@ describe('rhachet init --hooks', () => {
     });
 
     when('[t0] hooks are initially applied', () => {
-      then('claude settings.json has 2 SessionStart hooks', async () => {
+      then('the manifest has 2 SessionStart rules', async () => {
+        const rows = await getAllHookDispatchManifestRows({
+          claudeDir: path.join(repo.path, '.claude'),
+        });
+        expect(rows.filter((row) => row.event === 'SessionStart')).toHaveLength(2);
+      });
+
+      then('claude settings.json has 1 SessionStart hook, the dispatcher', async () => {
         const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
         const content = await fs.readFile(configPath, 'utf-8');
         const config = JSON.parse(content);
-        expect(config.hooks.SessionStart).toHaveLength(2);
+        const hooks = asFlatHooks(config.hooks.SessionStart);
+        expect(hooks).toHaveLength(1);
+        expect(hooks[0]!.author).toEqual(HOOK_DISPATCH_AUTHOR);
       });
     });
 
@@ -342,13 +356,73 @@ module.exports = { getRoleRegistry };
         expect(result.stdout).toContain('deleted');
       });
 
-      then('claude settings.json now has only 1 SessionStart hook', async () => {
-        const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
-        const content = await fs.readFile(configPath, 'utf-8');
-        const config = JSON.parse(content);
-        const hooks = asFlatHooks(config.hooks.SessionStart);
-        expect(hooks).toHaveLength(1);
-        expect(hooks[0]!.command).toContain('boot-hook-1');
+      then('the manifest now has only 1 SessionStart rule', async () => {
+        const rows = await getAllHookDispatchManifestRows({
+          claudeDir: path.join(repo.path, '.claude'),
+        });
+        const rules = rows.filter((row) => row.event === 'SessionStart');
+        expect(rules).toHaveLength(1);
+        expect(rules[0]!.command).toContain('boot-hook-1');
+      });
+    });
+  });
+
+  given('[case9] a hook a human added by hand beside the dispatchers', () => {
+    // the sync owns only the role hooks it moved into the manifest and the dispatchers it
+    //   wrote; a hook with no role author is the human's, and a re-sync keeps it in the
+    //   settings, untouched, beside the dispatcher (rhachet#764)
+    const handHook = { type: 'command', command: 'echo hand-added-guard', timeout: 7 };
+    const scene = useBeforeAll(async () => {
+      const repo = await genTestTempRepo({ fixture: 'with-role-hooks' });
+      invokeWithoutGrove({ args: ['init', '--roles', 'tester', '--hooks'], cwd: repo.path });
+      const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
+      const config = JSON.parse(await fs.readFile(configPath, 'utf-8'));
+      const configWithHand = {
+        ...config,
+        hooks: {
+          ...config.hooks,
+          PreToolUse: [...config.hooks.PreToolUse, { matcher: 'Bash', hooks: [handHook] }],
+        },
+      };
+      await fs.writeFile(configPath, `${JSON.stringify(configWithHand, null, 2)}\n`, 'utf-8');
+      const result = invokeWithoutGrove({ args: ['init', '--hooks'], cwd: repo.path });
+      const configAfter = JSON.parse(await fs.readFile(configPath, 'utf-8'));
+      const rows = await getAllHookDispatchManifestRows({
+        claudeDir: path.join(repo.path, '.claude'),
+      });
+      return { result, configAfter, rows };
+    });
+
+    when('[t0] init --hooks re-syncs the roles', () => {
+      then('exits with status 0', () => {
+        expect(scene.result.status).toEqual(0);
+      });
+
+      then('the hand-added hook stays in the settings, byte for byte, under its own matcher', () => {
+        const entry = scene.configAfter.hooks.PreToolUse.find(
+          (each: { matcher?: string }) => each.matcher === 'Bash',
+        );
+        expect(entry).toEqual({ matcher: 'Bash', hooks: [handHook] });
+      });
+
+      then('the PreToolUse dispatcher stays beside it', () => {
+        const authors = asFlatHooks(scene.configAfter.hooks.PreToolUse).map((hook) => hook.author);
+        expect(authors.filter((author) => author === HOOK_DISPATCH_AUTHOR)).toHaveLength(1);
+      });
+
+      then('the hand-added hook never enters the manifest', () => {
+        expect(scene.rows.map((row) => row.command).join('\n')).not.toContain('hand-added-guard');
+      });
+
+      // .note = this fixture's brain (`rhachet-brains-test`) writes a hook's timeout as rhachet hands
+      //   it over (`{ seconds: 10 }`), a shape claude never reads; the snap masks it, so the baseline
+      //   pins only what the claude code adapter writes too (enroll [case2e][t3] snaps `"timeout": 10`)
+      then('the PreToolUse hooks match the snapshot', () => {
+        const view = JSON.stringify(scene.configAfter.hooks.PreToolUse, null, 2).replace(
+          /"timeout": \{[^}]*\}/g,
+          '"timeout": "__FIXTURE_TIMEOUT__"',
+        );
+        expect(view).toMatchSnapshot();
       });
     });
   });
@@ -432,17 +506,22 @@ module.exports = { getRoleRegistry };
       then(
         'the actor`s OWN brain config gets the role SessionStart hooks (not just root)',
         async () => {
+          // the actor's settings start the dispatcher; its own manifest holds the rules
           const actorConfigPath = path.join(
             repo.actorBrainClaudeDir,
             'settings.of.repo.json',
           );
           const content = await fs.readFile(actorConfigPath, 'utf-8');
           const config = JSON.parse(content);
-          expect(config.hooks.SessionStart).toBeDefined();
-          expect(config.hooks.SessionStart.length).toBeGreaterThan(0);
-          const authors = asFlatHooks(config.hooks.SessionStart).map(
-            (h) => h.author,
-          );
+          expect(asFlatHooks(config.hooks.SessionStart)).toEqual([
+            expect.objectContaining({ author: HOOK_DISPATCH_AUTHOR }),
+          ]);
+          const rows = await getAllHookDispatchManifestRows({
+            claudeDir: repo.actorBrainClaudeDir,
+          });
+          const authors = rows
+            .filter((row) => row.event === 'SessionStart')
+            .map((row) => row.author);
           expect(authors).toContainEqual(
             expect.stringContaining('role=tester'),
           );
@@ -450,10 +529,12 @@ module.exports = { getRoleRegistry };
       );
 
       then('the repo root config ALSO still carries the role hooks', async () => {
-        const rootConfigPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
-        const content = await fs.readFile(rootConfigPath, 'utf-8');
-        const config = JSON.parse(content);
-        expect(config.hooks.SessionStart.length).toBeGreaterThan(0);
+        const rows = await getAllHookDispatchManifestRows({
+          claudeDir: path.join(repo.path, '.claude'),
+        });
+        expect(
+          rows.filter((row) => row.event === 'SessionStart').length,
+        ).toBeGreaterThan(0);
       });
     });
   });
@@ -535,6 +616,8 @@ module.exports = { getRoleRegistry };
           cwd: repo.path,
         }),
       );
+      // every SessionStart command that runs: the settings' own hooks, plus the manifest's rules
+      //   the dispatcher runs
       const commands = useBeforeAll(async () => {
         const config = JSON.parse(
           await fs.readFile(
@@ -542,10 +625,18 @@ module.exports = { getRoleRegistry };
             'utf-8',
           ),
         );
+        const rows = await getAllHookDispatchManifestRows({
+          claudeDir: path.join(repo.path, '.claude'),
+        });
         return {
-          list: asFlatHooks(config.hooks.SessionStart).map(
-            (hook) => hook.command,
-          ),
+          list: [
+            ...asFlatHooks(config.hooks.SessionStart).map(
+              (hook) => hook.command,
+            ),
+            ...rows
+              .filter((row) => row.event === 'SessionStart')
+              .map((row) => row.command),
+          ],
         };
       });
 
@@ -578,13 +669,103 @@ module.exports = { getRoleRegistry };
     });
   });
 
+  given('[case10] a role hook whose matcher the dispatcher cannot read', () => {
+    // `Bash\d` is js-only regex syntax: bash `=~` reads `\d` as a literal `d`, so the
+    //   dispatcher would decide it unlike claude. the sync refuses the hook rather than run it
+    //   under a matcher that fits other tools; the other role's hooks are read for what lands
+    const repo = useBeforeAll(async () => {
+      const r = await genTestTempRepo({ fixture: 'with-role-hooks' });
+      await fs.writeFile(
+        path.join(r.path, 'node_modules/rhachet-roles-test/dist/index.js'),
+        `
+const asRole = (input) => ({
+  slug: input.slug,
+  name: input.slug,
+  purpose: 'test role',
+  readme: { uri: 'roles/' + input.slug + '/readme.md' },
+  traits: [],
+  skills: { dirs: { uri: 'roles/' + input.slug + '/skills' }, refs: [] },
+  briefs: { dirs: { uri: 'roles/' + input.slug + '/briefs' } },
+  hooks: { onBrain: input.onBrain },
+});
+const getRoleRegistry = () => ({
+  slug: 'test',
+  readme: { uri: 'readme.md' },
+  roles: [
+    asRole({
+      slug: 'tester',
+      onBrain: {
+        onTool: [{ command: 'echo digit-tool', timeout: '5s', filter: { what: 'Bash\\\\d' } }],
+      },
+    }),
+    asRole({
+      slug: 'reviewer',
+      onBrain: { onBoot: [{ command: 'echo reviewer-boot', timeout: '10s' }] },
+    }),
+  ],
+});
+module.exports = { getRoleRegistry };
+`,
+        'utf-8',
+      );
+      return r;
+    });
+
+    when('[t0] init --roles tester,reviewer --hooks', () => {
+      const result = useBeforeAll(async () =>
+        invokeWithoutGrove({
+          args: ['init', '--roles', 'tester,reviewer', '--hooks'],
+          cwd: repo.path,
+        }),
+      );
+      const manifest = useBeforeAll(async () => ({
+        commands: (
+          await getAllHookDispatchManifestRows({
+            claudeDir: path.join(repo.path, '.claude'),
+          })
+        ).map((row) => row.command),
+      }));
+
+      then('exits 1, as every hook sync fault set does', () => {
+        // the fault set header is a MalfunctionError by design: a set may mix owners, so it
+        //   renders at the harsher one. the row itself carries the ConstraintError
+        expect(result.status).toEqual(1);
+      });
+
+      then('the fault row names the role and its ConstraintError', () => {
+        expect(result.stdout).toContain(
+          '✗ test/tester → anthropic/claude/code: ✋ ConstraintError:',
+        );
+      });
+
+      then('the refused hook reaches no manifest row', () => {
+        expect(manifest.commands).not.toContain('echo digit-tool');
+      });
+
+      then("the other role's hook still lands", () => {
+        expect(manifest.commands).toContain('echo reviewer-boot');
+      });
+
+      then('the fault row names the matcher it refused, and the fix', () => {
+        expect(result.stdout).toContain('matcher = Bash\\d');
+        expect(result.stdout).toContain('hint = declare the matcher');
+      });
+
+      then('the stdout and stderr are locked', () => {
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot('stdout');
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot('stderr');
+      });
+    });
+  });
+
   given('[case6] repo with multiple roles', () => {
     const repo = useBeforeAll(async () =>
       genTestTempRepo({ fixture: 'with-role-hooks' }),
     );
 
     when('[t0] both roles are linked and hooks applied', () => {
-      const result = useBeforeAll(async () => {
+      // the sync and the manifest read run once; each then reads the shared rows
+      const scene = useBeforeAll(async () => {
         // link both roles
         invokeWithoutGrove({
           args: ['init', '--roles', 'tester'],
@@ -596,31 +777,29 @@ module.exports = { getRoleRegistry };
         });
 
         // apply hooks
-        return invokeWithoutGrove({
+        const result = invokeWithoutGrove({
           args: ['init', '--hooks'],
           cwd: repo.path,
         });
+        const rows = await getAllHookDispatchManifestRows({
+          claudeDir: path.join(repo.path, '.claude'),
+        });
+        return { result, rows };
       });
 
       then('exits with status 0', () => {
-        expect(result.status).toEqual(0);
+        expect(scene.result.status).toEqual(0);
       });
 
-      then('claude settings.json has hooks from both roles', async () => {
-        const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
-        const content = await fs.readFile(configPath, 'utf-8');
-        const config = JSON.parse(content);
+      then('the manifest has rules from both roles', () => {
         // tester has 2 onBoot hooks, reviewer has 1
-        expect(config.hooks.SessionStart).toHaveLength(3);
+        expect(scene.rows.filter((row) => row.event === 'SessionStart')).toHaveLength(3);
       });
 
-      then('hooks have distinct author namespaces', async () => {
-        const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
-        const content = await fs.readFile(configPath, 'utf-8');
-        const config = JSON.parse(content);
-        const authors = asFlatHooks(config.hooks.SessionStart).map(
-          (h) => h.author,
-        );
+      then('hooks have distinct author namespaces', () => {
+        const authors = scene.rows
+          .filter((row) => row.event === 'SessionStart')
+          .map((row) => row.author);
         expect(authors).toContainEqual(
           expect.stringContaining('role=tester'),
         );
@@ -629,11 +808,8 @@ module.exports = { getRoleRegistry };
         );
       });
 
-      then('each role has correct commands', async () => {
-        const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
-        const content = await fs.readFile(configPath, 'utf-8');
-        const config = JSON.parse(content);
-        const hooks = asFlatHooks(config.hooks.SessionStart);
+      then('each role has correct commands', () => {
+        const hooks = scene.rows.filter((row) => row.event === 'SessionStart');
         const testerHooks = hooks.filter((h) => h.author.includes('role=tester'));
         const reviewerHooks = hooks.filter((h) =>
           h.author.includes('role=reviewer'),
@@ -645,7 +821,8 @@ module.exports = { getRoleRegistry };
     });
 
     when('[t1] one role is unlinked', () => {
-      const resultAfterUnlink = useBeforeAll(async () => {
+      // the re-sync and the reads run once; each then reads the shared result
+      const sceneAfterUnlink = useBeforeAll(async () => {
         // remove tester role symlink
         const testerSymlink = path.join(
           repo.path,
@@ -654,35 +831,36 @@ module.exports = { getRoleRegistry };
         await fs.rm(testerSymlink, { recursive: true, force: true });
 
         // re-run init --hooks
-        return invokeWithoutGrove({
+        const result = invokeWithoutGrove({
           args: ['init', '--hooks'],
           cwd: repo.path,
         });
+        const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
+        const config = JSON.parse(await fs.readFile(configPath, 'utf-8'));
+        const rows = await getAllHookDispatchManifestRows({
+          claudeDir: path.join(repo.path, '.claude'),
+        });
+        return { result, config, rows };
       });
 
       then('exits with status 0', () => {
-        expect(resultAfterUnlink.status).toEqual(0);
+        expect(sceneAfterUnlink.result.status).toEqual(0);
       });
 
-      then('tester hooks are removed', async () => {
-        const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
-        const content = await fs.readFile(configPath, 'utf-8');
-        const config = JSON.parse(content);
-        const authors = asFlatHooks(config.hooks.SessionStart).map(
-          (h) => h.author,
-        );
+      then('tester hooks are removed', () => {
+        const authors = [
+          ...asFlatHooks(sceneAfterUnlink.config.hooks.SessionStart).map((h) => h.author),
+          ...sceneAfterUnlink.rows.map((row) => row.author),
+        ];
         expect(authors).not.toContainEqual(
           expect.stringContaining('role=tester'),
         );
       });
 
-      then('reviewer hooks remain', async () => {
-        const configPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
-        const content = await fs.readFile(configPath, 'utf-8');
-        const config = JSON.parse(content);
-        const hooks = asFlatHooks(config.hooks.SessionStart);
-        expect(hooks).toHaveLength(1);
-        expect(hooks[0]!.author).toContain('role=reviewer');
+      then('reviewer hooks remain', () => {
+        const rules = sceneAfterUnlink.rows.filter((row) => row.event === 'SessionStart');
+        expect(rules).toHaveLength(1);
+        expect(rules[0]!.author).toContain('role=reviewer');
       });
     });
   });

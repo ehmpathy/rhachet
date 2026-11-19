@@ -54,17 +54,36 @@ jest.mock('../config/getBrainHooksAdapterByConfigImplicit', () => ({
   getBrainHooksAdapterByConfigImplicit: jest.fn(),
 }));
 
+// .note = the fixture brains are not claude code, so the sync writes through each brain's own
+//   adapter, and this unit covers only the role × brain sweep; the claude code dispatch manifest
+//   wrap is covered by its own integration tests and the hook dispatcher acceptance
+
 // mock brain detection
 jest.mock('./detectBrainReplsInRepo', () => ({
   detectBrainReplsInRepo: jest.fn(),
 }));
 
+// spy the dispatch selector: it delegates to the real one, so [case5] can see whether the
+//   sync went through it at all
+jest.mock('./dispatch/getOneBrainHooksAdapterForSync', () => {
+  const actual = jest.requireActual(
+    './dispatch/getOneBrainHooksAdapterForSync',
+  );
+  return {
+    getOneBrainHooksAdapterForSync: jest.fn(
+      actual.getOneBrainHooksAdapterForSync,
+    ),
+  };
+});
+
 import { getBrainHooksAdapterByConfigImplicit } from '@src/domain.operations/config/getBrainHooksAdapterByConfigImplicit';
 
 import { detectBrainReplsInRepo } from './detectBrainReplsInRepo';
+import { getOneBrainHooksAdapterForSync } from './dispatch/getOneBrainHooksAdapterForSync';
 
 const mockGetAdapter = getBrainHooksAdapterByConfigImplicit as jest.Mock;
 const mockDetectBrains = detectBrainReplsInRepo as jest.Mock;
+const spyGetAdapterForSync = getOneBrainHooksAdapterForSync as jest.Mock;
 
 describe('syncAllRoleHooksIntoEachBrainRepl', () => {
   beforeEach(() => {
@@ -95,10 +114,10 @@ describe('syncAllRoleHooksIntoEachBrainRepl', () => {
       repo: 'test-registry',
     };
 
-    const adapter = createMockAdapter('claude-code', []);
+    const adapter = createMockAdapter('test-brain', []);
 
     const result = useBeforeAll(async () => {
-      mockDetectBrains.mockResolvedValue(['claude-code']);
+      mockDetectBrains.mockResolvedValue(['test-brain']);
       mockGetAdapter.mockResolvedValue(adapter);
 
       const context = new ContextCli({
@@ -122,7 +141,7 @@ describe('syncAllRoleHooksIntoEachBrainRepl', () => {
       });
 
       then('applied result contains the brain', () => {
-        expect(result.applied[0]?.brain).toEqual('claude-code');
+        expect(result.applied[0]?.brain).toEqual('test-brain');
       });
 
       then('applied result shows 1 hook created', () => {
@@ -168,13 +187,13 @@ describe('syncAllRoleHooksIntoEachBrainRepl', () => {
       repo: 'test-registry',
     };
 
-    const adapterClaude = createMockAdapter('claude-code', []);
+    const adapterClaude = createMockAdapter('test-brain', []);
     const adapterOpencode = createMockAdapter('opencode', []);
 
     const result = useBeforeAll(async () => {
-      mockDetectBrains.mockResolvedValue(['claude-code', 'opencode']);
+      mockDetectBrains.mockResolvedValue(['test-brain', 'opencode']);
       mockGetAdapter.mockImplementation(async (input: { brain: string }) => {
-        if (input.brain === 'claude-code') return adapterClaude;
+        if (input.brain === 'test-brain') return adapterClaude;
         if (input.brain === 'opencode') return adapterOpencode;
         return null;
       });
@@ -264,11 +283,11 @@ describe('syncAllRoleHooksIntoEachBrainRepl', () => {
       repo: 'test-registry',
     };
 
-    const adapter = createMockAdapter('claude-code', []);
+    const adapter = createMockAdapter('test-brain', []);
 
     const result = useBeforeAll(async () => {
       // detection would return both, but we only pass one explicitly
-      mockDetectBrains.mockResolvedValue(['claude-code', 'opencode']);
+      mockDetectBrains.mockResolvedValue(['test-brain', 'opencode']);
       mockGetAdapter.mockResolvedValue(adapter);
 
       const context = new ContextCli({
@@ -276,7 +295,7 @@ describe('syncAllRoleHooksIntoEachBrainRepl', () => {
         gitroot: '/tmp/test-repo',
       });
       return syncAllRoleHooksIntoEachBrainRepl(
-        { roles: [role], brains: ['claude-code'] },
+        { roles: [role], brains: ['test-brain'] },
         context,
       );
     });
@@ -291,4 +310,54 @@ describe('syncAllRoleHooksIntoEachBrainRepl', () => {
       });
     });
   });
+
+  given(
+    '[case5] claude code, with hooks via brain (an in-mem union read)',
+    () => {
+      const role: HasRepo<Role> = {
+        ...new Role({
+          slug: 'mechanic',
+          name: 'Mechanic',
+          purpose: 'test role',
+          readme: { uri: 'readme.md' },
+          traits: [],
+          skills: { dirs: { uri: 'skills' }, refs: [] },
+          briefs: { dirs: { uri: 'briefs' } },
+          hooks: {
+            onBrain: {
+              onBoot: [{ command: 'echo boot', timeout: 'PT30S' }],
+            },
+          },
+        }),
+        repo: 'test-registry',
+      };
+
+      const adapter = createMockAdapter('claude-code', []);
+
+      const result = useBeforeAll(async () => {
+        mockGetAdapter.mockResolvedValue(adapter);
+        const context = new ContextCli({
+          cwd: '/tmp/test-repo',
+          gitroot: '/tmp/test-repo',
+        });
+        return syncAllRoleHooksIntoEachBrainRepl(
+          { roles: [role], brains: ['claude-code'], hooksVia: 'brain' },
+          context,
+        );
+      });
+
+      when('[t0] sync is executed', () => {
+        then('the dispatch selector is never asked for an adapter', () => {
+          expect(spyGetAdapterForSync).not.toHaveBeenCalled();
+        });
+
+        then("the brain's own adapter receives the role hook as is", () => {
+          expect(result.errors).toHaveLength(0);
+          expect(adapter.calls.upsert.map((hook) => hook.command)).toEqual([
+            'echo boot',
+          ]);
+        });
+      });
+    },
+  );
 });

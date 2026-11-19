@@ -24,13 +24,16 @@ const extractSlugFromPath = (input: {
 /**
  * .what = discovers executable init files from linked role directories
  * .why = enables `rhachet roles init --command` to find and execute inits
+ * .note = `repoPath` defaults to the process cwd, where `rhx` looks; the hook sync names the repo
+ *   it targets, so the dispatcher runs the very file `rhx` would
  */
 export const discoverInitExecutables = (input: {
   slugRepo?: string;
   slugRole?: string;
   slugInit?: string;
+  repoPath: string | null;
 }): RoleInitExecutable[] => {
-  const agentDir = resolve(process.cwd(), '.agent');
+  const agentDir = resolve(input.repoPath ?? process.cwd(), '.agent');
 
   // skip if .agent directory does not exist
   if (!existsSync(agentDir)) return [];

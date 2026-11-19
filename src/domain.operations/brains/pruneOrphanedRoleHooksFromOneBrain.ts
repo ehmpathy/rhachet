@@ -1,6 +1,8 @@
 import type { BrainHook } from '@src/domain.objects/BrainHook';
 import type { BrainHooksAdapter } from '@src/domain.objects/BrainHooksAdapter';
 
+import { isHookAuthorOfRole } from './isHookAuthorOfRole';
+
 /**
  * .what = removes hooks from roles that are no longer linked
  * .why = when a role is unlinked, its hooks should be cleaned up on next init
@@ -18,9 +20,8 @@ export const pruneOrphanedRoleHooksFromOneBrain = async (input: {
   const allHooks = await adapter.dao.get.all();
 
   // identify rhachet-managed hooks by author pattern
-  const rhachetAuthorPattern = /^repo=.+\/role=.+$/;
   const rhachetHooks = allHooks.filter((h) =>
-    rhachetAuthorPattern.test(h.author),
+    isHookAuthorOfRole({ author: h.author }),
   );
 
   // find orphaned hooks (author not in linked roles)

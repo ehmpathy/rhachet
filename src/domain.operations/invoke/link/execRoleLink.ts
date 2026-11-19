@@ -190,8 +190,8 @@ export const execRoleLink = (
     inits.fileCount > 0 ? `${inits.fileCount} init(s)` : null,
   ].filter(Boolean) as string[];
 
-  // print tree with two branches: links and stats
-  console.log(`   ├─ links`);
+  // print tree with two branches: links and stats; links closes the tree when no stats follow
+  console.log(`   ${statsItems.length > 0 ? '├─' : '└─'} links`);
   linkResults.forEach((result, idx) => {
     const isLast = idx === linkResults.length - 1;
     const branch = isLast ? '└─' : '├─';

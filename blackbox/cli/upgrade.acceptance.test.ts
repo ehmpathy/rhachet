@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { ConstraintError } from 'helpful-errors';
@@ -107,6 +107,28 @@ const extractRhachetOutput = (input: {
 };
 
 /**
+ * .what = reads the `└─ N created` count beneath `✨ hooks` from upgrade stdout
+ * .why = the summary snapshot pins the count as a literal; this also asserts it equals the rules
+ *        the sync landed in the manifest, so a created count the manifest does not hold is red
+ */
+const getHookCountCreated = (input: { stdout: string }): number | null => {
+  const match = input.stdout.match(
+    /✨ hooks\n(?:\s+[├│].*\n)*\s+[├└]─ (\d+) created/,
+  );
+  return match ? Number(match[1]) : null;
+};
+
+/**
+ * .what = the rule rows the repo's hook dispatch manifest holds
+ * .why = the oracle for the created count: whatever the latest published role declares, the
+ *        sync must create one hook per rule it lands, so the two counts are equal by contract
+ */
+const getManifestRuleCount = (input: { repoPath: string }): number =>
+  readFileSync(join(input.repoPath, '.claude', 'hooks.dispatch.manifest'), 'utf-8')
+    .split('\n')
+    .filter((line) => line.length > 0 && !line.startsWith('#')).length;
+
+/**
  * .what = whether a stdout line belongs to the ✨ summary
  * .why = a summary header may carry its counts as tree rows beneath it; a filter on `✨` alone
  *        keeps the header and drops the counts, so the snapshot shows a bare `✨ hooks`
@@ -120,33 +142,6 @@ const isSummaryLine = (input: { lines: string[]; index: number }): boolean => {
   if (input.index === 0) return false;
   return isSummaryLine({ lines: input.lines, index: input.index - 1 });
 };
-
-/**
- * .what = reads the count of hooks the summary reports as created
- * .why  = a summary that `maskPublishedHookCount` masks still owes a check that hooks landed
- */
-const getHookCountCreated = (input: { summary: string }): number => {
-  const match = input.summary.match(/✨ hooks\n {3}└─ (\d+) created/);
-  if (!match)
-    throw new ConstraintError('the summary holds no `✨ hooks` created row', {
-      hint: 'the hooks row moved or was renamed — repair the read, never mask the absence',
-      summary: input.summary,
-    });
-  return Number(match[1]);
-};
-
-/**
- * .what = masks the count of hooks created under `✨ hooks` to a stable token
- * .why  = an upgrade installs the latest published role package, whose hook count is that
- *   package's to change. measured 2026-11-16: `rhachet-roles-ehmpathy@1.43.0` took mechanic from
- *   14 hooks to 16 and turned two snapshots red with no change here
- * .note = a caller pairs it with `getHookCountCreated`, so the count is asserted, never dropped
- */
-const maskPublishedHookCount = (input: { summary: string }): string =>
-  input.summary.replace(
-    /(✨ hooks\n {3}└─ )\d+( created)/,
-    '$1$HOOK_COUNT$2',
-  );
 
 /**
  * .what = drops ansi color escape sequences from a string
@@ -1003,18 +998,20 @@ describe('rhachet upgrade', () => {
         expect(result.upgradeResult.stdout).toContain('🔧 init');
       });
 
-      then('the published role creates at least one hook', () => {
-        const { summary } = extractRhachetOutput({
+      then('the reinit creates one hook per rule it lands in the manifest', () => {
+        const count = getHookCountCreated({
           stdout: result.upgradeResult.stdout,
         });
-        expect(getHookCountCreated({ summary })).toBeGreaterThan(0);
+        expect(count).not.toBeNull();
+        expect(count).toBeGreaterThan(0);
+        expect(count).toEqual(getManifestRuleCount({ repoPath: scene.repo.path }));
       });
 
       then('stdout.summary matches snapshot', () => {
         const { summary } = extractRhachetOutput({
           stdout: result.upgradeResult.stdout,
         });
-        expect(maskPublishedHookCount({ summary })).toMatchSnapshot();
+        expect(summary).toMatchSnapshot();
       });
     });
   });
@@ -1057,6 +1054,15 @@ describe('rhachet upgrade', () => {
         expect(result.upgradeResult.stdout).toContain('🔧 init');
       });
 
+      then('the reinit creates one hook per rule it lands in the manifest', () => {
+        const count = getHookCountCreated({
+          stdout: result.upgradeResult.stdout,
+        });
+        expect(count).not.toBeNull();
+        expect(count).toBeGreaterThan(0);
+        expect(count).toEqual(getManifestRuleCount({ repoPath: scene.repo.path }));
+      });
+
       then('the default brain dir reports as a tree, never a census line', () => {
         // the reinit of a linked role re-renders the repo's brain dir; no actor is
         //   enrolled here. a human reads one `🧠 brain dir` treestruct, never a census line
@@ -1083,18 +1089,11 @@ describe('rhachet upgrade', () => {
         ).toMatchSnapshot();
       });
 
-      then('the published role creates at least one hook', () => {
-        const { summary } = extractRhachetOutput({
-          stdout: result.upgradeResult.stdout,
-        });
-        expect(getHookCountCreated({ summary })).toBeGreaterThan(0);
-      });
-
       then('stdout.summary matches snapshot', () => {
         const { summary } = extractRhachetOutput({
           stdout: result.upgradeResult.stdout,
         });
-        expect(maskPublishedHookCount({ summary })).toMatchSnapshot();
+        expect(summary).toMatchSnapshot();
       });
     });
   });
@@ -1544,6 +1543,83 @@ describe('rhachet upgrade', () => {
       then('stdout.header matches snapshot', () => {
         const { header } = extractRhachetOutput({ stdout: result.stdout });
         expect(asSnapshotSafe(header)).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case18] a linked role whose hooks an older rhachet wrote into the settings, one per rule', () => {
+    // the state a repo holds before this rhachet: role hooks one per rule in the settings, and no
+    //   dispatch manifest. `rhx upgrade` must move them into the manifest, behind one dispatcher
+    //   per event, and say so. the fixture's deps are `file:` refs, so no network is needed
+    const scene = useBeforeAll(async () => {
+      const repo = await genTestTempRepo({ fixture: 'with-role-hooks' });
+
+      // link the role first, so the upgrade has a linked role to re-sync
+      const linked = invokeRhachetCliBinary({
+        args: ['init', '--roles', 'tester'],
+        cwd: repo.path,
+      });
+      if (linked.status !== 0)
+        throw new ConstraintError('init --roles tester failed', {
+          stderr: linked.stderr,
+          hint: 'run `npm run build` so the linked fixture sees a fresh dist, then re-run',
+        });
+
+      // roll the brain dir back to the per-rule shape: the role hooks in the settings, no manifest
+      const brainDir = join(repo.path, '.claude');
+      const asEntry = (command: string, timeout: string) => ({
+        matcher: '*',
+        hooks: [{ type: 'command', command, timeout, author: 'repo=test/role=tester' }],
+      });
+      writeFileSync(
+        join(brainDir, 'settings.of.repo.json'),
+        JSON.stringify(
+          {
+            hooks: {
+              SessionStart: [asEntry('echo boot-hook-1', '10s'), asEntry('echo boot-hook-2', '5s')],
+              PreToolUse: [asEntry('echo tool-hook', '5s')],
+            },
+          },
+          null,
+          2,
+        ),
+      );
+      rmSync(join(brainDir, 'hooks.dispatch.manifest'), { force: true });
+      return { repo };
+    });
+
+    when('[t0] rhachet upgrade --roles test/tester --which local', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['upgrade', '--roles', 'test/tester', '--which', 'local'],
+          cwd: scene.repo.path,
+        }),
+      );
+
+      then('exits 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('the settings hold one dispatcher per event and no role hook', () => {
+        const settings = JSON.parse(
+          readFileSync(join(scene.repo.path, '.claude', 'settings.of.repo.json'), 'utf-8'),
+        );
+        const authors = Object.values(settings.hooks as Record<string, Array<{ hooks: Array<{ author: string }> }>>)
+          .flatMap((entries) => entries.flatMap((entry) => entry.hooks.map((hook) => hook.author)));
+        expect(authors).toEqual(['rhachet/hooks.dispatch', 'rhachet/hooks.dispatch']);
+      });
+
+      then('the manifest holds the three rules', () => {
+        expect(getManifestRuleCount({ repoPath: scene.repo.path })).toEqual(3);
+      });
+
+      then('the swap report matches the snapshot', () => {
+        // from the `🪝 hook dispatchers set` header to the next blank line
+        const lines = result.stdout.split('\n');
+        const start = lines.findIndex((line) => line.startsWith('🪝 hook dispatchers set'));
+        expect(start).toBeGreaterThanOrEqual(0);
+        const end = lines.findIndex((line, index) => index > start && line.trim() === '');
+        expect(lines.slice(start, end < 0 ? undefined : end).join('\n')).toMatchSnapshot();
       });
     });
   });

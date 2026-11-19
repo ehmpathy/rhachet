@@ -77,7 +77,7 @@ exports[`rhachet upgrade given: [case11] --roles ehmpathy/* with linked role whe
 ✨ 1 role(s) linked
 ✨ 1 role(s) initialized
 ✨ hooks
-   └─ $HOOK_COUNT created
+   └─ 16 created
 ✨ 1 role(s) upgraded: ehmpathy/*"
 `;
 
@@ -105,7 +105,7 @@ exports[`rhachet upgrade given: [case12] --roles ehmpathy/mechanic with linked r
 ✨ 1 role(s) linked
 ✨ 1 role(s) initialized
 ✨ hooks
-   └─ $HOOK_COUNT created
+   └─ 16 created
 ✨ 1 role(s) upgraded: ehmpathy/mechanic"
 `;
 
@@ -177,4 +177,14 @@ exports[`rhachet upgrade given: [case17] a linked role whose brain adapter refus
 💥 MalfunctionError: 1 hook sync error — role hooks may be uninstalled
 
 hint: hooks did not land — fix the hook sync faults above, then rerun \`rhx upgrade\`"
+`;
+
+exports[`rhachet upgrade given: [case18] a linked role whose hooks an older rhachet wrote into the settings, one per rule when: [t0] rhachet upgrade --roles test/tester --which local then: the swap report matches the snapshot 1`] = `
+"🪝 hook dispatchers set
+   └─ anthropic/claude/code
+      ├─ 3 rules → 2 dispatchers, one per event
+      │  ├─ SessionStart = 2 rules
+      │  └─ PreToolUse = 1 rule
+      ├─ 3 role hooks moved from the settings into the manifest
+      └─ manifest = .claude/hooks.dispatch.manifest"
 `;

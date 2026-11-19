@@ -1,0 +1,272 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t0] a Bash call every rule allows then: the output a human reads matches the snapshot 1`] = `
+"exit = 0
+--- stdout ---
+
+🪨 run solid skill repo=test/role=tester/skill=allow
+
+allowed --skill allow --mode hook
+
+🪨 run solid skill repo=test/role=tester/skill=block
+
+block.sh passed
+trap.sh saw 101 bytes
+
+--- stderr ---
+(empty)"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t1b] a Bash call two rules block, under an env that paints no color then: the stderr that holds the call matches the snapshot, its blocked-by tail included 1`] = `
+"
+🪨 run solid skill repo=test/role=tester/skill=block
+   └─ ✋ blocked by constraints
+
+✋ ConstraintError: block.sh refuses --skill block --mode hook
+   └─ hint: drop the word deny
+✋ trap.sh refuses
+trap fired in trap.sh, src=trap.sh
+🪝 hooks.dispatch PreToolUse blocked by .agent/repo=test/role=tester/skills/block.sh
+🪝 hooks.dispatch PreToolUse blocked by .agent/repo=test/role=tester/inits/claude.hooks/trap.sh
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t2] a Bash call one rule crashes then: the crash a human reads matches the snapshot 1`] = `
+"exit = 1
+--- stderr ---
+boom
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t3] a Bash call where one rule asks via json and one crashes then: the merged json matches the snapshot 1`] = `
+"{
+  "systemMessage": "boom\\n",
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "ask"
+  }
+}"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t4] a Bash call where one rule hangs past its timeout then: the stderr matches the snapshot 1`] = `
+"
+🪨 run solid skill repo=test/role=tester/skill=block
+   └─ ✋ blocked by constraints
+
+✋ ConstraintError: block.sh refuses --skill block --mode hook
+   └─ hint: drop the word deny
+✋ trap.sh refuses
+trap fired in trap.sh, src=trap.sh
+💥 MalfunctionError: hook rule timed out after 2s (.agent/repo=test/role=tester/inits/claude.hooks/hang.sh)
+   └─ fix = find why the rule hangs, or raise the timeout its role declares
+🪝 hooks.dispatch PreToolUse blocked by .agent/repo=test/role=tester/skills/block.sh
+🪝 hooks.dispatch PreToolUse blocked by .agent/repo=test/role=tester/inits/claude.hooks/trap.sh
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t5] a SessionStart then: the context that lands matches the snapshot 1`] = `
+"
+💪 init role repo=test/role=tester/init=claude.hooks/boot
+
+boot context, args=--repo test --role tester --init claude.hooks/boot
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t5b] a UserPromptSubmit, whose two rules each add context then: the context that lands matches the snapshot 1`] = `
+"
+🪨 run solid skill repo=test/role=tester/skill=allow
+
+allowed --skill allow --mode talk
+boot context, args=talk
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t6b] a Stop an rhx skill rule blocks then: the stderr that holds the stop matches the snapshot 1`] = `
+"
+🪨 run solid skill repo=test/role=tester/skill=block
+   └─ ✋ blocked by constraints
+
+✋ ConstraintError: block.sh refuses --skill block --mode stop
+   └─ hint: drop the word deny
+🪝 hooks.dispatch Stop blocked by .agent/repo=test/role=tester/skills/block.sh
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t7] the manifest is absent then: the refusal matches the snapshot 1`] = `
+"✋ ConstraintError: hook dispatch manifest not found
+   ├─ manifest = .claude/absent.manifest
+   ├─ event = PreToolUse
+   └─ fix = run \`npx rhx init --hooks\` to rewrite it
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t7b] the manifest is absent, on the events where a block erases a prompt or holds a stop then: the prompt refusal matches the snapshot 1`] = `
+"✋ ConstraintError: hook dispatch manifest not found
+   ├─ manifest = .claude/absent.manifest
+   ├─ event = UserPromptSubmit
+   └─ fix = run \`npx rhx init --hooks\` to rewrite it
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t7b] the manifest is absent, on the events where a block erases a prompt or holds a stop then: the stop refusal matches the snapshot 1`] = `
+"✋ ConstraintError: hook dispatch manifest not found
+   ├─ manifest = .claude/absent.manifest
+   ├─ event = Stop
+   └─ fix = run \`npx rhx init --hooks\` to rewrite it
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t8] init --hooks runs again then: the hooks report of the rerun matches the snapshot 1`] = `
+"🪝 apply hooks to brains...
+
+✨ hooks
+   └─ no changes needed
+
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t9] a rule crashes with no stderr then: stderr names the rule that crashed, since claude labels only the dispatcher 1`] = `
+"💥 MalfunctionError: hook rule exited 3 with no stderr (\`exit 3\`)
+   └─ fix = run the rule alone with this event's payload on stdin, to see why it exits 3
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t10] two rules emit json decisions of different rank then: the decisions claude reads match the snapshot 1`] = `
+"{
+  "allowThenDeny": {
+    "hookSpecificOutput": {
+      "hookEventName": "PreToolUse",
+      "permissionDecision": "deny",
+      "permissionDecisionReason": "rule says deny"
+    }
+  },
+  "askThenAllow": {
+    "hookSpecificOutput": {
+      "hookEventName": "PreToolUse",
+      "permissionDecision": "ask",
+      "permissionDecisionReason": "rule says ask"
+    }
+  }
+}"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t11] a rule whose matcher is no valid regex then: the dispatcher reports it as a crash, never a silent skip 1`] = `
+"💥 MalfunctionError: hook rule matcher is no valid regex: \`(?i)bash\` (\`echo ran\`)
+   └─ fix = run \`npx rhx init --hooks\` to rewrite the manifest from the roles
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t12] a rule that ignores TERM hangs past its timeout then: the timeout notice matches the snapshot 1`] = `
+"💥 MalfunctionError: hook rule timed out after 1s (\`trap '' TERM; sleep 9\`)
+   └─ fix = find why the rule hangs, or raise the timeout its role declares
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t13] the manifest is of a version this dispatcher does not read then: the refusal matches the snapshot 1`] = `
+"✋ ConstraintError: hook dispatch manifest version is not one this dispatcher reads
+   ├─ manifest = .claude/version-skew.manifest
+   ├─ header = # rhachet hooks.dispatch manifest v2 — written by \`rhx init --hooks\`
+   ├─ reads = v1
+   └─ fix = run \`npx rhx init --hooks\`, with the rhachet this repo installs, to rewrite it
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t15] a manifest row is truncated, with no kind and no command then: the refusal matches the snapshot 1`] = `
+"✋ ConstraintError: hook dispatch manifest row is malformed
+   ├─ manifest = .claude/truncated-row.manifest
+   ├─ line = 2
+   ├─ why = it has no command (a truncated row)
+   ├─ event = PreToolUse
+   ├─ kind = (none)
+   └─ fix = run \`npx rhx init --hooks\` to rewrite it
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t19] the per-call dir cannot be written, and a rule would block then: the refusal matches the snapshot 1`] = `
+"✋ ConstraintError: hook dispatch cannot create its per-call files
+   ├─ dir = $TMPDIR
+   ├─ event = PreToolUse
+   └─ fix = point TMPDIR at a dir this user owns and can write
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t21] a manifest row holds more fields than v1 declares then: the refusal matches the snapshot 1`] = `
+"✋ ConstraintError: hook dispatch manifest row is malformed
+   ├─ manifest = .claude/long-row.manifest
+   ├─ line = 2
+   ├─ why = it holds more fields than v1 declares
+   ├─ event = PreToolUse
+   ├─ kind = foreign
+   └─ fix = run \`npx rhx init --hooks\` to rewrite it
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t21b] a manifest that holds an unresolved merge conflict then: the refusal matches the snapshot 1`] = `
+"✋ ConstraintError: hook dispatch manifest holds an unresolved merge conflict
+   ├─ manifest = .claude/conflicted.manifest
+   └─ fix = take either side, then run \`npx rhx init --hooks\` to rewrite it from the roles
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t22] two PermissionRequest rules decide via the behavior object then: the decision claude reads matches the snapshot 1`] = `
+"{
+  "hookSpecificOutput": {
+    "hookEventName": "PermissionRequest",
+    "decision": {
+      "behavior": "deny"
+    }
+  }
+}"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t24] a SessionStart where one rule emits json context and another plain context then: the context claude reads matches the snapshot 1`] = `
+"{
+  "hookSpecificOutput": {
+    "hookEventName": "SessionStart",
+    "additionalContext": "from json"
+  }
+}"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t25] a Bash call two rules block, with a trace file set then: the trace matches the snapshot 1`] = `
+"hooks.dispatch[__PID__] PreToolUse · skip, matcher Read does not fit Bash · .agent/repo=test/role=tester/skills/allow.sh
+hooks.dispatch[__PID__] PreToolUse · ran rhx-skill, exit 0 · .agent/repo=test/role=tester/skills/allow.sh
+hooks.dispatch[__PID__] PreToolUse · ran rhx-skill, exit 2 · .agent/repo=test/role=tester/skills/block.sh
+hooks.dispatch[__PID__] PreToolUse · ran shell, exit 2 · .agent/repo=test/role=tester/inits/claude.hooks/trap.sh
+hooks.dispatch[__PID__] PreToolUse · ran shell, exit 0 · .agent/repo=test/role=tester/inits/claude.hooks/crash.sh
+hooks.dispatch[__PID__] PreToolUse · ran shell, exit 0 · .agent/repo=test/role=tester/inits/claude.hooks/json.sh
+hooks.dispatch[__PID__] PreToolUse · ran shell, exit 0 · .agent/repo=test/role=tester/inits/claude.hooks/hang.sh
+hooks.dispatch[__PID__] PreToolUse · 6 ran, 1 skipped · exit 2, __DURATION__
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t30] a SessionStart where one rule emits plain context with control bytes and another crashes (vision case=4) then: the json claude reads matches the snapshot 1`] = `
+"{
+  "systemMessage": "boom\\n",
+  "hookSpecificOutput": {
+    "hookEventName": "SessionStart",
+    "additionalContext": "ctx\\u0001bell\\fform\\btab\\tend\\n"
+  }
+}"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t34] a UserPromptSubmit where one rule emits plain context and another crashes (vision case=4) then: the json claude reads matches the snapshot 1`] = `
+"{
+  "systemMessage": "boom\\n",
+  "hookSpecificOutput": {
+    "hookEventName": "UserPromptSubmit",
+    "additionalContext": "talk context\\n"
+  }
+}"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t37] a Bash call where one rule names a .sh that is gone, beside a live blocker then: the result matches the snapshot 1`] = `
+{
+  "code": 2,
+  "stderr": "live says no
+bash: .claude/gone.sh: No such file or directory
+🪝 hooks.dispatch PreToolUse blocked by echo live says no >&2; exit 2
+",
+  "stdout": "",
+}
+`;

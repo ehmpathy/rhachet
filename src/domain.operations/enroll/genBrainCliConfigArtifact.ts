@@ -20,6 +20,7 @@ import { asClaudeMdExcludesOutsideDirs } from './asClaudeMdExcludesOutsideDirs';
 import { asSettingsWithoutCloneEnv } from './asSettingsWithoutCloneEnv';
 import { getClaudeMdExcludesList } from './getClaudeMdExcludesList';
 import { getSettingsForRoles } from './getSettingsForRoles';
+import { setActorHookDispatchManifestDerived } from './setActorHookDispatchManifestDerived';
 
 /**
  * .what = writes an actor's `settings.of.repo.json`: the repo actor's settings, narrowed to
@@ -131,12 +132,29 @@ const setActorSettingsRepoWithinLock = async (input: {
   const settingsSource = await readClaudeCodeSettings({
     from: dirname(repoActorBrainDir),
   });
-  const settingsNarrowed = asSettingsNarrowedForActor({
+  const settingsNarrowedByAuthor = asSettingsNarrowedForActor({
     settingsSource,
     hooksOfLinkedRoles,
     roles: enrollment.roles,
     isRepoActor,
   });
+
+  // narrow the repo actor's dispatch manifest to this actor's roles, written before the
+  //   settings that name it; the actor's dispatchers then name its own manifest
+  //   .note = under `.agent/actors.yml` the hooks come per rule from the linked roles, as on
+  //     main: the root sync writes no repo actor manifest there, so a manifest on disk is stale
+  const settingsNarrowed =
+    hooksOfLinkedRoles === null
+      ? await setActorHookDispatchManifestDerived({
+          settings: settingsNarrowedByAuthor,
+          settingsSource,
+          roles: enrollment.roles,
+          repoPath,
+          repoActorBrainDir,
+          actorBrainDir,
+          isRepoActor,
+        })
+      : settingsNarrowedByAuthor;
 
   // drop any clone identity key from the env map, so the spawn alone sets the depth
   const settings = asSettingsWithoutCloneEnv({

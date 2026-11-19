@@ -5,6 +5,11 @@ import { execSync, spawnSync } from 'node:child_process';
 
 import { getAllActorHashDirNames } from '@/blackbox/.test/infra/brainDirBootJourney';
 import {
+  getAllHookDispatchManifestRows,
+  HOOK_DISPATCH_AUTHOR,
+} from '@/blackbox/.test/infra/getAllHookDispatchManifestRows';
+import { seedRoleAuthoredHookRulesDispatched } from '@/blackbox/.test/infra/seedRoleAuthoredHookRulesDispatched';
+import {
   asCloneSayHeadSnapshotSafe,
   expectCloneSaySuccessTree,
   setupEnrollFixture,
@@ -101,6 +106,8 @@ const maskStubBrainPaths = (input: string): string =>
  *   as its own entry — a newline or space join would erase it
  * .note = `--version` answers the floor and records naught, so the record holds the spawn
  *   argv alone, never the floor probe
+ * .note = the record lands by rename, never by `>` in place: `>` creates the file empty before
+ *   printf fills it, and the reader polls for existence only, so under load it read `[]`
  */
 const setupArgvRecorderBrainPath = (input: {
   dir: string;
@@ -114,7 +121,8 @@ const setupArgvRecorderBrainPath = (input: {
     [
       '#!/usr/bin/env bash',
       'if [ "$1" = "--version" ]; then echo "2.1.277 (Claude Code)"; exit 0; fi',
-      `printf '%s\\0' "$@" > "${recordPath}"`,
+      `printf '%s\\0' "$@" > "${recordPath}.tmp.$$"`,
+      `mv "${recordPath}.tmp.$$" "${recordPath}"`,
       'exit 0',
       '',
     ].join('\n'),
@@ -1004,6 +1012,189 @@ describe('rhx enroll --roles (acceptance)', () => {
       });
 
       then('the refusal is locked to a snapshot', () => {
+        expect(asSnapshotSafeOfCredential(scene.run.stderr)).toMatchSnapshot();
+      });
+    });
+
+    when('[t3] a `-driver` enroll in a repo on the hook dispatcher', () => {
+      // the role rules live in the repo actor's manifest, behind one dispatcher per event. the
+      //   actor's own manifest must hold no driver rule, and its dispatcher must name that
+      //   manifest, never the repo actor's (rhachet#764)
+      const scene = useBeforeAll(async () => {
+        const dir = genTempDir({ slug: 'enroll-invariant-dispatched-no-driver' });
+        setupEnrollFixture(dir);
+        seedRoleAuthoredHookRulesDispatched({ dir });
+        const home = join(dir, '.home');
+        mkdirSync(join(home, '.claude'), { recursive: true });
+        writeFileSync(join(home, '.claude', 'settings.json'), '{}\n', 'utf-8');
+        const recorder = setupArgvRecorderBrainPath({ dir });
+        const run = invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--roles', '-driver'],
+          cwd: dir,
+          env: { PATH: recorder.path, HOME: home },
+          logOnError: false,
+        });
+        const argv = run.status === 0
+          ? await readRecordedBrainArgv({ recordPath: recorder.recordPath })
+          : [];
+        const brainDir = join(
+          dir,
+          '.agent',
+          '.actors',
+          getOneEnrolledActorDirName({ dir }),
+          'brain',
+          '.claude',
+        );
+        const rows = await getAllHookDispatchManifestRows({ claudeDir: brainDir });
+        return { dir, run, argv, brainDir, rows };
+      });
+
+      then('enroll exits 0', () => {
+        expect(scene.run.status).toEqual(0);
+      });
+
+      then("the actor's manifest holds the enrolled roles' rules and no driver rule", () => {
+        const authors = scene.rows.map((row) => row.author);
+        expect(authors).toContain('repo=ehmpathy/role=mechanic');
+        expect(authors).not.toContain('repo=bhrain/role=driver');
+      });
+
+      then("the actor's dispatcher names the actor's own manifest", () => {
+        const flagIndex = scene.argv.indexOf('--settings');
+        const content = readFileSync(scene.argv[flagIndex + 1]!, 'utf-8');
+        expect(content).toContain(HOOK_DISPATCH_AUTHOR);
+        expect(content).toContain(`${getOneEnrolledActorDirName({ dir: scene.dir })}/brain/.claude/hooks.dispatch.manifest`);
+        expect(content).not.toContain('actor.via.repo=ambient/brain/.claude/hooks.dispatch.manifest');
+      });
+
+      then("the clone's dispatcher hooks and manifest rows match the snapshot", () => {
+        // a reader's view of what the clone loads: one dispatcher per event, and the rules it runs
+        const flagIndex = scene.argv.indexOf('--settings');
+        const settings = JSON.parse(readFileSync(scene.argv[flagIndex + 1]!, 'utf-8'));
+        const view = JSON.stringify(
+          {
+            hooks: settings.hooks,
+            rows: scene.rows.map((row) => ({ event: row.event, matcher: row.matcher, author: row.author })),
+          },
+          null,
+          2,
+        );
+        // the actor hash derives from the roleset, not from this behavior; it is masked so a
+        //   roleset change elsewhere never reds this snap
+        expect(
+          view
+            .split(scene.dir)
+            .join('$DIR')
+            .replace(/actor\.via\.hash=[0-9a-f]+/g, 'actor.via.hash=__HEX__'),
+        ).toMatchSnapshot();
+      });
+    });
+
+    when('[t4] the repo actor settings name a dispatcher, but its manifest is absent', () => {
+      // a fresh checkout held the committed settings with no manifest beside them. the author
+      //   narrow drops the dispatcher, so a pass-through would spawn a clone with no role hook;
+      //   enroll must refuse before the brain starts (rhachet#764, r010 blocker.1)
+      const scene = useBeforeAll(async () => {
+        const dir = genTempDir({ slug: 'enroll-dispatcher-manifest-absent' });
+        setupEnrollFixture(dir);
+        seedRoleAuthoredHookRulesDispatched({ dir });
+        rmSync(
+          join(dir, '.agent', '.actors', 'actor.via.repo=ambient', 'brain', '.claude', 'hooks.dispatch.manifest'),
+        );
+        const home = join(dir, '.home');
+        mkdirSync(join(home, '.claude'), { recursive: true });
+        writeFileSync(join(home, '.claude', 'settings.json'), '{}\n', 'utf-8');
+        const recorder = setupArgvRecorderBrainPath({ dir });
+        const run = invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--roles', '-driver'],
+          cwd: dir,
+          env: { PATH: recorder.path, HOME: home },
+          logOnError: false,
+        });
+        return { run, recorder };
+      });
+
+      then('enroll refuses with exit 2, before the brain spawns', () => {
+        expect(scene.run.status).toEqual(2);
+        expect(existsSync(scene.recorder.recordPath)).toEqual(false);
+      });
+
+      then('the refusal names the absent manifest and the fix', () => {
+        expect(scene.run.stderr).toContain('ConstraintError');
+        expect(scene.run.stderr).toContain('actor.via.repo=ambient/brain/.claude/hooks.dispatch.manifest');
+        expect(scene.run.stderr).toContain('npx rhx init --hooks');
+      });
+
+      then('the refusal is locked to a snapshot', () => {
+        expect(asSnapshotSafeOfCredential(scene.run.stderr)).toMatchSnapshot();
+      });
+    });
+
+    when('[t2] the HOME grove starts a hook dispatcher whose manifest holds a driver rule', () => {
+      // a dispatcher hook carries no role author; the roles it runs sit in its manifest. the
+      //   guard must read through the dispatcher to the manifest, or a driver rule rides in
+      //   unseen under an author that names no role (rhachet#764)
+      const scene = useBeforeAll(async () => {
+        const dir = genTempDir({ slug: 'enroll-invariant-grove-dispatch-leak' });
+        setupEnrollFixture(dir);
+        const home = join(dir, '.home');
+        mkdirSync(join(home, '.claude'), { recursive: true });
+        const manifestPath = join(home, '.claude', 'hooks.dispatch.manifest');
+        writeFileSync(
+          manifestPath,
+          [
+            '# rhachet hooks.dispatch manifest v1',
+            ['SessionStart', '*', '5', 'repo=bhrain/role=driver', 'shell', '', '', '', 'true', ''].join('\x1f'),
+            '',
+          ].join('\n'),
+          'utf-8',
+        );
+        writeFileSync(
+          join(home, '.claude', 'settings.json'),
+          `${JSON.stringify(
+            {
+              hooks: {
+                SessionStart: [
+                  {
+                    matcher: '*',
+                    hooks: [
+                      {
+                        type: 'command',
+                        command: `bash ./node_modules/rhachet/bin/hooks.dispatch.sh ${manifestPath} SessionStart`,
+                        author: HOOK_DISPATCH_AUTHOR,
+                      },
+                    ],
+                  },
+                ],
+              },
+            },
+            null,
+            2,
+          )}\n`,
+          'utf-8',
+        );
+        const recorder = setupArgvRecorderBrainPath({ dir });
+        const run = invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--roles', '-driver'],
+          cwd: dir,
+          env: { PATH: recorder.path, HOME: home },
+          logOnError: false,
+        });
+        return { run, recorder };
+      });
+
+      then('enroll refuses with exit 2, before the brain spawns', () => {
+        expect(scene.run.status).toEqual(2);
+        expect(existsSync(scene.recorder.recordPath)).toEqual(false);
+      });
+
+      then('the refusal names the leaked author and the manifest it came from', () => {
+        expect(scene.run.stderr).toContain('ConstraintError');
+        expect(scene.run.stderr).toContain('repo=bhrain/role=driver');
+        expect(scene.run.stderr).toContain('.home/.claude/hooks.dispatch.manifest');
+      });
+
+      then('the refusal matches the snapshot', () => {
         expect(asSnapshotSafeOfCredential(scene.run.stderr)).toMatchSnapshot();
       });
     });

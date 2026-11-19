@@ -1,0 +1,143 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`hooks.dispatch.probe given: [case1] one settings file per shape: per-rule, and one that starts the dispatcher when: [t0] verdicts are read from the settings that start the dispatcher then: the refusal matches the snapshot 1`] = `
+"exit = 2
+--- stdout ---
+(empty)
+--- stderr ---
+✋ ConstraintError: these settings already start the hook dispatcher; --what verdicts reads one hook per rule
+   ├─ settings = $DIR/settings.dispatched.json
+   ├─ fix = read the dispatcher against its own rules, one hook each: rhx hooks.dispatch.cost --what verdicts
+   └─ or pass --settings <a per-rule settings file>, e.g. the one main holds
+"
+`;
+
+exports[`hooks.dispatch.probe given: [case1] one settings file per shape: per-rule, and one that starts the dispatcher when: [t1] cost is read from the settings that start the dispatcher then: the refusal matches the snapshot 1`] = `
+"exit = 2
+--- stdout ---
+(empty)
+--- stderr ---
+✋ ConstraintError: these settings already start the hook dispatcher; --what cost reads one hook per rule
+   ├─ settings = $DIR/settings.dispatched.json
+   ├─ fix = read the dispatcher against its own rules, one hook each: rhx hooks.dispatch.cost --what cost
+   └─ or pass --settings <a per-rule settings file>, e.g. the one main holds
+"
+`;
+
+exports[`hooks.dispatch.probe given: [case1] one settings file per shape: per-rule, and one that starts the dispatcher when: [t2] verdicts are read from per-rule settings then: the verdicts read matches the snapshot 1`] = `
+"exit = 0
+--- stdout ---
+heres the read...
+
+🧮 hooks.dispatch.probe --what verdicts --tool Bash
+   ├─ pretooluse.block.sh → declared 2, resolved 2, stderr body held = yes
+   └─ 1 of 1 agree
+
+--- stderr ---
+(empty)"
+`;
+
+exports[`hooks.dispatch.probe given: [case1] one settings file per shape: per-rule, and one that starts the dispatcher when: [t3] the hooks list is read from the settings that start the dispatcher then: the hooks list matches the snapshot 1`] = `
+"exit = 0
+--- stdout ---
+heres the read...
+
+🧮 hooks.dispatch.probe --what hooks --tool Bash --event PreToolUse
+   ├─ settings = $DIR/settings.dispatched.json
+   ├─ 1 hook fires
+   └─ commands
+      └─ bash ./node_modules/rhachet/bin/hooks.dispatch.sh .claude/hooks.dispatch.manifest PreToolUse
+
+--- stderr ---
+(empty)"
+`;
+
+exports[`hooks.dispatch.probe given: [case1] one settings file per shape: per-rule, and one that starts the dispatcher when: [t4] the own-process idioms are read then: the idioms read matches the snapshot, the bash version masked 1`] = `
+"exit = 0
+--- stdout ---
+heres the read...
+
+🧮 hooks.dispatch.probe --what idioms
+   ├─ bash = __VER__
+   ├─ stdout = same
+   │  ├─ alone
+   │  │  ├─ name=pretooluse.probe-rule.sh
+   │  │  ├─ source=pretooluse.probe-rule.sh
+   │  │  ├─ stdin={"tool_name":"Bash"}
+   │  │  └─ set-e-guarded=1
+   │  └─ subshell
+   │     ├─ name=pretooluse.probe-rule.sh
+   │     ├─ source=pretooluse.probe-rule.sh
+   │     ├─ stdin={"tool_name":"Bash"}
+   │     └─ set-e-guarded=1
+   ├─ stderr = same
+   │  ├─ alone = trap fired in pretooluse.probe-rule.sh
+   │  └─ subshell = trap fired in pretooluse.probe-rule.sh
+   ├─ exit code = same (alone 2, subshell 2)
+   └─ caller survives a rule exit = yes
+
+--- stderr ---
+(empty)"
+`;
+
+exports[`hooks.dispatch.probe given: [case1] one settings file per shape: per-rule, and one that starts the dispatcher when: [t5] cost is read from per-rule settings then: the cost read matches the snapshot, its cpu figures masked 1`] = `
+"exit = 0
+--- stdout ---
+heres the read...
+
+🧮 hooks.dispatch.probe --what cost --tool Bash
+   ├─ 1 run, payload = pwd
+   ├─ bash rules (1)
+   │  ├─ exec per rule (today) = __N__ ms cpu per call
+   │  └─ subshell per rule (dispatcher) = __N__ ms cpu per call
+   └─ whole event (1 declared, 1 resolved)
+      ├─ as declared (today) = __N__ ms cpu per call
+      └─ resolved, as subshells (dispatcher) = __N__ ms cpu per call
+
+--- stderr ---
+(empty)"
+`;
+
+exports[`hooks.dispatch.probe given: [case1] one settings file per shape: per-rule, and one that starts the dispatcher when: [t6] each input the probe refuses then: the refusals match the snapshot 1`] = `
+"exit = 2
+--- stdout ---
+(empty)
+--- stderr ---
+✋ ConstraintError: --what hooks needs --tool <name>
+
+
+exit = 2
+--- stdout ---
+(empty)
+--- stderr ---
+✋ ConstraintError: --what verdicts needs --payload '<json>' or --payload @<file>
+
+
+exit = 2
+--- stdout ---
+(empty)
+--- stderr ---
+✋ ConstraintError: --what must be hooks, idioms, cost, or verdicts
+"
+`;
+
+exports[`hooks.dispatch.probe given: [case1] one settings file per shape: per-rule, and one that starts the dispatcher when: [t7] the help is asked for then: the help matches the snapshot 1`] = `
+".what = probe the facts a one-process hook dispatcher rests on
+.why  = the dispatcher runs each role rule in a subshell of one bash
+        process. two facts decide whether that holds a rule's bytes
+        and verdict as a standalone process would:
+        - which hooks a tool call fires today, per actor settings
+        - whether a rule's own-process idioms ($0, BASH_SOURCE, exit,
+          trap EXIT, set -e) act per rule inside a sourced subshell
+usage:
+  rhx hooks.dispatch.probe --what hooks --tool Bash
+  rhx hooks.dispatch.probe --what hooks --tool Write --event PreToolUse \\
+    --settings .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json
+  rhx hooks.dispatch.probe --what idioms
+  rhx hooks.dispatch.probe --what cost --tool Bash --runs 20
+  rhx hooks.dispatch.probe --what verdicts --payload '{"tool_name":"Bash","tool_input":{"command":"pwd"}}'
+guarantee:
+  - read-only; writes only to a temp dir it removes
+  - exit 0 = probed, 1 = malfunction, 2 = bad input
+"
+`;

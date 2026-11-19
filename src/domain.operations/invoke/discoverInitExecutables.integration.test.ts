@@ -56,11 +56,11 @@ describe('discoverInitExecutables.integration', () => {
 
     when('init discovery runs', () => {
       then('does not throw ENOENT error', () => {
-        expect(() => discoverInitExecutables({})).not.toThrow();
+        expect(() => discoverInitExecutables({ repoPath: null })).not.toThrow();
       });
 
       then('ignores broken symlink and finds valid init', () => {
-        const result = discoverInitExecutables({});
+        const result = discoverInitExecutables({ repoPath: null });
         expect(result).toHaveLength(1);
         expect(result[0]?.slug).toBe('valid-init');
       });
@@ -91,7 +91,7 @@ describe('discoverInitExecutables.integration', () => {
 
     when('init discovery runs', () => {
       then('ignores broken symlink in nested directory', () => {
-        const result = discoverInitExecutables({});
+        const result = discoverInitExecutables({ repoPath: null });
         expect(result).toHaveLength(1);
         expect(result[0]?.slug).toBe('claude.hooks/sessionstart');
       });
@@ -112,8 +112,8 @@ describe('discoverInitExecutables.integration', () => {
 
     when('init discovery runs', () => {
       then('handles broken inits directory symlink gracefully', () => {
-        expect(() => discoverInitExecutables({})).not.toThrow();
-        const result = discoverInitExecutables({});
+        expect(() => discoverInitExecutables({ repoPath: null })).not.toThrow();
+        const result = discoverInitExecutables({ repoPath: null });
         expect(result).toEqual([]);
       });
     });
@@ -149,7 +149,7 @@ describe('discoverInitExecutables.integration', () => {
 
     when('init discovery runs', () => {
       then('finds valid inits from both repos, ignores broken symlinks', () => {
-        const result = discoverInitExecutables({});
+        const result = discoverInitExecutables({ repoPath: null });
         expect(result).toHaveLength(2);
         expect(result.map((s) => s.slug).sort()).toEqual(['local', 'remote']);
       });
