@@ -25,7 +25,15 @@ exports[`asBrainDirSyncReportLines given: [case2] a link this run created, with 
 ]
 `;
 
-exports[`asBrainDirSyncReportLines given: [case3b] a corpus re-rendered under live clones of the actor when: [t0] its drift reached two revisions, three clones, and one faulted then: the drift is news: it names where the change went, and the revision it missed 1`] = `
+exports[`asBrainDirSyncReportLines given: [case3b] a link already in place, and a corpus whose bytes changed when: [t0] the lines are rendered, in a repo with actors.yml then: it names the upgrade — a live brain dir changed under its clones 1`] = `
+[
+  "🧠 brain://repo=ambient",
+  "   └─ boot.md",
+  "      └─ changed — now 2 roles",
+]
+`;
+
+exports[`asBrainDirSyncReportLines given: [case3c] a corpus re-rendered under live clones of the actor when: [t0] its drift reached two revisions, three clones, and one faulted then: the drift is news: it names where the change went, and the revision it missed 1`] = `
 [
   "🧠 brain://repo=ambient",
   "   ├─ boot.md",
@@ -33,18 +41,41 @@ exports[`asBrainDirSyncReportLines given: [case3b] a corpus re-rendered under li
   "   └─ drift",
   "      ├─ 2 spawn revisions re-written",
   "      ├─ 3 clones refer to them; a live one takes the drift at its next compaction",
-  "      ├─ ✗ sha256=0123456789abcdef drift not written (EACCES) — its clones keep their prior drift",
-  "      └─ ✗ sha256=fedcba9876543210 is gone, yet a clone refers to it — respawn that clone",
+  "      ├─ ✗ in sha256=0123456789abcdef/, drift not written (EACCES) — its clones keep their prior drift",
+  "      └─ 🟡 sha256=fedcba9876543210 is gone, yet a clone refers to it — respawn that clone if it is live, or reap it via \`rhx clone prune\` if dead",
 ]
 `;
 
-exports[`asBrainDirSyncReportLines given: [case3b] a corpus re-rendered under live clones of the actor when: [t1] its drift re-wrote naught then: the drift subbranch reads "no change", per vision case=6 [t1] 1`] = `
+exports[`asBrainDirSyncReportLines given: [case3c] a corpus re-rendered under live clones of the actor when: [t0b] its drift re-wrote revisions, but a spawn ref could not be read then: it says the clone count is unknown, never a false zero 1`] = `
+[
+  "🧠 brain://repo=ambient",
+  "   ├─ boot.md",
+  "   │  └─ upgraded — 2 roles",
+  "   └─ drift",
+  "      ├─ 1 spawn revision re-written",
+  "      ├─ the clone count is unknown — a spawn ref could not be read",
+  "      └─ ✗ in clones/, a spawn ref could not be read (EISDIR)",
+]
+`;
+
+exports[`asBrainDirSyncReportLines given: [case3c] a corpus re-rendered under live clones of the actor when: [t1] its drift re-wrote naught then: the drift subbranch reads "no change", per vision case=6 [t1] 1`] = `
 [
   "🧠 brain://repo=ambient",
   "   ├─ boot.md",
   "   │  └─ upgraded — 2 roles",
   "   └─ drift",
   "      └─ no change",
+]
+`;
+
+exports[`asBrainDirSyncReportLines given: [case3c] a corpus re-rendered under live clones of the actor when: [t3] the actor holds clones from before boot drift, or from a resume then: it names the clones the drift cannot reach, and the respawn that cures them 1`] = `
+[
+  "🧠 brain://repo=ambient",
+  "   ├─ boot.md",
+  "   │  └─ upgraded — 2 roles",
+  "   └─ drift",
+  "      ├─ no change",
+  "      └─ 🟡 2 clones sit outside the drift, spawned before boot drift or by a resume — respawn a live one to take the boot",
 ]
 `;
 
@@ -76,5 +107,17 @@ exports[`asBrainDirSyncReportLines given: [case5] an AGENTS.md reset, with no ot
   "   │  └─ upgraded — 2 roles",
   "   └─ AGENTS.md",
   "      └─ reset — hand edits dropped; rhachet owns this file",
+]
+`;
+
+exports[`asBrainDirSyncReportLines given: [case6] a change of repo actor that carried its settings when: [t0] the lines are rendered then: the carry is named, from the former dir into the new 1`] = `
+[
+  "🧠 brain://slug=crew",
+  "   ├─ carried",
+  "   │  └─ .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json → .agent/.actors/actor.via.slug=crew/brain/.claude/settings.of.repo.json",
+  "   ├─ linked",
+  "   │  └─ .claude → .agent/.actors/actor.via.slug=crew/brain/.claude",
+  "   └─ boot.md",
+  "      └─ changed — now 2 roles",
 ]
 `;

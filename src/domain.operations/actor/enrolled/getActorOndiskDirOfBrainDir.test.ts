@@ -1,3 +1,5 @@
+import { given, then, when } from 'test-fns';
+
 import { getActorOndiskDirOfBrainDir } from './getActorOndiskDirOfBrainDir';
 
 const TEST_CASES = [
@@ -21,11 +23,15 @@ const TEST_CASES = [
 ];
 
 describe('getActorOndiskDirOfBrainDir', () => {
-  TEST_CASES.map((thisCase) =>
-    test(thisCase.description, () => {
-      expect(
-        getActorOndiskDirOfBrainDir({ brainDir: thisCase.given.brainDir }),
-      ).toEqual(thisCase.expect.output);
-    }),
-  );
+  given('[case1] each brain dir shape', () => {
+    when('[t0] the actor dir is derived', () => {
+      TEST_CASES.map((thisCase) =>
+        then(thisCase.description, () => {
+          expect(
+            getActorOndiskDirOfBrainDir({ brainDir: thisCase.given.brainDir }),
+          ).toEqual(thisCase.expect.output);
+        }),
+      );
+    });
+  });
 });

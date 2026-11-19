@@ -7,7 +7,7 @@
 
 one file per requirement (`inventory.of=requirements.case=<n>.<slug>.md`). each entry names:
 
-- **the requirement** — the observable behavior, in the words a user would check it by
+- **the requirement** — the observable behavior, in the words a human would check it by
 - **the clamp** — the code that enforces it, by path
 - **the proof** — the test that fails if the behavior regresses, by path
 - **the source** — who asked for it, and when

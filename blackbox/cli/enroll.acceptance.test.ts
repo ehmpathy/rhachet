@@ -1,4 +1,4 @@
-import { MalfunctionError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import { genTempDir, given, then, useBeforeAll, useThen, when } from 'test-fns';
 
 import { execSync, spawnSync } from 'node:child_process';
@@ -24,6 +24,7 @@ import {
 import { setupRoleFixtureRepo } from '@/blackbox/.test/infra/roleFixtureRepo';
 import { seedRoleAuthoredHooks } from '@/blackbox/.test/infra/seedRoleAuthoredHooks';
 import { setupStubBrainPath } from '@/blackbox/.test/infra/setupStubBrainPath';
+import { spawnRhachetCliBackground } from '@/blackbox/.test/infra/spawnRhachetCliBackground';
 import { waitForFile } from '@/blackbox/.test/infra/waitForFile';
 
 import {
@@ -120,10 +121,9 @@ const setupArgvRecorderBrainPath = (input: {
     stubPath,
     [
       '#!/usr/bin/env bash',
-      'if [ "$1" = "--version" ]; then echo "2.1.277 (Claude Code)"; exit 0; fi',
+      'if [ "$1" = "--version" ]; then echo "2.1.280 (Claude Code)"; exit 0; fi',
       `printf '%s\\0' "$@" > "${recordPath}.tmp.$$"`,
-      `mv "${recordPath}.tmp.$$" "${recordPath}"`,
-      'exit 0',
+      `mv "${recordPath}.tmp.$$" "${recordPath}"`,      'exit 0',
       '',
     ].join('\n'),
     'utf-8',
@@ -3295,6 +3295,98 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
         expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
       });
     });
+
+    /**
+     * .why = a resume replays the system prompt its session first recorded, so no revision names
+     *   the boot it holds: the clone must never be told it holds the current boot
+     */
+    when('[t5] `enroll claude --resume <session>` (a resume)', () => {
+      const result = useThen('exits 0 and the stub records the spawn', async () => {
+        rmSync(scene.recordPath, { force: true });
+        const run = invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--resume', 'a1b2c3d4'],
+          cwd: dir,
+          env: { PATH: scene.path },
+          logOnError: false,
+        });
+        expect(run.status).toEqual(0);
+        return {
+          run,
+          list: await readRecordedBrainArgv({ recordPath: scene.recordPath }),
+        };
+      });
+
+      then('stderr says the drift is unknown and names respawn', () => {
+        expect(result.run.stderr).toContain(
+          'a resume holds the boot its session first recorded, so it takes no drift at any compaction; respawn to take the current boot',
+        );
+      });
+
+      then('no revision is named: no `--add-dir`, the boot file is the actor boot', () => {
+        expect(result.list).not.toContain('--add-dir');
+        expect(result.list).toContain('--resume');
+        expect(result.list[result.list.indexOf('--system-prompt-file') + 1]).toMatch(
+          /\/brain\/\.claude\/boot\.md$/,
+        );
+      });
+
+      then('exactly one clone carries the resumed marker, and it holds no spawn ref', () => {
+        const actorsDir = join(dir, '.agent', '.actors');
+        const cloneDirs = readdirSync(actorsDir)
+          .filter((name) => name.startsWith('actor.via.'))
+          .flatMap((actor) => {
+            const clonesDir = join(actorsDir, actor, 'clones');
+            if (!existsSync(clonesDir)) return [];
+            return readdirSync(clonesDir)
+              .filter((name) => name.startsWith('serial='))
+              .map((name) => join(clonesDir, name));
+          });
+        const resumed = cloneDirs.filter((cloneDir) =>
+          existsSync(join(cloneDir, 'boot.spawned.resumed')),
+        );
+        expect(resumed).toHaveLength(1);
+        expect(existsSync(join(resumed[0]!, 'boot.spawned.ref'))).toBe(false);
+      });
+
+      then('a later `rhx init` names the resumed clone as outside the drift, and exits 0', () => {
+        const run = invokeRhachetCliBinary({
+          args: ['init', '--hooks'],
+          cwd: dir,
+          logOnError: false,
+        });
+        expect(run.status).toEqual(0);
+        expect(run.stdout).toMatch(/🟡 \d+ clones? sits? outside the drift/);
+      });
+    });
+
+    when('[t5b] `enroll claude --resume <session>` from a human at a terminal (a pty)', () => {
+      const attended = useThen('the attended enroll exits 0 once the brain exits', async () => {
+        // a pty makes the enroll take the attended tree path, which prints its own resume line
+        const handle = spawnRhachetCliBackground({
+          args: ['enroll', 'claude', '--resume', 'a1b2c3d4'],
+          cwd: dir,
+          env: { PATH: scene.path },
+        });
+        try {
+          const code = await handle.waitForExit({ timeoutMs: 60_000 });
+          return { code, output: handle.getOutput() };
+        } finally {
+          await handle.kill();
+        }
+      });
+
+      then('exits 0', () => {
+        expect(attended.code).toEqual(0);
+      });
+
+      then('the human reads the resume line, once', () => {
+        const resumeLines = attended.output
+          .split(/\r?\n/)
+          .filter((line) => line.includes('a resume holds the boot'));
+        expect(resumeLines).toHaveLength(1);
+        expect(resumeLines[0]!.trim()).toMatchSnapshot();
+      });
+    });
   });
 
   /**
@@ -3356,6 +3448,29 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
         });
       });
 
+      const readers = useThen('the drift readers name the first spawn, by its own ref', () => {
+        // the chain from a real spawn: its ref, its revision, and the serial its hook inherits
+        const actorDir = dirname(dirname(dirname(before.bootMdPath)));
+        const serials = readdirSync(join(actorDir, 'clones'))
+          .map(String)
+          .filter((name) => name.startsWith('serial='))
+          .map((name) => name.slice('serial='.length));
+        expect(serials).toHaveLength(1);
+        const serial = serials[0]!;
+        const inspect = invokeRhachetCliBinary({
+          args: ['clone', 'boot', 'drift', '--of', `@:${serial}`],
+          cwd: dir,
+          logOnError: false,
+        });
+        const hook = invokeRhachetCliBinary({
+          args: ['clone', 'boot', 'drift', '--when', 'hook.onStop'],
+          cwd: dir,
+          env: { RHACHET_CLONE_SERIAL: serial },
+          logOnError: false,
+        });
+        return { inspect, hook, revision: basename(dirname(before.bootMdPath)) };
+      });
+
       const after = useThen('the next spawn records its boot file', async () => {
         rmSync(scene.recordPath, { force: true });
         const run = invokeRhachetCliBinary({
@@ -3375,6 +3490,32 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
 
       then('init exits 0', () => {
         expect(edited.status).toEqual(0);
+      });
+
+      then('init tells the editor the live clone gets the edit, at its next compaction', () => {
+        // case=6: the editor asks "do my live clones get this?", and init answers in its drift branch
+        const driftLines = edited.stdout
+          .split('\n')
+          .filter((line) => /─ drift$|spawn revision|refers? to (it|them)|outside the drift/.test(line));
+        expect(driftLines.join('\n')).toContain('1 spawn revision re-written');
+        expect(driftLines.join('\n')).toContain(
+          '1 clone refers to it; a live one takes the drift at its next compaction',
+        );
+        expect(driftLines.join('\n')).not.toContain('outside the drift');
+        expect(driftLines).toMatchSnapshot();
+      });
+
+      then('--of reads the first spawn on the revision its ref names, under the threshold', () => {
+        expect(readers.inspect.status).toEqual(0);
+        expect(readers.inspect.stdout).toContain(`spawn revision = ${readers.revision}`);
+        expect(readers.inspect.stdout).toMatch(/drift = [0-9a-f]{16}/);
+        expect(readers.inspect.stdout).toContain('under the 200 line threshold');
+      });
+
+      then('the hook, with the serial the spawn recorded, exits 0 silent under the threshold', () => {
+        expect(readers.hook.status).toEqual(0);
+        expect(readers.hook.stdout).toEqual('');
+        expect(readers.hook.stderr).toEqual('');
       });
 
       then('the boot the first spawn read is kept as it was: its system prompt is never rewritten', () => {
@@ -3398,7 +3539,83 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
 
       then('no new actor dir: the edit changed the content, not the actor', () => {
         expect(after.actorDirs).toEqual(before.actorDirs);
-      });    });
+      });
+    });
+
+    when('[t1] a live revision cannot take its drift, then the brief is edited and a clone spawns', () => {
+      // the first spawn's revision is locked: its dir and its drift file are read-only, so the
+      //   enroll's drift sweep meets a filesystem fault on it
+      const locked = useBeforeAll(async () => {
+        if (process.getuid?.() === 0)
+          throw new ConstraintError('this case needs a non-root runner', {
+            hint: 'root ignores the read-only mode the case sets; run the acceptance suite as a regular user',
+          });
+        const revisionDirs = readdirSync(join(dir, '.agent', '.actors'))
+          .filter((name) => name.startsWith('actor.via.'))
+          .flatMap((actor) => {
+            const bootsDir = join(dir, '.agent', '.actors', actor, 'boots');
+            return existsSync(bootsDir)
+              ? readdirSync(bootsDir).map((name) => join(bootsDir, String(name)))
+              : [];
+          });
+        for (const revisionDir of revisionDirs) {
+          chmodSync(join(revisionDir, 'CLAUDE.md'), 0o400);
+          chmodSync(revisionDir, 0o500);
+        }
+        writeFileSync(briefPath, '# the surf\n\nsentinel=SWELL_AFTER_LOCK\n');
+        return { revisionDirs };
+      });
+      afterAll(() => {
+        for (const revisionDir of locked.revisionDirs) {
+          chmodSync(revisionDir, 0o700);
+          chmodSync(join(revisionDir, 'CLAUDE.md'), 0o600);
+        }
+      });
+
+      const run = useBeforeAll(async () => {
+        rmSync(scene.recordPath, { force: true });
+        return invokeRhachetCliBinary({
+          args: ['enroll', 'claude'],
+          cwd: dir,
+          env: { PATH: scene.path },
+          logOnError: false,
+        });
+      });
+
+      then('the enroll still spawns its clone, exit 0', async () => {
+        expect(run.status).toEqual(0);
+        const list = await readRecordedBrainArgv({ recordPath: scene.recordPath });
+        expect(readFileSync(asBootMdPathOf(list), 'utf8')).toContain(
+          'sentinel=SWELL_AFTER_LOCK',
+        );
+      });
+
+      then('the drift fault is said aloud on stderr, with the fix', () => {
+        expect(run.stderr).toContain('🟡 a boot drift was not written');
+        expect(run.stderr).toContain('live clones keep a stale drift');
+        expect(run.stderr).toContain('to fix, run `rhx init`');
+        expect(run.stdout).not.toContain('a boot drift was not written');
+      });
+
+      then('the fault block matches snapshot', () => {
+        const faultLines = run.stderr
+          .split('\n')
+          .filter((line) => /boot drift was not written|drift not written|to fix, run `rhx init`/.test(line));
+        expect(faultLines.length).toBeGreaterThanOrEqual(3);
+        // each distinct hash masks to its own token, by order of first sight, so two
+        //   revisions never snap as one row twice
+        const hashesSeen = [
+          ...new Set(faultLines.join('\n').match(/sha256=[0-9a-f]{16}/g) ?? []),
+        ];
+        expect(hashesSeen).toHaveLength(2);
+        expect(
+          maskTempPaths(asSnapshotSafe(faultLines.join('\n'))).replace(
+            /sha256=[0-9a-f]{16}/g,
+            (hash) => `sha256=$HASH${hashesSeen.indexOf(hash) + 1}`,
+          ),
+        ).toMatchSnapshot();
+      });
+    });
   });
 });
 
@@ -3446,5 +3663,4 @@ describe('rhx enroll --help (acceptance)', () => {
       });
     });
   });
-
 });

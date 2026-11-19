@@ -2,7 +2,7 @@
 
 exports[`rhx clone boot drift (acceptance) given: [case1] a repo with no clone enrolled when: [t0] the readout runs outside a clone, with no --of then: the error matches snapshot 1`] = `
 "
-✋ ConstraintError: no clone named
+✋ ConstraintError: no clone is named, and this process runs in none
 
 {
   "hint": "name one with \`--of @:<slug|serial>\`; list clones with \`rhx clone list\`"
@@ -23,6 +23,321 @@ exports[`rhx clone boot drift (acceptance) given: [case1] a repo with no clone e
 }
 
 [args] clone,boot,drift,--of,@:ghost
+
+"
+`;
+
+exports[`rhx clone boot drift (acceptance) given: [case1] a repo with no clone enrolled when: [t1b] the readout names a clone without the @: clone marker then: the error matches snapshot 1`] = `
+"
+✋ ConstraintError: 'driver' is not a clone address; clone addresses start with '@:'. did you mean '@:driver'?
+
+{
+  "hint": "use '@:driver'",
+  "raw": "driver"
+}
+
+[args] clone,boot,drift,--of,driver
+
+"
+`;
+
+exports[`rhx clone boot drift (acceptance) given: [case1] a repo with no clone enrolled when: [t3] the onStop hook runs with a serial no clone on disk holds then: the error matches snapshot 1`] = `
+"
+💥 MalfunctionError: the clone env serial names no on-disk clone
+
+{
+  "hint": "the clone record is gone; respawn the clone with \`rhx enroll\`, or list clones with \`rhx clone list\`",
+  "serial": "__SERIAL__"
+}
+
+[args] clone,boot,drift,--when,hook.onStop
+
+"
+`;
+
+exports[`rhx clone boot drift (acceptance) given: [case1] a repo with no clone enrolled when: [t4] the hook moment rides --of then: the error matches snapshot 1`] = `
+"
+✋ ConstraintError: --of cannot ride --when hook.onStop
+
+{
+  "hint": "the hook reads the clone it runs in; to inspect another clone, drop --when: rhx clone boot drift --of @:ghost"
+}
+
+[args] clone,boot,drift,--when,hook.onStop,--of,@:ghost
+
+"
+`;
+
+exports[`rhx clone boot drift (acceptance) given: [case1] a repo with no clone enrolled when: [t5] the readout names a ghost clone, with --output json then: the json error matches snapshot 1`] = `
+"{
+  "class": "ConstraintError",
+  "message": "no clone answers to that address",
+  "hint": "list clones with \`rhx clone list\`",
+  "reachState": null,
+  "reachCause": null,
+  "metadata": {
+    "address": "@:ghost",
+    "hint": "list clones with \`rhx clone list\`"
+  }
+}
+"
+`;
+
+exports[`rhx clone boot drift (acceptance) given: [case1] a repo with no clone enrolled when: [t6] the readout names an output mode that does not exist then: the error matches snapshot 1`] = `
+"
+✋ ConstraintError: unknown --output mode "bogus"
+
+{
+  "hint": "use --output tree (default) or --output json"
+}
+
+[args] clone,boot,drift,--of,@:ghost,--output,bogus
+
+"
+`;
+
+exports[`rhx clone boot drift (acceptance) given: [case2] a clone whose boot drifted past the threshold when: [t0] \`clone boot drift --of @:reviewer\` runs then: the tree matches snapshot 1`] = `
+"😶 boot drift of @:reviewer
+   ├─ spawn revision = sha256=2daaf0558332428b
+   ├─ drift = 713459dc785f201a
+   ├─ 1 block drifted since this clone spawned (1 added)
+   ├─ 252 lines of drift, over the 200 line threshold
+   ├─ the clone reads the drift in at its next compaction
+   ├─ to take it now
+   │  └─ rhx clone say @:reviewer --what /compact
+   └─ after a compaction it holds drift = 713459dc785f201a; if it does not, respawn it
+"
+`;
+
+exports[`rhx clone boot drift (acceptance) given: [case2] a clone whose boot drifted past the threshold when: [t0b] \`clone boot drift --of @:reviewer --output json\` runs then: the json matches snapshot 1`] = `
+"{
+  "address": "@:reviewer",
+  "serial": "__SERIAL__",
+  "drift": {
+    "kind": "drifted",
+    "drift": "713459dc785f201a",
+    "capped": false,
+    "revision": "2daaf0558332428b",
+    "lines": 252,
+    "counts": {
+      "changed": 0,
+      "added": 1,
+      "removed": 0
+    },
+    "outside": false
+  }
+}
+"
+`;
+
+exports[`rhx clone boot drift (acceptance) given: [case2] a clone whose boot drifted past the threshold when: [t0c] the hook moment rides --output then: the error matches snapshot 1`] = `
+"{
+  "class": "ConstraintError",
+  "message": "--output cannot ride --when hook.onStop",
+  "hint": "the hook answers by exit code and a stderr nudge; for json, inspect: rhx clone boot drift --of @:<slug|serial> --output json",
+  "reachState": null,
+  "reachCause": null,
+  "metadata": {
+    "hint": "the hook answers by exit code and a stderr nudge; for json, inspect: rhx clone boot drift --of @:<slug|serial> --output json"
+  }
+}
+"
+`;
+
+exports[`rhx clone boot drift (acceptance) given: [case2] a clone whose boot drifted past the threshold when: [t1] the onStop hook runs inside the clone, twice then: the nudge matches snapshot 1`] = `
+"😶 boot drift
+   ├─ 1 block drifted since this clone spawned (1 added)
+   ├─ 252 lines of drift, over the 200 line threshold
+   ├─ if you already hold drift = 713459dc785f201a, a compaction took it; naught is owed
+   └─ to take it
+      ├─ /compact — reads the drift in, the conversation kept; a clone cannot run it, so ask your enroller to send it
+      │  ├─ rhx clone say @:reviewer --what /compact
+      │  └─ after it, you should hold drift = 713459dc785f201a
+      └─ respawn — the new boot loads whole, from the shared cache; the sure cure
+"
+`;
+
+exports[`rhx clone boot drift (acceptance) given: [case3] a clone whose boot drifted past the 2000 line carry cap when: [t0] \`clone boot drift --of @:capped\` runs then: the tree matches snapshot 1`] = `
+"😶 boot drift of @:capped
+   ├─ spawn revision = sha256=2daaf0558332428b
+   ├─ drift = e34cf10635b25858
+   ├─ 1 block drifted since this clone spawned (1 added)
+   ├─ 2512 lines of drift, over the 200 line threshold
+   └─ past the 2000 line cap, the drift carries no block, so a compaction takes naught; only a respawn takes the current boot
+"
+`;
+
+exports[`rhx clone boot drift (acceptance) given: [case3] a clone whose boot drifted past the 2000 line carry cap when: [t0b] \`clone boot drift --of @:capped --output json\` runs then: the json matches snapshot 1`] = `
+"{
+  "address": "@:capped",
+  "serial": "__SERIAL__",
+  "drift": {
+    "kind": "drifted",
+    "drift": "e34cf10635b25858",
+    "capped": true,
+    "revision": "2daaf0558332428b",
+    "lines": 2512,
+    "counts": {
+      "changed": 0,
+      "added": 1,
+      "removed": 0
+    },
+    "outside": false
+  }
+}
+"
+`;
+
+exports[`rhx clone boot drift (acceptance) given: [case3] a clone whose boot drifted past the 2000 line carry cap when: [t1] the onStop hook runs inside the clone then: the nudge matches snapshot 1`] = `
+"😶 boot drift
+   ├─ 1 block drifted since this clone spawned (1 added)
+   ├─ 2512 lines of drift, over the 200 line threshold
+   ├─ past the 2000 line cap, the drift carries no block, so a compaction takes naught
+   └─ to take it, respawn — the new boot loads whole, from the shared cache
+"
+`;
+
+exports[`rhx clone boot drift (acceptance) given: [case4] four clones of one actor the onStop hook must leave silent when: [t0] \`clone boot drift --of @:<serial>\` reads the slugless clone then: the tree matches snapshot 1`] = `
+"😶 boot drift of @:__SERIAL8__
+   ├─ spawn revision = sha256=2daaf0558332428b
+   ├─ drift = 47ecf0e142ec8df3
+   ├─ 1 block drifted since this clone spawned (1 added)
+   ├─ 17 lines of drift, under the 200 line threshold
+   ├─ the clone reads the drift in at its next compaction
+   └─ after a compaction it holds drift = 47ecf0e142ec8df3; if it does not, respawn it
+"
+`;
+
+exports[`rhx clone boot drift (acceptance) given: [case4] four clones of one actor the onStop hook must leave silent when: [t2] \`clone boot drift --of\` reads each drift kind, as tree and json then: the current tree and json match snapshot 1`] = `
+"😶 boot drift of @:fresh
+   ├─ spawn revision = sha256=02c3c7f1730dd0e5
+   └─ no drift; the clone holds the current boot
+"
+`;
+
+exports[`rhx clone boot drift (acceptance) given: [case4] four clones of one actor the onStop hook must leave silent when: [t2] \`clone boot drift --of\` reads each drift kind, as tree and json then: the current tree and json match snapshot 2`] = `
+"{
+  "address": "@:fresh",
+  "serial": "__SERIAL__",
+  "drift": {
+    "kind": "current",
+    "drift": null,
+    "capped": false,
+    "revision": "02c3c7f1730dd0e5",
+    "lines": 0,
+    "counts": {
+      "changed": 0,
+      "added": 0,
+      "removed": 0
+    },
+    "outside": false
+  }
+}
+"
+`;
+
+exports[`rhx clone boot drift (acceptance) given: [case4] four clones of one actor the onStop hook must leave silent when: [t2] \`clone boot drift --of\` reads each drift kind, as tree and json then: the legacy tree and json match snapshot 1`] = `
+"😶 boot drift of @:old
+   └─ spawned before boot drift, so it holds its spawn boot until a respawn
+"
+`;
+
+exports[`rhx clone boot drift (acceptance) given: [case4] four clones of one actor the onStop hook must leave silent when: [t2] \`clone boot drift --of\` reads each drift kind, as tree and json then: the legacy tree and json match snapshot 2`] = `
+"{
+  "address": "@:old",
+  "serial": "__SERIAL__",
+  "drift": {
+    "kind": "legacy"
+  }
+}
+"
+`;
+
+exports[`rhx clone boot drift (acceptance) given: [case4] four clones of one actor the onStop hook must leave silent when: [t2] \`clone boot drift --of\` reads each drift kind, as tree and json then: the resumed tree and json match snapshot 1`] = `
+"😶 boot drift of @:back
+   ├─ a resume holds the boot its session first recorded, which no record here names
+   └─ it takes no drift at any compaction; respawn it to take the current boot
+"
+`;
+
+exports[`rhx clone boot drift (acceptance) given: [case4] four clones of one actor the onStop hook must leave silent when: [t2] \`clone boot drift --of\` reads each drift kind, as tree and json then: the resumed tree and json match snapshot 2`] = `
+"{
+  "address": "@:back",
+  "serial": "__SERIAL__",
+  "drift": {
+    "kind": "resumed"
+  }
+}
+"
+`;
+
+exports[`rhx clone boot drift (acceptance) given: [case4] four clones of one actor the onStop hook must leave silent when: [t2] \`clone boot drift --of\` reads each drift kind, as tree and json then: the slugless json matches snapshot 1`] = `
+"{
+  "address": "@:7f3a4b5c",
+  "serial": "__SERIAL__",
+  "drift": {
+    "kind": "drifted",
+    "drift": "47ecf0e142ec8df3",
+    "capped": false,
+    "revision": "2daaf0558332428b",
+    "lines": 17,
+    "counts": {
+      "changed": 0,
+      "added": 1,
+      "removed": 0
+    },
+    "outside": false
+  }
+}
+"
+`;
+
+exports[`rhx clone boot drift (acceptance) given: [case5] three clones whose drift cannot be read cleanly when: [t0] \`clone boot drift --of @:lost\` runs then: the error matches snapshot 1`] = `
+"
+💥 MalfunctionError: a boot drift file could not be read
+
+{
+  "hint": "respawn the clone (\`rhx enroll\`): it boots on the current revision and reads no file of the old one",
+  "path": "/TMP_TEST_DIR/.agent/.actors/actor.via.hash=8967acd9/boots/sha256=0123456789abcdef/boot.md",
+  "cause": {
+    "class": "Error",
+    "message": "ENOENT: no such file or directory, open '/TMP_TEST_DIR/.agent/.actors/actor.via.hash=8967acd9/boots/sha256=0123456789abcdef/boot.md'"
+  }
+}
+
+[args] clone,boot,drift,--of,@:lost
+
+"
+`;
+
+exports[`rhx clone boot drift (acceptance) given: [case5] three clones whose drift cannot be read cleanly when: [t1] the onStop hook runs inside \`@:latched\` then: the error matches snapshot 1`] = `
+"
+💥 MalfunctionError: a boot drift file could not be read
+
+{
+  "hint": "respawn the clone (\`rhx enroll\`): it boots on the current revision and reads no file of the old one",
+  "path": "/TMP_TEST_DIR/.agent/.actors/actor.via.hash=8967acd9/clones/serial=__SERIAL__/boot.drift.told",
+  "cause": {
+    "class": "Error",
+    "message": "EISDIR: illegal operation on a directory, read"
+  }
+}
+
+[args] clone,boot,drift,--when,hook.onStop
+
+"
+`;
+
+exports[`rhx clone boot drift (acceptance) given: [case5] three clones whose drift cannot be read cleanly when: [t2] \`clone boot drift --of @:stale\` runs then: the error matches snapshot 1`] = `
+"
+💥 MalfunctionError: the boot drift on disk is stale: the last render did not reach it
+
+{
+  "hint": "run \`rhx init\` to re-write every drift; if a render is in flight, re-run this once it ends",
+  "path": "/TMP_TEST_DIR/.agent/.actors/actor.via.hash=8967acd9/boots/sha256=2daaf0558332428b/CLAUDE.md"
+}
+
+[args] clone,boot,drift,--of,@:stale
 
 "
 `;

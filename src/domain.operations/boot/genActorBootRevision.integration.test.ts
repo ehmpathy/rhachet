@@ -93,13 +93,23 @@ describe('genActorBootRevision', () => {
           };
         });
 
+        // two sweeps, in order, each run once: the second runs against the first's writes
+        const sweeps = useBeforeAll(async () => {
+          const first = setActorBootDrifts({
+            actorDir: scene.actorDir,
+            bootMdPathCurrent: scene.bootMdPath,
+          });
+          const second = setActorBootDrifts({
+            actorDir: scene.actorDir,
+            bootMdPathCurrent: scene.bootMdPath,
+          });
+          return { first, second };
+        });
+
         then(
           'each revision holds its own drift against the current boot',
           () => {
-            const drifts = setActorBootDrifts({
-              actorDir: scene.actorDir,
-              bootMdPathCurrent: scene.bootMdPath,
-            });
+            const drifts = sweeps.first;
             expect(drifts).toEqual({
               revisions: scene.hashes,
               rewritten: scene.hashes,
@@ -120,10 +130,7 @@ describe('genActorBootRevision', () => {
         );
 
         then('a second sweep with no change re-writes no file', () => {
-          const drifts = setActorBootDrifts({
-            actorDir: scene.actorDir,
-            bootMdPathCurrent: scene.bootMdPath,
-          });
+          const drifts = sweeps.second;
           expect(drifts).toEqual({
             revisions: scene.hashes,
             rewritten: [],
@@ -157,7 +164,7 @@ describe('genActorBootRevision', () => {
           expect(drifts.revisions).toEqual([v1.hash, v2.hash].sort());
           expect(drifts.rewritten).toEqual([v2.hash]);
           expect(drifts.faults).toHaveLength(1);
-          expect(drifts.faults[0]!.revisionDir).toEqual(revV1);
+          expect(drifts.faults[0]!.path).toEqual(revV1);
           // the reason carries the cause, so the human sees WHY the write failed
           expect(drifts.faults[0]!.reason).toContain('EISDIR');
           expect(drifts.faults[0]!.reason).toContain(

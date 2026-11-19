@@ -76,7 +76,13 @@ export const BRAIN_CLI_SPINUP_ENV_DEFAULTS: Readonly<Record<string, string>> = {
  * .note = `CLAUDE_CODE_DISABLE_CLAUDE_MDS` is dropped from the caller env, always: it would
  *         shut the drift's load too, so a clone could never take a boot edit
  * .note = the add-dir key is derived, never kept by convention: it is set only when `args`
- *         carry `BRAIN_CLI_BOOT_FLAG`, the argv that also carries the revision dir
+ *         carry `BRAIN_CLI_BOOT_FLAG`. that flag rides every boot spawn, while the revision dir
+ *         rides only a spawn on a revision; a resume or an actor with no boot opens the load
+ *         with no revision to read. a typed boot value out of the spawn op would key it exactly
+ *         (fulcrum F23)
+ * .note = the key is global to the brain cli: a passthrough `--add-dir <dir>` the human passes
+ *         also loads `<dir>/CLAUDE.md` as clone memory. the human named that dir, so its memory
+ *         loads as they asked; the boot's own doors stay shut by `claudeMdExcludes`
  */
 export const asBrainCliSpawnEnv = (input: {
   env: NodeJS.ProcessEnv;

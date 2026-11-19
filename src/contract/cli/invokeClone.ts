@@ -23,9 +23,7 @@ import { invokeCloneWhoami } from './invokeCloneWhoami';
 export const invokeClone = ({ program }: { program: Command }): void => {
   const clone = program
     .command('clone')
-    .description(
-      'reach an enrolled clone: make, list, say, get, whoami, prune, boot drift',
-    )
+    .description('reach and inspect enrolled clones')
     .addHelpText(
       'after',
       [

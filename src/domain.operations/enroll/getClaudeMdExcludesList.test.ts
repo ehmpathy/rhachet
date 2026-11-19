@@ -61,6 +61,26 @@ describe('getClaudeMdExcludesList', () => {
           ).toBe(true);
           expect(isExcluded(`${repo}/.claude/AGENTS.md`)).toBe(true);
           expect(isExcluded(`${repo}/CLAUDE.local.md`)).toBe(true);
+
+          // the human's home door, the one the old literal list named by its absolute path
+          expect(isExcluded('/home/h/.claude/CLAUDE.md')).toBe(true);
+          expect(isExcluded('/home/h/.claude/AGENTS.md')).toBe(true);
+        },
+      );
+    });
+
+    when('[t1] the list is built twice', () => {
+      then(
+        'the two lists are equal, so the settings file it lands in never churns',
+        () => {
+          expect(getClaudeMdExcludesList()).toEqual(getClaudeMdExcludesList());
+        },
+      );
+
+      then(
+        'each build is a fresh array, so a caller cannot mutate the next',
+        () => {
+          expect(getClaudeMdExcludesList()).not.toBe(getClaudeMdExcludesList());
         },
       );
     });

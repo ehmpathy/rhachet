@@ -26,9 +26,24 @@ describe('asBootDriftFaultCause', () => {
   });
 
   given('[case2] a read wrapped as a malfunction', () => {
-    then('it is collected as the cause', () => {
-      const error = new MalfunctionError('a ref could not be read');
-      expect(asBootDriftFaultCause({ error })).toBe(error);
+    then(
+      'it is collected as the cause, where its cause is an errno fault',
+      () => {
+        const error = new MalfunctionError('a ref could not be read', {
+          path: '/a/boot.spawned.ref',
+          cause: Object.assign(new Error('ENOENT: absent'), { code: 'ENOENT' }),
+        });
+        expect(asBootDriftFaultCause({ error })).toBe(error);
+      },
+    );
+  });
+
+  given('[case2b] a malfunction thrown for a broken invariant', () => {
+    then('it is null, so the caller rethrows: no errno cause', () => {
+      const error = new MalfunctionError('a revision hash was malformed', {
+        hash: 'xyz',
+      });
+      expect(asBootDriftFaultCause({ error })).toBeNull();
     });
   });
 

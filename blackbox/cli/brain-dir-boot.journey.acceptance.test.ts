@@ -819,8 +819,10 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
         expect(prompts.vendor.sentinels).not.toContain(sentinelOf('shapertail'));
       });
 
-      then('the clone door bills measurably less input — the vendor prompt is gone', () => {
-        // neither launch reads a brief, so the gap is the vendor prompt alone
+      then('the clone door bills measurably less input for the same corpus — the vendor prompt is gone', () => {
+        // .note = vendor minus cloneEmpty, never vendor minus clone: under the enroll config the
+        //   vendor door reads no brief, so vendor minus clone would net the corpus against the vendor
+        //   prompt. an empty boot through the clone door holds the corpus equal (none) on both sides
         const removed = prompts.vendor.inputBilled - prompts.cloneEmpty.inputBilled;
         // .note = the measure the yield records for the clone door
         console.log('system prompt measure', {
@@ -836,6 +838,14 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
         expect(prompts.vendor.status).toEqual(0);
         expect(prompts.cloneEmpty.status).toEqual(0);
         expect(removed).toBeGreaterThanOrEqual(1000);
+      });
+
+      then('the clone door bills the corpus on top of the empty boot', () => {
+        // the clone launch is the empty launch plus the actor's corpus, so its bill exceeds the
+        //   empty boot's; with `removed` above, the clone door costs the corpus and no vendor prompt
+        const corpus = prompts.clone.inputBilled - prompts.cloneEmpty.inputBilled;
+        expect(prompts.clone.status).toEqual(0);
+        expect(corpus).toBeGreaterThan(0);
       });
 
       return enrolled;

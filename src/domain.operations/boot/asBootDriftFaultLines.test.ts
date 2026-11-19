@@ -10,25 +10,26 @@ describe('asBootDriftFaultLines', () => {
   });
 
   given('[case2] two faults', () => {
-    then('one qualified header, a row per fault, and the fix', () => {
+    then('one caution header, a row per fault, and the fix', () => {
       const lines = asBootDriftFaultLines({
         faults: [
           {
-            revisionDir: '/repo/.agent/.actors/a/boots/sha256=0123456789abcdef',
+            path: '/repo/.agent/.actors/a/boots/sha256=0123456789abcdef',
             reason:
               'drift not written (EACCES) — its clones keep their prior drift',
             cause: new Error('EACCES'),
           },
           {
-            revisionDir: '/repo/.agent/.actors/a/boots/sha256=fedcba9876543210',
-            reason: 'is gone, yet a clone refers to it — respawn that clone',
-            cause: new Error('gone'),
+            // a gone revision is a row of the sync report, never a fault; an unreadable ref is
+            path: '/repo/.agent/.actors/a/clones',
+            reason: 'a spawn ref could not be read (EISDIR)',
+            cause: new Error('EISDIR'),
           },
         ],
       });
-      expect(lines[0]).toEqual(
-        '💥 MalfunctionError: a boot drift was not written',
-      );
+      // a caution, never an error frame: the enroll that prints it exits as a success
+      expect(lines[0]).toMatch(/^🟡 a boot drift was not written/);
+      expect(lines.join('\n')).not.toContain('MalfunctionError');
       expect(lines.at(-1)).toContain('rhx init');
       expect(lines).toMatchSnapshot();
     });

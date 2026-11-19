@@ -11,7 +11,11 @@ exports[`init role delta → a delta actor with a live clone (acceptance) given:
    │  └─ upgraded — 1 role
    └─ drift
       ├─ 1 spawn revision re-written
-      └─ 1 clone refers to them; a live one takes the drift at its next compaction
+      └─ 1 clone refers to it; a live one takes the drift at its next compaction
+
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
 
 "
 `;

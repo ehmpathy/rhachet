@@ -4,9 +4,12 @@ import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import type { CloneOndisk } from '@src/domain.objects/CloneOndisk';
 import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
 import { getActorsRootDir } from '@src/domain.operations/actor/enrolled/getActorsRootDir';
+import { getAllActorsOndisk } from '@src/domain.operations/actor/enrolled/getAllActorsOndisk';
+import { delActorBootRevision } from '@src/domain.operations/boot/delActorBootRevision';
 import { asActorRef } from '@src/domain.operations/clone/asActorRef';
 import { asClonePruneView } from '@src/domain.operations/clone/cli/asClonePruneView';
 import { delClone } from '@src/domain.operations/clone/delClone';
+import { getAllBootRevisionsUnreferenced } from '@src/domain.operations/clone/getAllBootRevisionsUnreferenced';
 import { getAllClonesForActor } from '@src/domain.operations/clone/getAllClonesForActor';
 import { getAllClonesGroupedByActor } from '@src/domain.operations/clone/getAllClonesGroupedByActor';
 import { getAllClonesPrunable } from '@src/domain.operations/clone/getAllClonesPrunable';
@@ -83,6 +86,25 @@ const getClonesInScope = (input: {
   return getAllClonesGroupedByActor({ repoPath: input.repoPath }).flatMap(
     (group) => group.clones,
   );
+};
+
+/**
+ * .what = the actors in scope — the one a `@<exid-prefix>` names, else every actor on disk
+ * .why = a revision outlives its clones, so an actor with no clone left may still hold one;
+ *   the sweep walks actors, never only the actors the clone list happened to name
+ */
+const getActorsInScope = (input: {
+  repoPath: string;
+  actor: string | undefined;
+}): { repoPath: string; exid: string }[] => {
+  if (input.actor !== undefined)
+    return [
+      getOneActorOndiskByRef({
+        repoPath: input.repoPath,
+        ref: asActorRef({ raw: input.actor }),
+      }),
+    ];
+  return getAllActorsOndisk({ repoPath: input.repoPath });
 };
 
 /**
@@ -165,6 +187,44 @@ export const invokeClonePrune = ({ clone }: { clone: Command }): void => {
                 }
               }
 
+            // the boot revisions no clone that stays refers to: in plan, past the clones
+            // this prune would reap; in apply, past the clones it did reap. a revision a
+            // clone still names (LIVE, DEAF, or a DEAD one this run did not reap) stays
+            const clonesGone = mode === 'apply' ? reaped : prunable;
+            const revisions = getActorsInScope({ repoPath, actor }).flatMap(
+              (actorOndisk) => {
+                const actorDir = getActorOndiskDir({
+                  repoPath: actorOndisk.repoPath,
+                  exid: actorOndisk.exid,
+                });
+                return getAllBootRevisionsUnreferenced({
+                  actorDir,
+                  serialsReaped: clonesGone
+                    .filter((c) => c.actor.exid === actorOndisk.exid)
+                    .map((c) => c.serial),
+                }).map((hash) => ({ actor: actorOndisk.exid, actorDir, hash }));
+              },
+            );
+            const revisionsReaped: typeof revisions = [];
+            const revisionsFailed: {
+              actor: string;
+              hash: string;
+              message: string;
+            }[] = [];
+            if (mode === 'apply')
+              for (const revision of revisions) {
+                try {
+                  delActorBootRevision(revision);
+                  revisionsReaped.push(revision);
+                } catch (error) {
+                  revisionsFailed.push({
+                    actor: revision.actor,
+                    hash: revision.hash,
+                    message: error instanceof Error ? error.message : 'unknown',
+                  });
+                }
+              }
+
             // the view shows what a plan WOULD reap, or in apply what actually WAS
             // reaped (never a clone still on disk — no false "pruned" render)
             const rowsShown = mode === 'apply' ? reaped : prunable;
@@ -174,6 +234,9 @@ export const invokeClonePrune = ({ clone }: { clone: Command }): void => {
                 slug: c.slug,
                 spawnedAt: c.spawnedAt,
               })),
+              revisions: (mode === 'apply' ? revisionsReaped : revisions).map(
+                (r) => ({ actor: r.actor, hash: r.hash }),
+              ),
               mode,
             });
             console.log(
@@ -190,8 +253,18 @@ export const invokeClonePrune = ({ clone }: { clone: Command }): void => {
               throw new MalfunctionError(
                 `pruned ${reaped.length} clone(s), but ${failed.length} could not be reaped`,
                 {
-                  hint: 'check filesystem permissions on the clone dirs, then re-run `rhx clone prune`',
+                  hint: `check filesystem permissions on the ${revisionsFailed.length > 0 ? 'clone and boot revision dirs' : 'clone dirs'}, then re-run \`rhx clone prune\``,
                   failed,
+                  reapedSerials: reaped.map((c) => c.serial),
+                  ...(revisionsFailed.length > 0 ? { revisionsFailed } : {}),
+                },
+              );
+            if (revisionsFailed.length > 0)
+              throw new MalfunctionError(
+                `pruned ${reaped.length} clone(s), but ${revisionsFailed.length} boot revision(s) could not be reaped`,
+                {
+                  hint: 'check filesystem permissions on the boot revision dirs, then re-run `rhx clone prune`',
+                  revisionsFailed,
                   reapedSerials: reaped.map((c) => c.serial),
                 },
               );

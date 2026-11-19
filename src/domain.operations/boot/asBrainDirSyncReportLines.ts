@@ -2,9 +2,14 @@ import { asCountPhrase } from '@src/utils/asCountPhrase';
 import { asTreeBranch } from '@src/utils/asTreeBranch';
 
 import { basename } from 'node:path';
+import { asBootDriftFaultRow } from './asBootDriftFaultRow';
+import { asBootDriftFaultsOfSync } from './asBootDriftFaultsOfSync';
 import { asBrainDirBootScopeLabel } from './asBrainDirBootScopeLabel';
-import type { BootDriftFault, BrainDirBootRender } from './BrainDirBootRender';
-import { BRAIN_DIR_BOOT_FILENAMES } from './constants';
+import type { BootDriftReach, BrainDirBootRender } from './BrainDirBootRender';
+import {
+  BOOT_REVISION_DIR_PREFIX,
+  BRAIN_DIR_BOOT_FILENAMES,
+} from './constants';
 
 /**
  * .what = what a `<repo>/.claude` sync did to the link, if it touched it at all
@@ -32,10 +37,11 @@ type ReportGroup = { label: string; rows: string[] };
  *   part of the output that says their `.claude` MOVED
  *   (`rule.require.treestruct-output`).
  *
- * .note = a no-op emits NAUGHT. a sync that moved naught, linked naught and re-rendered
- *   an identical corpus has no news, and success is not news (either it halts, or it is
- *   silent). the failure path is loud elsewhere — `asBrainDirBootFailureLines` plus a
- *   nonzero exit — so silence here can only mean "as it was".
+ * .note = a no-op emits NAUGHT, with one exception. a sync that moved naught, linked naught
+ *   and re-rendered an identical corpus has no news, and success is not news. the exception
+ *   is an actor that holds spawn revisions: its `drift` branch always answers, `no change`
+ *   included, since an editor's question after an edit is whether its live clones got it.
+ *   the failure path is loud elsewhere — `asBrainDirBootFailureLines` plus a nonzero exit.
  *
  * .note = the glyph is 🧠, the domain-root glyph for a brain (`define.rhachet.v3`). a
  *   brain dir is that same concept at a smaller grain, never a second concept, so it
@@ -46,8 +52,11 @@ export const asBrainDirSyncReportLines = (input: {
   symlink: BrainDirSyncSymlink | null;
   repoActorBrainDirRel: string;
   isManifestRepo: boolean;
-  /** the clones that refer to the re-written revisions, and the refs the drift cannot reach */
-  driftReach: { clones: number; faults: BootDriftFault[] } | null;
+  /**
+   * the clones that refer to the re-written revisions, the revisions a ref names that are gone,
+   * and the faults of the read; `clones` is null where a spawn ref could not be read
+   */
+  driftReach: BootDriftReach | null;
 }): string[] => {
   const { render, symlink, repoActorBrainDirRel, isManifestRepo, driftReach } =
     input;
@@ -122,9 +131,15 @@ export const asBrainDirSyncReportLines = (input: {
   //   "no change" included, and a fault always shows
   //   .note = deliberate mutation: `groups` is this render's local accumulator, as for each group above
   const drift = render.drift;
-  const driftFaults = [...(drift?.faults ?? []), ...(driftReach?.faults ?? [])];
+  const driftFaults = asBootDriftFaultsOfSync({ render, driftReach });
+  const driftGone = driftReach?.gone ?? [];
+  const driftUnreached = driftReach?.unreached ?? 0;
   const isDriftNews =
-    drift !== null && (drift.revisions.length > 0 || driftFaults.length > 0);
+    drift !== null &&
+    (drift.revisions.length > 0 ||
+      driftFaults.length > 0 ||
+      driftGone.length > 0 ||
+      driftUnreached > 0);
   if (drift && isDriftNews)
     groups.push({
       label: 'drift',
@@ -136,19 +151,29 @@ export const asBrainDirSyncReportLines = (input: {
                 one: 'spawn revision re-written',
                 many: 'spawn revisions re-written',
               }),
-              asCountPhrase({
-                count: driftReach?.clones ?? 0,
-                one: 'clone refers to them; a live one takes the drift at its next compaction',
-                many: 'clones refer to them; a live one takes the drift at its next compaction',
+              asDriftReachRow({
+                driftReach,
+                revisions: drift.rewritten.length,
               }),
             ]
           : []),
         ...(drift.rewritten.length === 0 && driftFaults.length === 0
           ? ['no change']
           : []),
-        ...driftFaults.map(
-          (fault) => `✗ ${basename(fault.revisionDir)} ${fault.reason}`,
+        ...driftFaults.map((fault) => asBootDriftFaultRow({ fault })),
+        ...driftGone.map(
+          (hash) =>
+            `🟡 ${BOOT_REVISION_DIR_PREFIX}${hash} is gone, yet a clone refers to it — respawn that clone if it is live, or reap it via \`rhx clone prune\` if dead`,
         ),
+        ...(driftUnreached > 0
+          ? [
+              `🟡 ${asCountPhrase({
+                count: driftUnreached,
+                one: 'clone sits outside the drift',
+                many: 'clones sit outside the drift',
+              })}, spawned before boot drift or by a resume — respawn a live one to take the boot`,
+            ]
+          : []),
       ],
     });
 
@@ -180,4 +205,27 @@ export const asBrainDirSyncReportLines = (input: {
       ];
     }),
   ];
+};
+
+/**
+ * .what = the row that says how many clones take the drift
+ * .why = a count read past a fault would assert a false zero; an unknown count says so
+ * .note = the pronoun agrees with the revision count of the row above: `it` for one, `them` for more
+ */
+const asDriftReachRow = (input: {
+  driftReach: { clones: number | null } | null;
+  revisions: number;
+}): string => {
+  // a spawn ref could not be read: the count is unknown, and the fault row names why
+  const clones = input.driftReach === null ? 0 : input.driftReach.clones;
+  if (clones === null)
+    return 'the clone count is unknown — a spawn ref could not be read';
+
+  // the count of clones that take the drift at their next compaction
+  const pronoun = input.revisions === 1 ? 'it' : 'them';
+  return asCountPhrase({
+    count: clones,
+    one: `clone refers to ${pronoun}; a live one takes the drift at its next compaction`,
+    many: `clones refer to ${pronoun}; a live one takes the drift at its next compaction`,
+  });
 };

@@ -3,18 +3,23 @@ import { ConstraintError, MalfunctionError } from 'helpful-errors';
 
 import type { CloneOndisk } from '@src/domain.objects/CloneOndisk';
 import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
+import { asBootDriftHookFault } from '@src/domain.operations/clone/asBootDriftHookFault';
 import { asCloneAddressHuman } from '@src/domain.operations/clone/asCloneAddressHuman';
 import { asCloneBootDriftLines } from '@src/domain.operations/clone/asCloneBootDriftLines';
-import { asCloneRef } from '@src/domain.operations/clone/asCloneRef';
-import { getCloneBootDrift } from '@src/domain.operations/clone/getCloneBootDrift';
+import {
+  asCloneRef,
+  type CloneRef,
+} from '@src/domain.operations/clone/asCloneRef';
 import { getCloneDir } from '@src/domain.operations/clone/getCloneDir';
-import { getOneCloneBootDriftNudge } from '@src/domain.operations/clone/getOneCloneBootDriftNudge';
+import { getOneCloneBootDrift } from '@src/domain.operations/clone/getOneCloneBootDrift';
 import { getOneCloneByRef } from '@src/domain.operations/clone/getOneCloneByRef';
-import { setCloneBootDriftTold } from '@src/domain.operations/clone/setCloneBootDriftTold';
+import { setCloneBootDriftNudgeTold } from '@src/domain.operations/clone/setCloneBootDriftNudgeTold';
 import { getOneRepoPath } from '@src/infra/host/getOneRepoPath';
 import { CLONE_ENV_KEYS } from '@src/utils/cloneEnvKeys';
 
+import { asCliOutputMode, type CliOutputMode } from './asCliOutputMode';
 import { getCliInvocationArgs } from './getCliInvocationArgs';
+import { renderCliOutput } from './renderCliOutput';
 import { withCliOutputErrors } from './withCliOutputErrors';
 
 /** the one hook moment this verb answers */
@@ -31,10 +36,10 @@ const WHEN_HOOK_ON_STOP = 'hook.onStop';
  *         before boot drift, exits 0 silent; a fault exits 1 (a Stop hook's exit 1 never blocks);
  *         only a nudge exits 2, once per drift
  */
-export const invokeCloneBoot = ({ clone }: { clone: Command }): void => {
-  const boot = clone
+export const invokeCloneBoot = (input: { clone: Command }): void => {
+  const boot = input.clone
     .command('boot')
-    .description("inspect a clone's boot: drift");
+    .description("inspect a clone's boot — its drift");
 
   boot
     .command('drift')
@@ -44,16 +49,21 @@ export const invokeCloneBoot = ({ clone }: { clone: Command }): void => {
     .option('--of <address>', 'the clone to inspect, as @:<slug|serial>')
     .option(
       '--when <moment>',
-      `the hook moment this runs at: ${WHEN_HOOK_ON_STOP}`,
+      `the hook moment this runs at (${WHEN_HOOK_ON_STOP}); when absent, it inspects --of, else the clone it runs in`,
     )
-    .action(async (opts: { of?: string; when?: string }) => {
+    .option('--output <mode>', 'output mode: tree (default) or json')
+    .action(async (opts: { of?: string; when?: string; output?: string }) => {
       await withCliOutputErrors({
         args: getCliInvocationArgs({ command: boot }),
-        outputRaw: undefined,
+        outputRaw: opts.output,
         run: async () => {
+          // validate the output mode before any read
+          const outputMode = asCliOutputMode({ raw: opts.output ?? 'tree' });
+
           // refuse an unknown moment before any read
           if (opts.when !== undefined && opts.when !== WHEN_HOOK_ON_STOP)
             throw new ConstraintError(`unknown --when '${opts.when}'`, {
+              when: opts.when,
               hint: `the one moment is --when ${WHEN_HOOK_ON_STOP}`,
             });
 
@@ -66,11 +76,20 @@ export const invokeCloneBoot = ({ clone }: { clone: Command }): void => {
               },
             );
 
+          // the hook speaks to the clone through its exit code and stderr, so --output beside it is refused
+          if (opts.when === WHEN_HOOK_ON_STOP && opts.output !== undefined)
+            throw new ConstraintError(
+              `--output cannot ride --when ${WHEN_HOOK_ON_STOP}`,
+              {
+                hint: 'the hook answers by exit code and a stderr nudge; for json, inspect: rhx clone boot drift --of @:<slug|serial> --output json',
+              },
+            );
+
           // the hook arm: the clone itself, at its stop
           if (opts.when === WHEN_HOOK_ON_STOP) return runHookOnStop();
 
           // the inspector arm: the named clone, or this one
-          return runInspect({ of: opts.of ?? null });
+          return runInspect({ of: opts.of ?? null, outputMode });
         },
       });
     });
@@ -80,18 +99,20 @@ export const invokeCloneBoot = ({ clone }: { clone: Command }): void => {
  * .what = the inspector arm: print one clone's drift tree on stdout
  * .why = an editor or enroller who meets a stale reply checks the clone in one command (case=6, case=7)
  */
-const runInspect = (input: { of: string | null }): void => {
+const runInspect = (input: {
+  of: string | null;
+  outputMode: CliOutputMode;
+}): void => {
   // name the clone: --of, else this clone by its serial
-  const serial = process.env[CLONE_ENV_KEYS.serial];
-  const ref = (() => {
-    if (input.of !== null) return asCloneRef({ raw: input.of });
-    if (serial) return { by: 'serial' as const, serial };
-    return null;
-  })();
+  const serial = process.env[CLONE_ENV_KEYS.serial] ?? null;
+  const ref = asCloneRefOfInspect({ of: input.of, serial });
   if (ref === null)
-    throw new ConstraintError('no clone named', {
-      hint: 'name one with `--of @:<slug|serial>`; list clones with `rhx clone list`',
-    });
+    throw new ConstraintError(
+      'no clone is named, and this process runs in none',
+      {
+        hint: 'name one with `--of @:<slug|serial>`; list clones with `rhx clone list`',
+      },
+    );
   const repoPath = getOneRepoPath({ from: process.cwd() });
   const cloneFound = getOneCloneByRef({ repoPath, ref });
   if (cloneFound === null)
@@ -100,14 +121,17 @@ const runInspect = (input: { of: string | null }): void => {
       hint: 'list clones with `rhx clone list`',
     });
 
-  // its drift, as a tree
-  const drift = getCloneBootDrift(asCloneDirs({ clone: cloneFound }));
+  // its drift, as a tree or as the same data in json
+  const drift = getOneCloneBootDrift(asCloneDirs({ clone: cloneFound }));
+  const address = asCloneAddressHuman(cloneFound);
   console.log(
-    asCloneBootDriftLines({
-      for: 'inspect',
-      address: asCloneAddressHuman(cloneFound),
-      drift,
-    }).join('\n'),
+    renderCliOutput({
+      mode: input.outputMode,
+      tree: asCloneBootDriftLines({ for: 'inspect', address, drift }).join(
+        '\n',
+      ),
+      data: { address, serial: cloneFound.serial, drift },
+    }),
   );
 };
 
@@ -130,33 +154,41 @@ const runHookOnStop = (): void => {
         'the clone env serial names no on-disk clone',
         {
           serial,
+          hint: 'the clone record is gone; respawn the clone with `rhx enroll`, or list clones with `rhx clone list`',
         },
       );
 
-    // silent unless a nudge is owed
-    const dirs = asCloneDirs({ clone: self });
-    const drift = getOneCloneBootDriftNudge(dirs);
-    if (drift === null) return;
+    // silent unless a nudge is owed; the op latches it as told before it returns
+    const nudge = setCloneBootDriftNudgeTold({
+      ...asCloneDirs({ clone: self }),
+      address: asCloneAddressHuman(self),
+    });
+    if (nudge === null) return;
 
-    // tell it once: latch first, so a fault in the print never repeats the block
-    setCloneBootDriftTold({ cloneDir: dirs.cloneDir, drift: drift.drift });
-    console.error(
-      asCloneBootDriftLines({
-        for: 'nudge',
-        address: asCloneAddressHuman(self),
-        drift,
-      }).join('\n'),
-    );
+    // block this one stop, the nudge on stderr
+    console.error(nudge.lines.join('\n'));
     process.exitCode = 2;
   } catch (error) {
-    // a constraint would exit 2 and block the stop: recast it, under a message of its own
-    if (error instanceof ConstraintError)
-      throw new MalfunctionError(
-        'the boot drift hook could not read this clone',
-        { serial, cause: error },
-      );
-    throw error;
+    // a constraint would exit 2 and block the stop, so it is recast to exit 1
+    throw asBootDriftHookFault({ error, serial });
   }
+};
+
+/**
+ * .what = the clone the inspector names: --of, else the clone this process runs in, else none
+ */
+const asCloneRefOfInspect = (input: {
+  of: string | null;
+  serial: string | null;
+}): CloneRef | null => {
+  // an explicit address wins
+  if (input.of !== null) return asCloneRef({ raw: input.of });
+
+  // inside a clone, the clone itself
+  if (input.serial) return { by: 'serial', serial: input.serial };
+
+  // outside a clone, with no address, no clone is named
+  return null;
 };
 
 /**

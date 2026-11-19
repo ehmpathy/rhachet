@@ -4,7 +4,7 @@ exports[`rhx clone prune (acceptance) given: [case1] two DEAD clones (a named + 
 "🧹 clone prune (plan)
    ├─ @:doomed  serial=__SERIAL8__  since=__TIMESTAMP__
    └─ @:__SERIAL8__  serial=__SERIAL8__  since=__TIMESTAMP__
-   plan: 2 dead clone(s) would be pruned — re-run with --mode apply to remove
+   plan = 2 dead clone(s) would be pruned — re-run with --mode apply to remove
 "
 `;
 
@@ -23,7 +23,8 @@ exports[`rhx clone prune (acceptance) given: [case1] two DEAD clones (a named + 
       "slug": null,
       "spawnedAt": "__TIMESTAMP__"
     }
-  ]
+  ],
+  "revisions": []
 }
 "
 `;
@@ -32,7 +33,7 @@ exports[`rhx clone prune (acceptance) given: [case2] apply reaps the DEAD clones
 "🧹 clone prune (apply)
    ├─ @:doomed  serial=__SERIAL8__  since=__TIMESTAMP__
    └─ @:__SERIAL8__  serial=__SERIAL8__  since=__TIMESTAMP__
-   pruned: 2 dead clone(s)
+   pruned = 2 dead clone(s)
 "
 `;
 
@@ -51,7 +52,8 @@ exports[`rhx clone prune (acceptance) given: [case2b] apply --output json emits 
       "slug": null,
       "spawnedAt": "__TIMESTAMP__"
     }
-  ]
+  ],
+  "revisions": []
 }
 "
 `;
@@ -60,7 +62,8 @@ exports[`rhx clone prune (acceptance) given: [case3] the --older-than gate holds
 "{
   "mode": "plan",
   "count": 0,
-  "clones": []
+  "clones": [],
+  "revisions": []
 }
 "
 `;
@@ -170,6 +173,76 @@ exports[`rhx clone prune (acceptance) given: [case4b] the mid-batch reap failure
 "
 `;
 
+exports[`rhx clone prune (acceptance) given: [case5] boot revisions outlive the clones that spawned on them when: [t0] \`clone prune\` plans the reap then: the plan tree matches the snapshot 1`] = `
+"🧹 clone prune (plan)
+   ├─ @:doomed  serial=__SERIAL8__  since=__TIMESTAMP__
+   └─ boot revisions no clone refers to (1)
+      └─ @hash=8967acd9  sha256=f7cebd51afd28fe9
+   plan = 1 dead clone(s) and 1 boot revision(s) would be pruned — re-run with --mode apply to remove
+"
+`;
+
+exports[`rhx clone prune (acceptance) given: [case5] boot revisions outlive the clones that spawned on them when: [t1] \`clone prune --mode apply\` reaps it then: the apply json matches the snapshot 1`] = `
+"{
+  "mode": "apply",
+  "count": 1,
+  "clones": [
+    {
+      "serial": "__SERIAL__",
+      "slug": "doomed",
+      "spawnedAt": "__TIMESTAMP__"
+    }
+  ],
+  "revisions": [
+    {
+      "actor": "hash=8967acd9",
+      "hash": "f7cebd51afd28fe9"
+    }
+  ]
+}
+"
+`;
+
+exports[`rhx clone prune (acceptance) given: [case6] a boot revision that cannot be reaped when: [t0] \`clone prune --mode apply --output json\` runs then: the json error matches the snapshot 1`] = `
+"{
+  "class": "MalfunctionError",
+  "message": "pruned 1 clone(s), but 1 boot revision(s) could not be reaped",
+  "hint": "check filesystem permissions on the boot revision dirs, then re-run \`rhx clone prune\`",
+  "reachState": null,
+  "reachCause": null,
+  "metadata": {
+    "hint": "check filesystem permissions on the boot revision dirs, then re-run \`rhx clone prune\`",
+    "revisionsFailed": [
+      {
+        "actor": "hash=8967acd9",
+        "hash": "7219fe52fdcd42fa",
+        "message": "EACCES: permission denied, rename '/TMP_TEST_DIR/.agent/.actors/actor.via.hash=8967acd9/boots/sha256=7219fe52fdcd42fa' -> '/TMP_TEST_DIR/.agent/.actors/actor.via.hash=8967acd9/boots/.reap.sha256=7219fe52fdcd42fa'"
+      }
+    ],
+    "reapedSerials": [
+      "__SERIAL__"
+    ]
+  }
+}
+"
+`;
+
+exports[`rhx clone prune (acceptance) given: [case6] a boot revision that cannot be reaped when: [t1] the bar lifts, and the re-run the hint names is scoped to the actor then: the plan and apply trees match the snapshot 1`] = `
+"🧹 clone prune (plan)
+   └─ boot revisions no clone refers to (1)
+      └─ @hash=8967acd9  sha256=7219fe52fdcd42fa
+   plan = 0 dead clone(s) and 1 boot revision(s) would be pruned — re-run with --mode apply to remove
+"
+`;
+
+exports[`rhx clone prune (acceptance) given: [case6] a boot revision that cannot be reaped when: [t1] the bar lifts, and the re-run the hint names is scoped to the actor then: the plan and apply trees match the snapshot 2`] = `
+"🧹 clone prune (apply)
+   └─ boot revisions no clone refers to (1)
+      └─ @hash=8967acd9  sha256=7219fe52fdcd42fa
+   pruned = 0 dead clone(s) and 1 boot revision(s)
+"
+`;
+
 exports[`rhx clone prune + reach-state lifecycle (acceptance) given: [case1] a live keeper + a socketless goner under one actor when: [t0] both clones are alive then: the alive-state list format is locked (DEAF + LIVE) 1`] = `
 "😶 clones
    └─ actor @repo=ambient (brain=claude roles=architect,driver,mechanic)
@@ -192,7 +265,7 @@ exports[`rhx clone prune + reach-state lifecycle (acceptance) given: [case1] a l
 exports[`rhx clone prune + reach-state lifecycle (acceptance) given: [case1] a live keeper + a socketless goner under one actor when: [t2] \`clone prune --mode plan\` previews the reap then: the prune-plan format is locked (visual spot-check) 1`] = `
 "🧹 clone prune (plan)
    └─ @:goner  serial=__SERIAL8__  since=__TIMESTAMP__
-   plan: 1 dead clone(s) would be pruned — re-run with --mode apply to remove
+   plan = 1 dead clone(s) would be pruned — re-run with --mode apply to remove
 "
 `;
 
@@ -206,7 +279,8 @@ exports[`rhx clone prune + reach-state lifecycle (acceptance) given: [case1] a l
       "slug": "goner",
       "spawnedAt": "__TIMESTAMP__"
     }
-  ]
+  ],
+  "revisions": []
 }
 "
 `;
@@ -221,6 +295,6 @@ exports[`rhx clone prune + reach-state lifecycle (acceptance) given: [case1] a l
 exports[`rhx clone prune + reach-state lifecycle (acceptance) given: [case1] a live keeper + a socketless goner under one actor when: [t3] \`clone prune --mode apply\` reaps the dead goner then: the prune-apply confirmation format is locked 1`] = `
 "🧹 clone prune (apply)
    └─ @:goner  serial=__SERIAL8__  since=__TIMESTAMP__
-   pruned: 1 dead clone(s)
+   pruned = 1 dead clone(s)
 "
 `;

@@ -522,7 +522,7 @@ describe('setBrainDirBoot', () => {
           brainDir: join(repoPath, 'a'),
           roles: ROLES,
           repoPath,
-          scope: { kind: 'repo' },
+          scope: { kind: 'repo', actorExid: 'repo=ambient' },
         });
         expect(render.drift).toBeNull();
       });

@@ -87,7 +87,7 @@ describe('asBrainDirSyncReportLines', () => {
     });
   });
 
-  given('[case3b] a corpus re-rendered under live clones of the actor', () => {
+  given('[case3c] a corpus re-rendered under live clones of the actor', () => {
     when(
       '[t0] its drift reached two revisions, three clones, and one faulted',
       () => {
@@ -99,8 +99,7 @@ describe('asBrainDirSyncReportLines', () => {
               rewritten: ['1111', '2222'],
               faults: [
                 {
-                  revisionDir:
-                    '/repo/.agent/.actors/a/boots/sha256=0123456789abcdef',
+                  path: '/repo/.agent/.actors/a/boots/sha256=0123456789abcdef',
                   reason:
                     'drift not written (EACCES) — its clones keep their prior drift',
                   cause: new Error('EACCES'),
@@ -110,17 +109,12 @@ describe('asBrainDirSyncReportLines', () => {
           }),
           symlink: genSymlink({ effect: 'FOUND' }),
           repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+          isManifestRepo: false,
           driftReach: {
             clones: 3,
-            faults: [
-              {
-                revisionDir:
-                  '/repo/.agent/.actors/a/boots/sha256=fedcba9876543210',
-                reason:
-                  'is gone, yet a clone refers to it — respawn that clone',
-                cause: new Error('gone'),
-              },
-            ],
+            unreached: 0,
+            gone: ['fedcba9876543210'],
+            faults: [],
           },
         });
 
@@ -132,14 +126,57 @@ describe('asBrainDirSyncReportLines', () => {
               '3 clones refer to them; a live one takes the drift at its next compaction',
             );
             expect(lines.join('\n')).toContain(
-              '✗ sha256=0123456789abcdef drift not written',
+              '✗ in sha256=0123456789abcdef/, drift not written',
             );
             expect(lines.join('\n')).toContain(
-              '✗ sha256=fedcba9876543210 is gone, yet a clone refers to it',
+              '🟡 sha256=fedcba9876543210 is gone, yet a clone refers to it',
             );
+            expect(lines.join('\n')).toContain('`rhx clone prune` if dead');
             expect(lines).toMatchSnapshot();
           },
         );
+      },
+    );
+
+    when(
+      '[t0b] its drift re-wrote revisions, but a spawn ref could not be read',
+      () => {
+        const lines = asBrainDirSyncReportLines({
+          render: genRender({
+            drift: {
+              actorDir: '/repo/.agent/.actors/a',
+              revisions: ['1111'],
+              rewritten: ['1111'],
+              faults: [],
+            },
+          }),
+          symlink: genSymlink({ effect: 'FOUND' }),
+          repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+          isManifestRepo: false,
+          driftReach: {
+            clones: null,
+            unreached: null,
+            gone: [],
+            faults: [
+              {
+                path: '/repo/.agent/.actors/a/clones',
+                reason: 'a spawn ref could not be read (EISDIR)',
+                cause: new Error('EISDIR'),
+              },
+            ],
+          },
+        });
+
+        then('it says the clone count is unknown, never a false zero', () => {
+          expect(lines.join('\n')).toContain(
+            'the clone count is unknown — a spawn ref could not be read',
+          );
+          expect(lines.join('\n')).not.toContain('0 clones refer');
+          expect(lines.join('\n')).toContain(
+            '✗ in clones/, a spawn ref could not be read (EISDIR)',
+          );
+          expect(lines).toMatchSnapshot();
+        });
       },
     );
 
@@ -155,7 +192,8 @@ describe('asBrainDirSyncReportLines', () => {
         }),
         symlink: genSymlink({ effect: 'FOUND' }),
         repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
-        driftReach: { clones: 2, faults: [] },
+        isManifestRepo: false,
+        driftReach: { clones: 2, unreached: 0, gone: [], faults: [] },
       });
 
       then(
@@ -180,13 +218,44 @@ describe('asBrainDirSyncReportLines', () => {
         }),
         symlink: genSymlink({ effect: 'FOUND' }),
         repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
-        driftReach: { clones: 0, faults: [] },
+        isManifestRepo: false,
+        driftReach: { clones: 0, unreached: 0, gone: [], faults: [] },
       });
 
       then('it says NAUGHT — no clone has a drift to take', () => {
         expect(lines).toEqual([]);
       });
     });
+
+    when(
+      '[t3] the actor holds clones from before boot drift, or from a resume',
+      () => {
+        const lines = asBrainDirSyncReportLines({
+          render: genRender({
+            drift: {
+              actorDir: '/repo/.agent/.actors/a',
+              revisions: [],
+              rewritten: [],
+              faults: [],
+            },
+          }),
+          symlink: genSymlink({ effect: 'FOUND' }),
+          repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+          isManifestRepo: false,
+          driftReach: { clones: 0, unreached: 2, gone: [], faults: [] },
+        });
+
+        then(
+          'it names the clones the drift cannot reach, and the respawn that cures them',
+          () => {
+            expect(lines.join('\n')).toContain(
+              '🟡 2 clones sit outside the drift, spawned before boot drift or by a resume — respawn a live one to take the boot',
+            );
+            expect(lines).toMatchSnapshot();
+          },
+        );
+      },
+    );
   });
 
   given('[case3] a link already in place, and a corpus re-rendered', () => {
@@ -216,6 +285,7 @@ describe('asBrainDirSyncReportLines', () => {
           symlink: genSymlink({ effect: 'FOUND' }),
           repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
           isManifestRepo: true,
+          driftReach: null,
         });
 
         then(
@@ -237,6 +307,7 @@ describe('asBrainDirSyncReportLines', () => {
           symlink: genSymlink({ effect: 'FOUND' }),
           repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
           isManifestRepo: true,
+          driftReach: null,
         });
 
         then('it reads `emptied`, never `changed — now 0 roles`', () => {
@@ -250,6 +321,7 @@ describe('asBrainDirSyncReportLines', () => {
           symlink: genSymlink({ effect: 'FOUND' }),
           repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
           isManifestRepo: false,
+          driftReach: null,
         });
 
         then('it says NAUGHT — an absent actors.yml keeps today', () => {
@@ -265,6 +337,7 @@ describe('asBrainDirSyncReportLines', () => {
             symlink: genSymlink({ effect: 'MIGRATED', moves: ['keep.json'] }),
             repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
             isManifestRepo: false,
+            driftReach: null,
           });
 
           then(
@@ -382,6 +455,7 @@ describe('asBrainDirSyncReportLines', () => {
         repoActorBrainDirRel:
           '.agent/.actors/actor.via.slug=crew/brain/.claude',
         isManifestRepo: true,
+        driftReach: null,
       });
 
       then('the carry is named, from the former dir into the new', () => {
