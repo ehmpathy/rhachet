@@ -85,11 +85,20 @@ const startStubUnderParent = async (input: {
 /**
  * .what = end the parent and the stub of one scene
  * .why = a red run must not become the leak it clamps: end this one stub, by its own pid
+ * .note = the stub exits of its own accord (the very behavior under test), so it can leave
+ *   between the /proc check and the kill. ESRCH there means the stub is already gone, which is
+ *   the goal; every other error is rethrown
  */
 const endScene = (input: { parent: ChildProcess; stubPid: number }): void => {
   if (input.parent.exitCode === null) input.parent.kill('SIGKILL');
-  if (existsSync(`/proc/${input.stubPid}`))
+  if (!existsSync(`/proc/${input.stubPid}`)) return;
+  try {
     process.kill(input.stubPid, 'SIGKILL');
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ESRCH')
+      return;
+    throw error;
+  }
 };
 
 describe('stubBrainCli, on parent loss', () => {
