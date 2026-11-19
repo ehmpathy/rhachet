@@ -1,15 +1,13 @@
-import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
 import { asBootContentHash } from '@src/domain.operations/boot/asBootContentHash';
-import { BRAIN_DIR_BOOT_FILENAMES } from '@src/domain.operations/boot/constants';
+import { getActorBootCurrentPath } from '@src/domain.operations/boot/getActorBootCurrentPath';
 
 import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
 
 /**
  * .what = the content hash of the boot the actor holds now, at the first say, or null when it
  *   has none
  * .why = the fleet gate keys its lead record by this hash, so two role sets never wait on each
- *   other; one leaf owns the path, the read, and the cut
+ *   other; one leaf owns the read and the cut
  * .note = it reads the live `boot.md`, not a stamp from spawn: a re-render between a clone's
  *   spawn and its first say re-keys that clone, and the hash leaves out the model. either
  *   miss costs one wasted wait, bounded by `BOOT_CACHE_LEAD_UNANSWERED_MS`, never a wrong
@@ -19,10 +17,7 @@ export const getOneBootHashOfActor = (input: {
   actorDir: string;
 }): string | null => {
   // an actor with no rendered boot has no boot to cache
-  const bootMdPath = join(
-    getBrainOndiskDir({ actorDir: input.actorDir }),
-    BRAIN_DIR_BOOT_FILENAMES.bootMd,
-  );
+  const bootMdPath = getActorBootCurrentPath({ actorDir: input.actorDir });
   if (!existsSync(bootMdPath)) return null;
 
   // the same identity a boot revision dir is named by

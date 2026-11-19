@@ -115,6 +115,35 @@ describe('genCloneBootRevisionForSpawn', () => {
     });
   });
 
+  given('[case3b] an argv that resumes a prior session', () => {
+    when('[t0] the spawn is asked for its revision', () => {
+      then(
+        'no ref is written, only the resumed marker, and the argv passes through',
+        () => {
+          const actor = genActorScene({ withBoot: true });
+          const args = [
+            '--system-prompt-file',
+            join(actor.brainDir, 'boot.md'),
+            '--resume',
+            'a1b2c3',
+          ];
+          const result = genCloneBootRevisionForSpawn({
+            actorDir: actor.actorDir,
+            stagedCloneDir: actor.stagedCloneDir,
+            args,
+          });
+          expect(result.args).toEqual(args);
+          expect(
+            existsSync(join(actor.stagedCloneDir, 'boot.spawned.ref')),
+          ).toBe(false);
+          expect(
+            existsSync(join(actor.stagedCloneDir, 'boot.spawned.resumed')),
+          ).toBe(true);
+        },
+      );
+    });
+  });
+
   given('[case4] a ref that cannot be written', () => {
     when('[t0] the spawn findserts its revision', () => {
       then('it fails loud and reaps the staged dir', async () => {

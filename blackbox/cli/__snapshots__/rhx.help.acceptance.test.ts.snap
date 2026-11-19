@@ -8,7 +8,7 @@ exports[`rhx help commands given: [case1] repo with skills when: [t0] rhx help i
    │  ├─ keyrack     manage credentials
    │  ├─ enroll      enroll a brain cli as a managed, addressable clone
    │  ├─ actor       inspect enrolled actor identities
-   │  ├─ clone       reach an enrolled clone: list, say, get, whoami, prune
+   │  ├─ clone       reach and inspect enrolled clones
    │  └─ upgrade     upgrade rhachet
    └─ options
       ├─ --skill X   run skill by name (required, or use positional)
@@ -28,7 +28,7 @@ exports[`rhx help commands given: [case1] repo with skills when: [t1] rhx --help
    │  ├─ keyrack     manage credentials
    │  ├─ enroll      enroll a brain cli as a managed, addressable clone
    │  ├─ actor       inspect enrolled actor identities
-   │  ├─ clone       reach an enrolled clone: list, say, get, whoami, prune
+   │  ├─ clone       reach and inspect enrolled clones
    │  └─ upgrade     upgrade rhachet
    └─ options
       ├─ --skill X   run skill by name (required, or use positional)
@@ -48,7 +48,7 @@ exports[`rhx help commands given: [case1] repo with skills when: [t2] rhx -h is 
    │  ├─ keyrack     manage credentials
    │  ├─ enroll      enroll a brain cli as a managed, addressable clone
    │  ├─ actor       inspect enrolled actor identities
-   │  ├─ clone       reach an enrolled clone: list, say, get, whoami, prune
+   │  ├─ clone       reach and inspect enrolled clones
    │  └─ upgrade     upgrade rhachet
    └─ options
       ├─ --skill X   run skill by name (required, or use positional)
@@ -68,7 +68,7 @@ exports[`rhx help commands given: [case1] repo with skills when: [t3] rhx --help
    │  ├─ keyrack     manage credentials
    │  ├─ enroll      enroll a brain cli as a managed, addressable clone
    │  ├─ actor       inspect enrolled actor identities
-   │  ├─ clone       reach an enrolled clone: list, say, get, whoami, prune
+   │  ├─ clone       reach and inspect enrolled clones
    │  └─ upgrade     upgrade rhachet
    └─ options
       ├─ --skill X   run skill by name (required, or use positional)

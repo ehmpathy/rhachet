@@ -105,21 +105,26 @@ measured 2026-11-02, haiku, a 121k-token boot, two `-p` sessions with different 
 | `CLAUDE.md` memory | 125,844 | 11,237 |
 | `--system-prompt-file <boot.md>` | 4,811 | 132,111 |
 
-⇒ rhachet spawns every clone with its actor's `boot.md` as the system prompt (`asBrainCliSpawnArgs`),
-and turns the `CLAUDE.md` door off for the clone so the boot loads once (`asBrainCliSpawnEnv`). the
-snapshot rows above are the price: a live clone keeps the boot it spawned with, through `/compact`
-(measured 2026-11-02, `rhx boot.compact.probe`: the request after a compaction held the spawn boot), and
-a `--resume` sends the prompt its session first recorded (measured 2026-11-03, `rhx boot.resume.probe`:
-the resumed request lacked an edit that the boot.md of that spawn held). a boot edit or a role change
-reaches new sessions at spawn
-(`inventory.of=requirements.case=11`).
+⇒ rhachet spawns every clone with its boot revision's `boot.md` as the system prompt
+(`asBrainCliSpawnArgs`, `asBrainCliSpawnArgsWithBootRevision`), and shuts every brain dir `CLAUDE.md`
+door via `claudeMdExcludes`, so the boot loads once. the price: the system prompt is fixed at the
+session's first request — a `/compact` keeps it (measured 2026-11-02, `rhx boot.compact.probe`: the
+request after a compaction held the spawn boot), and a `--resume` sends the prompt its session first
+recorded (measured 2026-11-03, `rhx boot.resume.probe`: the resumed request lacked an edit that the
+boot.md of that spawn held).
+
+⇒ so a boot edit reaches a live clone through the one memory door left open: each revision dir holds a
+`CLAUDE.md` with only the delta from that revision to the current boot (the boot drift), loaded via
+`--add-dir <revision>` and `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1`, and re-read at `/compact`
+(measured 2026-11-17, `rhx boot.compact.probe --door add-dir`). the cached system prompt stays whole;
+only the delta rides in memory. a respawn takes the edit whole (`inventory.of=requirements.case=11`).
 the gain is ~26× less cache write per session start, on every start of a role set within its TTL.
 
-🟡 the door switch is a vendor env key (`CLAUDE_CODE_DISABLE_CLAUDE_MDS`). should a claude release rename
-or drop it, a clone loads the boot twice, and the second copy sits after the per-session values, so each
-session writes it again: no error, only the cost. ⇒ after a brain-cli upgrade, run `rhx boot.cache.probe`;
-a second-session cache write of a few thousand tokens holds the win; one near the boot size means the
-`CLAUDE.md` copy is back.
+🟡 the drift door is a vendor env key (`CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD`). should a claude
+release rename or drop it, a clone loads no drift and takes a boot edit only at respawn: no error. ⇒
+after a brain-cli upgrade, run `rhx boot.compact.probe --door add-dir`; a ✗ verdict means the door
+moved. and run `rhx boot.cache.probe`: a second-session cache write near the boot size means a brain
+dir `CLAUDE.md` loads again, past the excludes.
 
 ## ⚠️ .the lever Anthropic documents most forcefully is BREVITY, not channel
 

@@ -20,7 +20,7 @@ const os = require('node:os');
 // answer the version probe the way claude does, then exit. a test pins a version
 // below the floor via RHACHET_STUB_BRAIN_VERSION
 if (process.argv.includes('--version')) {
-  const version = process.env.RHACHET_STUB_BRAIN_VERSION || '2.1.277';
+  const version = process.env.RHACHET_STUB_BRAIN_VERSION || '2.1.280';
   process.stdout.write(`${version} (Claude Code)\n`);
   process.exit(0);
 }

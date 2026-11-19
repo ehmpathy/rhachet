@@ -43,3 +43,13 @@ the boot changed outside any brief, where no block above can carry it. respawn t
 \`\`\`
 "
 `;
+
+exports[`asBootDelta given: [case7] a boot the size of a real one: ~1,000 blocks, ~500KB when: [t1] every block changed, a drift the size of the boot then: the stub matches snapshot 1`] = `
+"# boot drift since this clone spawned
+
+drift = f4b9420c8857088c
+
+the boot has changed since you spawned, by 13009 lines, past the 2000 line cap a compaction carries.
+so no block is carried here: respawn to take the current boot, which loads whole from the shared cache.
+"
+`;

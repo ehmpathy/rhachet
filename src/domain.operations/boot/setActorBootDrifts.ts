@@ -1,9 +1,9 @@
-import { existsSync, readdirSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { asBootDriftFaultCause } from './asBootDriftFaultCause';
-import { asBootRevisionHashFromDirName } from './asBootRevisionHashFromDirName';
-import type { BootDriftFault } from './BrainDirBootRender';
+import { asBootDriftSweepSummary } from './asBootDriftSweepSummary';
+import type { BootDriftFault, BootDriftSweep } from './BrainDirBootRender';
 import { getActorBootRevisionDir } from './getActorBootRevisionDir';
-import { getActorBootRevisionsRootDir } from './getActorBootRevisionsRootDir';
+import { getAllActorBootRevisionHashes } from './getAllActorBootRevisionHashes';
 import { setActorBootDrift } from './setActorBootDrift';
 
 /**
@@ -15,46 +15,81 @@ import { setActorBootDrift } from './setActorBootDrift';
  *         caller names each with its cause; any other error rethrows (`asBootDriftFaultCause`)
  * .note = an actor with no `boots/` dir has no clone to reach; the sweep is a no-op
  * .note = which clones refer to each revision is the init layer's join
- *         (`getActorBootDriftReach`), so the boot layer never reads a clone
+ *         (`getOneActorBootDriftReach`), so the boot layer never reads a clone
  */
 export const setActorBootDrifts = (input: {
   actorDir: string;
   bootMdPathCurrent: string;
-}): {
-  revisions: string[];
-  rewritten: string[];
-  faults: BootDriftFault[];
-} => {
-  // enumerate the revisions by hash; none means no clone has spawned on a revision yet
-  const rootDir = getActorBootRevisionsRootDir({ actorDir: input.actorDir });
-  if (!existsSync(rootDir)) return { revisions: [], rewritten: [], faults: [] };
-  const revisions = readdirSync(rootDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .flatMap((entry) => {
-      const hash = asBootRevisionHashFromDirName({ name: entry.name });
-      return hash === null ? [] : [hash];
-    })
-    .sort();
+}): BootDriftSweep => {
+  // the revisions by hash; none means no clone has spawned on a revision yet
+  const revisions = getAllActorBootRevisionHashes({ actorDir: input.actorDir });
+  if (revisions.length === 0)
+    return asBootDriftSweepSummary({ revisions, results: [] });
+
+  // the current boot, read once, so every revision of this sweep drifts to the same bytes;
+  //   an unreadable boot faults every revision, never a throw past the render
+  const boot = getOneBootCurrentOrFault({ path: input.bootMdPathCurrent });
+  if (boot.fault !== null)
+    return asBootDriftSweepSummary({
+      revisions,
+      results: asResultsOfBootUnread({
+        actorDir: input.actorDir,
+        revisions,
+        cause: boot.fault,
+      }),
+    });
+  const bootCurrent = boot.bytes;
 
   // write each; collect a filesystem fault rather than stop the sweep
   const results = revisions.map((hash) =>
     setOneRevisionDrift({
       actorDir: input.actorDir,
       hash,
-      bootMdPathCurrent: input.bootMdPathCurrent,
+      bootCurrent,
     }),
   );
 
-  return {
-    revisions,
-    rewritten: results.flatMap((result) =>
-      result.outcome === 'rewritten' ? [result.hash] : [],
-    ),
-    faults: results.flatMap((result) =>
-      result.fault === null ? [] : [result.fault],
-    ),
-  };
+  // the revisions re-written, and the faults met
+  return asBootDriftSweepSummary({ revisions, results });
 };
+
+/**
+ * .what = the current boot's bytes, or the filesystem fault that stopped the read
+ */
+const getOneBootCurrentOrFault = (input: {
+  path: string;
+}): { bytes: string; fault: null } | { bytes: null; fault: Error } => {
+  try {
+    return { bytes: readFileSync(input.path, 'utf8'), fault: null };
+  } catch (error) {
+    // a defect in the code rethrows; only a filesystem fault is collected
+    const cause = asBootDriftFaultCause({ error });
+    if (cause === null) throw error;
+    return { bytes: null, fault: cause };
+  }
+};
+
+/**
+ * .what = a fault result per revision, for a sweep whose current boot could not be read
+ */
+const asResultsOfBootUnread = (input: {
+  actorDir: string;
+  revisions: string[];
+  cause: Error;
+}): {
+  hash: string;
+  outcome: 'fault';
+  fault: BootDriftFault;
+}[] =>
+  input.revisions.map((hash) => ({
+    hash,
+    outcome: 'fault',
+    fault: {
+      path: getActorBootRevisionDir({ actorDir: input.actorDir, hash }),
+      reason: `drift not written, the current boot could not be read (${input.cause.message}) — its clones keep their prior drift`,
+      cause: input.cause,
+    },
+  }));
 
 /**
  * .what = write one revision's drift, or the fault that stopped it
@@ -62,7 +97,7 @@ export const setActorBootDrifts = (input: {
 const setOneRevisionDrift = (input: {
   actorDir: string;
   hash: string;
-  bootMdPathCurrent: string;
+  bootCurrent: string;
 }): {
   hash: string;
   outcome: 'rewritten' | 'unchanged' | 'fault';
@@ -75,7 +110,7 @@ const setOneRevisionDrift = (input: {
   try {
     const { outcome } = setActorBootDrift({
       revisionDir,
-      bootMdPathCurrent: input.bootMdPathCurrent,
+      bootCurrent: input.bootCurrent,
     });
     return { hash: input.hash, outcome, fault: null };
   } catch (error) {
@@ -86,7 +121,7 @@ const setOneRevisionDrift = (input: {
       hash: input.hash,
       outcome: 'fault',
       fault: {
-        revisionDir,
+        path: revisionDir,
         reason: `drift not written (${cause.message}) — its clones keep their prior drift`,
         cause,
       },

@@ -43,7 +43,7 @@ export const setupStubBrainPath = (input: {
   };
 
   const binDir = join(input.dir, '.stub-bin');
-  writeStubBrain({ dir: binDir, version: input.version ?? '2.1.277' });
+  writeStubBrain({ dir: binDir, version: input.version ?? '2.1.280' });
 
   // the host PATH is kept ONLY where no snapshot reads the scan (see the note above)
   if (!input.shadowed) return `${binDir}:${process.env.PATH ?? ''}`;

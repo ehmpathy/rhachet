@@ -219,7 +219,7 @@ describe('invokeEnroll (integration)', () => {
         () => {
           expect(result.err).toContain("brain-cli 'claude'");
           expect(result.err).toContain('2.1.276');
-          expect(result.err).toContain('2.1.277');
+          expect(result.err).toContain('2.1.280');
           expect(result.err).toContain('claude update');
         },
       );

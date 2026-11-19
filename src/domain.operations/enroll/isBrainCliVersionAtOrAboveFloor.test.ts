@@ -43,7 +43,7 @@ const TEST_CASES = [
 ];
 
 describe('isBrainCliVersionAtOrAboveFloor', () => {
-  given('[case1] versions around the floor 2.1.277', () => {
+  given('[case1] versions around a sample floor 2.1.277', () => {
     TEST_CASES.map((thisCase) =>
       when(`[t0] ${thisCase.description}`, () => {
         then(`it reads ${thisCase.expected}`, () => {

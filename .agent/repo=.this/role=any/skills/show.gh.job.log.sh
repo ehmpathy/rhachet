@@ -84,8 +84,10 @@ fi
 [[ "$TAIL" =~ ^[0-9]+$ ]] || refuse "--tail must be a number, got '$TAIL'" "--tail 120"
 
 # read the raw log and strip the escapes
-# .note = gh gates a body that holds escape sequences; this skill strips them before it
-#   prints, so the gate is passed here and never reaches the terminal
+# .note = no `--allow-escape-sequences`: the body is captured into a variable, so gh writes to
+#   a pipe, never a terminal, and its escape gate does not fire. measured 2026-11-18 on a
+#   jest-colored log of 4535 lines (job 134621027424). this skill then strips the escapes
+#   itself before it prints
 REPO="$(gh repo view --json nameWithOwner --jq .nameWithOwner)" || { echo "💥 MalfunctionError: could not derive the current repo via gh" >&2; exit 1; }
 RAW="$(gh api "repos/$REPO/actions/jobs/$JOB/logs")" || { echo "💥 MalfunctionError: gh api could not read the log of job $JOB" >&2; exit 1; }
 PLAIN="$(printf '%s\n' "$RAW" | sed -E 's/\x1B\[[0-9;?]*[A-Za-z]//g; s/\x1B\][^\x07]*\x07//g; s/\r$//')"

@@ -434,11 +434,12 @@ exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t7] the clon
 
 exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t8] the request after /compact holds the edit then: it exits 0 with the ✓ verdict, each request in send order 1`] = `
 "🧮 boot.compact.probe --roles '-driver' --model haiku --door system
+   ├─ brain cli = claude 2.1.327
    ├─ the sentinel line lands in .agent/.actors/actor.via.hash=stub/brain/.claude/boot.md after spawn, before /compact
    ├─ requests, in send order
-   │  ├─ [1] turn 1 · sentinel in system = no · sentinel in messages = no · boot copies = 1 · asks "Do not use any tools. Reply with exactly: OK"
-   │  ├─ [2] /compact · sentinel in system = yes · sentinel in messages = no · boot copies = 1 · asks "/compact"
-   │  └─ [3] turn 2 · sentinel in system = yes · sentinel in messages = no · boot copies = 1 · asks "Do not use any tools. Reply with exactly: OK"
+   │  ├─ [1] turn 1 · sentinel in system = no · sentinel in messages = no · boot copies = 1 · last text "Do not use any tools. Reply with exactly: OK"
+   │  ├─ [2] /compact · sentinel in system = yes · sentinel in messages = no · boot copies = 1 · last text "/compact"
+   │  └─ [3] turn 2 · sentinel in system = yes · sentinel in messages = no · boot copies = 1 · last text "Do not use any tools. Reply with exactly: OK"
    │
    ├─ request bodies = .log/role=any/skill=boot.compact.probe/<run>/otel
    ├─ ✓ the boot reached turn 1 once
@@ -448,15 +449,70 @@ exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t8] the requ
 
 exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t9] the request after /compact holds the spawn boot then: it exits 0 with the ✗ verdict: a kept boot is a measure, not a fault 1`] = `
 "🧮 boot.compact.probe --roles '-driver' --model haiku --door system
+   ├─ brain cli = claude 2.1.327
    ├─ the sentinel line lands in .agent/.actors/actor.via.hash=stub/brain/.claude/boot.md after spawn, before /compact
    ├─ requests, in send order
-   │  ├─ [1] turn 1 · sentinel in system = no · sentinel in messages = no · boot copies = 1 · asks "Do not use any tools. Reply with exactly: OK"
-   │  ├─ [2] /compact · sentinel in system = no · sentinel in messages = no · boot copies = 1 · asks "/compact"
-   │  └─ [3] turn 2 · sentinel in system = no · sentinel in messages = no · boot copies = 1 · asks "Do not use any tools. Reply with exactly: OK"
+   │  ├─ [1] turn 1 · sentinel in system = no · sentinel in messages = no · boot copies = 1 · last text "Do not use any tools. Reply with exactly: OK"
+   │  ├─ [2] /compact · sentinel in system = no · sentinel in messages = no · boot copies = 1 · last text "/compact"
+   │  └─ [3] turn 2 · sentinel in system = no · sentinel in messages = no · boot copies = 1 · last text "Do not use any tools. Reply with exactly: OK"
    │
    ├─ request bodies = .log/role=any/skill=boot.compact.probe/<run>/otel
    ├─ ✓ the boot reached turn 1 once
    └─ ✗ /compact kept the spawn boot; a live clone meets a boot edit only at its next spawn
+"
+`;
+
+exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t10] --door add-dir, and the request after /compact holds the drift edit then: it exits 0 with the ✓ add-dir verdict, read from the messages 1`] = `
+"🧮 boot.compact.probe --roles '-driver' --model haiku --door add-dir
+   ├─ brain cli = claude 2.1.327
+   ├─ the sentinel line lands in .agent/.actors/actor.via.hash=stub/boots/sha256=0123456789abcdef/CLAUDE.md after spawn, before /compact
+   ├─ requests, in send order
+   │  ├─ [1] turn 1 · sentinel in system = no · sentinel in messages = no · boot copies = 1 · last text "Do not use any tools. Reply with exactly: OK"
+   │  ├─ [2] /compact · sentinel in system = no · sentinel in messages = yes · boot copies = 1 · last text "/compact"
+   │  └─ [3] turn 2 · sentinel in system = no · sentinel in messages = yes · boot copies = 1 · last text "Do not use any tools. Reply with exactly: OK"
+   │
+   ├─ request bodies = .log/role=any/skill=boot.compact.probe/<run>/otel
+   ├─ ✓ the boot reached turn 1 once
+   └─ ✓ /compact re-read the add-dir CLAUDE.md; a live clone meets its boot drift at its next compaction
+"
+`;
+
+exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t11] --door add-dir, and the request after /compact holds the spawn drift then: it exits 0 with the ✗ add-dir verdict: a kept drift is a measure, not a fault 1`] = `
+"🧮 boot.compact.probe --roles '-driver' --model haiku --door add-dir
+   ├─ brain cli = claude 2.1.327
+   ├─ the sentinel line lands in .agent/.actors/actor.via.hash=stub/boots/sha256=0123456789abcdef/CLAUDE.md after spawn, before /compact
+   ├─ requests, in send order
+   │  ├─ [1] turn 1 · sentinel in system = no · sentinel in messages = no · boot copies = 1 · last text "Do not use any tools. Reply with exactly: OK"
+   │  ├─ [2] /compact · sentinel in system = no · sentinel in messages = no · boot copies = 1 · last text "/compact"
+   │  └─ [3] turn 2 · sentinel in system = no · sentinel in messages = no · boot copies = 1 · last text "Do not use any tools. Reply with exactly: OK"
+   │
+   ├─ request bodies = .log/role=any/skill=boot.compact.probe/<run>/otel
+   ├─ ✓ the boot reached turn 1 once
+   └─ ✗ /compact kept the add-dir CLAUDE.md as it was at spawn; the drift needs another door
+"
+`;
+
+exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t12] --door add-dir, and the clone holds no spawn ref then: it fails as a named malfunction that names the rebuild 1`] = `
+"🧮 boot.compact.probe
+   ├─ ran = rhx boot.compact.probe --door add-dir
+   ├─ 💥 MalfunctionError: the probe clone holds no boot.spawned.ref
+   └─ hint = rebuild (npm run build); the clone must spawn on a boot revision
+"
+`;
+
+exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t13] --door names no known door then: it refuses with exit 2 before any clone spawns, and names both doors 1`] = `
+"🧮 boot.compact.probe
+   ├─ ran = rhx boot.compact.probe --door bogus
+   ├─ ✋ ConstraintError: --door must be system or add-dir, not bogus
+   └─ hint = rhx boot.compact.probe help
+"
+`;
+
+exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t14] --door has no value then: it refuses with exit 2 before any clone spawns 1`] = `
+"🧮 boot.compact.probe
+   ├─ ran = rhx boot.compact.probe --door
+   ├─ ✋ ConstraintError: absent value for --door
+   └─ hint = rhx boot.compact.probe help
 "
 `;
 

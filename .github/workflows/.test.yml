@@ -17,6 +17,7 @@ on:
 permissions:
   id-token: write # required for oidc
   contents: read
+  actions: read # required for the gh job log read (show.gh.job.log integration)
 
 jobs:
   # install the dependencies
@@ -234,12 +235,16 @@ jobs:
 
       - name: test:integration (explicit ${{ matrix.shard.index }})
         if: matrix.shard.type == 'explicit'
+        env:
+          GH_TOKEN: ${{ github.token }} # read-only; show.gh.job.log integration reads a real job log
         run: |
           patterns='${{ join(matrix.shard.patterns, '|') }}'
           THOROUGH=true npm run test:integration -- --testPathPatterns="$patterns" --json --outputFile=jest-results.json
 
       - name: test:integration (dynamic ${{ matrix.shard.shard }}/${{ matrix.shard.total }})
         if: matrix.shard.type == 'dynamic'
+        env:
+          GH_TOKEN: ${{ github.token }} # read-only; show.gh.job.log integration reads a real job log
         run: |
           exclude='${{ needs.enshard.outputs.integration-patterns }}'
           if [[ -n "$exclude" ]]; then

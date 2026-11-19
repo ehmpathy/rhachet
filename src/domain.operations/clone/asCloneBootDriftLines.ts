@@ -1,10 +1,9 @@
-/**
- * .what = the line count past which a clone's boot drift nudges it to compact or respawn
- * .why = the brain cli's own docs name 200 lines as the size where a memory file starts to cost
- *        adherence (https://code.claude.com/docs/en/memory); past it, the drift a clone carries
- *        in memory is better shed by a respawn onto the current boot
- */
-export const BOOT_DRIFT_NUDGE_LINES = 200;
+import { BOOT_DRIFT_CARRY_LINES_MAX } from '@src/domain.operations/boot/BOOT_DRIFT_CARRY_LINES_MAX';
+import { BOOT_REVISION_DIR_PREFIX } from '@src/domain.operations/boot/constants';
+
+import { BOOT_DRIFT_NUDGE_LINES } from './BOOT_DRIFT_NUDGE_LINES';
+import type { CloneBootDrift } from './CloneBootDrift';
+import { isBootDriftOverThreshold } from './isBootDriftOverThreshold';
 
 /**
  * .what = the tree a human or a clone reads for one clone's boot drift
@@ -17,16 +16,7 @@ export const BOOT_DRIFT_NUDGE_LINES = 200;
 export const asCloneBootDriftLines = (input: {
   for: 'nudge' | 'inspect';
   address: string;
-  drift:
-    | { kind: 'legacy' }
-    | {
-        kind: 'current' | 'drifted';
-        revision: string;
-        drift: string | null;
-        lines: number;
-        counts: { changed: number; added: number; removed: number };
-        outside: boolean;
-      };
+  drift: CloneBootDrift;
 }): string[] => {
   // a clone from before boot drift: say so, plainly
   if (input.drift.kind === 'legacy')
@@ -35,11 +25,19 @@ export const asCloneBootDriftLines = (input: {
       '   └─ spawned before boot drift, so it holds its spawn boot until a respawn',
     ];
 
+  // a resume: its boot is its session's, which no record names; never read as current
+  if (input.drift.kind === 'resumed')
+    return [
+      `😶 boot drift of ${input.address}`,
+      '   ├─ a resume holds the boot its session first recorded, which no record here names',
+      '   └─ it takes no drift at any compaction; respawn it to take the current boot',
+    ];
+
   // no drift: the clone holds the current boot
   if (input.drift.kind === 'current')
     return [
       `😶 boot drift of ${input.address}`,
-      `   ├─ spawn revision = sha256=${input.drift.revision}`,
+      `   ├─ spawn revision = ${BOOT_REVISION_DIR_PREFIX}${input.drift.revision}`,
       '   └─ no drift; the clone holds the current boot',
     ];
 
@@ -51,17 +49,61 @@ export const asCloneBootDriftLines = (input: {
     counts.added ? `${counts.added} added` : null,
     counts.removed ? `${counts.removed} removed` : null,
   ].filter((part): part is string => part !== null);
-  const blocksLine =
-    blocks === 0
-      ? 'no block drifted; the change sits outside the briefs, or in whitespace and order alone'
-      : `${blocks} block${blocks === 1 ? '' : 's'} drifted since this clone spawned (${parts.join(', ')})`;
-  const isOver = input.drift.lines > BOOT_DRIFT_NUDGE_LINES;
-  const sizeLine = `${input.drift.lines} lines carried, ${isOver ? 'over' : 'under'} the ${BOOT_DRIFT_NUDGE_LINES} line threshold`;
-  const outsideLines = input.drift.outside
-    ? [
-        '   ├─ the boot also changed outside the briefs, which only a respawn takes',
-      ]
-    : [];
+  // .note = with no block drift, the outside change is the whole change, so the blocks row says it
+  //   and the `also` row stays silent; `also` speaks only beside a block drift
+  const blocksLine = (() => {
+    if (blocks > 0)
+      return `${blocks} block${blocks === 1 ? '' : 's'} drifted since this clone spawned (${parts.join(', ')})`;
+    if (input.drift.outside)
+      return 'no block drifted; the boot changed outside the briefs, which only a respawn takes';
+    return 'no block drifted; the change sits in whitespace and order alone';
+  })();
+  const isOver = isBootDriftOverThreshold({ lines: input.drift.lines });
+  const sizeLine = `${input.drift.lines} lines of drift, ${isOver ? 'over' : 'under'} the ${BOOT_DRIFT_NUDGE_LINES} line threshold`;
+  const outsideLines =
+    input.drift.outside && blocks > 0
+      ? [
+          '   ├─ the boot also changed outside the briefs, which only a respawn takes',
+        ]
+      : [];
+
+  // past the cap, the drift file carries no block: a compaction takes naught, so respawn is the one cure
+  const capLine = `past the ${BOOT_DRIFT_CARRY_LINES_MAX} line cap, the drift carries no block, so a compaction takes naught`;
+  if (input.drift.capped && input.for === 'nudge')
+    return [
+      '😶 boot drift',
+      `   ├─ ${blocksLine}`,
+      `   ├─ ${sizeLine}`,
+      `   ├─ ${capLine}`,
+      '   └─ to take it, respawn — the new boot loads whole, from the shared cache',
+    ];
+  if (input.drift.capped)
+    return [
+      `😶 boot drift of ${input.address}`,
+      `   ├─ spawn revision = ${BOOT_REVISION_DIR_PREFIX}${input.drift.revision}`,
+      `   ├─ drift = ${input.drift.drift}`,
+      `   ├─ ${blocksLine}`,
+      `   ├─ ${sizeLine}`,
+      `   └─ ${capLine}; only a respawn takes the current boot`,
+    ];
+
+  // a change outside the briefs alone: the drift carries no block to take, so respawn is the one cure
+  const isOutsideOnly = input.drift.outside && blocks === 0;
+  if (isOutsideOnly && input.for === 'nudge')
+    return [
+      '😶 boot drift',
+      `   ├─ ${blocksLine}`,
+      `   ├─ ${sizeLine}`,
+      '   └─ to take it, respawn — the new boot loads whole, from the shared cache',
+    ];
+  if (isOutsideOnly)
+    return [
+      `😶 boot drift of ${input.address}`,
+      `   ├─ spawn revision = ${BOOT_REVISION_DIR_PREFIX}${input.drift.revision}`,
+      `   ├─ drift = ${input.drift.drift}`,
+      `   ├─ ${blocksLine}`,
+      `   └─ ${sizeLine}; a compaction takes naught of it, so respawn the clone`,
+    ];
 
   // the nudge: to the clone, with the two ways out
   if (input.for === 'nudge')
@@ -70,19 +112,30 @@ export const asCloneBootDriftLines = (input: {
       `   ├─ ${blocksLine}`,
       `   ├─ ${sizeLine}`,
       ...outsideLines,
+      `   ├─ if you already hold drift = ${input.drift.drift}, a compaction took it; naught is owed`,
       '   └─ to take it',
-      `      ├─ /compact — reads the drift in, the conversation kept; after it, you should hold drift = ${input.drift.drift}`,
+      '      ├─ /compact — reads the drift in, the conversation kept; a clone cannot run it, so ask your enroller to send it',
+      `      │  ├─ rhx clone say ${input.address} --what /compact`,
+      `      │  └─ after it, you should hold drift = ${input.drift.drift}`,
       '      └─ respawn — the new boot loads whole, from the shared cache; the sure cure',
     ];
 
-  // the inspector: to an editor or an enroller, with the check a compacted clone must pass
+  // the inspector: to an editor or an enroller, with when the drift lands and the check it passed
+  const takeNowLines = isOver
+    ? [
+        '   ├─ to take it now',
+        `   │  └─ rhx clone say ${input.address} --what /compact`,
+      ]
+    : [];
   return [
     `😶 boot drift of ${input.address}`,
-    `   ├─ spawn revision = sha256=${input.drift.revision}`,
+    `   ├─ spawn revision = ${BOOT_REVISION_DIR_PREFIX}${input.drift.revision}`,
     `   ├─ drift = ${input.drift.drift}`,
     `   ├─ ${blocksLine}`,
     `   ├─ ${sizeLine}`,
     ...outsideLines,
-    `   └─ a compacted clone that does not hold drift = ${input.drift.drift} did not take the drift — respawn it`,
+    '   ├─ the clone reads the drift in at its next compaction',
+    ...takeNowLines,
+    `   └─ after a compaction it holds drift = ${input.drift.drift}; if it does not, respawn it`,
   ];
 };

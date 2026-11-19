@@ -3,6 +3,7 @@ import type { ContextCli } from '@src/domain.objects/ContextCli';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
 import { getOneRepoActorOndiskDir } from '@src/domain.operations/actor/enrolled/getOneRepoActorOndiskDir';
 import { getActorsManifestPath } from '@src/domain.operations/actor/manifest/getActorsManifest';
+import { asBootDriftFaultsOfSync } from '@src/domain.operations/boot/asBootDriftFaultsOfSync';
 import { asBrainDirBootFailureLines } from '@src/domain.operations/boot/asBrainDirBootFailureLines';
 import {
   asBrainDirSyncReportLines,
@@ -17,8 +18,9 @@ import { existsSync } from 'node:fs';
 import { relative } from 'node:path';
 import { asBootGuardReportLines } from './asBootGuardReportLines';
 import { asExitCodeForBrainDirSyncFailures } from './asExitCodeForBrainDirSyncFailures';
+import { asExitCodeWithDriftFaults } from './asExitCodeWithDriftFaults';
 import { findsertRepoThisRoleAnyBootGuard } from './findsertRepoThisRoleAnyBootGuard';
-import { getActorBootDriftReach } from './getActorBootDriftReach';
+import { getAllBrainDirSyncReports } from './getAllBrainDirSyncReports';
 import { syncBootsForBrainDirs } from './syncBootsForBrainDirs';
 
 /**
@@ -117,17 +119,7 @@ export const syncAndReportBrainDirBoots = async (
     getActorsManifestPath({ repoPath: input.repoPath }),
   );
   // each render joined to the clones that refer to its revisions
-  const reports = renders.map((render) => ({
-    render,
-    driftReach:
-      render.drift === null
-        ? null
-        : getActorBootDriftReach({
-            actorDir: render.drift.actorDir,
-            revisions: render.drift.revisions,
-            rewritten: render.drift.rewritten,
-          }),
-  }));
+  const reports = await getAllBrainDirSyncReports({ renders });
   for (const { render, driftReach } of reports) {
     const lines = asBrainDirSyncReportLines({
       render,
@@ -149,12 +141,10 @@ export const syncAndReportBrainDirBoots = async (
   // a drift not written is a fault the human must see in the exit too: its clones keep a stale drift
   const exitCodeOfFailures = asExitCodeForBrainDirSyncFailures({ failures });
   const isDriftFaulted = reports.some(
-    ({ render, driftReach }) =>
-      (render.drift?.faults.length ?? 0) + (driftReach?.faults.length ?? 0) > 0,
+    (report) => asBootDriftFaultsOfSync(report).length > 0,
   );
   return {
-    exitCode:
-      exitCodeOfFailures === 0 && isDriftFaulted ? 1 : exitCodeOfFailures,
+    exitCode: asExitCodeWithDriftFaults({ exitCodeOfFailures, isDriftFaulted }),
     repoActorRendered: !failures.some(
       (failure) => failure.scope.kind === 'repo',
     ),

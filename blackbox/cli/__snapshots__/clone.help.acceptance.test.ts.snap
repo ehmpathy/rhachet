@@ -28,12 +28,15 @@ Options:
 exports[`rhx actor/clone --help (acceptance) given: [case1] a repo where the commands are registered when: [t2] clone --help then: the help text is locked (visual spot-check) 1`] = `
 "Usage: rhachet clone [options] [command]
 
-reach an enrolled clone: list, say, get, whoami, prune, boot drift
+reach and inspect enrolled clones
 
 Options:
   -h, --help               display help for command
 
 Commands:
+  make [actor]             spawn a clone of an actor declared in
+                           .agent/actors.yml: rhx clone make @<slug>
+                           [+role|-role] [--brain <brain>] [--as @:<slug>]
   list [options] [actor]   list clones (all, or scoped to one actor by
                            @<exid-prefix>, e.g. @repo=ambient or @hash=9c1e)
   say [options] <address>  dispatch a message into a live clone (by
@@ -43,8 +46,11 @@ Commands:
                            clone)
   prune [options] [actor]  reap dead clones (all, or scoped to one actor by
                            @<exid-prefix>, e.g. @repo=ambient or @hash=9c1e)
-  boot                     inspect a clone's boot: drift
+  boot                     inspect a clone's boot — its drift
   help [command]           display help for command
+
+actor form:
+  rhx clone @<slug>   alias of rhx clone make @<slug>
 "
 `;
 
@@ -138,7 +144,7 @@ Options:
 exports[`rhx actor/clone --help (acceptance) given: [case1] a repo where the commands are registered when: [t8] clone boot --help then: the help text is locked (visual spot-check) 1`] = `
 "Usage: rhachet clone boot [options] [command]
 
-inspect a clone's boot: drift
+inspect a clone's boot — its drift
 
 Options:
   -h, --help       display help for command
@@ -150,6 +156,44 @@ Commands:
 "
 `;
 
+exports[`rhx actor/clone --help (acceptance) given: [case1] a repo where the commands are registered when: [t8] clone claude --roles mechanic (the inline form, typed on clone) then: the refusal is locked (visual spot-check) 1`] = `
+"
+✋ ConstraintError: rhx clone has no verb 'claude'
+
+{
+  "hint": "name a clone verb, a declared actor, or compose a one-off via enroll",
+  "operand": "claude",
+  "roads": [
+    "reach a clone: rhx clone list | say | get | whoami | prune | boot",
+    "spawn from a declared actor: rhx clone make @<slug> (declared in .agent/actors.yml)",
+    "compose a one-off: rhx enroll <brain> --roles <roles>"
+  ]
+}
+
+[args] clone,claude,--roles,mechanic
+
+"
+`;
+
+exports[`rhx actor/clone --help (acceptance) given: [case1] a repo where the commands are registered when: [t9] clone @:scout (a clone address, typed with no verb) then: the refusal is locked (visual spot-check) 1`] = `
+"
+✋ ConstraintError: rhx clone has no verb '@:scout'
+
+{
+  "hint": "to reach @:scout, name a verb first: rhx clone get @:scout",
+  "operand": "@:scout",
+  "roads": [
+    "reach a clone: rhx clone list | say | get | whoami | prune | boot",
+    "spawn from a declared actor: rhx clone make @<slug> (declared in .agent/actors.yml)",
+    "compose a one-off: rhx enroll <brain> --roles <roles>"
+  ]
+}
+
+[args] clone,@:scout
+
+"
+`;
+
 exports[`rhx actor/clone --help (acceptance) given: [case1] a repo where the commands are registered when: [t9] clone boot drift --help then: the help text is locked (visual spot-check) 1`] = `
 "Usage: rhachet clone boot drift [options]
 
@@ -158,7 +202,28 @@ nudge it once past the threshold
 
 Options:
   --of <address>   the clone to inspect, as @:<slug|serial>
-  --when <moment>  the hook moment this runs at: hook.onStop
+  --when <moment>  the hook moment this runs at (hook.onStop); when absent, it
+                   inspects --of, else the clone it runs in
+  --output <mode>  output mode: tree (default) or json
   -h, --help       display help for command
+"
+`;
+
+exports[`rhx actor/clone --help (acceptance) given: [case1] a repo where the commands are registered when: [t10] clone lst (a near verb, mistyped) then: the refusal is locked (visual spot-check) 1`] = `
+"
+✋ ConstraintError: rhx clone has no verb 'lst'
+
+{
+  "hint": "did you mean 'rhx clone list'?",
+  "operand": "lst",
+  "roads": [
+    "reach a clone: rhx clone list | say | get | whoami | prune | boot",
+    "spawn from a declared actor: rhx clone make @<slug> (declared in .agent/actors.yml)",
+    "compose a one-off: rhx enroll <brain> --roles <roles>"
+  ]
+}
+
+[args] clone,lst
+
 "
 `;

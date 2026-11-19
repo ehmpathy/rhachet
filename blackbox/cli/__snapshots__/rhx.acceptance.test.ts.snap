@@ -32,6 +32,10 @@ exports[`rhx given: [case5] rhx init bare-sigil alias when: [t0] \`rhx init +arc
 
 🫧 no roles with hooks found
 
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
+
 "
 `;
 
@@ -50,6 +54,10 @@ exports[`rhx given: [case5] rhx init bare-sigil alias when: [t2.1] \`rhx init -e
 
 🫧 no roles with hooks found
 
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
+
 "
 `;
 
@@ -62,6 +70,10 @@ exports[`rhx given: [case5] rhx init bare-sigil alias when: [t2] \`rhx init -erg
 🔭 search for linked roles with hooks...
 
 🫧 no roles with hooks found
+
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
 
 "
 `;
@@ -76,7 +88,8 @@ Options:
                        behaver), or +role to add / -role to remove
                        incrementally; role::<subject> boots one subject of the
                        role, with all its hooks (mechanic::flow); list subjects
-                       via npx rhachet roles cost --all
+                       via npx rhachet roles cost --all. refused beside
+                       .agent/actors.yml, which declares the roles instead
   --hooks [brains...]  apply brain hooks (auto-detect brains if no args)
   --config             generate rhachet.use.ts config (legacy behavior)
   --prep               persist init command to package.json prepare entries

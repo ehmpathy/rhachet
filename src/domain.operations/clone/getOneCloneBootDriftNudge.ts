@@ -1,6 +1,7 @@
-import { BOOT_DRIFT_NUDGE_LINES } from './asCloneBootDriftLines';
-import { getCloneBootDrift } from './getCloneBootDrift';
-import { getCloneBootDriftTold } from './getCloneBootDriftTold';
+import type { CloneBootDrift } from './CloneBootDrift';
+import { getOneCloneBootDrift } from './getOneCloneBootDrift';
+import { getOneCloneBootDriftTold } from './getOneCloneBootDriftTold';
+import { isBootDriftOverThreshold } from './isBootDriftOverThreshold';
 
 /**
  * .what = the drift a clone is owed a nudge for, or null when it is owed none
@@ -13,19 +14,16 @@ import { getCloneBootDriftTold } from './getCloneBootDriftTold';
 export const getOneCloneBootDriftNudge = (input: {
   actorDir: string;
   cloneDir: string;
-}): Extract<
-  ReturnType<typeof getCloneBootDrift>,
-  { kind: 'drifted' }
-> | null => {
+}): Extract<CloneBootDrift, { kind: 'drifted' }> | null => {
   // only a drift can be owed a nudge
-  const drift = getCloneBootDrift(input);
+  const drift = getOneCloneBootDrift(input);
   if (drift.kind !== 'drifted') return null;
 
   // under the threshold, the drift rides the next compaction with no word
-  if (drift.lines <= BOOT_DRIFT_NUDGE_LINES) return null;
+  if (!isBootDriftOverThreshold({ lines: drift.lines })) return null;
 
   // told once per drift
-  const told = getCloneBootDriftTold({ cloneDir: input.cloneDir });
+  const told = getOneCloneBootDriftTold({ cloneDir: input.cloneDir });
   if (told === drift.drift) return null;
 
   return drift;

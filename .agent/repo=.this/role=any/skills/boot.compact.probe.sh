@@ -236,6 +236,19 @@ say_and_await() {
   echo "$before"
 }
 
+# the brain cli version the enroll will spawn: a verdict is a fact about one version, so it names it
+#   .note = `command` skips a shell function named `claude`. a host may export one that wraps the
+#     cli in `rhx enroll claude`, which would enroll a clone here and print no version; the enroll
+#     spawns the PATH binary, so the PATH binary is the one to ask
+BRAIN_CLI_VERSION=""
+if ! BRAIN_CLI_VERSION=$(command claude --version 2>&1); then
+  fail kind=malfunction what="the brain cli version could not be read" detail="$BRAIN_CLI_VERSION" hint="the probe spawns the claude on PATH; check it with: command -v claude"
+fi
+if [[ ! "$BRAIN_CLI_VERSION" =~ ([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+  fail kind=malfunction what="the brain cli version output holds no x.y.z" detail="$BRAIN_CLI_VERSION"
+fi
+BRAIN_CLI_VERSION="${BASH_REMATCH[1]}"
+
 # spawn the clone, with its raw request bodies logged
 ENROLLED=""
 ENROLL_STATUS=0
@@ -329,17 +342,21 @@ while IFS= read -r ROW; do
   if ! BOOTS=$(jq -r --arg m "$BOOT_MARKER" '[(.system | tostring), (.messages | tostring)] | map(split($m) | length - 1) | add' "$OTEL/$FILE" 2>&1); then
     fail kind=malfunction what="request body $N could not be counted for the boot marker" detail="$BOOTS"
   fi
-  # the last text the request carries, so the compaction request reads as one
+  # the last text block the request carries, so the compaction request reads as one. it is the
+  #   LAST block, never the block that holds the sentinel: `sentinel in messages` reads every
+  #   block. the sentinel holds this run's pid, so it is named `<sentinel>` before the cut: the
+  #   excerpt then reads the same on every run, whatever the pid's digit count
   ASK=""
-  if ! ASK=$(jq -r '
+  if ! ASK=$(jq -r --arg s "$SENTINEL" '
       [ .messages[-1].content | if type == "string" then . else (.[] | select(.type == "text") | .text) end ]
-      | last // "" | gsub("\\s+"; " ") | .[0:60]' "$OTEL/$FILE" 2>&1); then
+      | last // "" | split($s) | join("<sentinel>") | gsub("\\s+"; " ") | .[0:60]' "$OTEL/$FILE" 2>&1); then
     fail kind=malfunction what="request body $N holds no readable messages" detail="$ASK"
   fi
-  ROWS_OUT+="   │  $GLYPH [$N] $PHASE · sentinel in system = $HOLDS · sentinel in messages = $MSGS_HOLD · boot copies = $BOOTS · asks \"$ASK\""$'\n'
+  ROWS_OUT+="   │  $GLYPH [$N] $PHASE · sentinel in system = $HOLDS · sentinel in messages = $MSGS_HOLD · boot copies = $BOOTS · last text \"$ASK\""$'\n'
   if [[ "$PHASE" == "turn 2" && "$DOOR" == "system" ]]; then VERDICT_HOLDS="$HOLDS"; fi
   if [[ "$PHASE" == "turn 2" && "$DOOR" == "add-dir" ]]; then VERDICT_HOLDS="$MSGS_HOLD"; fi
-  if [[ "$PHASE" == "turn 1" ]]; then BOOTS_AT_TURN1="$BOOTS"; fi
+  # turn 1 may span more than one request: keep the most copies any of them held
+  if [[ "$PHASE" == "turn 1" ]] && (( BOOTS > ${BOOTS_AT_TURN1:-0} )); then BOOTS_AT_TURN1="$BOOTS"; fi
 done < "$OTEL/index.jsonl"
 
 # a void measure fails before the tree opens, so stdout never holds a tree with no verdict
@@ -350,6 +367,7 @@ if [[ -z "$VERDICT_HOLDS" ]]; then
 fi
 
 echo "🧮 boot.compact.probe --roles '$ROLES' --model $MODEL --door $DOOR"
+echo "   ├─ brain cli = claude $BRAIN_CLI_VERSION"
 echo "   ├─ the sentinel line lands in ${TARGET#"$PWD"/} after spawn, before /compact"
 echo "   ├─ requests, in send order"
 printf '%s' "$ROWS_OUT"
