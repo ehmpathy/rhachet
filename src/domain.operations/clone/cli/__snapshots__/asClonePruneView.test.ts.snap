@@ -9,12 +9,28 @@ exports[`asClonePruneView given: [case2] two prunable clones (a named + a bare) 
 "🧹 clone prune (plan)
    ├─ @:driver  serial=7f3a0000  since=__SPAWNED_AT_1__
    └─ @:11110000  serial=11110000  since=__SPAWNED_AT_2__
-   plan: 2 dead clone(s) would be pruned — re-run with --mode apply to remove"
+   plan = 2 dead clone(s) would be pruned — re-run with --mode apply to remove"
 `;
 
 exports[`asClonePruneView given: [case2] two prunable clones (a named + a bare) when: [t1] an APPLY view is built then: the apply tree matches the snapshot 1`] = `
 "🧹 clone prune (apply)
    ├─ @:driver  serial=7f3a0000  since=__SPAWNED_AT_1__
    └─ @:11110000  serial=11110000  since=__SPAWNED_AT_2__
-   pruned: 2 dead clone(s)"
+   pruned = 2 dead clone(s)"
+`;
+
+exports[`asClonePruneView given: [case3] a prunable clone and two boot revisions no clone refers to when: [t0] a PLAN view is built then: the plan tree matches the snapshot 1`] = `
+"🧹 clone prune (plan)
+   ├─ @:driver  serial=7f3a0000  since=__SPAWNED_AT_1__
+   └─ boot revisions no clone refers to (2)
+      ├─ @hash=2e77f741  sha256=0123456789abcdef
+      └─ @repo=ambient  sha256=fedcba9876543210
+   plan = 1 dead clone(s) and 2 boot revision(s) would be pruned — re-run with --mode apply to remove"
+`;
+
+exports[`asClonePruneView given: [case3] a prunable clone and two boot revisions no clone refers to when: [t1] no clone is prunable, but a revision is then: the apply tree matches the snapshot 1`] = `
+"🧹 clone prune (apply)
+   └─ boot revisions no clone refers to (1)
+      └─ @hash=2e77f741  sha256=0123456789abcdef
+   pruned = 0 dead clone(s) and 1 boot revision(s)"
 `;

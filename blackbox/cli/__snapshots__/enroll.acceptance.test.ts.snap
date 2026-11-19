@@ -249,14 +249,10 @@ exports[`rhx enroll --roles (acceptance) given: [case2] the POSITIVE regression 
     ]
   },
   "claudeMdExcludes": [
-    "/TMP_TEST_DIR/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.claude/CLAUDE.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
-    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/.claude/AGENTS.md",
+    "**/.claude/CLAUDE.md",
     "**/CLAUDE.local.md",
-    "/TMP_TEST_DIR/.claude/rules/**",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
+    "**/.claude/rules/**"
   ]
 }
 "
@@ -308,8 +304,10 @@ exports[`rhx enroll --roles (acceptance) given: [case2b] the PRIMARY journey —
     ]
   },
   "claudeMdExcludes": [
-    "/HOME_DIR/.claude/CLAUDE.md",
-    "**/CLAUDE.local.md"
+    "**/.claude/AGENTS.md",
+    "**/.claude/CLAUDE.md",
+    "**/CLAUDE.local.md",
+    "**/.claude/rules/**"
   ]
 }
 "
@@ -402,14 +400,10 @@ exports[`rhx enroll --roles (acceptance) given: [case3] positive replace — bar
     ]
   },
   "claudeMdExcludes": [
-    "/TMP_TEST_DIR/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.claude/CLAUDE.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
-    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/.claude/AGENTS.md",
+    "**/.claude/CLAUDE.md",
     "**/CLAUDE.local.md",
-    "/TMP_TEST_DIR/.claude/rules/**",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
+    "**/.claude/rules/**"
   ]
 }
 "
@@ -452,8 +446,10 @@ exports[`rhx enroll --roles (acceptance) given: [case4] positive add — \`+arch
     ]
   },
   "claudeMdExcludes": [
-    "/HOME_DIR/.claude/CLAUDE.md",
-    "**/CLAUDE.local.md"
+    "**/.claude/AGENTS.md",
+    "**/.claude/CLAUDE.md",
+    "**/CLAUDE.local.md",
+    "**/.claude/rules/**"
   ]
 }
 "
@@ -486,14 +482,10 @@ exports[`rhx enroll --roles (acceptance) given: [case5] positive mixed — \`-dr
     ]
   },
   "claudeMdExcludes": [
-    "/TMP_TEST_DIR/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.claude/CLAUDE.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
-    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/.claude/AGENTS.md",
+    "**/.claude/CLAUDE.md",
     "**/CLAUDE.local.md",
-    "/TMP_TEST_DIR/.claude/rules/**",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
+    "**/.claude/rules/**"
   ]
 }
 "
@@ -526,14 +518,10 @@ exports[`rhx enroll --roles (acceptance) given: [case6] positive mixed — \`"-d
     ]
   },
   "claudeMdExcludes": [
-    "/TMP_TEST_DIR/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.claude/CLAUDE.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
-    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/.claude/AGENTS.md",
+    "**/.claude/CLAUDE.md",
     "**/CLAUDE.local.md",
-    "/TMP_TEST_DIR/.claude/rules/**",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
+    "**/.claude/rules/**"
   ]
 }
 "
@@ -566,14 +554,10 @@ exports[`rhx enroll --roles (acceptance) given: [case7] the \`-r\` short alias r
     ]
   },
   "claudeMdExcludes": [
-    "/TMP_TEST_DIR/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.claude/CLAUDE.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
-    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/.claude/AGENTS.md",
+    "**/.claude/CLAUDE.md",
     "**/CLAUDE.local.md",
-    "/TMP_TEST_DIR/.claude/rules/**",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
+    "**/.claude/rules/**"
   ]
 }
 "
@@ -606,14 +590,10 @@ exports[`rhx enroll --roles (acceptance) given: [case7b] a bare role delta after
     ]
   },
   "claudeMdExcludes": [
-    "/TMP_TEST_DIR/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.claude/CLAUDE.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
-    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/.claude/AGENTS.md",
+    "**/.claude/CLAUDE.md",
     "**/CLAUDE.local.md",
-    "/TMP_TEST_DIR/.claude/rules/**",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
+    "**/.claude/rules/**"
   ]
 }
 "
@@ -636,14 +616,10 @@ exports[`rhx enroll --roles (acceptance) given: [case7c] a delta actor re-derive
     ]
   },
   "claudeMdExcludes": [
-    "/TMP_TEST_DIR/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.claude/CLAUDE.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
-    "/HOME_DIR/.claude/CLAUDE.md",
+    "**/.claude/AGENTS.md",
+    "**/.claude/CLAUDE.md",
     "**/CLAUDE.local.md",
-    "/TMP_TEST_DIR/.claude/rules/**",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
+    "**/.claude/rules/**"
   ]
 }
 "
@@ -799,13 +775,13 @@ exports[`rhx enroll --roles (acceptance) given: [case10] pre-spawn validation er
 
 exports[`rhx enroll --roles (acceptance) given: [case11] a linked repo whose \`claude\` sits BELOW the version floor when: [t0] \`enroll claude --roles mechanic\` then: the refusal output is locked to a snapshot 1`] = `
 "
-✋ ConstraintError: brain-cli 'claude' is 2.1.87 at $STUBDIR_WINNER/claude, below the floor 2.1.277
+✋ ConstraintError: brain-cli 'claude' is 2.1.87 at $STUBDIR_WINNER/claude, below the floor 2.1.280
 
 {
   "hint": "a newer 2.1.280 sits at $STUBDIR_NEWER/claude, but $STUBDIR_WINNER/claude wins your PATH — put that dir first, or upgrade the one that wins: pnpm add -g @anthropic-ai/claude-code@latest",
   "bin": "claude",
   "version": "2.1.87",
-  "floor": "2.1.277",
+  "floor": "2.1.280",
   "resolvedPath": "$STUBDIR_WINNER/claude",
   "shadowed": [
     {
@@ -857,8 +833,10 @@ exports[`rhx enroll owns the system prompt (acceptance) given: [case1] a linked 
   "user",
   "--settings",
   "$TESTDIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json",
+  "--add-dir",
+  "$TESTDIR/.agent/.actors/actor.via.repo=ambient/boots/sha256=$HASH",
   "--system-prompt-file",
-  "$TESTDIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/boot.md",
+  "$TESTDIR/.agent/.actors/actor.via.repo=ambient/boots/sha256=$HASH/boot.md",
 ]
 `;
 
@@ -909,6 +887,23 @@ exports[`rhx enroll owns the system prompt (acceptance) given: [case1] a linked 
   }
 }
 "
+`;
+
+exports[`rhx enroll owns the system prompt (acceptance) given: [case1] a linked repo whose \`claude\` records the argv it is spawned with when: [t5b] \`enroll claude --resume <session>\` from a human at a terminal (a pty) then: the human reads the resume line, once 1`] = `"🟡 a resume holds the boot its session first recorded, so it takes no drift at any compaction; respawn to take the current boot"`;
+
+exports[`rhx enroll owns the system prompt (acceptance) given: [case2] a repo brief that boots whole, edited between two spawns when: [t0] a clone spawns, then the brief is edited and \`rhx init --hooks\` runs then: init tells the editor the live clone gets the edit, at its next compaction 1`] = `
+[
+  "   └─ drift",
+  "      ├─ 1 spawn revision re-written",
+  "      └─ 1 clone refers to it; a live one takes the drift at its next compaction",
+]
+`;
+
+exports[`rhx enroll owns the system prompt (acceptance) given: [case2] a repo brief that boots whole, edited between two spawns when: [t1] a live revision cannot take its drift, then the brief is edited and a clone spawns then: the fault block matches snapshot 1`] = `
+"🟡 a boot drift was not written; this clone still spawns, but live clones keep a stale drift
+   ├─ ✗ in sha256=$HASH1/, drift not written (EACCES: permission denied, open '/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/boots/sha256=$HASH1/.CLAUDE.md.__PID__.__HEX__.tmp') — its clones keep their prior drift
+   ├─ ✗ in sha256=$HASH2/, drift not written (EACCES: permission denied, open '/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/boots/sha256=$HASH2/.CLAUDE.md.__PID__.__HEX__.tmp') — its clones keep their prior drift
+   └─ to fix, run \`rhx init\`, which re-writes every drift"
 `;
 
 exports[`rhx enroll with no tty (acceptance) given: [case1] a linked repo + a live stub brain, enrolled with NO tty when: [t0] \`enroll claude --output json\` runs through a piped stdio spawn then: 🔴 the clone ANSWERS a say — reach is proven, never asserted 1`] = `"😶🎙️ <verdict> @:<address>"`;

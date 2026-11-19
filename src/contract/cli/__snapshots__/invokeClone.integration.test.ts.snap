@@ -1,0 +1,185 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`invokeClone (integration) given: [case12] a clone whose boot drifted past the threshold since it spawned when: [t0] \`clone boot drift --of @:reviewer\` runs then: the tree matches snapshot 1`] = `
+"😶 boot drift of @:reviewer
+   ├─ spawn revision = sha256=37d6bf88434c7048
+   ├─ drift = f28e9d479982932e
+   ├─ 1 block drifted since this clone spawned (1 added)
+   ├─ 252 lines of drift, over the 200 line threshold
+   ├─ the clone reads the drift in at its next compaction
+   ├─ to take it now
+   │  └─ rhx clone say @:reviewer --what /compact
+   └─ after a compaction it holds drift = f28e9d479982932e; if it does not, respawn it
+"
+`;
+
+exports[`invokeClone (integration) given: [case12] a clone whose boot drifted past the threshold since it spawned when: [t1] the onStop hook runs inside the clone, twice then: the nudge matches snapshot 1`] = `
+"😶 boot drift
+   ├─ 1 block drifted since this clone spawned (1 added)
+   ├─ 252 lines of drift, over the 200 line threshold
+   ├─ if you already hold drift = f28e9d479982932e, a compaction took it; naught is owed
+   └─ to take it
+      ├─ /compact — reads the drift in, the conversation kept; a clone cannot run it, so ask your enroller to send it
+      │  ├─ rhx clone say @:reviewer --what /compact
+      │  └─ after it, you should hold drift = f28e9d479982932e
+      └─ respawn — the new boot loads whole, from the shared cache; the sure cure
+"
+`;
+
+exports[`invokeClone (integration) given: [case12] a clone whose boot drifted past the threshold since it spawned when: [t3] \`clone boot drift --of @:nobody\` runs then: the error matches snapshot 1`] = `
+"
+✋ ConstraintError: no clone answers to that address
+
+{
+  "hint": "list clones with \`rhx clone list\`",
+  "address": "@:nobody"
+}
+
+[args] clone,boot,drift,--of,@:nobody
+
+"
+`;
+
+exports[`invokeClone (integration) given: [case12] a clone whose boot drifted past the threshold since it spawned when: [t3b] \`clone boot drift\` runs outside a clone, with no --of then: the error matches snapshot 1`] = `
+"
+✋ ConstraintError: no clone is named, and this process runs in none
+
+{
+  "hint": "name one with \`--of @:<slug|serial>\`; list clones with \`rhx clone list\`"
+}
+
+[args] clone,boot,drift
+
+"
+`;
+
+exports[`invokeClone (integration) given: [case12] a clone whose boot drifted past the threshold since it spawned when: [t4] an unknown --when moment is given then: the error matches snapshot 1`] = `
+"
+✋ ConstraintError: unknown --when 'hook.onBoot'
+
+{
+  "hint": "the one moment is --when hook.onStop",
+  "when": "hook.onBoot"
+}
+
+[args] clone,boot,drift,--when,hook.onBoot
+
+"
+`;
+
+exports[`invokeClone (integration) given: [case12] a clone whose boot drifted past the threshold since it spawned when: [t5] the hook moment is given with --of then: the error matches snapshot 1`] = `
+"
+✋ ConstraintError: --of cannot ride --when hook.onStop
+
+{
+  "hint": "the hook reads the clone it runs in; to inspect another clone, drop --when: rhx clone boot drift --of @:reviewer"
+}
+
+[args] clone,boot,drift,--when,hook.onStop,--of,@:reviewer
+
+"
+`;
+
+exports[`invokeClone (integration) given: [case13] a clone spawned before boot drift (no boot.spawned.ref) when: [t0] \`clone boot drift --of @:old\` runs then: the tree matches snapshot 1`] = `
+"😶 boot drift of @:old
+   └─ spawned before boot drift, so it holds its spawn boot until a respawn
+"
+`;
+
+exports[`invokeClone (integration) given: [case13b] a clone spawned by a resume (boot.spawned.resumed) when: [t0] \`clone boot drift --of @:back\` runs then: the tree matches snapshot 1`] = `
+"😶 boot drift of @:back
+   ├─ a resume holds the boot its session first recorded, which no record here names
+   └─ it takes no drift at any compaction; respawn it to take the current boot
+"
+`;
+
+exports[`invokeClone (integration) given: [case14] a clone whose ref names a boot revision that is gone when: [t0] the onStop hook runs inside it then: the error matches snapshot, its repo path masked 1`] = `
+"
+💥 MalfunctionError: a boot drift file could not be read
+
+{
+  "hint": "respawn the clone (\`rhx enroll\`): it boots on the current revision and reads no file of the old one",
+  "path": "<repo>/.agent/.actors/actor.via.hash=8967acd9/boots/sha256=0123456789abcdef/boot.md",
+  "cause": {
+    "errno": -2,
+    "code": "ENOENT",
+    "syscall": "open",
+    "path": "<repo>/.agent/.actors/actor.via.hash=8967acd9/boots/sha256=0123456789abcdef/boot.md"
+  }
+}
+
+[args] clone,boot,drift,--when,hook.onStop
+
+"
+`;
+
+exports[`invokeClone (integration) given: [case14] a clone whose ref names a boot revision that is gone when: [t1] \`clone boot drift --of @:lost\` runs then: the error matches snapshot, its repo path masked 1`] = `
+"
+💥 MalfunctionError: a boot drift file could not be read
+
+{
+  "hint": "respawn the clone (\`rhx enroll\`): it boots on the current revision and reads no file of the old one",
+  "path": "<repo>/.agent/.actors/actor.via.hash=8967acd9/boots/sha256=0123456789abcdef/boot.md",
+  "cause": {
+    "errno": -2,
+    "code": "ENOENT",
+    "syscall": "open",
+    "path": "<repo>/.agent/.actors/actor.via.hash=8967acd9/boots/sha256=0123456789abcdef/boot.md"
+  }
+}
+
+[args] clone,boot,drift,--of,@:lost
+
+"
+`;
+
+exports[`invokeClone (integration) given: [case15] a drifted clone whose told latch cannot be read when: [t0] the onStop hook runs inside it then: the error matches snapshot, its repo path masked 1`] = `
+"
+💥 MalfunctionError: a boot drift file could not be read
+
+{
+  "hint": "respawn the clone (\`rhx enroll\`): it boots on the current revision and reads no file of the old one",
+  "path": "<repo>/.agent/.actors/actor.via.hash=8967acd9/clones/serial=<serial>/boot.drift.told",
+  "cause": {
+    "errno": -21,
+    "code": "EISDIR",
+    "syscall": "read"
+  }
+}
+
+[args] clone,boot,drift,--when,hook.onStop
+
+"
+`;
+
+exports[`invokeClone (integration) given: [case16] a clone whose boot has not moved since it spawned when: [t0] \`clone boot drift --of @:fresh\` runs then: the tree matches snapshot 1`] = `
+"😶 boot drift of @:fresh
+   ├─ spawn revision = sha256=37d6bf88434c7048
+   └─ no drift; the clone holds the current boot
+"
+`;
+
+exports[`invokeClone (integration) given: [case17] a clone whose boot drifted, but under the threshold when: [t0] \`clone boot drift --of @:small\` runs then: the tree matches snapshot 1`] = `
+"😶 boot drift of @:small
+   ├─ spawn revision = sha256=37d6bf88434c7048
+   ├─ drift = 2911d22140e082ad
+   ├─ 1 block drifted since this clone spawned (1 changed)
+   ├─ 13 lines of drift, under the 200 line threshold
+   ├─ the clone reads the drift in at its next compaction
+   └─ after a compaction it holds drift = 2911d22140e082ad; if it does not, respawn it
+"
+`;
+
+exports[`invokeClone (integration) given: [case18] a drifted clone whose drift on disk lags the current boot when: [t0] \`clone boot drift --of @:stale\` runs then: the error matches snapshot, its repo path masked 1`] = `
+"
+💥 MalfunctionError: the boot drift on disk is stale: the last render did not reach it
+
+{
+  "hint": "run \`rhx init\` to re-write every drift; if a render is in flight, re-run this once it ends",
+  "path": "<repo>/.agent/.actors/actor.via.hash=8967acd9/boots/sha256=37d6bf88434c7048/CLAUDE.md"
+}
+
+[args] clone,boot,drift,--of,@:stale
+
+"
+`;

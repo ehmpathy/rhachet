@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from 'child_process';
-import { MalfunctionError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { given, then, useThen, when } from 'test-fns';
@@ -42,6 +42,8 @@ const runSkill = (input: {
   args: string[];
   pathPrefix?: string;
   cwd?: string;
+  // vars set after the stub env strips the host's: a case that plants its own shell function
+  envExtra?: NodeJS.ProcessEnv;
 }): { status: number | null; stdout: string; stderr: string } => {
   const result = spawnSync(
     'bash',
@@ -49,17 +51,21 @@ const runSkill = (input: {
     {
       cwd: input.cwd ?? REPO_ROOT,
       encoding: 'utf-8',
-      env: input.pathPrefix
-        ? asStubEnv({ pathPrefix: input.pathPrefix })
-        : process.env,
+      env: {
+        ...(input.pathPrefix
+          ? asStubEnv({ pathPrefix: input.pathPrefix })
+          : process.env),
+        ...input.envExtra,
+      },
     },
   );
-  // mask the repo root, and each run's timestamped log dir
+  // mask the repo root, each run's timestamped log dir, and each run's pid-keyed sentinel
   const mask = (text: string): string =>
     text
       .split(REPO_ROOT)
       .join('<repo>')
-      .replace(/\/\d{8}T\d{6}Z\.\d+/g, '/<run>');
+      .replace(/\/\d{8}T\d{6}Z\.\d+/g, '/<run>')
+      .replace(/\b(KELP|REEF)-\d+-(TIDE|SWELL)\b/g, '$1-<pid>-$2');
   return {
     status: result.status,
     stdout: mask(result.stdout),
@@ -95,6 +101,8 @@ const STUB_RESUME_HELD_REL = `${FIXTURE_ROOT_REL}/stub-resume-held`;
 const STUB_RESUME_PLAIN_REL = `${FIXTURE_ROOT_REL}/stub-resume-plain`;
 const STUB_COMPACT_REREAD_REL = `${FIXTURE_ROOT_REL}/stub-compact-reread`;
 const STUB_COMPACT_KEPT_REL = `${FIXTURE_ROOT_REL}/stub-compact-kept`;
+const STUB_COMPACT_ADDDIR_REREAD_REL = `${FIXTURE_ROOT_REL}/stub-compact-adddir-reread`;
+const STUB_COMPACT_ADDDIR_KEPT_REL = `${FIXTURE_ROOT_REL}/stub-compact-adddir-kept`;
 const STUB_RESUME_REACHES_REL = `${FIXTURE_ROOT_REL}/stub-resume-reaches`;
 const STUB_RESUME_KEPT_REL = `${FIXTURE_ROOT_REL}/stub-resume-kept`;
 const STUB_OTEL_SPLIT_REL = `${FIXTURE_ROOT_REL}/stub-otel-split`;
@@ -131,19 +139,37 @@ const asStubCompactBody = (input: { sayExit: number }): string =>
  * .what = a stub `npx` body for a whole boot.compact.probe run: the enroll writes a clone of the
  *   probe slug and keeps its otel dir; each say logs one raw request whose system block is the
  *   boot the stub chooses
- * .why = `reread` sends the boot.md of the moment (so the request after /compact holds the edit),
- *   `kept` sends the boot.md of spawn; the two verdicts of the probe follow
+ * .why = `reread` sends the file of the moment (so the request after /compact holds the edit),
+ *   `kept` sends the file of spawn; the two verdicts of the probe follow
+ * .note = `door = system` puts the boot.md in the system block; `door = add-dir` also writes a
+ *   spawn ref and a revision drift CLAUDE.md, and sends that CLAUDE.md as the first message, apart
+ *   from the ask, as claude loads an add-dir CLAUDE.md
  */
-const asStubCompactRunBody = (input: { boot: 'reread' | 'kept' }): string =>
-  [
+const asStubCompactRunBody = (input: {
+  boot: 'reread' | 'kept';
+  door: 'system' | 'add-dir';
+}): string => {
+  const spawn = input.boot === 'kept' ? '.spawn' : '';
+  const drift = '"$actor/boots/sha256=0123456789abcdef/CLAUDE.md"';
+  return [
     'actor=".agent/.actors/actor.via.hash=stub"',
     'if [[ "$1 $2" == "rhx enroll" ]]; then',
     '  slug=""; prev=""',
     '  for a in "$@"; do [[ "$prev" == "--as" ]] && slug="${a#@:}"; prev="$a"; done',
     '  mkdir -p "$actor/clones/serial=$slug" "$actor/brain/.claude"',
     `  printf '{"serial":"%s","slug":"%s"}' "$slug" "$slug" > "$actor/clones/serial=$slug/identity.json"`,
-    `  printf 'a boot\\n' > "$actor/brain/.claude/boot.md"`,
+    // the boot holds the intro marker once, as a rendered boot does
+    `  printf 'a boot from rhachet/intro\\n' > "$actor/brain/.claude/boot.md"`,
     '  cp "$actor/brain/.claude/boot.md" "$actor/brain/.claude/boot.md.spawn"',
+    // the add-dir door: a spawn ref, and the drift CLAUDE.md of that revision
+    ...(input.door === 'add-dir'
+      ? [
+          `  printf '0123456789abcdef\\n' > "$actor/clones/serial=$slug/boot.spawned.ref"`,
+          '  mkdir -p "$actor/boots/sha256=0123456789abcdef"',
+          `  printf 'a drift\\n' > ${drift}`,
+          `  cp ${drift} ${drift.replace(/"$/, '.spawn"')}`,
+        ]
+      : []),
     `  printf '%s' "\${OTEL_LOG_RAW_API_BODIES#file:}" > "$actor/clones/serial=$slug/otel.dir"`,
     '  exit 0',
     'fi',
@@ -154,10 +180,17 @@ const asStubCompactRunBody = (input: { boot: 'reread' | 'kept' }): string =>
     'for a in "$@"; do [[ "$prev" == "--what" ]] && what="$a"; prev="$a"; done',
     'n=1',
     '[[ -f "$dir/index.jsonl" ]] && n=$(( $(awk NF "$dir/index.jsonl" | wc -l) + 1 ))',
-    `system="$(tr '\\n' ' ' < "$actor/brain/.claude/boot.md${input.boot === 'kept' ? '.spawn' : ''}")"`,
-    `printf '{"system":"%s","messages":[{"role":"user","content":"%s"}]}' "$system" "$what" > "$dir/r$n.json"`,
+    input.door === 'system'
+      ? `system="$(tr '\\n' ' ' < "$actor/brain/.claude/boot.md${spawn}")"`
+      : `system="$(tr '\\n' ' ' < "$actor/brain/.claude/boot.md")"`,
+    // the add-dir memory rides as its own first message, never inside the last one
+    input.door === 'add-dir'
+      ? `lead='{"role":"user","content":"'"$(tr '\\n' ' ' < ${drift.replace(/"$/, `${spawn}"`)})"'"},'`
+      : 'lead=""',
+    `printf '{"system":"%s","messages":[%s{"role":"user","content":"%s"}]}' "$system" "$lead" "$what" > "$dir/r$n.json"`,
     `printf '{"request_file":"r%s.json"}\\n' "$n" >> "$dir/index.jsonl"`,
   ].join('\n');
+};
 
 /**
  * .what = a stub `npx` body for a whole boot.resume.probe run: the resume turn renders a boot.md
@@ -255,6 +288,12 @@ beforeAll(() => {
     writeFileSync(join(REPO_ROOT, input.dir, 'npx'), `#!/usr/bin/env bash\n${input.body}\n`, {
       mode: 0o755,
     });
+    // a probe names the brain cli version it ran on; the stub answers one, never the host's
+    writeFileSync(
+      join(REPO_ROOT, input.dir, 'claude'),
+      '#!/usr/bin/env bash\necho "2.1.327 (Claude Code)"\n',
+      { mode: 0o755 },
+    );
   };
   stubOf({ dir: STUB_FAIL_REL, body: 'echo "enroll refused" >&2; exit 3' });
   stubOf({ dir: STUB_NOREPLY_REL, body: 'echo "not json"' });
@@ -311,8 +350,22 @@ beforeAll(() => {
   stubOf({ dir: STUB_COMPACT_SAY_DEAF_REL, body: asStubCompactBody({ sayExit: 1 }) });
   stubOf({ dir: STUB_RESUME_HELD_REL, body: asStubResumeBody({ held: true }) });
   stubOf({ dir: STUB_RESUME_PLAIN_REL, body: asStubResumeBody({ held: false }) });
-  stubOf({ dir: STUB_COMPACT_REREAD_REL, body: asStubCompactRunBody({ boot: 'reread' }) });
-  stubOf({ dir: STUB_COMPACT_KEPT_REL, body: asStubCompactRunBody({ boot: 'kept' }) });
+  stubOf({
+    dir: STUB_COMPACT_REREAD_REL,
+    body: asStubCompactRunBody({ boot: 'reread', door: 'system' }),
+  });
+  stubOf({
+    dir: STUB_COMPACT_KEPT_REL,
+    body: asStubCompactRunBody({ boot: 'kept', door: 'system' }),
+  });
+  stubOf({
+    dir: STUB_COMPACT_ADDDIR_REREAD_REL,
+    body: asStubCompactRunBody({ boot: 'reread', door: 'add-dir' }),
+  });
+  stubOf({
+    dir: STUB_COMPACT_ADDDIR_KEPT_REL,
+    body: asStubCompactRunBody({ boot: 'kept', door: 'add-dir' }),
+  });
   stubOf({ dir: STUB_RESUME_REACHES_REL, body: asStubResumeRunBody({ resumed: 'reaches' }) });
   stubOf({ dir: STUB_RESUME_KEPT_REL, body: asStubResumeRunBody({ resumed: 'kept' }) });
   // a turn whose first request carries the boot and whose second is a subagent's own prompt
@@ -707,6 +760,7 @@ describe('boot.cache.skills', () => {
         expect(result.status).toEqual(0);
         expect(result.stdout).toContain('--roles');
         expect(result.stdout).toContain('--model');
+        expect(result.stdout).toContain('--door');
         expect(result.stdout).toMatchSnapshot();
       });
     });
@@ -835,7 +889,8 @@ describe('boot.cache.skills', () => {
 
       then('it exits 0 with the ✓ verdict, each request in send order', () => {
         expect(result.status).toEqual(0);
-        expect(result.stdout).toContain('[3] turn 2 · system holds the sentinel = yes');
+        expect(result.stdout).toContain('[3] turn 2 · sentinel in system = yes');
+        expect(result.stdout).toContain('✓ the boot reached turn 1 once');
         expect(result.stdout).toContain('✓ /compact re-read the boot');
         expect(result.stdout).toMatchSnapshot();
       });
@@ -853,9 +908,119 @@ describe('boot.cache.skills', () => {
 
       then('it exits 0 with the ✗ verdict: a kept boot is a measure, not a fault', () => {
         expect(result.status).toEqual(0);
-        expect(result.stdout).toContain('[3] turn 2 · system holds the sentinel = no');
+        expect(result.stdout).toContain('[3] turn 2 · sentinel in system = no');
+        expect(result.stdout).toContain('✓ the boot reached turn 1 once');
         expect(result.stdout).toContain('✗ /compact kept the spawn boot');
         expect(result.stdout).toMatchSnapshot();
+      });
+    });
+
+    when('[t10] --door add-dir, and the request after /compact holds the drift edit', () => {
+      const result = useThen('it runs', () =>
+        runSkill({
+          skill: 'boot.compact.probe',
+          args: ['--door', 'add-dir'],
+          pathPrefix: join(REPO_ROOT, STUB_COMPACT_ADDDIR_REREAD_REL),
+          cwd: join(REPO_ROOT, COMPACT_TREE_REL),
+        }),
+      );
+
+      then('it exits 0 with the ✓ add-dir verdict, read from the messages', () => {
+        expect(result.status).toEqual(0);
+        expect(result.stdout).toContain('--door add-dir');
+        expect(result.stdout).toContain('boots/sha256=0123456789abcdef/CLAUDE.md');
+        expect(result.stdout).toContain(
+          '[3] turn 2 · sentinel in system = no · sentinel in messages = yes',
+        );
+        expect(result.stdout).toContain('✓ the boot reached turn 1 once');
+        expect(result.stdout).toContain('✓ /compact re-read the add-dir CLAUDE.md');
+        expect(result.stdout).toMatchSnapshot();
+      });
+    });
+
+    when('[t10b] the host exports a `claude` shell function that wraps the cli in an enroll', () => {
+      // a host may wrap `claude` in `rhx enroll claude` and export the function into child bash;
+      //   the version read must reach the PATH binary the enroll spawns, never the wrapper
+      const result = useThen('it runs', () =>
+        runSkill({
+          skill: 'boot.compact.probe',
+          args: ['--door', 'add-dir'],
+          pathPrefix: join(REPO_ROOT, STUB_COMPACT_ADDDIR_REREAD_REL),
+          cwd: join(REPO_ROOT, COMPACT_TREE_REL),
+          envExtra: {
+            'BASH_FUNC_claude%%': '() {  echo "😶 clone enrolled"\n}',
+          },
+        }),
+      );
+
+      then('it reads the version from the PATH binary and measures as [t10] does', () => {
+        expect(result.stderr).not.toContain('holds no x.y.z');
+        expect(result.status).toEqual(0);
+        expect(result.stdout).toContain('2.1.327');
+        expect(result.stdout).toContain('✓ /compact re-read the add-dir CLAUDE.md');
+      });
+    });
+
+    when('[t11] --door add-dir, and the request after /compact holds the spawn drift', () => {
+      const result = useThen('it runs', () =>
+        runSkill({
+          skill: 'boot.compact.probe',
+          args: ['--door', 'add-dir'],
+          pathPrefix: join(REPO_ROOT, STUB_COMPACT_ADDDIR_KEPT_REL),
+          cwd: join(REPO_ROOT, COMPACT_TREE_REL),
+        }),
+      );
+
+      then('it exits 0 with the ✗ add-dir verdict: a kept drift is a measure, not a fault', () => {
+        expect(result.status).toEqual(0);
+        expect(result.stdout).toContain(
+          '[3] turn 2 · sentinel in system = no · sentinel in messages = no',
+        );
+        expect(result.stdout).toContain('✗ /compact kept the add-dir CLAUDE.md as it was at spawn');
+        expect(result.stdout).toMatchSnapshot();
+      });
+    });
+
+    when('[t12] --door add-dir, and the clone holds no spawn ref', () => {
+      const result = useThen('it runs', () =>
+        runSkill({
+          skill: 'boot.compact.probe',
+          args: ['--door', 'add-dir'],
+          pathPrefix: join(REPO_ROOT, STUB_COMPACT_REREAD_REL),
+          cwd: join(REPO_ROOT, COMPACT_TREE_REL),
+        }),
+      );
+
+      then('it fails as a named malfunction that names the rebuild', () => {
+        expect(result.status).toEqual(1);
+        expect(result.stderr).toContain(
+          '💥 MalfunctionError: the probe clone holds no boot.spawned.ref',
+        );
+        expect(result.stderr).toMatchSnapshot();
+      });
+    });
+
+    when('[t13] --door names no known door', () => {
+      const result = useThen('it runs', () =>
+        runSkill({ skill: 'boot.compact.probe', args: ['--door', 'bogus'] }),
+      );
+
+      then('it refuses with exit 2 before any clone spawns, and names both doors', () => {
+        expect(result.status).toEqual(2);
+        expect(result.stderr).toContain('--door must be system or add-dir, not bogus');
+        expect(result.stderr).toMatchSnapshot();
+      });
+    });
+
+    when('[t14] --door has no value', () => {
+      const result = useThen('it runs', () =>
+        runSkill({ skill: 'boot.compact.probe', args: ['--door'] }),
+      );
+
+      then('it refuses with exit 2 before any clone spawns', () => {
+        expect(result.status).toEqual(2);
+        expect(result.stderr).toContain('absent value for --door');
+        expect(result.stderr).toMatchSnapshot();
       });
     });
   });
@@ -1361,13 +1526,28 @@ describe('boot.cache.skills', () => {
 
     when('[t0] `rhx <skill> help` is run for each', () => {
       // the six run at once: each is a cold node start, so in series they cost a minute
-      const results = useThen('each runs', async () => ({
+      const results = useThen('each runs', async () => {
+        // pnpm reaches the rhx bin through node_modules, as `npx` does, without the npm walk of
+        //   the whole pnpm tree: measured 2026-11-18, 1.2s per call against ~25s for `npx`
+        //   (`rule.forbid.npm-in-tests`)
+        const isPnpmOnPath =
+          spawnSync('pnpm', ['--version'], { stdio: 'pipe' }).status === 0;
+        if (!isPnpmOnPath)
+          throw new ConstraintError('pnpm is required', {
+            hint: 'install pnpm: corepack enable pnpm (or see https://pnpm.io/installation)',
+          });
+        return {
         list: await Promise.all(
           SKILLS.map(
             (skill) =>
               new Promise<{ skill: string; status: number | null; stdout: string }>(
                 (settle) => {
-                  const child = spawn('npx', ['rhx', skill, 'help'], { cwd: REPO_ROOT });
+                  // stdin is closed: a help call reads none, and an open pipe holds a child
+                  //   that waits on it
+                  const child = spawn('pnpm', ['exec', 'rhx', skill, 'help'], {
+                    cwd: REPO_ROOT,
+                    stdio: ['ignore', 'pipe', 'pipe'],
+                  });
                   // .note = deliberate mutation: a stream accumulator, local to this one child
                   const chunks: Buffer[] = [];
                   child.stdout.on('data', (chunk: Buffer) => chunks.push(chunk));
@@ -1378,7 +1558,8 @@ describe('boot.cache.skills', () => {
               ),
           ),
         ),
-      }));
+        };
+      });
 
       then('each exits 0 and prints the help of the skill it names', () => {
         for (const result of results.list) {

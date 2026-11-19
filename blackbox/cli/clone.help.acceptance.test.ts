@@ -56,6 +56,16 @@ describe('rhx actor/clone --help (acceptance)', () => {
         args: ['clone', 'prune', '--help'],
         must: '--older-than',
       },
+      {
+        label: '[t8] clone boot --help',
+        args: ['clone', 'boot', '--help'],
+        must: 'drift',
+      },
+      {
+        label: '[t9] clone boot drift --help',
+        args: ['clone', 'boot', 'drift', '--help'],
+        must: '--when',
+      },
     ] as const;
 
     HELP_CASES.forEach((thisCase) => {

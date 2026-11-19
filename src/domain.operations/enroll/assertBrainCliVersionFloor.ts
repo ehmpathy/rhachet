@@ -10,18 +10,23 @@ import { isBrainCliVersionAtOrAboveFloor } from './isBrainCliVersionAtOrAboveFlo
 
 /**
  * .what = the lowest brain-cli version an enroll spawns
- * .why = below it, the cli lacks the claudeMdExcludes option the brain dir boot rests
- *   on, so a clone would load the wrong corpus in silence
- * .note = the boot door rests on two more cli features: the `__SYSTEM_PROMPT_DYNAMIC_BOUNDARY__`
- *   split (v2.1.275+, under this floor) and `CLAUDE_CODE_DISABLE_CLAUDE_MDS` (measured on
- *   v2.1.280; its first version is unmeasured). a cli that ignores the env var still boots
- *   the right corpus, once in the system prompt and once via `CLAUDE.md` — a cost, never a
- *   wrong answer, so it raises no floor
+ * .why = below it, a clone would boot or drift wrong in silence: the cli lacks the
+ *   claudeMdExcludes option the brain dir boot rests on (2.1.277+), or it was never measured to
+ *   re-read the boot drift at compaction
+ * .note = the boot door rests on one more cli feature: the `__SYSTEM_PROMPT_DYNAMIC_BOUNDARY__`
+ *   split (v2.1.275+, under this floor)
+ * .note = the floor is the version the boot drift was measured on: the cli re-reads an
+ *   `--add-dir` `CLAUDE.md` at compaction (`CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD`), seen ✓
+ *   on 2.1.280 by `rhx boot.compact.probe --door add-dir` (2026-11-18). an older cli was never
+ *   measured, and init's word that a live clone takes the drift at compaction would be a guess
+ *   there, so it is refused. lower the floor only on a ✓ probe at the lower version
+ * .note = a later cli that drops the door is caught by the same probe, and by the journey [t4]
+ *   under `BRAIN_LIVE_SCOPE=all`
  */
 export const BRAIN_CLI_VERSION_FLOOR: BrainCliVersion = {
   major: 2,
   minor: 1,
-  patch: 277,
+  patch: 280,
 };
 
 /**

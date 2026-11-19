@@ -21,6 +21,7 @@ import { setBrainDirAuthMigrated } from '@src/domain.operations/actor/enrolled/s
 import { setBrainDirSettingsLayout } from '@src/domain.operations/actor/enrolled/setBrainDirSettingsLayout';
 import { asRoleRefsOfActorExpanded } from '@src/domain.operations/actor/manifest/asRoleRefsOfActorExpanded';
 import { getOneActorExpandedOfRepo } from '@src/domain.operations/actor/manifest/getOneActorExpandedOfRepo';
+import { asBootDriftFaultLines } from '@src/domain.operations/boot/asBootDriftFaultLines';
 import { assertRoleFociDeclared } from '@src/domain.operations/boot/assertRoleFociDeclared';
 import { getAllRolesAtFocusAlwaysShed } from '@src/domain.operations/boot/getAllRolesAtFocusAlwaysShed';
 import { setBrainDirBoot } from '@src/domain.operations/boot/setBrainDirBoot';
@@ -31,6 +32,7 @@ import { getBrainAuthPath } from '@src/domain.operations/brain/auth/getBrainAuth
 import { getSupportedBrainCommand } from '@src/domain.operations/brain/getSupportedBrainCommand';
 import { asCloneAccrualWarnLine } from '@src/domain.operations/clone/asCloneAccrualWarnLine';
 import { asCloneAddressFromHandoff } from '@src/domain.operations/clone/asCloneAddressFromHandoff';
+import { asCloneBootResumedLine } from '@src/domain.operations/clone/asCloneBootResumedLine';
 import { asCloneDetachHostArgv } from '@src/domain.operations/clone/asCloneDetachHostArgv';
 import { asCloneReachBreadcrumb } from '@src/domain.operations/clone/asCloneReachBreadcrumb';
 import { asCloneRef } from '@src/domain.operations/clone/asCloneRef';
@@ -45,7 +47,10 @@ import { isSafeCloneSlug } from '@src/domain.operations/clone/isSafeCloneSlug';
 import { asCloneEnrollModeAsked } from '@src/domain.operations/clone/pty/asCloneEnrollModeAsked';
 import { computeCloneEnrollMode } from '@src/domain.operations/clone/pty/computeCloneEnrollMode';
 import { asActorFormEnrollment } from '@src/domain.operations/enroll/asActorFormEnrollment';
-import { asBrainCliSpawnArgs } from '@src/domain.operations/enroll/asBrainCliSpawnArgs';
+import {
+  asBrainCliSpawnArgs,
+  BRAIN_CLI_BOOT_FLAG,
+} from '@src/domain.operations/enroll/asBrainCliSpawnArgs';
 import { asEnrollBareRoleDeltas } from '@src/domain.operations/enroll/asEnrollBareRoleDeltas';
 import { asEnrollRoleFocusChanges } from '@src/domain.operations/enroll/asEnrollRoleFocusChanges';
 import { assertBrainCliPassthroughLeavesSystemPromptOwned } from '@src/domain.operations/enroll/assertBrainCliPassthroughLeavesSystemPromptOwned';
@@ -58,6 +63,7 @@ import { genBrainCliConfigArtifact } from '@src/domain.operations/enroll/genBrai
 import { getBrainCliPassthroughArgs } from '@src/domain.operations/enroll/getBrainCliPassthroughArgs';
 import { getRolesSpaceFormCollision } from '@src/domain.operations/enroll/getRolesSpaceFormCollision';
 import { isBrainCliPrintMode } from '@src/domain.operations/enroll/isBrainCliPrintMode';
+import { isBrainCliSpawnArgsResume } from '@src/domain.operations/enroll/isBrainCliSpawnArgsResume';
 import { isEnrollBareRoleDelta } from '@src/domain.operations/enroll/isEnrollBareRoleDelta';
 import { parseBrainCliEnrollmentSpec } from '@src/domain.operations/enroll/parseBrainCliEnrollmentSpec';
 import { asRoleRefsForEnrolledSlugs } from '@src/domain.operations/init/boots/asRoleRefsForEnrolledSlugs';
@@ -679,6 +685,11 @@ const performEnroll = async (input: {
         }),
       );
       console.error('');
+
+      // a resume holds its session's boot, so its drift is unknown: the host renders no human
+      //   line, so the caller says it, as the attended path does below
+      if (isBrainCliSpawnArgsResume({ args: passthrough }))
+        console.error(asCloneBootResumedLine());
     }
     return;
   }
@@ -717,12 +728,17 @@ const performEnroll = async (input: {
   //   stream a real fault must own. a render that FAILS still throws, loud, with its hint
   // .note = the spawn names `bootMdPath` as its system-prompt file, so a clone boots the
   //   exact file this render wrote and proved delivered
-  const { bootMdPath } = await setBrainDirBoot({
+  const { bootMdPath, drift } = await setBrainDirBoot({
     brainDir,
     roles: refsEnrolled,
     repoPath,
     scope: { kind: 'actor', actorExid: exid },
   });
+
+  // a drift the render could not write is said aloud: live clones on that revision keep a stale
+  //   drift. the spawn still proceeds, since this clone boots its own fresh revision
+  for (const line of asBootDriftFaultLines({ faults: drift?.faults ?? [] }))
+    console.error(line);
 
   // observe the shared login every clone reads, to say plainly when there is none (D13)
   //
@@ -944,6 +960,14 @@ const performEnroll = async (input: {
     );
     console.error('');
   }
+  // a resume holds its session's boot, so its drift is unknown: say so once, at enroll
+  if (
+    mode === 'tree' &&
+    !isDetachedHost &&
+    args.includes(BRAIN_CLI_BOOT_FLAG) &&
+    isBrainCliSpawnArgsResume({ args })
+  )
+    console.error(asCloneBootResumedLine());
   if (mode === 'tree' && !isDetachedHost && accrual.warn)
     console.error(
       asCloneAccrualWarnLine({ liveCount: accrual.liveCount, actorExid: exid }),

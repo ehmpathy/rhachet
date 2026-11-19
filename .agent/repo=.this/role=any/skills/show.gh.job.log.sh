@@ -84,10 +84,15 @@ fi
 [[ "$TAIL" =~ ^[0-9]+$ ]] || refuse "--tail must be a number, got '$TAIL'" "--tail 120"
 
 # read the raw log and strip the escapes
-# .note = gh gates a body that holds escape sequences; this skill strips them before it
-#   prints, so the gate is passed here and never reaches the terminal
+# .note = a gh that knows `--allow-escape-sequences` refuses an escapeful body without it, even
+#   into a pipe (the ci runner's gh, 2026-11-19); an older gh lacks the flag and has no gate. so
+#   the flag rides only where `gh api --help` names it. this skill strips the escapes itself
+#   before it prints
 REPO="$(gh repo view --json nameWithOwner --jq .nameWithOwner)" || { echo "💥 MalfunctionError: could not derive the current repo via gh" >&2; exit 1; }
-RAW="$(gh api --allow-escape-sequences "repos/$REPO/actions/jobs/$JOB/logs")" || { echo "💥 MalfunctionError: gh api could not read the log of job $JOB" >&2; exit 1; }
+GH_API_HELP="$(gh api --help 2>&1 || true)"
+GH_API_ESCAPE_FLAG=()
+[[ "$GH_API_HELP" == *"--allow-escape-sequences"* ]] && GH_API_ESCAPE_FLAG=(--allow-escape-sequences)
+RAW="$(gh api ${GH_API_ESCAPE_FLAG[@]+"${GH_API_ESCAPE_FLAG[@]}"} "repos/$REPO/actions/jobs/$JOB/logs")" || { echo "💥 MalfunctionError: gh api could not read the log of job $JOB" >&2; exit 1; }
 PLAIN="$(printf '%s\n' "$RAW" | sed -E 's/\x1B\[[0-9;?]*[A-Za-z]//g; s/\x1B\][^\x07]*\x07//g; s/\r$//')"
 LINES="$(printf '%s\n' "$PLAIN" | wc -l | tr -d ' ')"
 

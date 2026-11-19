@@ -28,8 +28,11 @@ const PARENT_SESSION_MARKERS = [
  */
 const HANDOFF_KEYS: readonly string[] = CLONE_ENV_KEYS_HANDOFF;
 
-/** the env key that switches the brain-cli's `CLAUDE.md` door off */
+/** the env key that switches every `CLAUDE.md` memory load of the brain-cli off */
 const DOOR_SWITCH_KEY = 'CLAUDE_CODE_DISABLE_CLAUDE_MDS';
+
+/** the env key that loads the `CLAUDE.md` of each `--add-dir` dir as memory */
+const ADD_DIR_MEMORY_KEY = 'CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD';
 
 /**
  * .what = the startup work every clone skips by default: claude.ai connectors,
@@ -52,7 +55,8 @@ export const BRAIN_CLI_SPINUP_ENV_DEFAULTS: Readonly<Record<string, string>> = {
  * .what = the env a brain cli clone spawns with: the spinup defaults, then the
  *         caller's env minus the parent-session markers, then `CLAUDE_CONFIG_DIR`
  *         set to the actor's brain dir, `CLAUDE_SECURESTORAGE_CONFIG_DIR` set to '',
- *         and `CLAUDE_CODE_DISABLE_CLAUDE_MDS` set to '1' when the argv carries the boot
+ *         and `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD` set to '1' when the argv carries
+ *         the boot
  * .why = one owner for both spawn sites (pty and plain), so neither can drop the
  *        relocation and boot a clone from the human's `~/.claude` (D4), nor leak a
  *        parent session's markers into the clone (a clone run from inside claude
@@ -63,33 +67,39 @@ export const BRAIN_CLI_SPINUP_ENV_DEFAULTS: Readonly<Record<string, string>> = {
  *         login store, its write lock, and its oauth refresh lock at `~/.claude`, while
  *         config stays per actor — one login file under one lock set for every clone.
  *         it is set after the caller env, so a caller value never overrides it
- * .note = `CLAUDE_CODE_DISABLE_CLAUDE_MDS='1'` switches the `CLAUDE.md` door off. a clone
- *         reads its boot from the system prompt (`asBrainCliSpawnArgs`), where the prompt
- *         cache can share it across sessions; the brain dir still holds
- *         `CLAUDE.md → AGENTS.md → @boot.md` for any reader outside a clone, so with the
- *         door open the boot would load twice. user-source memory is the only memory a
- *         clone reads (project and local are off), so the switch drops the boot's second
- *         copy and no other file. set after the caller env, so a caller value never reopens it
- * .note = the pair is derived, never kept by convention: the door closes only when `args`
- *         carry `BRAIN_CLI_BOOT_FLAG`. a spawn whose argv lacks the boot keeps the `CLAUDE.md`
- *         door open, so no spawn site can close both doors and boot a clone with no briefs
+ * .note = a clone reads its boot from the system prompt (`asBrainCliSpawnArgs`), where the
+ *         prompt cache can share it across sessions, and its boot drift from the `CLAUDE.md`
+ *         of its boot revision dir (`asBrainCliSpawnArgsWithBootRevision`), which the brain
+ *         cli re-reads at compaction. `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD='1'` opens
+ *         that load. every brain dir door stays shut by the actor's `claudeMdExcludes`
+ *         (`getClaudeMdExcludesList`), so the boot never loads twice
+ * .note = `CLAUDE_CODE_DISABLE_CLAUDE_MDS` is dropped from the caller env, always: it would
+ *         shut the drift's load too, so a clone could never take a boot edit
+ * .note = the add-dir key is derived, never kept by convention: it is set only when `args`
+ *         carry `BRAIN_CLI_BOOT_FLAG`. that flag rides every boot spawn, while the revision dir
+ *         rides only a spawn on a revision; a resume or an actor with no boot opens the load
+ *         with no revision to read. a typed boot value out of the spawn op would key it exactly
+ *         (fulcrum F23)
+ * .note = the key is global to the brain cli: a passthrough `--add-dir <dir>` the human passes
+ *         also loads `<dir>/CLAUDE.md` as clone memory. the human named that dir, so its memory
+ *         loads as they asked; the boot's own doors stay shut by `claudeMdExcludes`
  */
 export const asBrainCliSpawnEnv = (input: {
   env: NodeJS.ProcessEnv;
   brainDir: string;
   args: string[];
 }): NodeJS.ProcessEnv => {
-  // close the CLAUDE.md door only where the argv opens the system-prompt door
+  // open the add-dir memory load only where the argv carries the boot (and its revision dir)
   const isBootViaSystemPrompt = input.args.includes(BRAIN_CLI_BOOT_FLAG);
 
-  // drop the parent-session markers and the host handoff keys from the caller env; with no
-  //   boot in the argv, drop an inherited door switch too, so the CLAUDE.md door stays open
+  // drop the parent-session markers, the host handoff keys, and any door switch from the
+  //   caller env; a door switch would shut the drift's load as well
   const envInherited = Object.fromEntries(
     Object.entries(input.env).filter(
       ([key]) =>
         !PARENT_SESSION_MARKERS.includes(key) &&
         !HANDOFF_KEYS.includes(key) &&
-        (isBootViaSystemPrompt || key !== DOOR_SWITCH_KEY),
+        key !== DOOR_SWITCH_KEY,
     ),
   );
 
@@ -98,6 +108,6 @@ export const asBrainCliSpawnEnv = (input: {
     ...envInherited,
     CLAUDE_CONFIG_DIR: input.brainDir,
     CLAUDE_SECURESTORAGE_CONFIG_DIR: '',
-    ...(isBootViaSystemPrompt ? { [DOOR_SWITCH_KEY]: '1' } : {}),
+    ...(isBootViaSystemPrompt ? { [ADD_DIR_MEMORY_KEY]: '1' } : {}),
   };
 };

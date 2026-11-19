@@ -1,0 +1,16 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`syncOneRoleHooksIntoOneBrainRepl, via the claude adapter given: [case1] a role that declares the boot drift hook, per its brief when: [t0] the hooks are synced into the brain dir then: the Stop entry in settings.of.repo.json runs the drift verb 1`] = `
+[
+  {
+    "hooks": [
+      {
+        "command": "rhx clone boot drift --when hook.onStop",
+        "timeout": 10000,
+        "type": "command",
+      },
+    ],
+    "matcher": "# author=repo=test-registry/role=surfer *",
+  },
+]
+`;
