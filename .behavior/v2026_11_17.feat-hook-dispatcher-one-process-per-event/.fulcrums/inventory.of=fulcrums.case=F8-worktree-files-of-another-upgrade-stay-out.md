@@ -43,3 +43,16 @@ split at the commit, 2026-11-19. the `.husky/*` set ships here: the worktree's `
 lock's fix (`declapract apply --practice husky`) asks. the rest (`.gitattributes`, `.gitignore`,
 `package.json`, `pnpm-lock.yaml`, `test.acceptance.credfree.sh`, `settings.of.grove.json`) stays
 out. still open for the director at the pr.
+
+the director asked for `test.acceptance.credfree.sh` and `package.json`: each in the pr, or named
+box-local with its reason. ruled 2026-11-19:
+
+- `test.acceptance.credfree.sh` — in the pr, at main's content; the held delta is dropped. it would
+  remove main's root-scope guard (a scope that matches the worktree path runs the whole tier) and
+  add `--what integration`, which cannot run free of a key: the integration globalSetup reads
+  `ehmpathy.test.AWS_PROFILE` strict, so a scoped run exits 2 on a locked key (measured)
+- `package.json` — box-local. the held copy sets `version` back to `1.51.0` from main's `1.53.0`,
+  and moves `rhachet-artifact-git` to dev deps while `src/` imports it at runtime (`invokeChoose`,
+  `useTemplate`, `getRoleBriefs`), so a consumer install would break. the rest (declapract bumps,
+  `achiever` and `telepath` in `prepare:rhachet`) is a role-set and practice upgrade with no tie to
+  hook dispatch, and it needs a regenerated `pnpm-lock.yaml`; it belongs to its own upgrade pr
