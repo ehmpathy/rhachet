@@ -182,6 +182,12 @@ exports[`rhx init — a repo with .agent/repo=.mods given: [case1] a sound mod o
 🪝 apply hooks to brains...
    └─ .this/any → anthropic/claude/code: +1
 
+🪝 hook dispatchers set
+   └─ anthropic/claude/code
+      ├─ 1 rule → 1 dispatcher, one per event
+      │  └─ Stop = 1 rule
+      └─ manifest = .claude/hooks.dispatch.manifest
+
 ✨ hooks
    └─ 1 created
 
