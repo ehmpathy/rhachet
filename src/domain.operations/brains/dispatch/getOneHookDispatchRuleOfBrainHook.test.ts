@@ -203,4 +203,70 @@ describe('getOneHookDispatchRuleOfBrainHook', () => {
       }),
     );
   });
+
+  describe('the refusals a role author meets at sync, as a human reads them', () => {
+    const REFUSALS = [
+      {
+        description: 'a matcher in a regex syntax only js reads',
+        hook: genHook({ filter: new BrainHookFilter({ what: 'Bash\\d' }) }),
+      },
+      {
+        description: 'a command with a line break',
+        hook: genHook({ command: 'echo a\necho b' }),
+      },
+    ];
+    REFUSALS.map((thisCase) =>
+      test(`refuses ${thisCase.description}, with the fix named`, async () => {
+        const error = await getError(async () =>
+          getOneHookDispatchRuleOfBrainHook({
+            hook: thisCase.hook,
+            repoPath: REPO_PATH,
+          }),
+        );
+        expect(error).toBeInstanceOf(ConstraintError);
+        // pretty json text, so a line break inside a value reads as `\n`, never as a broken line
+        expect(
+          JSON.stringify(
+            {
+              message: error.message,
+              metadata: (error as ConstraintError).metadata,
+            },
+            null,
+            2,
+          ),
+        ).toMatchSnapshot();
+      }),
+    );
+  });
+
+  describe('a field other than the command that cannot sit in one manifest row', () => {
+    const FIELDS = [
+      {
+        description: 'an author',
+        hook: genHook({ author: 'repo=test/role=a\nb' }),
+        field: 'author',
+      },
+      {
+        description: 'a when',
+        hook: genHook({
+          filter: { what: 'Bash', when: 'after\x1f' as 'after' },
+        }),
+        field: 'when',
+      },
+    ];
+    FIELDS.map((thisCase) =>
+      test(`refuses ${thisCase.description} with a line break, and names the field`, async () => {
+        const error = await getError(async () =>
+          getOneHookDispatchRuleOfBrainHook({
+            hook: thisCase.hook,
+            repoPath: REPO_PATH,
+          }),
+        );
+        expect(error).toBeInstanceOf(ConstraintError);
+        expect(
+          (error as ConstraintError).metadata?.fieldsBroken as string[],
+        ).toEqual([thisCase.field]);
+      }),
+    );
+  });
 });

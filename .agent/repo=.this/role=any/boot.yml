@@ -24,6 +24,12 @@ skills:
   #   `--help` renders on demand and which no session reads unprompted.
   say: []
 
+  # a test file or a snapshot beside the skills is no skill: it cannot be invoked, so its
+  # roster line advertises naught a session can run. the skills it tests stay on the roster.
+  not:
+    - skills/__snapshots__/**
+    - skills/*.test.ts
+
 briefs:
   # the ref roster is the payload's single largest line item, not the resident docs.
   # measured 2026-09-22: 276 ref lines = 8,404 tokens (57%), at 30.4 tokens per line —

@@ -100,15 +100,37 @@ describe('asHookDispatchManifestText', () => {
       );
     });
 
-    test('holds one row per rule, in order, ended by a newline', () => {
+    test('holds one row per rule, each after a plain-text label line, in order, ended by a newline', () => {
       const text = asHookDispatchManifestText({
         rules: [genRule({ command: 'one' }), genRule({ command: 'two' })],
       });
       const lines = text.split('\n');
-      expect(lines).toHaveLength(4);
-      expect(lines[3]).toEqual('');
-      expect(lines[1]).toContain('one');
-      expect(lines[2]).toContain('two');
+      expect(lines).toHaveLength(6);
+      expect(lines[5]).toEqual('');
+      expect(lines[1]).toEqual(
+        '# PreToolUse · * · 30s · repo=demo/role=tester · one',
+      );
+      expect(lines[2]).toContain('one');
+      expect(lines[3]).toEqual(
+        '# PreToolUse · * · 30s · repo=demo/role=tester · two',
+      );
+      expect(lines[4]).toContain('two');
+    });
+
+    test('the manifest matches the snapshot, so a human can read it', () => {
+      const text = asHookDispatchManifestText({
+        rules: [
+          genRule({ command: 'one' }),
+          genRule({ event: 'Stop', matcher: '', command: 'two' }),
+        ],
+      });
+      expect(
+        text
+          .split(HOOK_DISPATCH_MANIFEST_SEP.field)
+          .join('␟')
+          .split(HOOK_DISPATCH_MANIFEST_SEP.arg)
+          .join('␞'),
+      ).toMatchSnapshot();
     });
 
     test('a row holds ten fields, in the declared order', () => {
@@ -129,7 +151,7 @@ describe('asHookDispatchManifestText', () => {
         ],
       });
       const fields = text
-        .split('\n')[1]!
+        .split('\n')[2]!
         .split(HOOK_DISPATCH_MANIFEST_SEP.field);
       expect(fields).toEqual([
         'Stop',
@@ -150,7 +172,7 @@ describe('asHookDispatchManifestText', () => {
         rules: [genRule({ when: null })],
       });
       const fields = text
-        .split('\n')[1]!
+        .split('\n')[2]!
         .split(HOOK_DISPATCH_MANIFEST_SEP.field);
       expect(fields).toHaveLength(10);
       expect(fields[9]).toEqual('');
@@ -162,7 +184,7 @@ describe('asHookDispatchRulesFromManifestText', () => {
   test('skips the header, comment lines, and empty lines', () => {
     const row = asHookDispatchManifestText({ rules: [genRule({})] }).split(
       '\n',
-    )[1]!;
+    )[2]!;
     const text = ['# header', '', '# note', row, '', ''].join('\n');
     expect(asHookDispatchRulesFromManifestText({ text, path: PATH })).toEqual([
       genRule({}),

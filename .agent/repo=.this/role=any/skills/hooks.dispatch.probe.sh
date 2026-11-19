@@ -59,6 +59,18 @@ if [[ "$WHAT" == cost ]] && ! /usr/bin/time -f '%U' true > /dev/null 2>&1; then
   exit 2
 fi
 
+# cost and verdicts read each settings hook as one rule; a dispatcher hook is many rules behind one
+#   command, so a read of it here would compare the dispatcher against itself and report a false
+#   disagreement. refuse it, and name the instrument that reads the dispatcher shape
+if [[ "$WHAT" == cost || "$WHAT" == verdicts ]] && [[ -f "$SETTINGS" ]] \
+  && jq -e '[.hooks // {} | .[][] | .hooks[]?.command | select(test("/hooks\\.dispatch\\.sh "))] | length > 0' "$SETTINGS" > /dev/null; then
+  echo "✋ ConstraintError: these settings already start the hook dispatcher; --what $WHAT reads one hook per rule" >&2
+  echo "   ├─ settings = $SETTINGS" >&2
+  echo "   ├─ fix = read the dispatcher against its own rules, one hook each: rhx hooks.dispatch.cost --what $WHAT" >&2
+  echo "   └─ or pass --settings <a per-rule settings file>, e.g. the one main holds" >&2
+  exit 2
+fi
+
 # list the hook commands one tool call fires, per claude's matcher grammar
 probe_hooks() {
   if [[ -z "$TOOL" ]]; then
@@ -85,7 +97,7 @@ probe_hooks() {
   echo ""
   echo "🧮 hooks.dispatch.probe --what hooks --tool $TOOL --event $EVENT"
   echo "   ├─ settings = $SETTINGS"
-  echo "   ├─ $count hooks fire"
+  if [[ "$count" == 1 ]]; then echo "   ├─ 1 hook fires"; else echo "   ├─ $count hooks fire"; fi
   echo "   └─ commands"
   local i=0
   while IFS= read -r line; do
@@ -93,6 +105,17 @@ probe_hooks() {
     i=$((i + 1))
     if [[ $i -eq $count ]]; then echo "      └─ $line"; else echo "      ├─ $line"; fi
   done <<<"$commands"
+}
+
+# print each line of a block as a leaf under a stem, the last one closed with └─
+print_leaves() {
+  local stem="$1" block="$2" count i=0 line
+  count=$(printf '%s\n' "$block" | grep -c . || true)
+  while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    i=$((i + 1))
+    if [[ $i -eq $count ]]; then echo "${stem}└─ $line"; else echo "${stem}├─ $line"; fi
+  done <<<"$block"
 }
 
 # check each own-process idiom inside a sourced subshell
@@ -140,9 +163,9 @@ RULE
   echo "   ├─ bash = ${BASH_VERSION}"
   echo "   ├─ stdout = $verdict_out"
   echo "   │  ├─ alone"
-  while IFS= read -r line; do echo "   │  │  ├─ $line"; done <<<"$out_alone"
+  print_leaves "   │  │  " "$out_alone"
   echo "   │  └─ subshell"
-  while IFS= read -r line; do echo "   │     ├─ $line"; done <<<"$out_sub"
+  print_leaves "   │     " "$out_sub"
   echo "   ├─ stderr = $verdict_err"
   echo "   │  ├─ alone = $err_alone"
   echo "   │  └─ subshell = $err_sub"
@@ -214,7 +237,7 @@ probe_cost() {
   echo "heres the read..."
   echo ""
   echo "🧮 hooks.dispatch.probe --what cost --tool ${TOOL:-Bash}"
-  echo "   ├─ $runs runs, payload = pwd"
+  if [[ "$runs" == 1 ]]; then echo "   ├─ 1 run, payload = pwd"; else echo "   ├─ $runs runs, payload = pwd"; fi
   echo "   ├─ bash rules (${#rules[@]})"
   echo "   │  ├─ exec per rule (today) = $(as_ms "$alone") ms cpu per call"
   echo "   │  └─ subshell per rule (dispatcher) = $(as_ms "$sub") ms cpu per call"

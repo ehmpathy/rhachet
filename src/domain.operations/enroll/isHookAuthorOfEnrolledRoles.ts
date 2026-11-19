@@ -1,7 +1,6 @@
+import { asRoleSlugOfHookAuthor } from '@src/domain.operations/brains/asRoleSlugOfHookAuthor';
 import { asRoleFocusParts } from '@src/domain.operations/roles/focus/asRoleFocusParts';
 import { parseRoleSpecifier } from '@src/domain.operations/roles/parseRoleSpecifier';
-
-import { asRoleSlugOfHookAuthor } from './asRoleSlugOfHookAuthor';
 
 /**
  * .what = the repo slug a hook author names — the value of its `repo=` segment

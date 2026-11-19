@@ -14,7 +14,7 @@ import { setHookDispatchManifest } from './setHookDispatchManifest';
  *   would be sourced as bash. a fresh derive after every sync keeps each row true to its file
  *
  * .note = an absent manifest holds no rules; naught is written
- * .note = an unchanged manifest is not rewritten, so a re-sync writes naught
+ * .note = a manifest whose bytes already match is not rewritten, so a re-sync writes naught
  */
 export const setHookDispatchManifestRederived = async (input: {
   manifestPath: string;
@@ -34,10 +34,9 @@ export const setHookDispatchManifestRederived = async (input: {
     }),
   );
 
-  // rewrite only where a row changed
-  const isChanged =
-    asHookDispatchManifestText({ rules }) !==
-    asHookDispatchManifestText({ rules: manifest.rules });
+  // rewrite where a row changed, or where the file is of an older text shape (no label lines, an
+  //   older head): the bytes on disk are compared, so a manifest always converges to what a sync writes
+  const isChanged = asHookDispatchManifestText({ rules }) !== manifest.text;
   if (isChanged)
     await setHookDispatchManifest({ path: input.manifestPath, rules });
   return { rules };

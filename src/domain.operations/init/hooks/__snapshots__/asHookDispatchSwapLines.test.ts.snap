@@ -1,0 +1,40 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asHookDispatchSwapLines a first sync on a fresh repo names the shape it wrote 1`] = `
+"🪝 hook dispatchers set
+   └─ claude-code
+      ├─ 12 rules → 4 dispatchers, one per event
+      │  ├─ SessionStart = 3 rules
+      │  ├─ PreToolUse = 7 rules
+      │  ├─ UserPromptSubmit = 1 rule
+      │  └─ Stop = 1 rule
+      └─ manifest = .claude/hooks.dispatch.manifest"
+`;
+
+exports[`asHookDispatchSwapLines a migration names the role hooks that left the settings 1`] = `
+"🪝 hook dispatchers set
+   └─ claude-code
+      ├─ 12 rules → 4 dispatchers, one per event
+      │  ├─ SessionStart = 3 rules
+      │  ├─ PreToolUse = 7 rules
+      │  ├─ UserPromptSubmit = 1 rule
+      │  └─ Stop = 1 rule
+      ├─ 16 role hooks moved from the settings into the manifest
+      └─ manifest = .claude/hooks.dispatch.manifest"
+`;
+
+exports[`asHookDispatchSwapLines two brains each get a branch 1`] = `
+"🪝 hook dispatchers set
+   ├─ claude-code
+   │  ├─ 1 rule → 1 dispatcher, one per event
+   │  │  └─ PreToolUse = 1 rule
+   │  └─ manifest = .claude/hooks.dispatch.manifest
+   └─ claude-code@actor
+      ├─ 12 rules → 4 dispatchers, one per event
+      │  ├─ SessionStart = 3 rules
+      │  ├─ PreToolUse = 7 rules
+      │  ├─ UserPromptSubmit = 1 rule
+      │  └─ Stop = 1 rule
+      ├─ 1 role hook moved from the settings into the manifest
+      └─ manifest = .claude/hooks.dispatch.manifest"
+`;

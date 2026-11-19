@@ -2,7 +2,10 @@ import type { BrainSpecifier } from '@src/domain.objects/BrainSpecifier';
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { HasRepo } from '@src/domain.objects/HasRepo';
 import type { Role } from '@src/domain.objects/Role';
-import { setHookDispatchersForTarget } from '@src/domain.operations/brains/dispatch/setHookDispatchersForTarget';
+import {
+  type HookDispatchSwap,
+  setHookDispatchersForTarget,
+} from '@src/domain.operations/brains/dispatch/setHookDispatchersForTarget';
 import { pruneOrphanedRoleHooksFromAllBrains } from '@src/domain.operations/brains/pruneOrphanedRoleHooksFromAllBrains';
 import { syncAllRoleHooksIntoEachBrainRepl } from '@src/domain.operations/brains/syncAllRoleHooksIntoEachBrainRepl';
 
@@ -27,6 +30,7 @@ export const syncRoleHooksIntoTarget = async (
 ): Promise<{
   pruneResult: Awaited<ReturnType<typeof pruneOrphanedRoleHooksFromAllBrains>>;
   syncResult: Awaited<ReturnType<typeof syncAllRoleHooksIntoEachBrainRepl>>;
+  swaps: HookDispatchSwap[];
   faults: Array<{ error: Error }>;
 }> => {
   const brains = input.brains ?? undefined;
@@ -43,6 +47,7 @@ export const syncRoleHooksIntoTarget = async (
     return {
       pruneResult: { removed: [] },
       syncResult: { applied: [], errors: [] },
+      swaps: [],
       faults: [{ error: pruneResult.error }],
     };
 
@@ -57,6 +62,7 @@ export const syncRoleHooksIntoTarget = async (
     return {
       pruneResult,
       syncResult: { applied: [], errors: [] },
+      swaps: [],
       faults: [{ error: syncResult.error }],
     };
 
@@ -69,7 +75,12 @@ export const syncRoleHooksIntoTarget = async (
     ),
   );
   if ('error' in swapResult)
-    return { pruneResult, syncResult, faults: [{ error: swapResult.error }] };
+    return {
+      pruneResult,
+      syncResult,
+      swaps: [],
+      faults: [{ error: swapResult.error }],
+    };
 
   // a brain that refused its dispatchers runs none of its rules, so each role synced into it
   //   reports that refusal, as the per-rule sync reported a refused write per role × brain
@@ -79,6 +90,7 @@ export const syncRoleHooksIntoTarget = async (
       syncResult,
       swapErrors: swapResult.errors,
     }),
+    swaps: swapResult.swaps,
     faults: asFaultsOfBrainsUnsynced({
       syncResult,
       swapErrors: swapResult.errors,

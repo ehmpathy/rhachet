@@ -52,12 +52,19 @@ export const assertCloneSettingsLayersHoldOnlyEnrolledRoles = (input: {
   const isFromHome = leaks.every((leak) =>
     leak.path.startsWith(`${homeReal}${sep}`),
   );
+  // a settings leak keeps its hint; a manifest leak also names the manifest row to drop
+  const isFromManifest = leaks.some((leak) => leak.isOfManifest);
   const message = 'a clone would load hooks from roles it is not enrolled in';
-  const metadata = { rolesEnrolled: input.roles, leaks };
+  const metadata = {
+    rolesEnrolled: input.roles,
+    leaks: leaks.map(({ isOfManifest: _, ...leak }) => leak),
+  };
   if (isFromHome)
     throw new ConstraintError(message, {
       ...metadata,
-      hint: 'your home claude settings hold role hooks; remove every hook whose `author` names a `role=` from the file(s) above, then enroll again',
+      hint: isFromManifest
+        ? 'your home claude settings hold role hooks, or name a hook dispatcher whose manifest holds role rules; remove every hook or manifest row whose `author` names a `role=` from each file in `leaks`, then enroll again'
+        : 'your home claude settings hold role hooks; remove every hook whose `author` names a `role=` from the file(s) above, then enroll again',
     });
   throw new MalfunctionError(message, {
     ...metadata,
@@ -74,17 +81,24 @@ const getAllLeaksOfLayer = (input: {
   layer: BrainCliSettingsLayer;
   roles: string[];
   cwd: string;
-}): Array<{ event: string; author: string; source: string; path: string }> => {
+}): Array<{
+  event: string;
+  author: string;
+  source: string;
+  path: string;
+  isOfManifest: boolean;
+}> => {
   const settings = getOneLayerSettings({ layer: input.layer });
   if (settings === null) return [];
   const sources = [
-    { settings, path: input.layer.path },
+    { settings, path: input.layer.path, isOfManifest: false },
     ...getAllManifestPathsOfDispatchers({ settings, cwd: input.cwd }).map(
       (path) => ({
         settings: asSettingsOfManifestRules({
           rules: getAllManifestRules({ path }),
         }),
         path,
+        isOfManifest: true,
       }),
     ),
   ];
@@ -96,6 +110,7 @@ const getAllLeaksOfLayer = (input: {
       ...hook,
       source: input.layer.source,
       path: realpathSync(each.path),
+      isOfManifest: each.isOfManifest,
     })),
   );
 };

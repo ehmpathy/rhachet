@@ -45,6 +45,15 @@ export const HOOK_DISPATCH = {
 } as const;
 
 /**
+ * .what = the shape of a matcher read as an exact list of tool names (`Bash|Write`, `Read,Edit`),
+ *   never as a regex
+ * .why = the sync (portability check, dispatcher matcher union) and the dispatcher bash must agree
+ *   on which matchers are lists; `bin/hooks.dispatch.sh` holds the same pattern, and
+ *   `constants.manifest-parity.integration.test.ts` goes red the day the two differ
+ */
+export const HOOK_DISPATCH_MATCHER_LIST = /^[A-Za-z0-9_|,]+$/;
+
+/**
  * .what = the flags `rhachet run` parses for itself (`src/contract/cli/invokeRun.ts`)
  * .why = a hook command that passes one of these past the skill name may be read by rhx, not the
  *   skill; the sync runs such a command as declared, never guessed at

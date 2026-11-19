@@ -8,6 +8,8 @@ import { asBrainHookEventOfClaudeEvent } from './asBrainHookEventOfClaudeEvent';
 import { asHookDispatchersOfRules } from './asHookDispatchersOfRules';
 import { asTimeoutSecondsOfBrainHook } from './asTimeoutSecondsOfBrainHook';
 import { HOOK_DISPATCH } from './constants';
+import { isHookOfUnique } from './isHookOfUnique';
+import { isHookReplacedByDispatch } from './isHookReplacedByDispatch';
 
 /**
  * .what = hand the brain's own adapter one dispatcher hook per event, and take back every role
@@ -25,7 +27,11 @@ export const setHookDispatchersViaAdapter = async (input: {
   adapter: BrainHooksAdapter;
   rules: HookDispatchRule[];
   manifestPathRel: string;
-}): Promise<void> => {
+}): Promise<{
+  dispatchers: number;
+  dispatchersSet: number;
+  roleHooksTakenBack: number;
+}> => {
   const { adapter } = input;
 
   // the dispatcher hooks these rules need
@@ -37,7 +43,16 @@ export const setHookDispatchersViaAdapter = async (input: {
   // what the brain's settings hold now
   const found = await adapter.dao.get.all();
 
-  // take back each role hook (a manifest rule) and each dispatcher no longer desired
+  // set each dispatcher whose body differs or is absent, first: a seat that spawns mid-swap then
+  //   meets a rule twice (once as a role hook, once in the dispatcher), never a guard gap
+  const toSet = desired.filter(
+    (want) => !found.some((hook) => isSameBody(hook, want)),
+  );
+  for (const want of toSet) await adapter.dao.set.upsert({ hook: want });
+
+  // then take back each role hook (it runs as a manifest rule now) and each dispatcher no longer
+  //   desired. the settings hold no role hook after any sync, so a rule never runs twice, even
+  //   where an older rhachet wrote per-rule hooks back
   const toDel = found.filter((hook) => isHookToTakeBack({ hook, desired }));
   for (const hook of toDel)
     await adapter.dao.del({
@@ -50,11 +65,14 @@ export const setHookDispatchersViaAdapter = async (input: {
       },
     });
 
-  // set each dispatcher whose body differs or is absent
-  for (const want of desired) {
-    const isInPlace = found.some((hook) => isSameBody(hook, want));
-    if (!isInPlace) await adapter.dao.set.upsert({ hook: want });
-  }
+  // what changed, so the sync can report the shape it wrote
+  return {
+    dispatchers: desired.length,
+    dispatchersSet: toSet.length,
+    roleHooksTakenBack: toDel.filter((hook) =>
+      isHookAuthorOfRole({ author: hook.author }),
+    ).length,
+  };
 };
 
 /**
@@ -82,8 +100,8 @@ const isHookToTakeBack = (input: {
   hook: BrainHook;
   desired: BrainHook[];
 }): boolean => {
-  if (isHookAuthorOfRole({ author: input.hook.author })) return true;
-  if (input.hook.author !== HOOK_DISPATCH.author) return false;
+  if (!isHookReplacedByDispatch({ hook: input.hook })) return false;
+  if (input.hook.author !== HOOK_DISPATCH.author) return true;
   return !input.desired.some((want) => isSameHook(want, input.hook));
 };
 
@@ -91,9 +109,7 @@ const isHookToTakeBack = (input: {
  * .what = whether two hooks share their unique key: author, event and command
  */
 const isSameHook = (left: BrainHook, right: BrainHook): boolean =>
-  left.author === right.author &&
-  left.event === right.event &&
-  left.command === right.command;
+  isHookOfUnique({ hook: left, unique: right });
 
 /**
  * .what = whether two hooks match in key, timeout and matcher, so a rewrite would change naught

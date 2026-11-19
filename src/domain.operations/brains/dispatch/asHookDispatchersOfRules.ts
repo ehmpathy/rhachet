@@ -1,7 +1,7 @@
 import type { HookDispatchRule } from '@src/domain.objects/HookDispatchRule';
 
 import { asHookDispatcherCommand } from './asHookDispatcherCommand';
-import { HOOK_DISPATCH } from './constants';
+import { HOOK_DISPATCH, HOOK_DISPATCH_MATCHER_LIST } from './constants';
 
 /**
  * .what = the one dispatcher hook per claude event a set of rules needs
@@ -50,7 +50,7 @@ const asMatcherUnion = (input: { matchers: string[] }): string => {
     return '*';
   // an exact list splits into its names; a regex stays whole, as a group
   const tokens = input.matchers.flatMap((matcher) =>
-    /^[A-Za-z0-9_|,]+$/.test(matcher)
+    HOOK_DISPATCH_MATCHER_LIST.test(matcher)
       ? matcher.split(/[|,]/)
       : [`(${matcher})`],
   );

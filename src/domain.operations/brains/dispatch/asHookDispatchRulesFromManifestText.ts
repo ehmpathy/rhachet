@@ -5,7 +5,10 @@ import {
   type HookDispatchRuleKind,
 } from '@src/domain.objects/HookDispatchRule';
 
-import { HOOK_DISPATCH_MANIFEST_SEP } from './asHookDispatchManifestText';
+import {
+  HOOK_DISPATCH_MANIFEST_FIELDS,
+  HOOK_DISPATCH_MANIFEST_SEP,
+} from './asHookDispatchManifestText';
 
 const KINDS: HookDispatchRuleKind[] = [
   'rhx-skill',
@@ -29,25 +32,28 @@ export const asHookDispatchRulesFromManifestText = (input: {
     .split('\n')
     .filter((line) => line.length > 0 && !line.startsWith('#'))
     .map((line) => {
+      // each field read by its name in the one declared order
       const fields = line.split(HOOK_DISPATCH_MANIFEST_SEP.field);
-      const [
-        event,
-        matcher,
-        timeout,
-        author,
-        kind,
-        path,
-        frame,
-        args,
-        command,
-        when,
-      ] = fields;
+      const fieldOf = (
+        name: (typeof HOOK_DISPATCH_MANIFEST_FIELDS)[number],
+      ): string | undefined =>
+        fields[HOOK_DISPATCH_MANIFEST_FIELDS.indexOf(name)];
+      const event = fieldOf('event');
+      const matcher = fieldOf('matcher');
+      const timeout = fieldOf('timeout');
+      const author = fieldOf('author');
+      const kind = fieldOf('kind');
+      const path = fieldOf('path');
+      const frame = fieldOf('frame');
+      const args = fieldOf('args');
+      const command = fieldOf('command');
+      const when = fieldOf('when');
 
       // a row with the wrong shape is a corrupt file; name it and its fix. a timeout is whole
       //   seconds, at least 1, as the writer emits it: a 0 would read as no timeout to the watchdog
       const whenRead = asWhenOfField({ field: when });
       if (
-        fields.length !== 10 ||
+        fields.length !== HOOK_DISPATCH_MANIFEST_FIELDS.length ||
         !isHookDispatchRuleKind(kind) ||
         whenRead === undefined ||
         !/^[1-9]\d*$/.test(timeout ?? '')

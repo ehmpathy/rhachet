@@ -59,6 +59,12 @@ exports[`rhachet init (full output) given: [case1] repo with multiple roles, ini
    ├─ test/reviewer → anthropic/claude/code: +1
    └─ test/tester → anthropic/claude/code: +1
 
+🪝 hook dispatchers set
+   └─ anthropic/claude/code
+      ├─ 2 rules → 1 dispatcher, one per event
+      │  └─ SessionStart = 2 rules
+      └─ manifest = .claude/hooks.dispatch.manifest
+
 ✨ hooks
    └─ 2 created
 

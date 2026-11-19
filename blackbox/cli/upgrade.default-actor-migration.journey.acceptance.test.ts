@@ -247,7 +247,7 @@ describe('upgrade — the default actor brain dir migration, under a BARE rhx up
       // ── the two gitignore edits ─────────────────────────────────────────────
 
       then(
-        'the brain dir .gitignore is the allowlist: the doors and the four settings names',
+        'the brain dir .gitignore is the allowlist: the doors, the four settings names, and the hook dispatch manifest',
         () => {
           const ignore = readFileSync(
             join(scene.defaultBrainDir, '.gitignore'),
@@ -263,6 +263,7 @@ describe('upgrade — the default actor brain dir migration, under a BARE rhx up
               '!/settings.of.repo.json',
               '!/settings.of.grove.json',
               '!/settings.local.json',
+              '!/hooks.dispatch.manifest',
               '',
             ].join('\n'),
           );

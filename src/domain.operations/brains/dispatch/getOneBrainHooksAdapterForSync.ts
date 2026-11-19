@@ -5,8 +5,9 @@ import { isBrainClaudeCode } from '@src/domain.operations/brains/isBrainClaudeCo
 import { getBrainHooksAdapterByConfigImplicit } from '@src/domain.operations/config/getBrainHooksAdapterByConfigImplicit';
 
 import { join } from 'node:path';
-import { HOOK_DISPATCH } from './constants';
 import { genBrainHooksAdapterViaDispatchManifest } from './genBrainHooksAdapterViaDispatchManifest';
+import { getHookDispatchManifestPathOfBrainDir } from './getHookDispatchManifestPathOfBrainDir';
+import { setHookDispatchManifestMigratedFromSettings } from './setHookDispatchManifestMigratedFromSettings';
 
 /**
  * .what = the hooks adapter the role hook sync writes through, for one brain
@@ -33,11 +34,17 @@ export const getOneBrainHooksAdapterForSync = async (
     return { adapter: adapterOfBrain, dispatch: null };
 
   // claude code: the rules live in the manifest beside the settings the adapter writes
-  const manifestPath = join(
-    input.configTargetDir ?? context.cwd,
-    '.claude',
-    HOOK_DISPATCH.manifest,
-  );
+  const manifestPath = getHookDispatchManifestPathOfBrainDir({
+    brainDir: join(input.configTargetDir ?? context.cwd, '.claude'),
+  });
+
+  // the one-time migration: a brain dir with no manifest yet gets one from its settings' role hooks
+  await setHookDispatchManifestMigratedFromSettings({
+    adapterOfBrain,
+    manifestPath,
+    repoPath: context.cwd,
+  });
+
   return {
     adapter: genBrainHooksAdapterViaDispatchManifest({
       adapter: adapterOfBrain,

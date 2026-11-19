@@ -1,0 +1,27 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`getOneHookDispatchRuleOfBrainHook the refusals a role author meets at sync, as a human reads them refuses a command with a line break, with the fix named 1`] = `
+"{
+  "message": "✋ ConstraintError: a role hook holds a line break\\n\\n{\\n  \\"author\\": \\"repo=demo/role=tester\\",\\n  \\"command\\": \\"echo a\\\\necho b\\",\\n  \\"fieldsBroken\\": [\\n    \\"command\\"\\n  ],\\n  \\"hint\\": \\"declare the hook on one line, in the role that authors it\\"\\n}",
+  "metadata": {
+    "author": "repo=demo/role=tester",
+    "command": "echo a\\necho b",
+    "fieldsBroken": [
+      "command"
+    ],
+    "hint": "declare the hook on one line, in the role that authors it"
+  }
+}"
+`;
+
+exports[`getOneHookDispatchRuleOfBrainHook the refusals a role author meets at sync, as a human reads them refuses a matcher in a regex syntax only js reads, with the fix named 1`] = `
+"{
+  "message": "✋ ConstraintError: a role hook matcher uses regex syntax that bash and claude would match differently\\n\\n{\\n  \\"author\\": \\"repo=demo/role=tester\\",\\n  \\"command\\": \\"echo hi\\",\\n  \\"matcher\\": \\"Bash\\\\\\\\d\\",\\n  \\"hint\\": \\"declare the matcher as an exact list (\`Read|Write\`) or a plain regex (\`mcp__.*\`): no \\\\\\\\d \\\\\\\\w \\\\\\\\s \\\\\\\\b, no (?…), no lazy quantifier\\"\\n}",
+  "metadata": {
+    "author": "repo=demo/role=tester",
+    "command": "echo hi",
+    "matcher": "Bash\\\\d",
+    "hint": "declare the matcher as an exact list (\`Read|Write\`) or a plain regex (\`mcp__.*\`): no \\\\d \\\\w \\\\s \\\\b, no (?…), no lazy quantifier"
+  }
+}"
+`;

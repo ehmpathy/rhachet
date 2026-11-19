@@ -11,6 +11,11 @@ and the repo actor's `settings.of.grove.json`. a `since-main` review reads them 
 - **(a)** leave them out: stage only this change's files; answer concerns on them as out of scope
 - **(b)** fix each concern on them here, and ship them in this pr
 
+the `package.json` edit is that upgrade's: role and brain package bumps, `achiever` and `telepath`
+added to `prepare:rhachet`, `npm run build` before its `rhachet init` (the self-link `rhachet` runs
+`dist/`, so a fresh clone needs a build first), and `rhachet-artifact-git` moved to dev deps. none of
+it reads or writes a hook manifest; `pnpm-lock.yaml` follows those bumps.
+
 ## .taken
 
 (a). the commit stages an explicit file list (the dispatcher, its manifest ops, the enroll guard, the
@@ -32,4 +37,9 @@ the staged list at commit; `git diff --stat` of those paths
 
 ## .verdict
 
-open, for the director at the pr.
+split at the commit, 2026-11-19. the `.husky/*` set ships here: the worktree's `pre-commit` runs
+`check.timestamps.lock.sh`, which refuses any commit whose index holds the old
+`check.timestamps.sh`. a split husky set cannot pass its own hook, so the set ships whole, as the
+lock's fix (`declapract apply --practice husky`) asks. the rest (`.gitattributes`, `.gitignore`,
+`package.json`, `pnpm-lock.yaml`, `test.acceptance.credfree.sh`, `settings.of.grove.json`) stays
+out. still open for the director at the pr.
