@@ -127,6 +127,14 @@ describe('setActorSettingsDerived', () => {
           expect(settings).not.toContain('role=omega');
         });
 
+        // the path `rhx init` takes for every actor: no enroll, no spawn
+        then('its settings.of.repo.json turns claude attribution off', () => {
+          const settings = JSON.parse(
+            readFileSync(join(scene.brainDir, 'settings.of.repo.json'), 'utf8'),
+          );
+          expect(settings.attribution).toEqual({ commit: '', pr: '' });
+        });
+
         then('the layout links claude’s name to the grove of the home', () => {
           expect(readlinkSync(join(scene.brainDir, 'settings.json'))).toEqual(
             'settings.of.grove.json',

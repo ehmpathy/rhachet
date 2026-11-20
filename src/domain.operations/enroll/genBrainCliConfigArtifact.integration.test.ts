@@ -1,13 +1,14 @@
 import * as fs from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
-import { given, then, useBeforeAll, when } from 'test-fns';
+import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
 import { BrainCliEnrollmentManifest } from '@src/domain.objects/BrainCliEnrollmentManifest';
 import type { ClaudeCodeSettings } from '@src/domain.operations/brains/claudeCodeSettings';
 import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 
 import { EventEmitter, once } from 'node:events';
+import { asBrainCliSpawnArgs } from './asBrainCliSpawnArgs';
 import { genBrainCliConfigArtifact } from './genBrainCliConfigArtifact';
 import { getClaudeMdExcludesList } from './getClaudeMdExcludesList';
 
@@ -35,10 +36,7 @@ describe('genBrainCliConfigArtifact', () => {
   const createTestRepo = async (
     settings: ClaudeCodeSettings,
   ): Promise<string> => {
-    const repoPath = path.join(
-      os.tmpdir(),
-      `test-repo-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    );
+    const repoPath = genTempDir({ slug: 'gen-brain-cli-config-artifact' });
     const brainDir = asBrainDir({ repoPath, exid: REPO_EXID });
     await fs.mkdir(brainDir, { recursive: true });
     await fs.writeFile(
@@ -242,7 +240,7 @@ describe('genBrainCliConfigArtifact', () => {
 
   given('[case3] repo with no repo actor dir yet', () => {
     const scene = useBeforeAll(async () => {
-      const repoPath = path.join(os.tmpdir(), `test-repo-empty-${Date.now()}`);
+      const repoPath = genTempDir({ slug: 'brain-cli-config-empty' });
       await fs.mkdir(repoPath, { recursive: true });
       return { repoPath };
     });
@@ -445,6 +443,262 @@ describe('genBrainCliConfigArtifact', () => {
           expect(settings.env).toEqual({ DEBUG: 'surf:*' });
         },
       );
+    });
+  });
+
+  given('[case8] a fresh hash actor, rendered as a clone spawn', () => {
+    // 🔴 a clone boots the file its `--settings` names; an empty attribution there mutes the trailer
+    const scene = useBeforeAll(async () => {
+      const repoPath = await createTestRepo({
+        permissions: { allow: ['Bash(npm run build)'] },
+      });
+      return { repoPath };
+    });
+
+    when('[t0] the clone spawn is rendered', () => {
+      const spawn = useBeforeAll(async () => {
+        const { configPath } = await genBrainCliConfigArtifact({
+          enrollment: new BrainCliEnrollmentManifest({
+            brain: 'claude',
+            roles: ['mechanic'],
+          }),
+          exid: HASH_EXID,
+          repoPath: scene.repoPath,
+        });
+        const args = asBrainCliSpawnArgs({
+          configPath,
+          bootMdPath: path.join(
+            asBrainDir({ repoPath: scene.repoPath, exid: HASH_EXID }),
+            'boot.md',
+          ),
+          passthrough: [],
+        });
+        const settingsPath = args[args.indexOf('--settings') + 1]!;
+        const settings = JSON.parse(
+          await fs.readFile(settingsPath, 'utf-8'),
+        ) as ClaudeCodeSettings;
+        return { settingsPath, settings };
+      });
+
+      then('the --settings file sits in the actor brain dir', () => {
+        expect(path.dirname(spawn.settingsPath)).toEqual(
+          asBrainDir({ repoPath: scene.repoPath, exid: HASH_EXID }),
+        );
+      });
+
+      then('attribution is off for commits and pull requests', () => {
+        expect(spawn.settings.attribution).toEqual({ commit: '', pr: '' });
+      });
+    });
+  });
+
+  given('[case9] extant actor settings with keys beside attribution', () => {
+    const settingsSource: ClaudeCodeSettings = {
+      permissions: { allow: ['Bash(npm run build)'] },
+      env: { DEBUG: 'surf:*' },
+      model: 'haiku',
+      hooks: {
+        SessionStart: [
+          {
+            matcher: '*',
+            hooks: [
+              {
+                type: 'command',
+                command: 'echo mechanic boot',
+                author: 'repo=ehmpathy/role=mechanic',
+              },
+            ],
+          },
+        ],
+      },
+      attribution: {
+        commit: 'Co-Authored-By: Claude <noreply@anthropic.com>',
+        sessionUrl: false,
+      },
+    };
+
+    when('[t0] the repo actor is enrolled', () => {
+      // the repo actor's file is the source itself, so this when owns its own repo
+      const scene = useBeforeAll(async () => {
+        const repoPath = await createTestRepo(settingsSource);
+        return { repoPath };
+      });
+
+      const result = useBeforeAll(async () => {
+        const { configPath } = await genBrainCliConfigArtifact({
+          enrollment: new BrainCliEnrollmentManifest({
+            brain: 'claude',
+            roles: ['mechanic'],
+          }),
+          exid: REPO_EXID,
+          repoPath: scene.repoPath,
+        });
+        const bytes = await fs.readFile(configPath, 'utf-8');
+        return { configPath, bytes };
+      });
+
+      then('every key but attribution and the excludes is kept as-is', () => {
+        const {
+          attribution: _attribution,
+          claudeMdExcludes: _excludes,
+          ...settingsRest
+        } = JSON.parse(result.bytes) as ClaudeCodeSettings;
+        const { attribution: _attributionPrior, ...sourceRest } =
+          settingsSource;
+        expect(settingsRest).toEqual(sourceRest);
+      });
+
+      then('commit and pr go empty; a subkey a human set is kept', () => {
+        const settings = JSON.parse(result.bytes) as ClaudeCodeSettings;
+        expect(settings.attribution).toEqual({
+          commit: '',
+          pr: '',
+          sessionUrl: false,
+        });
+      });
+
+      then('a second enroll leaves the file byte-identical', async () => {
+        await genBrainCliConfigArtifact({
+          enrollment: new BrainCliEnrollmentManifest({
+            brain: 'claude',
+            roles: ['mechanic'],
+          }),
+          exid: REPO_EXID,
+          repoPath: scene.repoPath,
+        });
+        expect(await fs.readFile(result.configPath, 'utf-8')).toEqual(
+          result.bytes,
+        );
+      });
+    });
+
+    when('[t1] a hash actor is enrolled from that source', () => {
+      // a fresh repo, so the hash actor derives from the custom text, not from [t0]'s rewrite
+      const scene = useBeforeAll(async () => {
+        const repoPath = await createTestRepo(settingsSource);
+        return { repoPath };
+      });
+
+      const result = useBeforeAll(async () => {
+        const { configPath } = await genBrainCliConfigArtifact({
+          enrollment: new BrainCliEnrollmentManifest({
+            brain: 'claude',
+            roles: ['mechanic'],
+          }),
+          exid: HASH_EXID,
+          repoPath: scene.repoPath,
+        });
+        const bytes = await fs.readFile(configPath, 'utf-8');
+        const source = JSON.parse(
+          await fs.readFile(
+            path.join(
+              asBrainDir({ repoPath: scene.repoPath, exid: REPO_EXID }),
+              'settings.of.repo.json',
+            ),
+            'utf-8',
+          ),
+        ) as ClaudeCodeSettings;
+        return { bytes, source };
+      });
+
+      then('the source keeps its custom text; the derive sets it off', () => {
+        expect(result.source.attribution).toEqual(settingsSource.attribution);
+      });
+
+      then('the derived keys hold their values; attribution is off', () => {
+        const settings = JSON.parse(result.bytes) as ClaudeCodeSettings;
+        expect(settings.permissions).toEqual(settingsSource.permissions);
+        expect(settings.env).toEqual(settingsSource.env);
+        expect(settings.model).toEqual('haiku');
+        expect(settings.hooks).toEqual(settingsSource.hooks);
+        expect(settings.attribution).toEqual({
+          commit: '',
+          pr: '',
+          sessionUrl: false,
+        });
+      });
+    });
+  });
+
+  given('[case10] a tracked repo-actor file from before the upgrade', () => {
+    // 🔴 the repo actor's file is tracked: its first enroll after the upgrade must add the
+    //   attribution key and move no other key, so the git diff holds that key alone
+    const scene = useBeforeAll(async () => {
+      const repoPath = await createTestRepo({
+        permissions: { allow: ['Bash(npm run build)'] },
+        env: { DEBUG: 'surf:*' },
+        hooks: {
+          SessionStart: [
+            {
+              matcher: '*',
+              hooks: [
+                {
+                  type: 'command',
+                  command: 'echo mechanic boot',
+                  author: 'repo=ehmpathy/role=mechanic',
+                },
+              ],
+            },
+          ],
+        },
+      });
+      const configPath = path.join(
+        asBrainDir({ repoPath, exid: REPO_EXID }),
+        'settings.of.repo.json',
+      );
+
+      // the pre-upgrade file: what an enroll wrote before, so its excludes are in place
+      await genBrainCliConfigArtifact({
+        enrollment: new BrainCliEnrollmentManifest({
+          brain: 'claude',
+          roles: ['mechanic'],
+        }),
+        exid: REPO_EXID,
+        repoPath,
+      });
+      const { attribution: _attribution, ...settingsPrior } = JSON.parse(
+        await fs.readFile(configPath, 'utf-8'),
+      ) as ClaudeCodeSettings;
+      await fs.writeFile(configPath, JSON.stringify(settingsPrior, null, 2));
+      return { repoPath, configPath, settingsPrior };
+    });
+
+    when('[t0] the repo actor is enrolled', () => {
+      const result = useBeforeAll(async () => {
+        await genBrainCliConfigArtifact({
+          enrollment: new BrainCliEnrollmentManifest({
+            brain: 'claude',
+            roles: ['mechanic'],
+          }),
+          exid: REPO_EXID,
+          repoPath: scene.repoPath,
+        });
+        return {
+          settings: JSON.parse(
+            await fs.readFile(scene.configPath, 'utf-8'),
+          ) as ClaudeCodeSettings,
+        };
+      });
+
+      then(
+        'the prior keys keep their order; attribution is the one key added',
+        () => {
+          expect(Object.keys(result.settings)).toEqual([
+            ...Object.keys(scene.settingsPrior),
+            'attribution',
+          ]);
+        },
+      );
+
+      then('every prior key keeps its value, the excludes included', () => {
+        const { attribution: _attribution, ...settingsRest } = result.settings;
+        expect(settingsRest).toEqual(scene.settingsPrior);
+        expect(scene.settingsPrior.claudeMdExcludes).toBeDefined();
+      });
+
+      then('attribution is off', () => {
+        expect(result.settings.attribution).toEqual({ commit: '', pr: '' });
+      });
     });
   });
 });

@@ -449,6 +449,15 @@ module.exports = { getRoleRegistry };
         },
       );
 
+      then('the actor`s re-derived config turns claude attribution off', async () => {
+        // an init re-derives every actor; the derive carries the attribution-off key
+        const content = await fs.readFile(
+          path.join(repo.actorBrainClaudeDir, 'settings.of.repo.json'),
+          'utf-8',
+        );
+        expect(JSON.parse(content).attribution).toEqual({ commit: '', pr: '' });
+      });
+
       then('the repo root config ALSO still carries the role hooks', async () => {
         const rootConfigPath = path.join(repo.path, '.claude', 'settings.of.repo.json');
         const content = await fs.readFile(rootConfigPath, 'utf-8');
