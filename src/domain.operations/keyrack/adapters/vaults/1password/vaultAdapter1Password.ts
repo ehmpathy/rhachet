@@ -235,6 +235,7 @@ const assertAccountIsKeyrack = async (): Promise<void> => {
  * .note = requires 1password cli to be installed and authenticated
  */
 export const vaultAdapter1Password: KeyrackHostVaultAdapter<'readwrite'> = {
+  isSourcePipedAccepted: false,
   mechs: {
     supported: [
       'PERMANENT_VIA_REPLICA',

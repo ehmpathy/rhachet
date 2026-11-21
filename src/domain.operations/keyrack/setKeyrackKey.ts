@@ -23,7 +23,14 @@ export const setKeyrackKey = async (
     org: string;
     vault: KeyrackHostVault;
     mech?: KeyrackGrantMechanism | null;
-    secret?: string | null;
+
+    /**
+     * .what = a source credential piped in by the caller (`--source @stdin`), or null
+     * .why = required, never optional: this is the entry every cli set and every fill passes
+     *        through, so a caller that forgets the piped source fails at compile time here
+     */
+    source: string | null;
+
     exid?: string | null;
     reach?: KeyrackKeyReach;
     maxDuration?: string | null;
@@ -44,7 +51,7 @@ export const setKeyrackKey = async (
           slug,
           mech: input.mech,
           vault: input.vault,
-          secret: input.secret ?? null,
+          source: input.source,
           exid: input.exid ?? null,
           // .note = the reach does NOT enter the slug. the slug stays `$org.$env.$key`, so
           //         provenance is untouched and the repo-manifest gate still passes — that

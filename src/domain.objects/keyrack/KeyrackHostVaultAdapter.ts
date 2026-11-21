@@ -63,6 +63,13 @@ export interface KeyrackHostVaultAdapter<
   };
 
   /**
+   * .what = whether this vault stores a source credential piped in by the caller
+   * .why = a vault that cannot read `set`'s `source` must refuse it, never drop it silently;
+   *        declared on each adapter, so a new vault must answer it and no caller keeps a list
+   */
+  isSourcePipedAccepted: boolean;
+
+  /**
    * .what = unlock the vault for the current session
    * .why = enables subsequent get operations without re-authentication
    *
@@ -129,6 +136,13 @@ export interface KeyrackHostVaultAdapter<
    * .note = reach names the reach this credential is cut for. it steers mech setup (the
    *         github app mech derives the target org's installation from it) and partitions
    *         storage, so a key cut for one reach never overwrites a key cut for another
+   * .note = source is a source credential piped in by the caller (`--source @stdin`). when
+   *         present, the vault validates it via the mech and stores it as-is, with no guided
+   *         setup. only a vault with `isSourcePipedAccepted` reads it; `setKeyrackKeyHost`
+   *         refuses it for every other vault, before the vault is called
+   * .note = source is OPTIONAL, a deliberate exception to `rule.forbid.undefined-inputs`: the
+   *         one producer of a piped source is `setKeyrackKey`, where `source` is required, so a
+   *         forgotten source fails at compile time there; here, absent reads as null
    */
   set: (
     input: {
@@ -137,6 +151,7 @@ export interface KeyrackHostVaultAdapter<
       exid?: string | null;
       expiresAt?: string | null;
       reach?: KeyrackKeyReach;
+      source?: string | null;
     },
     context?: ContextKeyrack,
   ) => Promise<{

@@ -108,4 +108,30 @@ describe('setBrainDirPointerFiles', () => {
       );
     });
   });
+
+  given('[case5] a concurrent enroll creates CLAUDE.md first', () => {
+    when('[t0] the race is lost at the create', () => {
+      then('the link made by the peer reads as found; no fault', () => {
+        const brainDir = genTempDir({ slug: 'setBrainDirPointerFiles-c5t0' });
+
+        // the peer wins: it makes the link, then this call's create meets EEXIST
+        const symlinkSyncAfterPeer: typeof symlinkSync = (
+          target,
+          path,
+          type,
+        ) => {
+          symlinkSync(target, path, type);
+          symlinkSync(target, path, type);
+        };
+
+        const result = setBrainDirPointerFiles(
+          { brainDir },
+          { symlinkSync: symlinkSyncAfterPeer },
+        );
+
+        expect(result.agentsMdReset).toEqual(false);
+        expect(readlinkSync(join(brainDir, 'CLAUDE.md'))).toEqual('AGENTS.md');
+      });
+    });
+  });
 });

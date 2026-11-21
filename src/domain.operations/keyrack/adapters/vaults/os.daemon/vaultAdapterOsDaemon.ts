@@ -28,6 +28,7 @@ export const vaultAdapterOsDaemon: KeyrackHostVaultAdapter<'readwrite'> = {
   mechs: {
     supported: ['EPHEMERAL_VIA_SESSION'],
   },
+  isSourcePipedAccepted: false,
 
   /**
    * .what = unlock the vault for the current session

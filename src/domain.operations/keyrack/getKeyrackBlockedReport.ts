@@ -1,5 +1,7 @@
 import { HelpfulError } from 'helpful-errors';
 
+import { asArgsEchoMasked } from '@src/infra/asArgsEchoMasked';
+
 import { asKeyrackKeyOrg } from './asKeyrackKeyOrg';
 import { isKeyrackSecretShaped } from './isKeyrackSecretShaped';
 
@@ -295,10 +297,11 @@ export const getKeyrackBlockedReport = (input: {
 
   // the invocation a human typed, echoed so the refusal can be REPRODUCED rather than merely
   // read. spelled shell-shaped (space-joined) rather than the raw dump's comma-joined `[args]`,
-  // so it can be copy-pasted (`rule.require.refusals-carry-context`)
+  // so it can be copy-pasted (`rule.require.refusals-carry-context`). a `--source` value is
+  // masked, since it may be a credential typed by mistake
   if (input.invocation?.length)
     flatLeaves.push({
-      text: `ran: ${input.invocation.join(' ')}`,
+      text: `ran: ${asArgsEchoMasked({ args: input.invocation }).join(' ')}`,
       children: [],
     });
 

@@ -1,6 +1,7 @@
-import { given, then, useBeforeAll, when } from 'test-fns';
+import { getError, given, then, useBeforeAll, useThen, when } from 'test-fns';
 import { parse as parseYaml } from 'yaml';
 
+import { genMockKeyrackHostManifest } from '@src/.test/assets/genMockKeyrackHostManifest';
 import { genMockKeyrackRepoManifest } from '@src/.test/assets/genMockKeyrackRepoManifest';
 import { genMockVaultAdapter } from '@src/.test/assets/genMockVaultAdapter';
 import {
@@ -9,8 +10,10 @@ import {
   getTestSshAgeRecipient,
 } from '@src/.test/infra';
 import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
+import { daoKeyrackInventory } from '@src/access/daos/daoKeyrackInventory';
 import {
   KeyrackHostManifest,
+  type KeyrackKeyHost,
   KeyrackKeyRecipient,
 } from '@src/domain.objects/keyrack';
 
@@ -27,6 +30,65 @@ import { generateAgeKeyPair } from './adapters/ageRecipientCrypto';
 import { delKeyrackKeyHost } from './delKeyrackKeyHost';
 import { type ContextKeyrack, genContextKeyrack } from './genContextKeyrack';
 import { setKeyrackKeyHost } from './setKeyrackKeyHost';
+
+/**
+ * .what = gen a keyrack context over a real host manifest in the test home, for one owner
+ * .why = the set writes the host manifest and the inventory and relocks the daemon through the
+ *        real daos; a per-case owner keeps each case's manifest and daemon socket apart
+ */
+const genSceneContext = async (input: {
+  owner: string;
+  hosts: Record<string, Partial<KeyrackKeyHost>>;
+}): Promise<ContextKeyrack> => {
+  const recipient = new KeyrackKeyRecipient({
+    mech: 'age',
+    pubkey: await getTestSshAgeRecipient(),
+    label: 'test-key',
+    addedAt: new Date().toISOString(),
+  });
+  const manifest = await daoKeyrackHostManifest.set({
+    findsert: genMockKeyrackHostManifest({
+      uri: `~/.rhachet/keyrack/keyrack.host.${input.owner}.age`,
+      owner: input.owner,
+      recipients: [recipient],
+      hosts: input.hosts,
+    }),
+  });
+  return {
+    owner: input.owner,
+    identity: {
+      getOne: async () => getTestSshAgeIdentity(),
+      getAll: {
+        discovered: async () => [await getTestSshAgeIdentity()],
+        prescribed: [],
+      },
+    },
+    hostManifest: manifest,
+    repoManifest: genMockKeyrackRepoManifest({ org: 'ehmpathy' }),
+    vaultAdapters: {
+      'os.envvar': genMockVaultAdapter(),
+      'os.direct': genMockVaultAdapter(),
+      'os.secure': genMockVaultAdapter(),
+      'os.daemon': genMockVaultAdapter(),
+      '1password': genMockVaultAdapter(),
+      'aws.config': genMockVaultAdapter(),
+      'aws.params': genMockVaultAdapter(),
+      'github.secrets': genMockVaultAdapter(),
+    },
+  };
+};
+
+/**
+ * .what = read one host entry back from the real host manifest
+ * .why = proves the set persisted, not merely returned
+ */
+const getHostAfter = async (input: { owner: string; address: string }) => {
+  const after = await daoKeyrackHostManifest.get(
+    { owner: input.owner },
+    genContextKeyrack({ owner: input.owner }),
+  );
+  return after?.manifest.hosts[input.address] ?? null;
+};
 
 describe('setKeyrackKeyHost.integration', () => {
   // use test home with SSH key in ~/.ssh/id_ed25519
@@ -1196,6 +1258,458 @@ describe('setKeyrackKeyHost.integration', () => {
             'ehmpathy.test.REACHED_DECL_KEY@beav@ehmpathy.com'
           ],
         ).toBeDefined();
+      });
+    });
+  });
+
+  given('[case12] a piped source, routed by the vault it names', () => {
+    const vaultSetSpy = jest.fn();
+    const scene = useBeforeAll(async () => {
+      const recipient = new KeyrackKeyRecipient({
+        mech: 'age',
+        pubkey: await getTestSshAgeRecipient(),
+        label: 'test-key',
+        addedAt: new Date().toISOString(),
+      });
+      const manifest = await daoKeyrackHostManifest.set({
+        findsert: new KeyrackHostManifest({
+          uri: '~/.rhachet/keyrack/keyrack.host.case12.age',
+          owner: 'case12',
+          recipients: [recipient],
+          hosts: {},
+        }),
+      });
+      const context: ContextKeyrack = {
+        owner: 'case12',
+        identity: {
+          getOne: async () => getTestSshAgeIdentity(),
+          getAll: {
+            discovered: async () => [await getTestSshAgeIdentity()],
+            prescribed: [],
+          },
+        },
+        hostManifest: manifest,
+        repoManifest: genMockKeyrackRepoManifest({ org: 'ehmpathy' }),
+        vaultAdapters: {
+          'os.envvar': genMockVaultAdapter(),
+          'os.direct': genMockVaultAdapter(),
+          'os.secure': genMockVaultAdapter({ isSourcePipedAccepted: true }),
+          'os.daemon': genMockVaultAdapter(),
+          '1password': genMockVaultAdapter(),
+          'aws.config': genMockVaultAdapter(),
+          'aws.params': { ...genMockVaultAdapter(), set: vaultSetSpy },
+          'github.secrets': genMockVaultAdapter(),
+        },
+      };
+      return { context };
+    });
+
+    when('[t0] set called with a source and vault aws.params', () => {
+      then(
+        'refuses before the vault is called, and names the vault fix',
+        async () => {
+          const error = await getError(
+            setKeyrackKeyHost(
+              {
+                slug: 'ehmpathy.all.PIPED_KEY',
+                mech: 'EPHEMERAL_VIA_GITHUB_APP',
+                vault: 'aws.params',
+                source: '{"appId":"1"}',
+              },
+              scene.context,
+            ),
+          );
+          expect(error.message).toContain(
+            'vault aws.params takes no piped source',
+          );
+          expect(error.message).toContain('os.secure');
+          expect(error.message).not.toContain('appId');
+          expect(vaultSetSpy).not.toHaveBeenCalled();
+        },
+      );
+    });
+
+    when('[t1] set called with a source and vault os.secure', () => {
+      then(
+        'passes the source through, and the host manifest maps the key to os.secure',
+        async () => {
+          const result = await setKeyrackKeyHost(
+            {
+              slug: 'ehmpathy.all.PIPED_KEY',
+              mech: 'PERMANENT_VIA_REPLICA',
+              vault: 'os.secure',
+              source: 'token-fake',
+            },
+            scene.context,
+          );
+          expect(result.vault).toEqual('os.secure');
+
+          const after = await daoKeyrackHostManifest.get(
+            { owner: 'case12' },
+            genContextKeyrack({ owner: 'case12' }),
+          );
+          expect(
+            after?.manifest.hosts['ehmpathy.all.PIPED_KEY']?.vault,
+          ).toEqual('os.secure');
+        },
+      );
+    });
+  });
+
+  given('[case13] new key to configure with @this org', () => {
+    const scene = useBeforeAll(async () => ({
+      context: await genSceneContext({ owner: 'case13', hosts: {} }),
+    }));
+
+    when('[t0] set called with new key', () => {
+      const result = useThen('it succeeds', async () =>
+        setKeyrackKeyHost(
+          {
+            slug: 'ehmpathy.all.NEW_KEY',
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.direct',
+          },
+          scene.context,
+        ),
+      );
+
+      then('returns configured key host', () => {
+        expect(result.slug).toEqual('ehmpathy.all.NEW_KEY');
+        expect(result.mech).toEqual('PERMANENT_VIA_REPLICA');
+        expect(result.vault).toEqual('os.direct');
+      });
+
+      then('exid defaults to null', () => {
+        expect(result.exid).toBeNull();
+      });
+
+      then('env defaults to all', () => {
+        expect(result.env).toEqual('all');
+      });
+
+      then('org resolves @this to ehmpathy', () => {
+        expect(result.org).toEqual('ehmpathy');
+      });
+
+      then('timestamps are set', () => {
+        expect(result.createdAt).toBeDefined();
+        expect(result.updatedAt).toBeDefined();
+      });
+
+      then('sets inventory entry for non-daemon vault', async () => {
+        const stocked = await daoKeyrackInventory.exists({
+          slug: 'ehmpathy.all.NEW_KEY',
+          owner: 'case13',
+        });
+        expect(stocked).toBe(true);
+      });
+
+      then('the host manifest holds the key', async () => {
+        const host = await getHostAfter({
+          owner: 'case13',
+          address: 'ehmpathy.all.NEW_KEY',
+        });
+        expect(host?.vault).toEqual('os.direct');
+      });
+    });
+
+    when('[t1] set called with exid', () => {
+      then('exid is stored', async () => {
+        const result = await setKeyrackKeyHost(
+          {
+            slug: 'ehmpathy.all.EXID_KEY',
+            mech: 'EPHEMERAL_VIA_GITHUB_APP',
+            vault: '1password',
+            exid: 'op://vault/item',
+          },
+          scene.context,
+        );
+        expect(result.exid).toEqual('op://vault/item');
+        const host = await getHostAfter({
+          owner: 'case13',
+          address: 'ehmpathy.all.EXID_KEY',
+        });
+        expect(host?.exid).toEqual('op://vault/item');
+      });
+    });
+
+    when('[t2] set called with env=sudo', () => {
+      then('env is sudo', async () => {
+        const result = await setKeyrackKeyHost(
+          {
+            slug: 'ehmpathy.sudo.SUDO_KEY',
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.direct',
+            env: 'sudo',
+          },
+          scene.context,
+        );
+        expect(result.env).toEqual('sudo');
+      });
+    });
+
+    when('[t3] set called with meta', () => {
+      then('meta is stored', async () => {
+        const result = await setKeyrackKeyHost(
+          {
+            slug: 'ehmpathy.all.SECURE_META_KEY',
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.secure',
+            meta: { ageKeyRecipient: 'age1testrecipient...' },
+          },
+          scene.context,
+        );
+        expect(result.meta).toEqual({
+          ageKeyRecipient: 'age1testrecipient...',
+        });
+        const host = await getHostAfter({
+          owner: 'case13',
+          address: 'ehmpathy.all.SECURE_META_KEY',
+        });
+        expect(host?.meta).toEqual({
+          ageKeyRecipient: 'age1testrecipient...',
+        });
+      });
+    });
+
+    when('[t4] set called without meta', () => {
+      then('meta defaults to null', async () => {
+        const result = await setKeyrackKeyHost(
+          {
+            slug: 'ehmpathy.all.SECURE_BARE_KEY',
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.secure',
+          },
+          scene.context,
+        );
+        expect(result.meta).toBeNull();
+      });
+    });
+
+    when('[t5] set called with maxDuration', () => {
+      then('maxDuration is stored', async () => {
+        const result = await setKeyrackKeyHost(
+          {
+            slug: 'ehmpathy.sudo.SENSITIVE_KEY',
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.secure',
+            env: 'sudo',
+            maxDuration: '5m',
+          },
+          scene.context,
+        );
+        expect(result.maxDuration).toEqual('5m');
+        const host = await getHostAfter({
+          owner: 'case13',
+          address: 'ehmpathy.sudo.SENSITIVE_KEY',
+        });
+        expect(host?.maxDuration).toEqual('5m');
+      });
+    });
+
+    when('[t6] set called without maxDuration', () => {
+      then('maxDuration defaults to null', async () => {
+        const result = await setKeyrackKeyHost(
+          {
+            slug: 'ehmpathy.all.BARE_DURATION_KEY',
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.direct',
+          },
+          scene.context,
+        );
+        expect(result.maxDuration).toBeNull();
+      });
+    });
+  });
+
+  given('[case14] key already exists with same attrs', () => {
+    const createdAtSeed = '2026-01-01T00:00:00.000Z';
+    const scene = useBeforeAll(async () => ({
+      context: await genSceneContext({
+        owner: 'case14',
+        hosts: {
+          'ehmpathy.all.EXTANT_KEY': {
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.direct',
+            exid: null,
+            env: 'all',
+            org: 'ehmpathy',
+            createdAt: createdAtSeed,
+            updatedAt: createdAtSeed,
+          },
+        },
+      }),
+    }));
+
+    when('[t0] set called with same attrs (findsert semantics)', () => {
+      then('returns found key host without update', async () => {
+        const result = await setKeyrackKeyHost(
+          {
+            slug: 'ehmpathy.all.EXTANT_KEY',
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.direct',
+          },
+          scene.context,
+        );
+        expect(result.slug).toEqual('ehmpathy.all.EXTANT_KEY');
+        expect(result.mech).toEqual('PERMANENT_VIA_REPLICA');
+        expect(result.vault).toEqual('os.direct');
+        expect(result.createdAt).toEqual(createdAtSeed);
+        const host = await getHostAfter({
+          owner: 'case14',
+          address: 'ehmpathy.all.EXTANT_KEY',
+        });
+        expect(host?.updatedAt).toEqual(createdAtSeed);
+      });
+    });
+  });
+
+  given('[case15] key exists with different attrs', () => {
+    const scene = useBeforeAll(async () => ({
+      context: await genSceneContext({
+        owner: 'case15',
+        hosts: {
+          'ehmpathy.all.EXTANT_KEY': {
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.direct',
+            exid: null,
+            env: 'all',
+            org: 'ehmpathy',
+          },
+        },
+      }),
+    }));
+
+    when('[t0] set called with different vault', () => {
+      then('returns updated key host', async () => {
+        const result = await setKeyrackKeyHost(
+          {
+            slug: 'ehmpathy.all.EXTANT_KEY',
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.secure',
+          },
+          scene.context,
+        );
+        expect(result.vault).toEqual('os.secure');
+        const host = await getHostAfter({
+          owner: 'case15',
+          address: 'ehmpathy.all.EXTANT_KEY',
+        });
+        expect(host?.vault).toEqual('os.secure');
+      });
+    });
+
+    when('[t1] set called with different mech', () => {
+      then('returns updated key host', async () => {
+        const result = await setKeyrackKeyHost(
+          {
+            slug: 'ehmpathy.all.EXTANT_KEY',
+            mech: 'EPHEMERAL_VIA_GITHUB_APP',
+            vault: 'os.direct',
+          },
+          scene.context,
+        );
+        expect(result.mech).toEqual('EPHEMERAL_VIA_GITHUB_APP');
+      });
+    });
+  });
+
+  given('[case16] org validation', () => {
+    const scene = useBeforeAll(async () => ({
+      context: await genSceneContext({ owner: 'case16', hosts: {} }),
+    }));
+
+    when('[t0] org is @this', () => {
+      then('resolves to ehmpathy', async () => {
+        const result = await setKeyrackKeyHost(
+          {
+            slug: 'ehmpathy.all.ORG_THIS_KEY',
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.direct',
+            org: '@this',
+          },
+          scene.context,
+        );
+        expect(result.org).toEqual('ehmpathy');
+      });
+    });
+
+    when('[t1] org is @all', () => {
+      then('stores as @all', async () => {
+        const result = await setKeyrackKeyHost(
+          {
+            slug: '@all.all.ORG_ALL_KEY',
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.direct',
+            org: '@all',
+          },
+          scene.context,
+        );
+        expect(result.org).toEqual('@all');
+      });
+    });
+
+    when('[t2] org is already-expanded name', () => {
+      then('passes through as-is', async () => {
+        const result = await setKeyrackKeyHost(
+          {
+            slug: 'testorg.all.ORG_NAMED_KEY',
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.direct',
+            org: 'testorg',
+          },
+          scene.context,
+        );
+        expect(result.org).toEqual('testorg');
+      });
+    });
+  });
+
+  given('[case17] @this without repoManifest', () => {
+    const scene = useBeforeAll(async () => ({
+      context: {
+        ...(await genSceneContext({ owner: 'case17', hosts: {} })),
+        repoManifest: null,
+      },
+    }));
+
+    when('[t0] org defaults to @this', () => {
+      then('throws ConstraintError', async () => {
+        const error = await getError(
+          setKeyrackKeyHost(
+            {
+              slug: 'ehmpathy.all.KEY',
+              mech: 'PERMANENT_VIA_REPLICA',
+              vault: 'os.direct',
+            },
+            scene.context,
+          ),
+        );
+        expect(error.message).toContain('@this requires repo manifest');
+      });
+    });
+  });
+
+  given('[case18] os.daemon vault (ephemeral)', () => {
+    const scene = useBeforeAll(async () => ({
+      context: await genSceneContext({ owner: 'case18', hosts: {} }),
+    }));
+
+    when('[t0] set called with os.daemon vault', () => {
+      then('does NOT set inventory entry (ephemeral keys)', async () => {
+        await setKeyrackKeyHost(
+          {
+            slug: 'ehmpathy.all.EPHEMERAL_KEY',
+            mech: 'PERMANENT_VIA_REPLICA',
+            vault: 'os.daemon',
+          },
+          scene.context,
+        );
+        const stocked = await daoKeyrackInventory.exists({
+          slug: 'ehmpathy.all.EPHEMERAL_KEY',
+          owner: 'case18',
+        });
+        expect(stocked).toBe(false);
       });
     });
   });

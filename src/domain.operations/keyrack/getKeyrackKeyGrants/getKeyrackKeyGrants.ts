@@ -6,7 +6,6 @@ import { asKeyrackKeyReachExid } from '@src/domain.operations/keyrack/reach/asKe
 import { getGitRepoRootOrNull } from '@src/infra/git/getGitRepoRootOrNull';
 
 import { asKeyrackAttemptSlug } from '../asKeyrackAttemptSlug';
-import { asKeyrackKeyEnv } from '../asKeyrackKeyEnv';
 import { asKeyrackKeyName } from '../asKeyrackKeyName';
 import { asKeyrackRepoManifestForOrgFilter } from '../asKeyrackRepoManifestForOrgFilter';
 import { genContextKeyrack } from '../genContextKeyrack';
@@ -21,8 +20,9 @@ import {
   asKeyrackAttemptReach,
 } from '../reach/asKeyrackAttemptAddress';
 import { assertKeyrackReachRequiresKey } from '../reach/assertKeyrackReachRequiresKey';
-import { unlockKeyrackKeys } from '../session/unlockKeyrackKeys';
+import { asKeyrackAttemptWithUnlockFault } from './asKeyrackAttemptWithUnlockFault';
 import { assertKeyrackUnlockIdentityAvailable } from './assertKeyrackUnlockIdentityAvailable';
+import { unlockKeyrackTargetsInOrder } from './unlockKeyrackTargetsInOrder';
 
 /**
  * .what = the shared get-or-unlock core: get each selected key, and if `with.unlock` is set,
@@ -246,16 +246,11 @@ export const getKeyrackKeyGrants = async (input: {
   // .note = the reach comes from the ATTEMPT, never from the caller's `reach`. under a
   //         repo sweep the caller names no reach at all (q2), yet each attempt knows the
   //         one it asked for — so the attempt is the only honest source
-  for (const target of lockedTargets)
-    await unlockKeyrackKeys(
-      {
-        owner,
-        env: asKeyrackKeyEnv({ slug: target.slug }) || 'all',
-        key: asKeyrackKeyName({ slug: target.slug }),
-        reach: target.reach,
-      },
-      contextUnlock,
-    );
+  // .note = each unlock's omissions are kept, so a fault it caught reaches the re-got attempt
+  const omissionsOfUnlock = await unlockKeyrackTargetsInOrder(
+    { owner, targets: lockedTargets },
+    contextUnlock,
+  );
 
   // re-get each unlocked key at its own address now that the daemon holds it
   const attemptsRegotByAddress = new Map<string, KeyrackGrantAttempt>(
@@ -277,9 +272,15 @@ export const getKeyrackKeyGrants = async (input: {
   // .why = keyed by ADDRESS, not slug. a slug key would let one reach's re-got status
   //        overwrite every peer that shares its slug — the silent eviction reach-as-identity
   //        exists to remove, reintroduced at the very last line of the pipeline
-  return attemptsInitial.map(
-    (attempt) =>
-      attemptsRegotByAddress.get(asKeyrackAttemptAddress({ attempt })) ??
-      attempt,
+  // .note = a key still locked after a faulted unlock carries that fault as its tip
+  return attemptsInitial.map((attempt) =>
+    asKeyrackAttemptWithUnlockFault({
+      attempt:
+        attemptsRegotByAddress.get(asKeyrackAttemptAddress({ attempt })) ??
+        attempt,
+      omissions: omissionsOfUnlock,
+      orgDefault: repoManifest?.org ?? null,
+      owner,
+    }),
   );
 };
