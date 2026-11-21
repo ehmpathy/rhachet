@@ -1,6 +1,8 @@
 import { ConstraintError } from 'helpful-errors';
 import type { SimpleOnDiskCache } from 'simple-on-disk-cache';
 
+import { getRealpathOfNearestExtant } from '@src/infra/filesystem/getRealpathOfNearestExtant';
+
 import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
 import {
   basename,
@@ -51,23 +53,66 @@ const cacheByRepo = new Map<string, Promise<SimpleOnDiskCache>>();
  *   even before `rhx init` writes the actors ignore. the literal is restated here because infra
  *   may not import a domain operation
  * .note = keyed by realpath, so a symlink or worktree hop never splits one repo into two scopes
+ * .note = memoized by the dir chosen, so a repo whose actors root links out mid-process gets
+ *   the cache of the dir it now resolves to, never a stale one
  */
 const getOneRepoMutexCache = async (input: {
   repoPath: string;
 }): Promise<SimpleOnDiskCache> => {
   // the dir is ensured on every use, never only at build: a caller may remove the actors root
   //   between two guarded writes of one process, and the memoized cache must not then fault
-  const repoReal = realpathSync(input.repoPath);
-  const dir = join(repoReal, '.agent', '.actors', '.locks');
+  const dir = getOneRepoMutexCacheDir({
+    repoReal: realpathSync(input.repoPath),
+  });
   setRepoMutexCacheDir({ dir });
-  const found = cacheByRepo.get(repoReal);
+  const found = cacheByRepo.get(dir);
   if (found) return found;
   const created = (async () => {
     const { createCache } = await import('simple-on-disk-cache');
     return createCache({ directory: { local: { path: dir } } });
   })();
-  cacheByRepo.set(repoReal, created);
+  cacheByRepo.set(dir, created);
   return created;
+};
+
+/**
+ * .what = the dir that holds one repo's mutex keys: `<repo>/.agent/.actors/.locks`, or
+ *   `<repo>/.agent/.locks` where the actors root links out of the repo
+ * .why = rhachet never writes outside the repo. a lock guards a file inside the repo, so its
+ *   key file belongs inside the repo too, wherever the actors root points
+ * .note = every peer reads the same disk to choose, so two processes on one repo still meet
+ *   on one dir
+ * .note = a repo whose `.agent` itself links out has no dir inside the repo to hold a key, so
+ *   the mutex refuses loud rather than write there
+ */
+const getOneRepoMutexCacheDir = (input: { repoReal: string }): string => {
+  const dirOfActors = join(input.repoReal, '.agent', '.actors', '.locks');
+  if (isPathInsideRepoReal({ path: dirOfActors, repoReal: input.repoReal }))
+    return dirOfActors;
+  const dirOfAgent = join(input.repoReal, '.agent', '.locks');
+  if (isPathInsideRepoReal({ path: dirOfAgent, repoReal: input.repoReal }))
+    return dirOfAgent;
+  throw new ConstraintError('refused a write outside the repo', {
+    path: dirOfAgent,
+    effect: 'the repo mutex has no dir inside the repo to hold its key',
+    hint: 'make <repo>/.agent a real dir inside the repo, then retry',
+  });
+};
+
+/**
+ * .what = whether a path, measured at its nearest extant ancestor, lands inside the repo
+ * .why = a dir not yet made has no realpath of its own; the link that would carry its write
+ *   out sits on an ancestor that does exist
+ */
+const isPathInsideRepoReal = (input: {
+  path: string;
+  repoReal: string;
+}): boolean => {
+  const pathRelative = relative(
+    input.repoReal,
+    getRealpathOfNearestExtant({ path: input.path }),
+  );
+  return !pathRelative.startsWith('..') && !isAbsolute(pathRelative);
 };
 
 /**

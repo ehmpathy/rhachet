@@ -16,3 +16,4 @@
 | `F12-reach-link-elsewhere-stays-a-refusal` | `<repo>/.claude` linked elsewhere stays an exit-2 refusal, never a skip; no write lands | clean | best-guessed — for the wisher's glance | 85% |
 | `F13-fault-row-reshape-kept` | the fault row's `error =` / `roles =` / `path =` / `hint =` leaves stay; r12 asks to revert, r6 asked for them | clean | best-guessed — two reviewers split, for the wisher | 75% |
 | `F14-legacy-role-init-meets-a-0444-grove` | on the pin, the mechanic 1.39.3 init double-backup fails EACCES through a 0444 grove; left to the role release | clean | open — for the wisher at review, never best-guessed past (director) | 70% |
+| `F15-repo-mutex-keys-move-in-when-actors-links-out` | where `.agent/.actors` links out, the repo mutex keys move to `<repo>/.agent/.locks`; a `.agent` that links out refuses | clean | best-guessed — for the wisher's glance | 85% |

@@ -7,6 +7,13 @@ exports[`rhachet init --hooks never writes outside the repo given: [case1] an ac
 🪝 apply hooks to brains...
    └─ test/tester → anthropic/claude/code: +3
 
+🪝 hook dispatchers set
+   └─ anthropic/claude/code
+      ├─ 3 rules → 2 dispatchers, one per event
+      │  ├─ SessionStart = 2 rules
+      │  └─ PreToolUse = 1 rule
+      └─ manifest = .claude/hooks.dispatch.manifest
+
 ✨ hooks
    └─ 3 created
 
@@ -28,6 +35,13 @@ exports[`rhachet init --hooks never writes outside the repo given: [case2] an ac
 🪝 apply hooks to brains...
    └─ test/tester → anthropic/claude/code: +3
 
+🪝 hook dispatchers set
+   └─ anthropic/claude/code
+      ├─ 3 rules → 2 dispatchers, one per event
+      │  ├─ SessionStart = 2 rules
+      │  └─ PreToolUse = 1 rule
+      └─ manifest = .claude/hooks.dispatch.manifest
+
 ✨ hooks
    └─ 3 created
 
@@ -43,6 +57,13 @@ exports[`rhachet init --hooks never writes outside the repo given: [case3] an ac
 
 🪝 apply hooks to brains...
    └─ test/tester → anthropic/claude/code: +3
+
+🪝 hook dispatchers set
+   └─ anthropic/claude/code
+      ├─ 3 rules → 2 dispatchers, one per event
+      │  ├─ SessionStart = 2 rules
+      │  └─ PreToolUse = 1 rule
+      └─ manifest = .claude/hooks.dispatch.manifest
 
 ✨ hooks
    └─ 3 created
@@ -64,6 +85,13 @@ exports[`rhachet init --hooks never writes outside the repo given: [case4] an ac
 
 🪝 apply hooks to brains...
    └─ test/tester → anthropic/claude/code: +3
+
+🪝 hook dispatchers set
+   └─ anthropic/claude/code
+      ├─ 3 rules → 2 dispatchers, one per event
+      │  ├─ SessionStart = 2 rules
+      │  └─ PreToolUse = 1 rule
+      └─ manifest = .claude/hooks.dispatch.manifest
 
 ✨ hooks
    └─ 3 created
@@ -115,6 +143,13 @@ exports[`rhachet init --hooks never writes outside the repo given: [case5] a rep
 🪝 apply hooks to brains...
    └─ test/tester → anthropic/claude/code: +3
 
+🪝 hook dispatchers set
+   └─ anthropic/claude/code
+      ├─ 3 rules → 2 dispatchers, one per event
+      │  ├─ SessionStart = 2 rules
+      │  └─ PreToolUse = 1 rule
+      └─ manifest = .claude/hooks.dispatch.manifest
+
 ✨ hooks
    └─ 3 created
 
@@ -122,6 +157,10 @@ exports[`rhachet init --hooks never writes outside the repo given: [case5] a rep
    ├─ path = .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json
    ├─ lands at = /TMP_TEST_DIR/.claude/settings.json (read-only)
    └─ hint = naught to do; the actor's hooks live in its settings.of.repo.json, and rhachet never writes outside the repo
+
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
 
 "
 `;
@@ -152,6 +191,10 @@ exports[`rhachet init --hooks never writes outside the repo given: [case6] a rep
    ├─ effect = the repo actor got no boot, and no actor gets its role hooks until it does
    └─ hint = point that dir, or the link above it, back inside the repo, then rerun \`rhx init --hooks\`
 
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
+
 "
 `;
 
@@ -181,6 +224,10 @@ exports[`rhachet init --hooks never writes outside the repo given: [case7] the r
    ├─ effect = the repo actor got no boot, and no actor gets its role hooks until it does
    └─ hint = point that dir, or the link above it, back inside the repo, then rerun \`rhx init --hooks\`
 
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
+
 "
 `;
 
@@ -200,6 +247,13 @@ exports[`rhachet init --hooks never writes outside the repo given: [case9] a fau
 
 🪝 apply hooks to brains...
    └─ test/tester → anthropic/claude/code: +3
+
+🪝 hook dispatchers set
+   └─ anthropic/claude/code
+      ├─ 3 rules → 2 dispatchers, one per event
+      │  ├─ SessionStart = 2 rules
+      │  └─ PreToolUse = 1 rule
+      └─ manifest = .claude/hooks.dispatch.manifest
 
 ✨ hooks
    └─ 3 created
@@ -227,6 +281,13 @@ exports[`rhachet init --hooks never writes outside the repo given: [case10] the 
 🪝 apply hooks to brains...
    └─ test/tester → anthropic/claude/code: +3
 
+🪝 hook dispatchers set
+   └─ anthropic/claude/code
+      ├─ 3 rules → 2 dispatchers, one per event
+      │  ├─ SessionStart = 2 rules
+      │  └─ PreToolUse = 1 rule
+      └─ manifest = .claude/hooks.dispatch.manifest
+
 ✨ hooks
    └─ 3 created
 
@@ -247,6 +308,13 @@ exports[`rhachet init --hooks never writes outside the repo given: [case11] the 
 
 🪝 apply hooks to brains...
    └─ test/tester → anthropic/claude/code: +3
+
+🪝 hook dispatchers set
+   └─ anthropic/claude/code
+      ├─ 3 rules → 2 dispatchers, one per event
+      │  ├─ SessionStart = 2 rules
+      │  └─ PreToolUse = 1 rule
+      └─ manifest = .claude/hooks.dispatch.manifest
 
 ✨ hooks
    └─ 3 created
@@ -287,6 +355,13 @@ exports[`rhachet init --hooks never writes outside the repo given: [case12] a fa
 
 🪝 apply hooks to brains...
    └─ test/tester → anthropic/claude/code: +3
+
+🪝 hook dispatchers set
+   └─ anthropic/claude/code
+      ├─ 3 rules → 2 dispatchers, one per event
+      │  ├─ SessionStart = 2 rules
+      │  └─ PreToolUse = 1 rule
+      └─ manifest = .claude/hooks.dispatch.manifest
 
 ✨ hooks
    └─ 3 created
@@ -337,6 +412,10 @@ exports[`rhachet init --hooks never writes outside the repo given: [case13] the 
    ├─ effect = the repo actor got no boot, and no actor gets its role hooks until it does
    └─ hint = point that dir, or the link above it, back inside the repo, then rerun \`rhx init --hooks\`
 
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
+
 "
 `;
 
@@ -356,6 +435,13 @@ exports[`rhachet init --hooks never writes outside the repo given: [case15] an a
 
 🪝 apply hooks to brains...
    └─ test/tester → anthropic/claude/code: +3
+
+🪝 hook dispatchers set
+   └─ anthropic/claude/code
+      ├─ 3 rules → 2 dispatchers, one per event
+      │  ├─ SessionStart = 2 rules
+      │  └─ PreToolUse = 1 rule
+      └─ manifest = .claude/hooks.dispatch.manifest
 
 ✨ hooks
    └─ 3 created
@@ -378,6 +464,13 @@ exports[`rhachet init --hooks never writes outside the repo given: [case16] an a
 
 🪝 apply hooks to brains...
    └─ test/tester → anthropic/claude/code: +3
+
+🪝 hook dispatchers set
+   └─ anthropic/claude/code
+      ├─ 3 rules → 2 dispatchers, one per event
+      │  ├─ SessionStart = 2 rules
+      │  └─ PreToolUse = 1 rule
+      └─ manifest = .claude/hooks.dispatch.manifest
 
 ✨ hooks
    └─ 3 created
@@ -449,6 +542,10 @@ exports[`rhachet init --hooks never writes outside the repo given: [case18] a re
    ├─ effect = the repo actor got no boot, and no actor gets its role hooks until it does
    └─ hint = point that dir, or the link above it, back inside the repo, then rerun \`rhx init --hooks\`
 
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
+
 "
 `;
 
@@ -458,6 +555,13 @@ exports[`rhachet init --hooks never writes outside the repo given: [case19] a sk
 
 🪝 apply hooks to brains...
    └─ test/tester → anthropic/claude/code: +3
+
+🪝 hook dispatchers set
+   └─ anthropic/claude/code
+      ├─ 3 rules → 2 dispatchers, one per event
+      │  ├─ SessionStart = 2 rules
+      │  └─ PreToolUse = 1 rule
+      └─ manifest = .claude/hooks.dispatch.manifest
 
 ✨ hooks
    └─ 3 created
@@ -511,6 +615,10 @@ exports[`rhachet init --hooks never writes outside the repo given: [case20] the 
    ├─ lands at = /TMP_TEST_DIR/brain/.claude
    ├─ effect = the repo actor got no boot, and no actor gets its role hooks until it does
    └─ hint = point that dir, or the link above it, back inside the repo, then rerun \`rhx init --hooks\`
+
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
 
 "
 `;
