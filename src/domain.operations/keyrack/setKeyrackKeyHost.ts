@@ -1,11 +1,9 @@
 import { ConstraintError, MalfunctionError } from 'helpful-errors';
 
-import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
 import { daoKeyrackInventory } from '@src/access/daos/daoKeyrackInventory';
 import { daoKeyrackRepoManifest } from '@src/access/daos/daoKeyrackRepoManifest';
 import {
   type KeyrackGrantMechanism,
-  KeyrackHostManifest,
   type KeyrackHostVault,
   KeyrackKeyHost,
   type KeyrackKeyReach,
@@ -19,6 +17,7 @@ import { asKeyrackKeyEnv } from './asKeyrackKeyEnv';
 import { asKeyrackKeyName } from './asKeyrackKeyName';
 import { daemonAccessRelock } from './daemon/sdk';
 import type { ContextKeyrack } from './genContextKeyrack';
+import { setKeyrackHostManifestHosts } from './setKeyrackHostManifestHosts';
 
 /**
  * .what = configure storage for a credential key on this host
@@ -52,18 +51,44 @@ export const setKeyrackKeyHost = async (
 
     meta?: Record<string, unknown> | null;
     maxDuration?: string | null;
-    secret?: string | null;
     at?: string | null;
   },
-  context: ContextKeyrack,
+  context: ContextKeyrack & {
+    /**
+     * .what = the host-state boundaries this op writes through: manifest file, daemon socket,
+     *         inventory, keyrack.yml
+     * .why = injectable, so a unit test supplies in-memory fakes; absent in prod, where the real
+     *        ones serve
+     */
+    boundaries?: {
+      setKeyrackHostManifestHosts?: typeof setKeyrackHostManifestHosts;
+      daemonAccessRelock?: typeof daemonAccessRelock;
+      daoKeyrackInventory?: Pick<typeof daoKeyrackInventory, 'set'>;
+      daoKeyrackRepoManifest?: {
+        set: Pick<(typeof daoKeyrackRepoManifest)['set'], 'findsertKeyToEnv'>;
+      };
+    };
+  },
 ): Promise<KeyrackKeyHost> => {
+  // bind each host-state boundary: the injected fake, else the real one
+  const boundaries = {
+    setKeyrackHostManifestHosts:
+      context.boundaries?.setKeyrackHostManifestHosts ??
+      setKeyrackHostManifestHosts,
+    daemonAccessRelock:
+      context.boundaries?.daemonAccessRelock ?? daemonAccessRelock,
+    daoKeyrackInventory:
+      context.boundaries?.daoKeyrackInventory ?? daoKeyrackInventory,
+    daoKeyrackRepoManifest:
+      context.boundaries?.daoKeyrackRepoManifest ?? daoKeyrackRepoManifest,
+  };
+
   // guard: host manifest required
   if (!context.hostManifest)
     throw new MalfunctionError(
       'hostManifest required for set; call daoKeyrackHostManifest.get() first',
       { slug: input.slug },
     );
-  const hostManifest = context.hostManifest;
 
   const now = new Date().toISOString();
 
@@ -96,6 +121,8 @@ export const setKeyrackKeyHost = async (
 
   // store secret in vault
   // .note = vault encapsulates mech calls: infers mech if absent, checks compat, calls mech.acquireForSet
+  // .note = the secret comes only from the mech; a caller with the value in hand supplies it via
+  //   `context.mech.question` (the replica mech asks it before stdin)
   const adapter = context.vaultAdapters[input.vault];
   const setResult = await adapter.set(
     {
@@ -142,38 +169,14 @@ export const setKeyrackKeyHost = async (
   // .note = skip for os.daemon vault — daemon IS the source, set already stored there
   // .note = scoped to THIS key's reach — a set at one reach leaves the grants held for
   //         every other reach alone, because they were never made stale by it
-  // .note = through `asKeyrackKeyReachField`, never an inline `reach: input.reach`, and the
-  //         helper is the point rather than the style: it is the ONE home of the omit-when-absent
-  //         rule (e16). an inline emits `reach: undefined`, which is harmless across a function
-  //         boundary today and is exactly the divergence that would let a future change to the
-  //         helper reach `delKeyrackKeyHost`'s identical call and not this one. the two claim to
-  //         stay symmetric, so they must reach for the same helper
+  // .note = via `asKeyrackKeyReachField`, the one home of the omit-when-absent rule (e16), which
+  //         `delKeyrackKeyHost`'s twin call shares
   if (input.vault !== 'os.daemon') {
-    await daemonAccessRelock({
+    await boundaries.daemonAccessRelock({
       slugs: [input.slug],
       ...asKeyrackKeyReachField({ reach: input.reach }),
       owner: context.owner,
     });
-  }
-
-  // check if key already exists in manifest
-  const hostFound = hostManifest.hosts[address];
-  if (hostFound) {
-    // if found with same attrs, return found (findsert semantics)
-    const attrsEqual = isKeyrackKeyHostAttrsEqual({
-      hostFound: new KeyrackKeyHost(hostFound),
-      attrs: {
-        mech: mechForManifest,
-        vault: input.vault,
-        exid: exidForManifest,
-        env: input.env ?? 'all',
-        org: orgExpanded,
-        meta: metaForManifest,
-      },
-    });
-    if (attrsEqual) {
-      return new KeyrackKeyHost(hostFound);
-    }
   }
 
   // construct key host with derived mech and exid
@@ -193,26 +196,41 @@ export const setKeyrackKeyHost = async (
     updatedAt: now,
   });
 
-  // update manifest with new/updated key host
-  const hostsUpdated = {
-    ...hostManifest.hosts,
-    [address]: keyHost,
-  };
-
-  const manifestUpdated = new KeyrackHostManifest({
-    ...hostManifest,
-    hosts: hostsUpdated,
-  });
-
-  // persist host manifest
-  await daoKeyrackHostManifest.set({ upsert: manifestUpdated });
+  // file the key host into the manifest, under the host mutex, over a fresh read
+  // .note = findsert: a fresh host found with the same attrs is kept, and returned
+  const isHostFoundSame = (hostFound: KeyrackKeyHost | undefined): boolean =>
+    !!hostFound &&
+    isKeyrackKeyHostAttrsEqual({
+      hostFound: new KeyrackKeyHost(hostFound),
+      attrs: {
+        mech: mechForManifest,
+        vault: input.vault,
+        exid: exidForManifest,
+        env: input.env ?? 'all',
+        org: orgExpanded,
+        meta: metaForManifest,
+      },
+    });
+  const filed = await boundaries.setKeyrackHostManifestHosts(
+    {
+      mutate: ({ hosts }) =>
+        isHostFoundSame(hosts[address])
+          ? null
+          : { ...hosts, [address]: keyHost },
+    },
+    context,
+  );
+  if (!filed.changed) return new KeyrackKeyHost(filed.manifest.hosts[address]!);
 
   // set inventory entry (after manifest persist)
   // .note = ephemeral vaults skip inventory (cleared on relock)
   // .note = stocked under the full address, so `inferKeyrackKeyStatusWhenNotGranted` can
   //         tell "this reach was never cut" from "this key is merely locked"
   if (!isEphemeralVault({ vault: input.vault })) {
-    await daoKeyrackInventory.set({ slug: address, owner: context.owner });
+    await boundaries.daoKeyrackInventory.set({
+      slug: address,
+      owner: context.owner,
+    });
   }
 
   // for non-sudo, non-machine-wide, REACHLESS keys: also write to keyrack.yml (if gitroot
@@ -240,7 +258,7 @@ export const setKeyrackKeyHost = async (
     context.gitroot
   ) {
     const keyName = asKeyrackKeyName({ slug: input.slug });
-    await daoKeyrackRepoManifest.set.findsertKeyToEnv({
+    await boundaries.daoKeyrackRepoManifest.set.findsertKeyToEnv({
       gitroot: context.gitroot,
       key: keyName,
       env: envFromSlug,

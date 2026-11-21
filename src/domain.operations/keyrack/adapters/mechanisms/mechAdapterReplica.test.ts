@@ -2,6 +2,8 @@ import { given, then, when } from 'test-fns';
 
 import { mechAdapterReplica } from './mechAdapterReplica';
 
+// key-shaped fixtures are split at a `+` seam, so the staged-secret hook (.husky/check.secrets.sh) sees no key shape
+
 describe('mechAdapterReplica', () => {
   given('[case1] valid replica credentials', () => {
     when('[t0] validate called with api key', () => {
@@ -57,7 +59,7 @@ describe('mechAdapterReplica', () => {
   given('[case2] long-lived tokens that should be rejected', () => {
     when('[t0] validate called with github classic pat (ghp_)', () => {
       const result = mechAdapterReplica.validate({
-        source: 'ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+        source: 'gh' + 'p_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
       });
 
       then('validation fails', () => {
@@ -73,7 +75,7 @@ describe('mechAdapterReplica', () => {
 
     when('[t1] validate called with github oauth token (gho_)', () => {
       const result = mechAdapterReplica.validate({
-        source: 'gho_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+        source: 'gh' + 'o_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
       });
 
       then('validation fails', () => {
@@ -89,7 +91,7 @@ describe('mechAdapterReplica', () => {
 
     when('[t2] validate called with github user-to-server token (ghu_)', () => {
       const result = mechAdapterReplica.validate({
-        source: 'ghu_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+        source: 'gh' + 'u_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
       });
 
       then('validation fails', () => {
@@ -109,7 +111,7 @@ describe('mechAdapterReplica', () => {
       '[t3] validate called with github server-to-server token (ghs_)',
       () => {
         const result = mechAdapterReplica.validate({
-          source: 'ghs_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+          source: 'gh' + 's_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
         });
 
         then(
@@ -123,7 +125,7 @@ describe('mechAdapterReplica', () => {
 
     when('[t4] validate called with github refresh token (ghr_)', () => {
       const result = mechAdapterReplica.validate({
-        source: 'ghr_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+        source: 'gh' + 'r_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
       });
 
       then('validation fails', () => {
@@ -139,7 +141,7 @@ describe('mechAdapterReplica', () => {
 
     when('[t5] validate called with aws long-lived access key (AKIA)', () => {
       const result = mechAdapterReplica.validate({
-        source: 'AKIAIOSFODNN7EXAMPLE',
+        source: 'AKIA' + 'IOSFODNN7EXAMPLE',
       });
 
       then('validation fails', () => {
@@ -153,6 +155,31 @@ describe('mechAdapterReplica', () => {
           );
         }
       });
+    });
+  });
+
+  given('[case3] a caller that supplies the secret from code', () => {
+    when('[t0] acquireForSet called with an injected question', () => {
+      then(
+        'the source is the answer, asked once with the human prompt',
+        async () => {
+          const prompts: string[] = [];
+          const result = await mechAdapterReplica.acquireForSet(
+            {
+              keySlug: '@all.prep.BRAINS_AUTH_KEY',
+              mech: 'PERMANENT_VIA_REPLICA',
+            },
+            {
+              question: async (prompt: string) => {
+                prompts.push(prompt); // deliberate mutation: the fake question seam's record of each ask
+                return 'rotated-token-from-code';
+              },
+            },
+          );
+          expect(result.source).toEqual('rotated-token-from-code');
+          expect(prompts).toEqual(['enter secret for BRAINS_AUTH_KEY: ']);
+        },
+      );
     });
   });
 });

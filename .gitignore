@@ -1,10 +1,11 @@
+**/.claude/scheduled_tasks*
 *.bak.*
 *.bc
 *.local.json
 *.log
 *.tsbuildinfo
-.agent/.cache/
 .agent/.actors/*
+.agent/.cache/
 .agent/.notes/
 .artifact
 .claude/scheduled_tasks.lock

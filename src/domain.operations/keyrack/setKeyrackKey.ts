@@ -6,7 +6,6 @@ import type {
   KeyrackRepoManifest,
 } from '@src/domain.objects/keyrack';
 
-import type { ContextKeyrack } from './genContextKeyrack';
 import { setKeyrackKeyHost } from './setKeyrackKeyHost';
 
 /**
@@ -23,14 +22,14 @@ export const setKeyrackKey = async (
     org: string;
     vault: KeyrackHostVault;
     mech?: KeyrackGrantMechanism | null;
-    secret?: string | null;
     exid?: string | null;
     reach?: KeyrackKeyReach;
     maxDuration?: string | null;
     repoManifest?: KeyrackRepoManifest;
     at?: string | null;
   },
-  context: ContextKeyrack,
+  // .note = the same context setKeyrackKeyHost takes, so its injectable boundaries thread through
+  context: Parameters<typeof setKeyrackKeyHost>[1],
 ): Promise<KeyrackKeyHost[]> => {
   // compute target slug (no expansion — env=all stores once under $org.all.$key)
   const targetSlugs = [`${input.org}.${input.env}.${input.key}`];
@@ -44,7 +43,6 @@ export const setKeyrackKey = async (
           slug,
           mech: input.mech,
           vault: input.vault,
-          secret: input.secret ?? null,
           exid: input.exid ?? null,
           // .note = the reach does NOT enter the slug. the slug stays `$org.$env.$key`, so
           //         provenance is untouched and the repo-manifest gate still passes — that

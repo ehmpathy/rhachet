@@ -53,6 +53,7 @@ const COMMAND_REGISTRARS: Record<
   upgrade: [async () => (await import('./invokeUpgrade')).invokeUpgrade],
   update: [async () => (await import('./invokeUpdate')).invokeUpdate],
   keyrack: [async () => (await import('./invokeKeyrack')).invokeKeyrack],
+  brains: [async () => (await import('./invokeBrains')).invokeBrains],
 };
 
 /**

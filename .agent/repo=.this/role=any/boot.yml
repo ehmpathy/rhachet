@@ -34,6 +34,8 @@ briefs:
   #   set whose advertisement earns least. `rhx grepsafe` finds them when a reader wants one.
   not:
     - briefs/domain.terms/**
+    - briefs/domain.terms/term=*._.choice.reason.md
+    - briefs/domain.terms/term=*._.choice.example=*.md
     # the requirement cases boot as their index: `inventory.of=requirements._.md` rides at ref
     # and links every case by path, so a per-case path line adds naught a reader can act on
     - briefs/behavior/inventory.of=requirements.case=*.md

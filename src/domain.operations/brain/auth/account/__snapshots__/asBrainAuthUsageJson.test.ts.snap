@@ -1,0 +1,54 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asBrainAuthUsageJson given: [case1] three accounts: read with windows, rate-limited, dead when: [t0] the envelope is built and serialized then: the serialized envelope matches its snapshot 1`] = `
+"{
+  "owner": "ehmpath",
+  "accounts": [
+    {
+      "email": "a@example.com",
+      "account": {
+        "brain": "claude",
+        "accountUuid": "uuid-a@example.com",
+        "email": "a@example.com",
+        "orgId": null
+      },
+      "status": "read",
+      "windows": [
+        {
+          "slug": "session",
+          "usedShare": 0.92,
+          "resetsAt": "<resetsAtKnown>",
+          "capped": false
+        },
+        {
+          "slug": "week",
+          "usedShare": 0.4,
+          "resetsAt": null,
+          "capped": false
+        }
+      ],
+      "savedResets": 2,
+      "signedIn": true,
+      "renewed": false
+    },
+    {
+      "email": "b@example.com",
+      "account": null,
+      "status": "rate-limited",
+      "windows": [],
+      "savedResets": null,
+      "signedIn": false,
+      "renewed": false
+    },
+    {
+      "email": "d@example.com",
+      "account": null,
+      "status": "dead",
+      "windows": [],
+      "savedResets": null,
+      "signedIn": false,
+      "renewed": false
+    }
+  ]
+}"
+`;

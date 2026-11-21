@@ -1,3 +1,5 @@
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { genTempDir, given, then, useBeforeAll, useThen, when } from 'test-fns';
 
 import { asCliErrorFrameFromOutput } from '@/blackbox/.test/infra/asCliErrorReadouts';
@@ -331,11 +333,58 @@ describe('rhx', () => {
       });
 
       then('the alias success-path summary matches snapshot', () => {
-        // snap the deterministic incremental summary (+ the keys/hooks blocks the
-        // alias adds) so the proxy's routed output is locked for drift detection
-        // (rule.require.test-coverage-by-grain: contract-layer cli output + snap)
+        // snap the deterministic incremental summary (+ the keys block and the hook
+        // search the alias adds) so the proxy's routed output is locked for drift
+        // detection. architect declares no hooks, so the hook sync finds none here;
+        // [t0.1] proves the alias applies hooks for a role that declares them
         expect(
           asSummaryBlock({ stdout: run.stdout, dir: testDir }),
+        ).toMatchSnapshot();
+      });
+    });
+
+    when('[t0.1] `rhx init +tester` (bare add, a role that declares hooks)', () => {
+      // the alias injects --keys, and keyrack init reads the org from package.json
+      const repo = useBeforeAll(async () => {
+        const fixture = await genTestTempRepo({ fixture: 'with-role-hooks' });
+        const packagePath = join(fixture.path, 'package.json');
+        const packageJson = JSON.parse(readFileSync(packagePath, 'utf-8'));
+        writeFileSync(
+          packagePath,
+          JSON.stringify({ ...packageJson, organization: 'ehmpathy' }, null, 2),
+        );
+        return fixture;
+      });
+
+      // a fresh HOME, so no grove arrow carries a write into the host's settings
+      const run = useThen('exits 0', () =>
+        invokeRhachetCliBinary({
+          binary: 'rhx',
+          args: ['init', '+tester'],
+          cwd: repo.path,
+          env: { HOME: genTempDir({ slug: 'rhx-init-alias-hooks-home' }) },
+        }),
+      );
+
+      then('tester is linked', () => {
+        expect(run.status).toEqual(0);
+        expect(run.stdout).toContain('repo=test/role=tester');
+      });
+
+      then('the alias applied the role hooks to the brain settings', () => {
+        expect(run.stdout).toContain('search for linked roles with hooks');
+        const config = JSON.parse(
+          readFileSync(
+            join(repo.path, '.claude', 'settings.of.repo.json'),
+            'utf-8',
+          ),
+        ) as { hooks?: Record<string, unknown> };
+        expect(Object.keys(config.hooks ?? {}).length).toBeGreaterThan(0);
+      });
+
+      then('the hooks-applied summary matches snapshot', () => {
+        expect(
+          asSummaryBlock({ stdout: run.stdout, dir: repo.path }),
         ).toMatchSnapshot();
       });
     });

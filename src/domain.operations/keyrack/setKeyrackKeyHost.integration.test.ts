@@ -1040,19 +1040,10 @@ describe('setKeyrackKeyHost.integration', () => {
    *        `keyrack.yml` line would conscript every other developer into a reach they
    *        have no business in — and the wish's `.scope` forbids a keyrack command to
    *        mutate a repo manifest at all
-   * .note = the symmetry with `delKeyrackKeyHost` is why this is a blocker and not a
-   *         nitpick: `del` already guards its strip with `!input.reach` and its comment
-   *         ASSERTS that set declines to write. a set that writes what a del refuses to
-   *         strip would leave an orphan declaration behind on every reach del
-   *
-   * ⚠️ .why INTEGRATION, not unit = this claim was first written as a unit A/B that spied on
-   *         a `jest.mock`ed `daoKeyrackRepoManifest` and asserted `not.toHaveBeenCalled()`.
-   *         that mock crossed a remote boundary in a `.test.ts`
-   *         (`rule.forbid.unit.remote-boundaries`), and it also proved the weaker fact: that
-   *         a FUNCTION was not called, rather than that the FILE holds no such line. here the
-   *         `keyrack.yml` is real, on disk, and read back through the same `parseYaml` the
-   *         reachless twin at `[case2]` uses — so the assertion lands on the artifact a
-   *         human would open, which is what the rule actually protects
+   * .note = `delKeyrackKeyHost` guards its strip with `!input.reach`; a set that writes what a
+   *         del refuses to strip would leave an orphan declaration behind on every reach del
+   * .note = the `keyrack.yml` is real, on disk, and read back through the same `parseYaml` as
+   *         the reachless twin at `[case2]`
    */
   given('[case11] a repo whose keyrack.yml a set could write into', () => {
     const testRecipient = getTestSshAgeRecipient;
@@ -1196,6 +1187,80 @@ describe('setKeyrackKeyHost.integration', () => {
             'ehmpathy.test.REACHED_DECL_KEY@beav@ehmpathy.com'
           ],
         ).toBeDefined();
+      });
+    });
+  });
+
+  given('[case12] two writers, each with the same stale manifest', () => {
+    const manifest = useBeforeAll(async () =>
+      daoKeyrackHostManifest.set({
+        findsert: new KeyrackHostManifest({
+          uri: '~/.rhachet/keyrack/keyrack.host.case12.age',
+          owner: 'case12',
+          recipients: [
+            new KeyrackKeyRecipient({
+              mech: 'age',
+              pubkey: await getTestSshAgeRecipient(),
+              label: 'test-key',
+              addedAt: new Date().toISOString(),
+            }),
+          ],
+          hosts: {},
+        }),
+      }),
+    );
+
+    // each writer loaded the manifest before the other wrote, as two `rhx` processes would
+    const genWriterContext = (): ContextKeyrack => ({
+      owner: 'case12',
+      identity: {
+        getOne: async () => getTestSshAgeIdentity(),
+        getAll: {
+          discovered: async () => [await getTestSshAgeIdentity()],
+          prescribed: [],
+        },
+      },
+      hostManifest: manifest,
+      repoManifest: null,
+      vaultAdapters: {
+        'os.envvar': genMockVaultAdapter(),
+        'os.direct': genMockVaultAdapter(),
+        'os.secure': genMockVaultAdapter(),
+        'os.daemon': genMockVaultAdapter(),
+        '1password': genMockVaultAdapter(),
+        'aws.config': genMockVaultAdapter(),
+        'aws.params': genMockVaultAdapter(),
+        'github.secrets': genMockVaultAdapter(),
+      },
+    });
+
+    when('[t0] each sets a distinct key at once', () => {
+      const after = useBeforeAll(async () => {
+        await Promise.all(
+          ['WRITER_A_KEY', 'WRITER_B_KEY'].map((key) =>
+            setKeyrackKeyHost(
+              {
+                slug: `@all.all.${key}`,
+                mech: 'PERMANENT_VIA_REPLICA',
+                vault: 'os.direct',
+                org: '@all',
+              },
+              genWriterContext(),
+            ),
+          ),
+        );
+        const loaded = await daoKeyrackHostManifest.get(
+          { owner: 'case12' },
+          genContextKeyrack({ owner: 'case12' }),
+        );
+        return { hosts: loaded?.manifest.hosts ?? {} };
+      });
+
+      then('both keys survive: neither write drops the other', () => {
+        expect(Object.keys(after.hosts).sort()).toEqual([
+          '@all.all.WRITER_A_KEY',
+          '@all.all.WRITER_B_KEY',
+        ]);
       });
     });
   });
