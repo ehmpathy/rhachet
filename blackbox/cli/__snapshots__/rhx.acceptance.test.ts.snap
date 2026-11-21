@@ -1,5 +1,52 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`rhx given: [case5] rhx init bare-sigil alias when: [t0.1] \`rhx init +tester\` (bare add, a role that declares hooks) then: the hooks-applied summary matches snapshot 1`] = `
+"🔧 init roles (incremental)
+   ├─ additions
+   │  └─ + test/tester
+   └─ untouched (0)
+
+📚 link role repo=test/role=tester
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=test/readme.md
+   │  ├─ + .agent/repo=test/.gitignore
+   │  ├─ + .agent/repo=test/role=tester/readme.md
+   │  ├─ + .agent/repo=test/role=tester/briefs
+   │  └─ + .agent/repo=test/role=tester/skills
+   └─ stats
+      ├─ 1 brief(s)
+      └─ 1 skill(s)
+
+🔑 keyrack init
+   ├─ org: ehmpathy
+   └─ created .agent/keyrack.yml
+
+🧠 brain://repo=ambient
+   ├─ moved
+   │  └─ .claude/settings.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+   └─ boot.md
+      └─ created — 1 role
+
+🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: +3
+
+✨ hooks
+   └─ 3 created
+
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
+
+"
+`;
+
 exports[`rhx given: [case5] rhx init bare-sigil alias when: [t0] \`rhx init +architect\` (x1 fresh bare add) then: the alias success-path summary matches snapshot 1`] = `
 "🔧 init roles (incremental)
    ├─ additions

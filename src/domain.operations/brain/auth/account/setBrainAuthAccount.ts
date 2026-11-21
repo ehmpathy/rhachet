@@ -55,7 +55,7 @@ export const setBrainAuthAccount = async (
       const ran = context.spawnLogin({
         cwd: dir,
         env: {
-          ...asBrainCliSpawnEnv({ env: input.env, brainDir: dir }),
+          ...asBrainCliSpawnEnv({ env: input.env, brainDir: dir, args: [] }),
           CLAUDE_SECURESTORAGE_CONFIG_DIR: dir,
           ...asBrainAuthEnvBlanked(),
         },
