@@ -19,7 +19,7 @@ exports[`install.age given: [case1b] plan mode — the default, with age PRESENT
 
 📦 install.age
    ├─ ✨ already on PATH
-   ├─ where: /TMP_ROOT/install-age-farm-MASKED/age
+   ├─ where: /TMP_TEST_DIR/age
    └─ version: age 1.0.0-stub
 "
 `;
@@ -32,7 +32,7 @@ exports[`install.age given: [case1c] an age on PATH whose --version fails when: 
 📦 install.age
    ├─ ran: rhx install.age --skill install.age
    ├─ 💥 MalfunctionError: age is on PATH, but 'age --version' failed
-   ├─ where: /TMP_ROOT/install-age-farm-MASKED/age
+   ├─ where: /TMP_TEST_DIR/age
    ├─ error: age: exec format error
    └─ hint: the binary is broken or foreign — reinstall per https://github.com/FiloSottile/age#installation
 "
@@ -187,7 +187,7 @@ exports[`install.age given: [case11] apply mode, where the install succeeds when
 
 📦 install.age
    ├─ ✨ installed
-   ├─ where: /TMP_ROOT/install-age-farm-MASKED/age
+   ├─ where: /TMP_TEST_DIR/age
    └─ version: age 1.0.0-stub
 "
 `;

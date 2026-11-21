@@ -2,6 +2,8 @@ import { spawn, spawnSync, type SpawnSyncReturns } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 
+import { TEST_REPO_PATH_PATTERN } from './testRepoPath';
+
 /**
  * .what = strip machine-specific content from CLI output for snapshots
  * .why = paths and pids vary by machine — strip them so snapshots work across environments
@@ -63,8 +65,10 @@ export const asSnapshotSafe = (output: string): string => {
         /\/(?:home\/[^/]+|Users\/[^/]+|runner\/work)\/[^)\s"]+/g,
         '/PATH_STRIPPED',
       )
-      // strip temp test repo paths (vary by run)
-      .replace(/\/tmp\/rhachet-test-[a-z0-9-]+/g, '/TMP_REPO')
+      // strip a test repo's root (varies by run). `genTestTempRepo` mints it through
+      // `genTempDir` with a `rhachet-test` slug, so it renders `/TMP_REPO` apart from a bare
+      // `genTempDir` dir below. it must run first: the bare mask would also consume it
+      .replace(TEST_REPO_PATH_PATTERN, '/TMP_REPO')
       // strip a `genTempDir` root. its shape is fixed by test-fns —
       // `/tmp/test-fns/<repo-dirname>/.temp/<stamp>.<slug>.<8hex>` — and BOTH of its
       // variable segments move: the repo-dirname differs per checkout (a worktree
@@ -84,6 +88,11 @@ export const asSnapshotSafe = (output: string): string => {
         /\/tmp\/test-fns\/[^/\s]+\/\.temp\/\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.\d{3}Z\.[^/\s]*\.[0-9a-f]{8}/gi,
         '/TMP_TEST_DIR',
       )
+      // strip the bare test-fns temp root, which a path that walks up out of a test repo
+      //   reaches (`../escaped` lands in `.temp/escaped`). its repo-dirname differs per
+      //   checkout, so unmasked it pins the worktree name. it runs after the full-dir masks
+      //   above, so only a root with no per-run dir below it is left to match
+      .replace(/\/tmp\/test-fns\/[^/\s]+\/\.temp(?=[/"\s]|$)/gm, '/TMP_TEST_ROOT')
       // strip the say debug log's calendar day (`debug.2026-09-16.log`). the ISO mask
       // below cannot reach it — that one demands COLONS, and a filename-safe day carries
       // dashes only. the mask keeps the `debug.` / `.log` literals, so the snapshot still

@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`test.acceptance.credfree given: [case1] the help flag when: [t0] \`--help\` then: the help holds its shape 1`] = `
+exports[`test.acceptance.credfree given: [case1] a human who asks how to use it when: [t0] --help is passed then: it prints the what, the usage, and each option, and exits 0 1`] = `
 ".what = run acceptance suites that read no credential, via jest direct
 .why  = \`rhx git.repo.test --what acceptance\` unlocks the whole \`test\`
         env first, so an sso key that lapsed halts EVERY shard, even
@@ -11,13 +11,17 @@ exports[`test.acceptance.credfree given: [case1] the help flag when: [t0] \`--he
 usage:
   rhx test.acceptance.credfree --scope 'focus\\.acceptance'
   rhx test.acceptance.credfree --scope 'init\\.focus' --resnap
+  rhx test.acceptance.credfree --scope 'focus\\.acceptance' --maxWorkers 100%
 options:
-  --scope    jest path regex for the suites to run (required)
-             🟡 it matches the ABSOLUTE path, worktree dir included: in
-             a worktree \`…feat-keyrack/\`, \`--scope 'keyrack'\` runs EVERY suite.
-             anchor it on the file name: 'keyrack\\.acceptance'.
-             a scope that matches the repo root is refused, exit 2
-  --resnap   write snapshots (default: verify only, under --ci)
+  --scope       jest path regex for the suites to run (required)
+                🟡 it matches the ABSOLUTE path, worktree dir included: in
+                a worktree \`…feat-keyrack/\`, \`--scope 'keyrack'\` runs EVERY suite.
+                anchor it on the file name: 'keyrack\\.acceptance'.
+                a scope that matches the repo root is refused, exit 2
+  --resnap      write snapshots (default: verify only, under --ci)
+  --maxWorkers  jest width, e.g. 100% to go wide on an idle box
+                (default: a quarter of the cores, at least one, on a shared
+                box; 50% on a github runner. the run header names it)
 guarantee:
   - builds when stale, then runs jest with the acceptance config
   - runs with CLAUDE_CONFIG_DIR unset, as ci does, so a clone's env
@@ -25,7 +29,11 @@ guarantee:
   - never unlocks the keyrack; a suite that truly reads a key fails
     in that test with a legible error
   - the full output lands in .log/role=any/skill=test.acceptance.credfree/;
-    stdout carries the failed tests, the totals, and the log path
+    stdout carries the verdict (green or red) with its exit code, the failed tests,
+    the run's own notes (its width header, and any leak, reclaim,
+    starved, or leftover note), the totals, and the log path
+  - a red run where jest wrote no summary shows the log's last lines
+  - a scope that matches no suite is refused (exit 2), never a green run
   - a non-zero exit from jest is passed through
 .note = a stopgap. it retires once git.repo.test gains an auth-skip mode
         (ehmpathy/rhachet-roles-ehmpathy#1198); see the dream
@@ -33,9 +41,235 @@ guarantee:
 "
 `;
 
-exports[`test.acceptance.credfree given: [case2] no --scope when: [t0] the skill runs with no args then: the refusal holds its shape 1`] = `
+exports[`test.acceptance.credfree given: [case2] a call it must refuse when: [t0] --scope is absent then: it refuses with exit 2 and shows a scope to pass 1`] = `
 "✋ ConstraintError: --scope is required
    ├─ e.g. rhx test.acceptance.credfree --scope 'init\\.focus\\.acceptance'
    └─ see rhx test.acceptance.credfree --help
+"
+`;
+
+exports[`test.acceptance.credfree given: [case2] a call it must refuse when: [t1] an unknown option is passed then: it refuses with exit 2, names the option, and points at help 1`] = `
+"✋ ConstraintError: unknown option: --bogus
+   └─ rhx test.acceptance.credfree --help
+"
+`;
+
+exports[`test.acceptance.credfree given: [case2] a call it must refuse when: [t2] --scope is passed with no value then: it refuses with exit 2, names the flag, and shows a value to pass 1`] = `
+"✋ ConstraintError: absent value for --scope
+   └─ e.g. --scope 'focus\\.acceptance'
+"
+`;
+
+exports[`test.acceptance.credfree given: [case2] a call it must refuse when: [t3] --maxWorkers is passed with no value then: it refuses with exit 2, names the flag, and shows a value to pass 1`] = `
+"✋ ConstraintError: absent value for --maxWorkers
+   └─ e.g. --maxWorkers 100%
+"
+`;
+
+exports[`test.acceptance.credfree given: [case3] a live run of one fast acceptance file when: [t0] no width is asked then: it exits 0, echoes only the scope, and prints the run header, the totals, and the log 1`] = `
+"🧮 test.acceptance.credfree --scope 'acceptance\\.shares-the-box'
+   ├─ result = green, exit 0
+   │
+   ├─ notes
+   │  ├─
+   │  │
+   │  │  ℹ acceptance width
+   │  │     ├─ box = shared (no GITHUB_ACTIONS host signal; CI=true alone does not widen)
+   │  │     ├─ workers = <N> of <N> cores (shared-box default)
+   │  │     ├─ priority = nice <N>
+   │  │     └─ to go wide, pass --maxWorkers 100%
+   │  └─
+   │
+   ├─ totals
+   │  ├─ Test Suites: 1 passed, 1 total
+   │  ├─ Tests:       3 passed, 3 total
+   │  └─ Snapshots:   0 total
+   │
+   └─ log
+      └─ .log/role=any/skill=test.acceptance.credfree/<STAMP>.log
+"
+`;
+
+exports[`test.acceptance.credfree given: [case3] a live run of one fast acceptance file when: [t1] a width is asked then: it exits 0, echoes the width it was asked, and the run header reads it as asked 1`] = `
+"🧮 test.acceptance.credfree --scope 'acceptance\\.shares-the-box' --maxWorkers 100%
+   ├─ result = green, exit 0
+   │
+   ├─ notes
+   │  ├─
+   │  │
+   │  │  ℹ acceptance width
+   │  │     ├─ box = shared (no GITHUB_ACTIONS host signal; CI=true alone does not widen)
+   │  │     ├─ workers = <N> of <N> cores (asked)
+   │  │     ├─ priority = nice <N>
+   │  │     └─ the width you asked; drop --maxWorkers for the shared-box default
+   │  └─
+   │
+   ├─ totals
+   │  ├─ Test Suites: 1 passed, 1 total
+   │  ├─ Tests:       3 passed, 3 total
+   │  └─ Snapshots:   0 total
+   │
+   └─ log
+      └─ .log/role=any/skill=test.acceptance.credfree/<STAMP>.log
+"
+`;
+
+exports[`test.acceptance.credfree given: [case3] a live run of one fast acceptance file when: [t2] a width and a resnap are asked then: it exits 0 and echoes both, in the order the header reads them 1`] = `
+"🧮 test.acceptance.credfree --scope 'acceptance\\.shares-the-box' --maxWorkers 100% --resnap
+   ├─ result = green, exit 0
+   │
+   ├─ notes
+   │  ├─
+   │  │
+   │  │  ℹ acceptance width
+   │  │     ├─ box = shared (no GITHUB_ACTIONS host signal; CI=true alone does not widen)
+   │  │     ├─ workers = <N> of <N> cores (asked)
+   │  │     ├─ priority = nice <N>
+   │  │     └─ the width you asked; drop --maxWorkers for the shared-box default
+   │  └─
+   │
+   ├─ totals
+   │  ├─ Test Suites: 1 passed, 1 total
+   │  ├─ Tests:       3 passed, 3 total
+   │  └─ Snapshots:   0 total
+   │
+   └─ log
+      └─ .log/role=any/skill=test.acceptance.credfree/<STAMP>.log
+"
+`;
+
+exports[`test.acceptance.credfree given: [case3] a live run of one fast acceptance file when: [t3] the run is on a github runner then: it exits 0, and the run header reads the ci box at ci width and normal priority 1`] = `
+"🧮 test.acceptance.credfree --scope 'acceptance\\.shares-the-box'
+   ├─ result = green, exit 0
+   │
+   ├─ notes
+   │  ├─
+   │  │
+   │  │  ℹ acceptance width
+   │  │     ├─ box = ci
+   │  │     ├─ workers = <N> of <N> cores (ci default)
+   │  │     ├─ priority = nice <N>
+   │  │     └─ ci keeps its full width, at normal priority
+   │  └─
+   │
+   ├─ totals
+   │  ├─ Test Suites: 1 passed, 1 total
+   │  ├─ Tests:       3 passed, 3 total
+   │  └─ Snapshots:   0 total
+   │
+   └─ log
+      └─ .log/role=any/skill=test.acceptance.credfree/<STAMP>.log
+"
+`;
+
+exports[`test.acceptance.credfree given: [case4] a live run whose scope matches no suite when: [t0] the scope is a typo then: it refuses with exit 2, names the scope, and never reads as a green run 1`] = `
+"✋ ConstraintError: no acceptance suite matched the scope
+   ├─ scope = 'zzz-no-such-suite-xyz'
+   ├─ log = .log/role=any/skill=test.acceptance.credfree/<STAMP>.log
+   └─ the scope is a jest path regex, e.g. --scope 'focus\\.acceptance'
+"
+`;
+
+exports[`test.acceptance.credfree given: [case5] a red run, its log written by a stub pnpm when: [t0] the run leaked a process, so it is red with no failed test then: it exits 1, reads red above the green totals, and carries the leak report onto stdout 1`] = `
+"🧮 test.acceptance.credfree --scope 'demo'
+   ├─ result = red, exit 1
+   │
+   ├─ notes
+   │  ├─
+   │  │
+   │  │  ℹ acceptance width
+   │  │     ├─ box = shared (no GITHUB_ACTIONS host signal; CI=true alone does not widen)
+   │  │     ├─ workers = <N> of <N> cores (shared-box default)
+   │  │     ├─ priority = nice <N>
+   │  │     └─ to go wide, pass --maxWorkers 100%
+   │  │
+   │  │  ✋ ConstraintError: 1 process outlived this acceptance run
+   │  │     ├─ it carries this run id (r7f3a91c2), so a test of this run spawned it and did not end it
+   │  │     ├─ leaked
+   │  │     │  └─ pid 4242 = node /repo/src/.test/assets/stubBrainCli.cjs
+   │  │     │     └─ cwd = /tmp/test-fns/rhachet/.temp/r7f3a91c2.demo.a1b2c3d4
+   │  │     │
+   │  │     ├─ this run ended it, so the box is clean
+   │  │     └─ to fix, the test that spawned it must own its child
+   │  │        ├─ spawn it via spawnRhachetCliBackground, which ends its process group
+   │  │        └─ or end it in that test's own afterAll
+   │  └─
+   │
+   ├─ totals
+   │  ├─ Test Suites: 1 passed, 1 total
+   │  └─ Tests:       3 passed, 3 total
+   │
+   └─ log
+      └─ .log/role=any/skill=test.acceptance.credfree/<STAMP>.log
+"
+`;
+
+exports[`test.acceptance.credfree given: [case5] a red run, its log written by a stub pnpm when: [t1] a test failed then: it exits 1, names the failed test, and keeps the header and totals 1`] = `
+"🧮 test.acceptance.credfree --scope 'demo'
+   ├─ result = red, exit 1
+   │
+   ├─ failed
+   │  └─ ✕ then: it waves
+   │
+   ├─ notes
+   │  ├─
+   │  │
+   │  │  ℹ acceptance width
+   │  │     ├─ box = shared (no GITHUB_ACTIONS host signal; CI=true alone does not widen)
+   │  │     ├─ workers = <N> of <N> cores (shared-box default)
+   │  │     ├─ priority = nice <N>
+   │  │     └─ to go wide, pass --maxWorkers 100%
+   │  └─
+   │
+   ├─ totals
+   │  ├─ Test Suites: 1 failed, 1 total
+   │  └─ Tests:       1 failed, 1 passed, 2 total
+   │
+   └─ log
+      └─ .log/role=any/skill=test.acceptance.credfree/<STAMP>.log
+"
+`;
+
+exports[`test.acceptance.credfree given: [case5] a red run, its log written by a stub pnpm when: [t2] the stale build failed, so jest never ran and wrote no summary then: it passes the exit through, reads red, and shows the log tail as the cause 1`] = `
+"🧮 test.acceptance.credfree --scope 'demo'
+   ├─ result = red, exit 2
+   │
+   ├─ no summary from jest; the log ends with
+   │  ├─
+   │  │
+   │  │  > rhachet@0.0.0 build:ifstale
+   │  │  > tsc -p ./tsconfig.build.json
+   │  │
+   │  │  src/demo.ts(3,7): error TS2322: Type 'string' is not assignable to type 'number'.
+   │  └─
+   │
+   └─ log
+      └─ .log/role=any/skill=test.acceptance.credfree/<STAMP>.log
+"
+`;
+
+exports[`test.acceptance.credfree given: [case6] a green run, its log written by a stub pnpm when: [t0] the run reclaimed a daemon, and the jest totals follow the note at once then: it exits 0, keeps the note under notes, and the totals only under totals 1`] = `
+"🧮 test.acceptance.credfree --scope 'demo'
+   ├─ result = green, exit 0
+   │
+   ├─ notes
+   │  ├─
+   │  │
+   │  │  ℹ acceptance width
+   │  │     ├─ box = shared (no GITHUB_ACTIONS host signal; CI=true alone does not widen)
+   │  │     ├─ workers = <N> of <N> cores (shared-box default)
+   │  │     ├─ priority = nice <N>
+   │  │     └─ to go wide, pass --maxWorkers 100%
+   │  │
+   │  │  ℹ reclaimed 1 keyrack daemon this run's tests left
+   │  │     └─ a session daemon outlives the call that spawned it, so the run ends it
+   │  └─
+   │
+   ├─ totals
+   │  ├─ Test Suites: 1 passed, 1 total
+   │  └─ Tests:       3 passed, 3 total
+   │
+   └─ log
+      └─ .log/role=any/skill=test.acceptance.credfree/<STAMP>.log
 "
 `;

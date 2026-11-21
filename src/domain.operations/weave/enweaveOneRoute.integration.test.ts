@@ -10,6 +10,7 @@ import type { Empty } from 'type-fns';
 
 import { genContextLogTrail } from '@src/.test/genContextLogTrail';
 import { getContextOpenAI } from '@src/.test/getContextOpenAI';
+import type { OutputFileRead } from '@src/.test/stitchers/genStitcherCodeFileRead';
 import { stitcherCodeDiffImagine } from '@src/.test/stitchers/stitcherCodeDiffImagine';
 import { getExampleThreadCodeArtist } from '@src/.test/threads/codeArtist';
 import { exampleThreadDirector } from '@src/.test/threads/director';
@@ -131,17 +132,24 @@ describe('enweaveOneRoute', () => {
   type OutputFileWrite = { path: string; content: string };
   given('a route with imagine stitchers (closer to real world usecase)', () => {
     const stitcherCodeFileRead = new StitchStepCompute<
-      GStitcher<Threads<{ artist: Empty }>>
+      GStitcher<
+        Threads<{ artist: Empty }>,
+        GStitcher['context'],
+        OutputFileRead
+      >
     >({
       slug: 'mock:read-stubout',
       readme: null,
       form: 'COMPUTE',
       stitchee: 'artist',
       invoke: () => {
-        // e.g., execute tooluse:file:read
+        // e.g., execute tooluse:file:read; the same { path, content } shape the real read returns,
+        // since the imagine stitcher reads `.content` to show the model the current code
         return {
           input: null,
-          output: `
+          output: {
+            path: '@src/access/sdks/sdkOpenMeteo.ts',
+            content: `
 /**
  * .what = calls the open-meteo weather api
  * .how =
@@ -154,6 +162,7 @@ export const sdkOpenMeteo = {
   }
 }
           `.trim(),
+          },
         };
       },
     });

@@ -6,15 +6,18 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  realpathSync,
   unlinkSync,
   writeFileSync,
 } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { genTempDir } from 'test-fns';
 
 import { encryptToRecipients } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
 import { KeyrackKeyRecipient } from '@src/domain.objects/keyrack';
 import { getTestSshAgeRecipient } from '@src/.test/infra/withTestSshAgent';
+
+import { TEST_REPO_SLUG_PREFIX } from './testRepoPath';
 
 /**
  * .what = path to test SSH key assets
@@ -56,10 +59,10 @@ const ASSETS_DIR = resolve(__dirname, '../assets');
 export type TestRepoFixture = string;
 
 /**
- * .what = creates an isolated test repo in os.tmpdir()
+ * .what = creates an isolated test repo under the test-fns temp root
  * .why =
  *   - maximally portable and isolated test environments
- *   - OS handles cleanup (no manual teardown needed)
+ *   - this run's autoprune teardown reclaims it; a crashed run's dir ages out at 24h
  *   - each test gets a fresh workspace
  */
 export const genTestTempRepo = async (input: {
@@ -86,15 +89,17 @@ export const genTestTempRepo = async (input: {
   /** absolute path to the test repo */
   path: string;
 }> => {
-  // gen unique temp directory path
-  const uniqueId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const suffix = input.suffix ? `-${input.suffix}` : '';
-  const repoPath = join(tmpdir(), `rhachet-test-${uniqueId}${suffix}`);
-
   // fail fast if fixture dne
   const fixturePath = join(ASSETS_DIR, input.fixture);
   if (!existsSync(fixturePath))
     throw new Error(`fixture not found: ${input.fixture} (${fixturePath})`);
+
+  // mint the dir through genTempDir, so this run's autoprune teardown reclaims it.
+  // the physical path, not the link: the cli reports its cwd by realpath, and a test compares the two
+  const suffix = input.suffix ? `-${input.suffix}` : '';
+  const repoPath = realpathSync(
+    genTempDir({ slug: `${TEST_REPO_SLUG_PREFIX}${suffix}` }),
+  );
 
   // copy fixture assets into temp repo
   cpSync(fixturePath, repoPath, { recursive: true });

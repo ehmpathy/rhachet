@@ -1,0 +1,29 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asLeakReport given: [case1] a run that left processes alive when: [t0] two processes leaked then: it says the box is clean, and names the harness that owns a child 1`] = `
+"✋ ConstraintError: 2 processes outlived this acceptance run
+   ├─ each carries this run id (r7f3a91c2), so a test of this run spawned it and did not end it
+   ├─ leaked
+   │  ├─ pid 101 = node /repo/src/.test/assets/stubBrainCli.cjs
+   │  │  └─ cwd = /tmp/test-fns/rhachet/.temp/r7f3a91c2.rhachet-test-clone-flag.a1b2c3d4
+   │  └─ pid 102 = node /repo/bin/run.jit enroll claude
+   │
+   ├─ this run ended each one, so the box is clean
+   └─ to fix, the test that spawned each one must own its child
+      ├─ spawn it via spawnRhachetCliBackground, which ends its process group
+      └─ or end it in that test's own afterAll
+"
+`;
+
+exports[`asLeakReport given: [case1] a run that left processes alive when: [t1] one process leaked then: the count reads singular 1`] = `
+"✋ ConstraintError: 1 process outlived this acceptance run
+   ├─ it carries this run id (r7f3a91c2), so a test of this run spawned it and did not end it
+   ├─ leaked
+   │  └─ pid 7 = node x
+   │
+   ├─ this run ended it, so the box is clean
+   └─ to fix, the test that spawned it must own its child
+      ├─ spawn it via spawnRhachetCliBackground, which ends its process group
+      └─ or end it in that test's own afterAll
+"
+`;

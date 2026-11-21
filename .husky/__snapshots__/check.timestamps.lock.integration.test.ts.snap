@@ -1,0 +1,36 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`check.timestamps.lock given: [case2] a hook that drifted when: [t0] the hook on disk was edited then: it halts with exit 2, names where it drifted, and names the fix 1`] = `
+"✋ ConstraintError: .husky/check.timestamps.sh was changed. revert the hook, zero exceptions — remove all timestamps
+   ├─ why: the timestamp hook never takes an exemption. a timestamp is a privacy leak
+   ├─ expected: afea02deb1cb378e08af49b86070c37cacd5b032
+   ├─ found: 75fb6f6474db8f5a0e58f201640f7abe05e8acfc (on disk)
+   └─ fix: npx declapract apply --practice husky
+"
+`;
+
+exports[`check.timestamps.lock given: [case2] a hook that drifted when: [t1] an edit was staged, then reverted on disk then: it still halts with exit 2, since the staged edit would commit 1`] = `
+"✋ ConstraintError: .husky/check.timestamps.sh was changed. revert the hook, zero exceptions — remove all timestamps
+   ├─ why: the timestamp hook never takes an exemption. a timestamp is a privacy leak
+   ├─ expected: afea02deb1cb378e08af49b86070c37cacd5b032
+   ├─ found: 75fb6f6474db8f5a0e58f201640f7abe05e8acfc (in the index)
+   └─ fix: npx declapract apply --practice husky
+"
+`;
+
+exports[`check.timestamps.lock given: [case2] a hook that drifted when: [t2] the hook was deleted then: it halts with exit 2, says the hook is absent, and names the fix 1`] = `
+"✋ ConstraintError: .husky/check.timestamps.sh was changed. revert the hook, zero exceptions — remove all timestamps
+   ├─ why: the timestamp hook never takes an exemption. a timestamp is a privacy leak
+   ├─ expected: afea02deb1cb378e08af49b86070c37cacd5b032
+   ├─ found: absent (on disk)
+   └─ fix: npx declapract apply --practice husky
+"
+`;
+
+exports[`check.timestamps.lock given: [case3] a git index that cannot be read when: [t0] the lock runs then: it halts with exit 1, as a malfunction, and never says the hook changed 1`] = `
+"💥 MalfunctionError: the git index is unreadable, so the lock cannot verify .husky/check.timestamps.sh
+   ├─ found: unreadable (in the index)
+   ├─ why: a failed read halts the commit, never reads as "not staged"
+   └─ fix: repair the git index (git status names the fault), then commit again
+"
+`;
