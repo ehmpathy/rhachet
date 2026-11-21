@@ -77,7 +77,7 @@ exports[`rhachet upgrade given: [case11] --roles ehmpathy/* with linked role whe
 ✨ 1 role(s) linked
 ✨ 1 role(s) initialized
 ✨ hooks
-   └─ $HOOK_COUNT created
+   └─ 16 created
 ✨ 1 role(s) upgraded: ehmpathy/*"
 `;
 
@@ -105,7 +105,7 @@ exports[`rhachet upgrade given: [case12] --roles ehmpathy/mechanic with linked r
 ✨ 1 role(s) linked
 ✨ 1 role(s) initialized
 ✨ hooks
-   └─ $HOOK_COUNT created
+   └─ 16 created
 ✨ 1 role(s) upgraded: ehmpathy/mechanic"
 `;
 

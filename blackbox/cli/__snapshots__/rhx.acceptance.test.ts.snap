@@ -37,6 +37,13 @@ exports[`rhx given: [case5] rhx init bare-sigil alias when: [t0.1] \`rhx init +t
 🪝 apply hooks to brains...
    └─ test/tester → anthropic/claude/code: +3
 
+🪝 hook dispatchers set
+   └─ anthropic/claude/code
+      ├─ 3 rules → 2 dispatchers, one per event
+      │  ├─ SessionStart = 2 rules
+      │  └─ PreToolUse = 1 rule
+      └─ manifest = .claude/hooks.dispatch.manifest
+
 ✨ hooks
    └─ 3 created
 
