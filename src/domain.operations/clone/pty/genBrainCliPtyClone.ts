@@ -5,6 +5,8 @@ import { asCloneSpawnPlaceEnv } from '@src/domain.operations/spawn/asCloneSpawnP
 import { delFileSync } from '@src/infra/filesystem/delFileSync';
 import { CLONE_ENV_KEYS } from '@src/utils/cloneEnvKeys';
 
+import { asCloneAddressHuman } from '../asCloneAddressHuman';
+import { getOneCloneTraceSinkForDaemonAtCwd } from '../getOneCloneTraceSinkForDaemonAtCwd';
 import type { CloneScreenRead } from '../screen/genCloneScreenFeed';
 import { genCloneScreenFeed } from '../screen/genCloneScreenFeed';
 import type { EmulatorModule } from '../screen/getEmulatorModuleOrNull';
@@ -27,6 +29,15 @@ export interface PtyCloneHost {
    * .what = mirror one chunk of the child's output to the human
    */
   writeOut: (data: string) => void;
+
+  /**
+   * .what = let the mirror queue behind a slow terminal rather than block the loop; returns a
+   *   release that drains the queue within a bound, then restores the terminal's mode
+   * .why = a sync write to a terminal whose reader is still holds the whole daemon. the clone
+   *   acquires this once it is live and awaits the release before its exit is reported, so the
+   *   last frames reach the pane and the mode never outlives the clone
+   */
+  enterAsyncMirror: () => () => Promise<void>;
 
   /**
    * .what = forward the human's keystrokes into the child; returns an unsubscribe
@@ -110,6 +121,11 @@ export const genBrainCliPtyClone = async (
     pty: PtyModule;
     host: PtyCloneHost;
     emulator: EmulatorModule | null;
+    /**
+     * .what = the daemon's trace sink — the durable trace log in prod (the default), a capture
+     *   in a clamp
+     */
+    trace?: (line: string) => void;
   },
 ): Promise<{
   socketPath: string;
@@ -153,12 +169,23 @@ export const genBrainCliPtyClone = async (
     env,
   });
 
+  // ONE trace sink for this daemon — the durable trace log, never the host's stdio. the host's
+  // stderr IS the human's pane on an attended clone, so a trace there would paint over the
+  // brain-cli's screen. one instance, so the screen feed, the socket server, and its write queue
+  // share one record of any gap in the log. the stamp names this clone by the address
+  // `rhx clone get` takes
+  const trace =
+    context.trace ??
+    getOneCloneTraceSinkForDaemonAtCwd({
+      clone: asCloneAddressHuman({ slug: null, serial: input.serial }),
+    });
+
   // a screen feed emulates the child's pty stream into a rendered grid, so a probe reads
   // what SITS on screen rather than what bytes were emitted (define.pty-stream-vs-screen).
   // built at the pty's geometry (V14). null when the emulator dep is absent — a capability
   // gap the read path degrades on, never a fault
   const screenFeed = context.emulator
-    ? genCloneScreenFeed({ cols, rows }, { emulator: context.emulator })
+    ? genCloneScreenFeed({ cols, rows }, { emulator: context.emulator, trace })
     : null;
 
   // the read the socket's `get` serves. always present (V18): the feed's read, or an honest
@@ -192,13 +219,16 @@ export const genBrainCliPtyClone = async (
 
   // stand up the dispatch socket — a `say` writes framed bytes to the child, but
   // ONLY while the brain-cli is the live peer (the liveness gate below)
-  const socketServer = genCloneSocketServer({
-    socketPath: input.socketPath,
-    write: (bytes) => child.write(bytes),
-    isBrainCliAlive: () => brainCliAlive,
-    read,
-    settle,
-  });
+  const socketServer = genCloneSocketServer(
+    {
+      socketPath: input.socketPath,
+      write: (bytes) => child.write(bytes),
+      isBrainCliAlive: () => brainCliAlive,
+      read,
+      settle,
+    },
+    { trace },
+  );
   // 🚨 `ready` settles on the bind's success OR its fault — the race lives inside
   //   `genCloneSocketServer`, never here. `net.Server` reports a bind fault (EADDRINUSE,
   //   EACCES, ENAMETOOLONG, an absent parent dir) asynchronously, and node kills the
@@ -249,6 +279,11 @@ export const genBrainCliPtyClone = async (
   // put the host tty in raw mode so the brain's own prompts drive the keys
   const restoreRaw = context.host.enterRawMode();
 
+  // let the mirror queue behind a slow pane rather than hold the loop. acquired LAST, once the
+  //   clone is live and every host wire that can throw has been set, so a failed enroll never
+  //   leaves the host's stdout async; no await sits between the mirror wire and this flip
+  const releaseAsyncMirror = context.host.enterAsyncMirror();
+
   // tear every host wire down — run on exit AND on an explicit dispose
   const unwire = (): void => {
     mirror.dispose();
@@ -259,12 +294,15 @@ export const genBrainCliPtyClone = async (
     restoreRaw();
   };
 
-  // close the socket + unlink its file, so a dead clone leaves no orphan
+  // close the socket + unlink its file, so a dead clone leaves no orphan; THEN drain the mirror.
+  //   the drain may wait out its bound on a frozen pane, and a signal in that window takes node's
+  //   default, so the clone frees what it owns before it waits on the human's tty
   const finalize = async (): Promise<void> => {
     unwire();
     await socketServer.close();
     screenFeed?.dispose();
     delFileSync({ path: input.socketPath });
+    await releaseAsyncMirror();
   };
 
   // settle waitForExit with the child's code once cleanup is done (parity)

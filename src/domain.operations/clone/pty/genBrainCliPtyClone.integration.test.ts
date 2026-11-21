@@ -126,12 +126,24 @@ const waitForOutput = async (
 };
 
 /**
- * .what = a capture host — stdout goes to an array, every other wire is a no-op
+ * .what = a capture host — stdout goes to an array, the async mirror's acquire and release go to
+ *   an optional ledger, every other wire is a no-op
+ * .why = the release is what drains the last frames to the pane before the exit is reported, so a
+ *   clamp must see it run, once, after the acquire
  */
-const genCaptureHost = (output: string[]): PtyCloneHost => ({
+const genCaptureHost = (
+  output: string[],
+  mirrorEvents: string[] = [],
+): PtyCloneHost => ({
   // .note = deliberate mutation — the host mirror IS a capture sink; each pty
   //   chunk is appended to the caller's bounded buffer, which never escapes the test
   writeOut: (data) => output.push(data),
+  enterAsyncMirror: () => {
+    mirrorEvents.push('acquire');
+    return async () => {
+      mirrorEvents.push('release');
+    };
+  },
   onInput: () => () => undefined,
   size: () => ({ cols: 80, rows: 24 }),
   onResize: () => () => undefined,
@@ -202,6 +214,7 @@ const genResizableHost = (): {
   let onResizeCb: (() => void) | null = null;
   const host: PtyCloneHost = {
     writeOut: () => undefined,
+    enterAsyncMirror: () => async () => undefined,
     onInput: () => () => undefined,
     size: () => size,
     onResize: (fn) => {
@@ -229,6 +242,7 @@ const spawnStubClone = async (): Promise<{
   serial: string;
   socketPath: string;
   output: string[];
+  mirrorEvents: string[];
   clone: Awaited<ReturnType<typeof genBrainCliPtyClone>>;
 }> => {
   const pty = getPtyModuleOrNull();
@@ -252,6 +266,7 @@ const spawnStubClone = async (): Promise<{
   const socketPath = getCloneSocketPath({ serial })!;
   const cwd = genTempDir({ slug: `ptyclone-cwd-${serial}` });
   const output: string[] = [];
+  const mirrorEvents: string[] = [];
   const clone = await genBrainCliPtyClone(
     {
       command: process.execPath,
@@ -265,11 +280,11 @@ const spawnStubClone = async (): Promise<{
     },
     {
       pty: pty!,
-      host: genCaptureHost(output),
+      host: genCaptureHost(output, mirrorEvents),
       emulator: getEmulatorModuleOrNull(),
     },
   );
-  return { serial, socketPath, output, clone };
+  return { serial, socketPath, output, mirrorEvents, clone };
 };
 
 describe('genBrainCliPtyClone.integration', () => {
@@ -356,6 +371,10 @@ describe('genBrainCliPtyClone.integration', () => {
 
           const code = await spawned.clone.waitForExit;
           expect(code).toBe(3);
+
+          // the async mirror was acquired once, and released before the exit was reported, so
+          //   the last frames drained to the pane first
+          expect(spawned.mirrorEvents).toEqual(['acquire', 'release']);
 
           // the socket file is unlinked and no longer connectable
           expect(existsSync(spawned.socketPath)).toBe(false);
@@ -472,6 +491,16 @@ describe('genBrainCliPtyClone.integration', () => {
           slug: 'ptyclone-bind',
         });
 
+        // .note = deliberate mutation — a count of async mirror acquires, local to this case
+        let asyncMirrorAcquires = 0;
+        const host: PtyCloneHost = {
+          ...genCaptureHost([]),
+          enterAsyncMirror: () => {
+            asyncMirrorAcquires += 1;
+            return async () => undefined;
+          },
+        };
+
         const error = await getError(
           genBrainCliPtyClone(
             {
@@ -484,9 +513,13 @@ describe('genBrainCliPtyClone.integration', () => {
               leaf: false,
               brainDir: cwd,
             },
-            { pty: fakePty, host: genCaptureHost([]), emulator: null },
+            { pty: fakePty, host, emulator: null },
           ),
         );
+
+        // a failed enroll never switches the human's terminal to the async mirror: the
+        //   acquire sits after the ready gate, so no release is owed on this path
+        expect(asyncMirrorAcquires).toEqual(0);
 
         // ⚠️ the assertion is that it REJECTS at all. before the `'error'` race, this
         //   promise never settled — the fault escaped as an unhandled event and killed

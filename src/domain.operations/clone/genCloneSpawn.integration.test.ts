@@ -66,12 +66,13 @@ describe('genCloneSpawn', () => {
 
   const host: PtyCloneHost = {
     writeOut: () => undefined,
-    onIn: () => () => undefined,
+    enterAsyncMirror: () => async () => undefined,
+    onInput: () => () => undefined,
     onResize: () => () => undefined,
     onSignal: () => () => undefined,
     size: () => ({ cols: 80, rows: 24 }),
-    setRawMode: () => () => undefined,
-  } as unknown as PtyCloneHost;
+    enterRawMode: () => () => undefined,
+  };
 
   const genSpawnInput = (input: { pty: PtyModule | null }) => {
     const serial = getUuid();

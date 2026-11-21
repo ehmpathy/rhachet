@@ -163,11 +163,11 @@ exports[`asCliErrorJson given: [case11] every variant a machine consumer could p
     "reachState": null,
   },
   "reach, wedged — a cause with NO state": {
-    "class": "ConstraintError",
-    "hint": "the brain may be busy — retry, or re-enroll if it stays unresponsive",
+    "class": "MalfunctionError",
+    "hint": "the brain may be busy, or its daemon loop stalled — retry, and read the clone daemon trace (\`<repo>/.agent/.cache/repo=rhachet/skill=clone-say/daemon.<yyyy-mm-dd>.log\`, or \`<tmpdir>/rhachet.uid=<uid>/clone-trace/\` if that log was unwritable) for a stall line at that time; re-enroll if it stays unresponsive",
     "message": "the clone accepted the connection but did not answer in time",
     "metadata": {
-      "hint": "the brain may be busy — retry, or re-enroll if it stays unresponsive",
+      "hint": "the brain may be busy, or its daemon loop stalled — retry, and read the clone daemon trace (\`<repo>/.agent/.cache/repo=rhachet/skill=clone-say/daemon.<yyyy-mm-dd>.log\`, or \`<tmpdir>/rhachet.uid=<uid>/clone-trace/\` if that log was unwritable) for a stall line at that time; re-enroll if it stays unresponsive",
       "reachCause": "wedged",
     },
     "reachCause": "wedged",

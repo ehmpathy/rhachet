@@ -1,6 +1,6 @@
 import type { IBufferCell, IBufferLine } from '@xterm/headless';
 
-import { getCloneTraceSink } from '../getCloneTraceSink';
+import { getOneCloneTraceSinkForDaemonAtCwd } from '../getOneCloneTraceSinkForDaemonAtCwd';
 import type { EmulatorModule } from './getEmulatorModuleOrNull';
 
 /**
@@ -158,7 +158,7 @@ export interface CloneScreenFeed {
   settle: () => Promise<void>;
   /**
    * the last fault a `feed` / `resize` write raised — retained for a programmatic read AND
-   * traced to the operator's stderr the instant it throws, so a `feed-faulted` degrade names
+   * traced to the daemon's trace log the instant it throws, so a `feed-faulted` degrade names
    * its cause rather than hide it (never rethrown into the emitter)
    */
   lastFault: () => Error | null;
@@ -217,7 +217,7 @@ export const asBrightOnlyRow = (input: {
  * .note = `@xterm/headless` parses `write` ASYNC, so a `read` reads whatever the
  *   emulator has parsed so far — a bounded probe poll absorbs the parse lag (measured
  *   ~28ms). `.buffer` is a PROPOSED api, so `allowProposedApi: true` is required
- * .note = `traceToStderr` is the fault sink — real stderr in prod (the default), a capture
+ * .note = `trace` is the fault sink — the daemon's trace log in prod (the default), a capture
  *   in a clamp — INJECTED so a test proves the feed-faulted trace fires without a spy on the
  *   process (the same injected-sink shape genCloneSocketServer uses, r011-i007-n4)
  */
@@ -225,7 +225,7 @@ export const genCloneScreenFeed = (
   input: { cols: number; rows: number },
   context: {
     emulator: EmulatorModule;
-    traceToStderr?: (line: string) => void;
+    trace?: (line: string) => void;
   },
 ): CloneScreenFeed => {
   const term = new context.emulator.Terminal({
@@ -242,19 +242,20 @@ export const genCloneScreenFeed = (
   let fed = false;
   let fault: Error | null = null;
 
-  // the diagnostic trace sink — the daemon's own stderr (the operator channel, never the
-  // human's pty mirror), the same sink genCloneSocketServer's own fault traces use. injected
-  // so a clamp captures it in place of the real stderr
-  const traceToStderr = context.traceToStderr ?? getCloneTraceSink();
+  // the diagnostic trace sink — the daemon's durable trace log, never stderr (an attended
+  // daemon's stderr is the human's pane). the pty host passes the same sink it hands the
+  // socket server; injected so a clamp captures it
+  const trace =
+    context.trace ?? getOneCloneTraceSinkForDaemonAtCwd({ clone: null });
 
-  // retain the last write/resize fault AND trace it once to the operator's stderr. a
+  // retain the last write/resize fault AND trace it once to the daemon's trace log. a
   // feed-faulted degrade is otherwise SILENT — the only symptom is a `feed-faulted` read on
   // every future probe, with the original exception dark (r011-i007-n4). `lastFault` keeps
   // the programmatic reader; this makes the cause visible the instant it throws. never
   // rethrown — V16 keeps the throw out of node-pty's emitter, this keeps it out of the dark
   const retainFault = (error: unknown): void => {
     fault = error instanceof Error ? error : new Error(String(error));
-    traceToStderr(
+    trace(
       `😶 clone screen feed fault — degraded to feed-faulted, re-enroll to clear: ${fault.message}\n`,
     );
   };

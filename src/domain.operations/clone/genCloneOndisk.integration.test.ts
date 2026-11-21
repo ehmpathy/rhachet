@@ -40,6 +40,7 @@ const genCaptureHost = (output: string[]): PtyCloneHost => ({
   // .note = deliberate mutation — the host mirror IS a capture sink; each pty
   //   chunk is appended to the caller's bounded buffer, which never escapes the test
   writeOut: (data) => output.push(data),
+  enterAsyncMirror: () => async () => undefined,
   onInput: () => () => undefined,
   size: () => ({ cols: 80, rows: 24 }),
   onResize: () => () => undefined,

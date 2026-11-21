@@ -188,6 +188,22 @@ describe('genCloneSocketServer.integration', () => {
               metadata: { reachCause: 'wedged', hint: expect.any(String) },
             });
 
+            // the message and hint a caller reads, as the real dispatch path emits them — the
+            //   live-source twin of the injected-layer snaps (computeCloneUnreachableHint,
+            //   asCliErrorJson); a reword or a lost trace-log pointer shows in review
+            const metadata = (error as MalfunctionError).metadata as {
+              hint: string;
+            };
+            expect(metadata.hint).toContain(
+              '.agent/.cache/repo=rhachet/skill=clone-say/daemon.<yyyy-mm-dd>.log',
+            );
+            // the headline and the hint, each once: the rendered message repeats the hint in
+            //   its metadata block, so only its first line is snapped
+            expect({
+              headline: error.message.split('\n')[0],
+              hint: metadata.hint,
+            }).toMatchSnapshot();
+
             accepted.forEach((peer) => peer.destroy());
             await new Promise<void>((done) => server.close(() => done()));
           },

@@ -1,0 +1,19 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`getOneCloneTraceSinkForDaemon given: [case2] a repo log that cannot be written, then heals when: [t0] lines are traced across the gap then: the gap lines land in the fallback log, each named with its repo and the cause 1`] = `
+"<iso> pid=<n> repo=<repo> cause=ENOTDIR in gap one
+<iso> pid=<n> repo=<repo> cause=ENOTDIR in gap two
+"
+`;
+
+exports[`getOneCloneTraceSinkForDaemon given: [case2] a repo log that cannot be written, then heals when: [t0] lines are traced across the gap then: the repo log first names the gap, its cause, and where the lines went 1`] = `
+"<iso> pid=<n> clone trace log was unwritable for 2 lines (ENOTDIR); 2 are in <fallback>
+<iso> pid=<n> after gap
+"
+`;
+
+exports[`getOneCloneTraceSinkForDaemon given: [case3] a repo log AND a fallback that cannot be written when: [t0] a line is traced, then the repo log heals then: the line is lost, and the recovery line counts the loss and names why 1`] = `
+"<iso> pid=<n> clone trace log was unwritable for 1 line (ENOTDIR); 1 was lost, the fallback was unwritable too (ENOTDIR)
+<iso> pid=<n> after gap
+"
+`;

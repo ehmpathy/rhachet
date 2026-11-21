@@ -1,3 +1,5 @@
+import { asCloneDaemonTraceWhereHuman } from '../asCloneDaemonTraceWhereHuman';
+
 /**
  * .what = the closed set of operational reject reasons a clone dispatch can NACK with —
  *   the twin of `CloneWithheldReason`, but for a reject that is NOT a pre-check verdict
@@ -69,8 +71,7 @@ export const CLONE_OPERATIONAL_REJECT_COPY: Record<
   //   trace log, which this copy names so the reader does not have to hunt for it. before this
   //   slug that throw ended the connection with no reply at all, and the caller read it as a
   //   30s wedge with `acksSeen: []` (measured 2026-09-19)
-  'server-fault':
-    'the clone faulted while it handled the message — the message may not have been written; retry, and read the clone daemon trace (`.agent/.cache/repo=$repo/skill=clone-say/daemon.$date.log`) for the line that names the throw',
+  'server-fault': `the clone faulted while it handled the message — the message may not have been written; retry, and read the clone daemon trace (${asCloneDaemonTraceWhereHuman()}) for the line that names the throw`,
 };
 
 /**

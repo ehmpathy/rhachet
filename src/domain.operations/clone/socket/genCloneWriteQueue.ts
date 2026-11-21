@@ -1,6 +1,6 @@
 import { isCodeDefectError } from '@src/utils/isCodeDefectError';
 
-import { getCloneTraceSink } from '../getCloneTraceSink';
+import { getOneCloneTraceSinkForDaemonAtCwd } from '../getOneCloneTraceSinkForDaemonAtCwd';
 import type { CloneWithheldReason } from './computeCloneDispatchPrecheck';
 import type { CloneOperationalRejectReason } from './computeCloneOperationalRejectClass';
 import { CLONE_WRITE_QUEUE_MAX_DEPTH } from './constants';
@@ -71,25 +71,36 @@ export interface CloneWriteQueue {
  *   genuine code defect — a TypeError, a logic bug in the write path — and both
  *   fold to the same mildest `pty-write-fault` slug (re-enroll remedy), which would
  *   hide the defect behind a server-fault reason (`rule.forbid.failhide`). so the
- *   thrown error is traced to the operator's stderr the instant it is caught, before
+ *   thrown error is traced to the daemon's trace log the instant it is caught, before
  *   the ack — the same injected-sink shape `genCloneScreenFeed`'s `retainFault` and
  *   `getCloneInputStateOrBlind` use. the trace DISTINGUISHES a JS-defect class (TypeError
  *   / RangeError / ReferenceError / SyntaxError — a code bug) from a real pty fault, so a
  *   defect earns a louder "FIX THE BUG" trace rather than the mildest re-enroll line
  *   (r002-i010-n2). the demote still fires for BOTH (V15 — every dequeue exit MUST ack and
  *   release the drain latch, or a rethrow would wedge the queue), but it leaves a trace a
- *   debugger can read. `traceToStderr` is INJECTED so a clamp captures it without a spy
+ *   debugger can read. `trace` is INJECTED so a clamp captures it without a spy
  *   on the process
  */
-export const genCloneWriteQueue = (input: {
-  write: (dispatch: {
-    message: string;
-    force: boolean;
-  }) => CloneDispatchWriteOutcome | Promise<CloneDispatchWriteOutcome>;
-  maxDepth?: number;
-  traceToStderr?: (line: string) => void;
-}): CloneWriteQueue => {
-  const traceToStderr = input.traceToStderr ?? getCloneTraceSink();
+export const genCloneWriteQueue = (
+  input: {
+    write: (dispatch: {
+      message: string;
+      force: boolean;
+    }) => CloneDispatchWriteOutcome | Promise<CloneDispatchWriteOutcome>;
+    maxDepth?: number;
+  },
+  context?: {
+    /**
+     * .what = the fault sink — the daemon's durable trace log in prod (the default), a capture in
+     *   a clamp
+     */
+    trace?: (line: string) => void;
+  },
+): CloneWriteQueue => {
+  // the fault sink — the daemon's durable trace log by default, never stderr (an attended
+  //   daemon's stderr is the human's pane); the socket server passes its own
+  const trace =
+    context?.trace ?? getOneCloneTraceSinkForDaemonAtCwd({ clone: null });
   const maxDepth = input.maxDepth ?? CLONE_WRITE_QUEUE_MAX_DEPTH;
   // .note = deliberate mutation — a serial queue IS mutable state by nature: the
   //   backlog (`queue`), the closed flag, and the drain-loop `active` latch each
@@ -146,7 +157,7 @@ export const genCloneWriteQueue = (input: {
       // hides behind the mildest server-fault trace (rule.forbid.failhide, r002-i010-n2)
       const message = error instanceof Error ? error.message : String(error);
       const isDefect = isCodeDefectError({ error });
-      traceToStderr(
+      trace(
         isDefect
           ? `💥 clone write DEFECT — a code bug in the write path, not a pty fault; demoted to pty-write-fault to release the drain latch (V15), but FIX THE BUG: ${message}\n`
           : `💥 clone write fault — demoted to pty-write-fault (re-enroll remedy): ${message}\n`,
