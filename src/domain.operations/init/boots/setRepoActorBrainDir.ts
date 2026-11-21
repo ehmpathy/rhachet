@@ -6,6 +6,7 @@ import type { BrainDirBootRender } from '@src/domain.operations/boot/BrainDirBoo
 import { BRAIN_DIR_BOOT_FILENAMES } from '@src/domain.operations/boot/constants';
 import { setBrainDirBoot } from '@src/domain.operations/boot/setBrainDirBoot';
 import { CLAUDE_SETTINGS_FILENAMES } from '@src/domain.operations/brains/claudeCodeSettings';
+import { HOOK_DISPATCH } from '@src/domain.operations/brains/dispatch/constants';
 import { getRepoAmbientRoleFoci } from '@src/domain.operations/roles/focus/ambient/getRepoAmbientRoleFoci';
 import { asRoleRefsAtFocus } from '@src/domain.operations/roles/focus/asRoleRefsAtFocus';
 import { asTextWithLinesConverged } from '@src/infra/asTextWithLinesConverged';
@@ -29,6 +30,8 @@ import { setRepoActorDirFromLegacy } from './setRepoActorDirFromLegacy';
  * .note = the repo actor commits the settings names (the wisher's call, 2026-09-29); it is the
  *         one actor dir git sees, since every other sits under the ignored `.agent/.actors/`
  * .note = order matters: `/*` precedes each `!` re-include
+ * .note = the dispatch manifest is tracked beside `settings.of.repo.json`: the settings name a
+ *         dispatcher, and the rules it runs live in the manifest, so a fresh checkout needs both
  */
 const BRAIN_DIR_GITIGNORE_LINES = [
   '/*',
@@ -39,6 +42,7 @@ const BRAIN_DIR_GITIGNORE_LINES = [
   `!/${CLAUDE_SETTINGS_FILENAMES.repo}`,
   `!/${CLAUDE_SETTINGS_FILENAMES.grove}`,
   '!/settings.local.json',
+  `!/${HOOK_DISPATCH.manifest}`,
 ];
 
 /**

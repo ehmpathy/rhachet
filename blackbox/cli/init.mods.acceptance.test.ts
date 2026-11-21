@@ -6,6 +6,10 @@ import { genTempDir, given, then, useBeforeAll, useThen, when } from 'test-fns';
 import { setupBrainHooksAdapterPackage } from '@/blackbox/.test/infra/brainDirBootJourney';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import {
+  getAllHookDispatchManifestRows,
+  HOOK_DISPATCH_AUTHOR,
+} from '@/blackbox/.test/infra/getAllHookDispatchManifestRows';
+import {
   asSnapshotSafe,
   invokeRhachetCliBinary,
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
@@ -136,21 +140,40 @@ describe('rhx init — a repo with .agent/repo=.mods', () => {
         expect(asSnapshotSafe(result.stdout)).toMatchSnapshot();
       });
 
-      then('the repo actor settings hold the one stop sweep, carried by repo=.this/role=any', async () => {
+      then('the repo actor dispatch manifest holds the one stop sweep, carried by repo=.this/role=any', async () => {
+        // role hooks are rules of the dispatch manifest; the settings hold one dispatcher per event
+        const rows = await getAllHookDispatchManifestRows({
+          claudeDir: asAmbientBrainPath({ repo: repo.path, file: '' }),
+        });
+        const sweeps = rows.filter((row) =>
+          row.command.includes('roles cost --all --when hook.onStop'),
+        );
+        expect(sweeps).toHaveLength(1);
+        expect(sweeps[0]?.event).toEqual('Stop');
+        expect(sweeps[0]?.author).toEqual('repo=.this/role=any');
+      });
+
+      then('the repo actor settings hold the stop dispatcher, no rule of its own', async () => {
         const settings = await fs.readFile(
           asAmbientBrainPath({ repo: repo.path, file: 'settings.of.repo.json' }),
           'utf-8',
         );
-        const sweeps = settings.split('roles cost --all --when hook.onStop');
-        expect(sweeps).toHaveLength(2); // the command appears once
-        expect(settings).toContain('repo=.this/role=any');
+        expect(settings).toContain(HOOK_DISPATCH_AUTHOR);
+        expect(settings).not.toContain('roles cost --all --when hook.onStop');
       });
 
       then('the mod is no hook author of its own', async () => {
+        const rows = await getAllHookDispatchManifestRows({
+          claudeDir: asAmbientBrainPath({ repo: repo.path, file: '' }),
+        });
         const settings = await fs.readFile(
           asAmbientBrainPath({ repo: repo.path, file: 'settings.of.repo.json' }),
           'utf-8',
         );
+        const authorsOfMods = rows.filter((row) =>
+          row.author.includes('repo=.mods/role='),
+        );
+        expect(authorsOfMods).toEqual([]);
         expect(settings).not.toContain('repo=.mods/role=');
       });
     });

@@ -15,6 +15,7 @@ export const findUniqueInitExecutable = (input: {
 }): RoleInitExecutable => {
   // discover inits with filters
   const matches = discoverInitExecutables({
+    repoPath: null,
     slugRepo: input.slugRepo,
     slugRole: input.slugRole,
     slugInit: input.slugInit,
@@ -35,6 +36,7 @@ export const findUniqueInitExecutable = (input: {
 
     // discover all available inits to show suggestions
     const allInits = discoverInitExecutables({
+      repoPath: null,
       slugRepo: input.slugRepo,
       slugRole: input.slugRole,
     });

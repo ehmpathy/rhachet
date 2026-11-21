@@ -56,11 +56,13 @@ describe('discoverSkillExecutables.integration', () => {
 
     when('skill discovery runs', () => {
       then('does not throw ENOENT error', () => {
-        expect(() => discoverSkillExecutables({})).not.toThrow();
+        expect(() =>
+          discoverSkillExecutables({ repoPath: null }),
+        ).not.toThrow();
       });
 
       then('ignores broken symlink and finds valid skill', () => {
-        const result = discoverSkillExecutables({});
+        const result = discoverSkillExecutables({ repoPath: null });
         expect(result).toHaveLength(1);
         expect(result[0]?.slug).toBe('valid-skill');
       });
@@ -91,7 +93,7 @@ describe('discoverSkillExecutables.integration', () => {
 
     when('skill discovery runs', () => {
       then('ignores broken symlink in nested directory', () => {
-        const result = discoverSkillExecutables({});
+        const result = discoverSkillExecutables({ repoPath: null });
         expect(result).toHaveLength(1);
         expect(result[0]?.slug).toBe('pretooluse');
       });
@@ -112,8 +114,10 @@ describe('discoverSkillExecutables.integration', () => {
 
     when('skill discovery runs', () => {
       then('handles broken skills directory symlink gracefully', () => {
-        expect(() => discoverSkillExecutables({})).not.toThrow();
-        const result = discoverSkillExecutables({});
+        expect(() =>
+          discoverSkillExecutables({ repoPath: null }),
+        ).not.toThrow();
+        const result = discoverSkillExecutables({ repoPath: null });
         expect(result).toEqual([]);
       });
     });
@@ -154,7 +158,7 @@ describe('discoverSkillExecutables.integration', () => {
       then(
         'finds valid skills from both repos, ignores broken symlinks',
         () => {
-          const result = discoverSkillExecutables({});
+          const result = discoverSkillExecutables({ repoPath: null });
           expect(result).toHaveLength(2);
           expect(result.map((s) => s.slug).sort()).toEqual(['local', 'remote']);
         },

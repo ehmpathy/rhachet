@@ -8,6 +8,7 @@ import { withBrainDirSettingsShield } from '@src/domain.operations/actor/enrolle
 import { getActorsManifest } from '@src/domain.operations/actor/manifest/getActorsManifest';
 import { getBrainsDetectedAndSupplied } from '@src/domain.operations/brains/getBrainsDetectedAndSupplied';
 import { getLinkedRolesWithHooks } from '@src/domain.operations/brains/getLinkedRolesWithHooks';
+import { isBrainClaudeCode } from '@src/domain.operations/brains/isBrainClaudeCode';
 import { setActorSettingsDerived } from '@src/domain.operations/enroll/setActorSettingsDerived';
 import { getHomeDir } from '@src/infra/getHomeDir';
 import { asErrorClassText } from '@src/utils/asErrorClassText';
@@ -19,12 +20,14 @@ import { join } from 'node:path';
 import { asEnrolledActorsHookSyncLines } from './asEnrolledActorsHookSyncLines';
 import { asHookChangeSummary } from './asHookChangeSummary';
 import { asHookChangeTally } from './asHookChangeTally';
+import { asHookDispatchSwapLines } from './asHookDispatchSwapLines';
+import { asHookFaultFieldLines } from './asHookFaultFieldLines';
 import { asHookFaultRows } from './asHookFaultRows';
+import { asHookSyncRowLines } from './asHookSyncRowLines';
 import { asHookSyncTotalRows } from './asHookSyncTotalRows';
 import { getBrainsOfRootHookPass } from './getBrainsOfRootHookPass';
 import { getOneHookChangeTally } from './getOneHookChangeTally';
 import { getOneHookOrphanCount } from './getOneHookOrphanCount';
-import { isBrainClaudeCode } from './isBrainClaudeCode';
 import { syncRoleHooksIntoTarget } from './syncRoleHooksIntoTarget';
 
 /**
@@ -146,6 +149,7 @@ export const syncHooksForLinkedRoles = async (
   const {
     pruneResult,
     syncResult,
+    swaps,
     faults: faultsForRoot,
   } = isClaudeCodeTargeted
     ? await withRepoBrainDirShield({ repoPath: context.cwd }, syncIntoRoot)
@@ -176,7 +180,7 @@ export const syncHooksForLinkedRoles = async (
   //
   // 🟡 .note = DELIBERATE MUTATION — `outputLines` grows across two loops (applied, then
   //   failed), whose rows interleave a push to `errors`; the tree renders once both are done
-  const outputLines: string[] = [];
+  const outputLines: Array<{ head: string; leaves: string[] }> = [];
 
   for (const applied of syncResult.applied) {
     // report each application with changes
@@ -184,9 +188,10 @@ export const syncHooksForLinkedRoles = async (
       getOneHookChangeTally({ applied: [applied] }),
     );
     if (changes) {
-      outputLines.push(
-        `${applied.role.repo}/${applied.role.slug} → ${applied.brain}: ${changes}`,
-      );
+      outputLines.push({
+        head: `${applied.role.repo}/${applied.role.slug} → ${applied.brain}: ${changes}`,
+        leaves: [],
+      });
     }
   }
 
@@ -194,10 +199,12 @@ export const syncHooksForLinkedRoles = async (
   for (const err of syncResult.errors) {
     // the CLASS rides the row, never a lone glyph — a glyph cannot be grepped and the class is
     // the actionable token (`rule.require.unabridged-error-prefix`). `asErrorClassText` reads it
-    // off the error rather than asserts one, so a caller-fixable adapter fault is not relabelled
-    outputLines.push(
-      `✗ ${err.role.repo}/${err.role.slug} → ${err.brain}: ${asErrorClassText({ error: err.error })}`,
-    );
+    // off the error rather than asserts one, so a caller-fixable adapter fault is not relabelled.
+    // the error's fields ride as leaves, so a refusal names what it refused and its fix
+    outputLines.push({
+      head: `✗ ${err.role.repo}/${err.role.slug} → ${err.brain}: ${asErrorClassText({ error: err.error })}`,
+      leaves: asHookFaultFieldLines({ error: err.error }),
+    });
     errors.push({
       source: `sync:${err.role.repo}/${err.role.slug}→${err.brain}`,
       error: err.error,
@@ -205,18 +212,27 @@ export const syncHooksForLinkedRoles = async (
   }
 
   // output with tree structure
-  asTreeBranchLines({ rows: outputLines, indent: '   ' }).forEach((line) =>
+  asHookSyncRowLines({ rows: outputLines, indent: '   ' }).forEach((line) =>
     console.log(line),
   );
 
+  // the dispatcher shape the swap wrote, where it wrote one: `N rules → M dispatchers`, and the
+  //   role hooks that left the settings, so a first sync never reads as `no changes needed`
+  const swapLines = asHookDispatchSwapLines({ swaps });
+  if (swapLines.length > 0) {
+    console.log('');
+    swapLines.forEach((line) => console.log(line));
+  }
+
   // summary
-  const hasChanges =
+  const hasRuleChanges =
     totalCreated > 0 ||
     totalUpdated > 0 ||
     totalDeleted > 0 ||
     totalOrphansRemoved > 0;
+  const hasChanges = hasRuleChanges || swapLines.length > 0;
   console.log('');
-  if (hasChanges) {
+  if (hasRuleChanges) {
     const summaryLines = asHookSyncTotalRows({
       created: totalCreated,
       updated: totalUpdated,
@@ -235,7 +251,7 @@ export const syncHooksForLinkedRoles = async (
     console.log('   └─ no changes needed');
   }
   // close the summary only where one printed, so a fault-only run leaves one blank, not two
-  if (hasChanges || countRootFaults === 0) console.log('');
+  if (hasRuleChanges || (!hasChanges && countRootFaults === 0)) console.log('');
 
   // derive every enrolled actor's settings.of.repo.json from the repo actor's, narrowed
   // to THAT actor's own roles — the same derivation enroll runs at spawn, so an

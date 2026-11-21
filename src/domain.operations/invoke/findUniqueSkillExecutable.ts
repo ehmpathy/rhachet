@@ -16,6 +16,7 @@ export const findUniqueSkillExecutable = (input: {
 }): RoleSkillExecutable => {
   // discover skills with filters
   const matches = discoverSkillExecutables({
+    repoPath: null,
     slugRepo: input.slugRepo,
     slugRole: input.slugRole,
     slugSkill: input.slugSkill,
@@ -57,6 +58,7 @@ export const findUniqueSkillExecutable = (input: {
 
     // discover all available skills to show suggestions
     const allSkills = discoverSkillExecutables({
+      repoPath: null,
       slugRepo: input.slugRepo,
       slugRole: input.slugRole,
     });

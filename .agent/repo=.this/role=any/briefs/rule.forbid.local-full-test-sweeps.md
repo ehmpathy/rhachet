@@ -35,16 +35,15 @@ you do not want.
 
 ## .the trap this rule exists to close
 
-⚠️ a driver invents a **self-imposed "staleness guard"** — *"the last act before arrival must be
+🟡 a driver invents a **self-imposed "staleness guard"** — *"the last act before arrival must be
 an unscoped run over the whole tree"* — and then honors it with the most expensive flag it has.
 
 no route stone asks for that. no rule asks for that. it is a private ritual that wears the costume
 of rigor and spends the human's minutes to buy reassurance. if a stone's guard wants proof, it
 names the proof it wants.
 
-the tell: the reach for `--thorough` almost always follows a change you have *already seen* — you
-read the diff, you ran the scoped suites, they were green. the full run adds no fact. it adds
-delay.
+the tell: `--thorough` follows a change you already saw — diff read, scoped suites green. the full
+run adds delay, not fact.
 
 ## 🔴 .the second trap — "the lever is mine, so the sweep is mine"
 
@@ -56,7 +55,7 @@ permissions, two owners, and only the first is the credential's:
 | *may I reach this tier at all?* | the **credential** — while it is live, yes, and that take is a driver lever (`rule.always.spend-own-levers-before-escalation`) |
 | *may I run it UNSCOPED?* | 🔴 **no one.** this rule refuses it at **any** credential state |
 
-⚠️ the two read as one because they arrive together: you measure `rhx keyrack status`, find the
+🟡 the two read as one because they arrive together: you measure `rhx keyrack status`, find the
 credential live, spend it correctly on three or four **scoped** takes — and the fourth success
 generalizes into *"and the tier figure too."* the scoped takes were right. the sweep is a blocker.
 

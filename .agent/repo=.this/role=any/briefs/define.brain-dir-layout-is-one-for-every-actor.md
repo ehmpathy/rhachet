@@ -10,12 +10,14 @@
 CLAUDE.md            -> AGENTS.md                  # the door claude reads
 AGENTS.md                                          # @boot.md
 boot.md                                            # REAL: this actor's roles, rendered
-settings.of.repo.json                                 # REAL: this actor's roles' hooks + permissions
+settings.of.repo.json                                 # REAL: one dispatcher hook per event + permissions
+hooks.dispatch.manifest                               # REAL: this actor's roles' hook rules
 settings.of.grove.json  -> ~/.claude/settings.json    # the grove (the box); a home path
 settings.json        -> settings.of.grove.json        # claude's fixed name → our clear name
 ```
 
-two real files carry content: `boot.md` and `settings.of.repo.json`. every other name is an arrow. claude's
+three real files carry content; every other name is an arrow. one `bin/hooks.dispatch.sh` per event
+runs every manifest rule of that event. claude's
 fixed name (`settings.json`) points at our clear name (`grove`), which points at the source of truth.
 `settings.of.repo.json` is passed to claude by its clear name.
 

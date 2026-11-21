@@ -1,9 +1,9 @@
 import type { BrainHook } from '@src/domain.objects/BrainHook';
 import type { BrainSpecifier } from '@src/domain.objects/BrainSpecifier';
 import type { ContextCli } from '@src/domain.objects/ContextCli';
-import { getBrainHooksAdapterByConfigImplicit } from '@src/domain.operations/config/getBrainHooksAdapterByConfigImplicit';
 
 import { detectBrainReplsInRepo } from './detectBrainReplsInRepo';
+import { getOneBrainHooksAdapterForSync } from './dispatch/getOneBrainHooksAdapterForSync';
 import { pruneOrphanedRoleHooksFromOneBrain } from './pruneOrphanedRoleHooksFromOneBrain';
 
 /**
@@ -33,10 +33,13 @@ export const pruneOrphanedRoleHooksFromAllBrains = async (
 
   // prune from each brain (the config write path may be an actor dir)
   for (const brain of brainSlugs) {
-    const adapter = await getBrainHooksAdapterByConfigImplicit(
-      { brain, configTargetDir: input.configTargetDir },
-      context,
-    );
+    //   for claude code, the role hooks live as rules in the dispatch manifest
+    const adapter = (
+      await getOneBrainHooksAdapterForSync(
+        { brain, configTargetDir: input.configTargetDir ?? null },
+        context,
+      )
+    )?.adapter;
 
     // skip if no adapter for this brain
     if (!adapter) continue;

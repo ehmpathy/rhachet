@@ -92,7 +92,7 @@ describe('asRepoSlugKind, across every scanner of `.agent/`', () => {
         const found = useBeforeAll(async () => ({
           skills: await withCwd({
             cwd: scene.repo,
-            run: () => discoverSkillExecutables({}),
+            run: () => discoverSkillExecutables({ repoPath: null }),
           }),
         }));
 
@@ -108,7 +108,7 @@ describe('asRepoSlugKind, across every scanner of `.agent/`', () => {
         const found = useBeforeAll(async () => ({
           inits: await withCwd({
             cwd: scene.repo,
-            run: () => discoverInitExecutables({}),
+            run: () => discoverInitExecutables({ repoPath: null }),
           }),
         }));
 

@@ -1,10 +1,12 @@
 import { serialize } from 'domain-objects';
-import { toMilliseconds } from 'iso-time';
+import { ConstraintError } from 'helpful-errors';
 
 import { BrainHook } from '@src/domain.objects/BrainHook';
 import type { BrainHooksAdapter } from '@src/domain.objects/BrainHooksAdapter';
 import type { HasRepo } from '@src/domain.objects/HasRepo';
 import type { Role } from '@src/domain.objects/Role';
+
+import { asTimeoutMillisecondsOfBrainHook } from './dispatch/asTimeoutMillisecondsOfBrainHook';
 
 /**
  * .what = syncs one role's hook declarations into one brain repl config
@@ -179,17 +181,22 @@ const asHookComparable = (hook: BrainHook): string => {
 };
 
 /**
- * .what = a timeout as milliseconds when it is an iso duration, else as declared
+ * .what = a timeout as milliseconds when it reads as a duration (iso or `10s`), else as declared
  * .why = the diff only decides whether a hook is rewritten; whether a timeout is valid is
- *   the brain adapter's call. a role that declares a non-iso string (`'10s'`) keeps the
- *   raw compare it had before, rather than a throw from the diff for every hook it holds
+ *   the brain adapter's call. a store may read a short form back in another unit (the dispatch
+ *   manifest holds seconds), so both read as milliseconds; a string that is no duration keeps
+ *   the raw compare, rather than a throw from the diff for every hook it holds
  */
 const asTimeoutComparable = (input: {
   timeout: BrainHook['timeout'];
-}): unknown =>
-  typeof input.timeout === 'string' && !input.timeout.startsWith('P')
-    ? input.timeout
-    : toMilliseconds(input.timeout);
+}): unknown => {
+  try {
+    return asTimeoutMillisecondsOfBrainHook({ timeout: input.timeout });
+  } catch (error) {
+    if (!(error instanceof ConstraintError)) throw error;
+    return input.timeout;
+  }
+};
 
 /**
  * .what = computes diff between declared and found hooks

@@ -36,7 +36,7 @@ describe('discoverSkillExecutables', () => {
   given('no .agent directory exists', () => {
     when('discovering skills', () => {
       then('returns empty array', () => {
-        const result = discoverSkillExecutables({});
+        const result = discoverSkillExecutables({ repoPath: null });
         expect(result).toEqual([]);
       });
     });
@@ -49,7 +49,7 @@ describe('discoverSkillExecutables', () => {
 
     when('discovering skills', () => {
       then('returns empty array', () => {
-        const result = discoverSkillExecutables({});
+        const result = discoverSkillExecutables({ repoPath: null });
         expect(result).toEqual([]);
       });
     });
@@ -75,12 +75,12 @@ describe('discoverSkillExecutables', () => {
 
     when('discovering all skills', () => {
       then('finds both skills', () => {
-        const result = discoverSkillExecutables({});
+        const result = discoverSkillExecutables({ repoPath: null });
         expect(result).toHaveLength(2);
       });
 
       then('extracts slug from .sh file', () => {
-        const result = discoverSkillExecutables({});
+        const result = discoverSkillExecutables({ repoPath: null });
         const initSkill = result.find((s) => s.slug === 'init');
         expect(initSkill).toBeDefined();
         expect(initSkill?.slugRepo).toBe('.this');
@@ -88,7 +88,7 @@ describe('discoverSkillExecutables', () => {
       });
 
       then('extracts slug from extensionless file', () => {
-        const result = discoverSkillExecutables({});
+        const result = discoverSkillExecutables({ repoPath: null });
         const buildSkill = result.find((s) => s.slug === 'build');
         expect(buildSkill).toBeDefined();
       });
@@ -96,13 +96,19 @@ describe('discoverSkillExecutables', () => {
 
     when('filtering by slugSkill', () => {
       then('returns only matching skill', () => {
-        const result = discoverSkillExecutables({ slugSkill: 'init' });
+        const result = discoverSkillExecutables({
+          repoPath: null,
+          slugSkill: 'init',
+        });
         expect(result).toHaveLength(1);
         expect(result[0]?.slug).toBe('init');
       });
 
       then('returns empty for non-matching slug', () => {
-        const result = discoverSkillExecutables({ slugSkill: 'nonexistent' });
+        const result = discoverSkillExecutables({
+          repoPath: null,
+          slugSkill: 'nonexistent',
+        });
         expect(result).toEqual([]);
       });
     });
@@ -128,7 +134,7 @@ describe('discoverSkillExecutables', () => {
 
     when('discovering all skills', () => {
       then('finds skills from both repos', () => {
-        const result = discoverSkillExecutables({});
+        const result = discoverSkillExecutables({ repoPath: null });
         expect(result).toHaveLength(2);
         expect(result.map((s) => s.slugRepo).sort()).toEqual([
           '.this',
@@ -139,7 +145,10 @@ describe('discoverSkillExecutables', () => {
 
     when('filtering by slugRepo', () => {
       then('returns only skills from that repo', () => {
-        const result = discoverSkillExecutables({ slugRepo: '.this' });
+        const result = discoverSkillExecutables({
+          repoPath: null,
+          slugRepo: '.this',
+        });
         expect(result).toHaveLength(1);
         expect(result[0]?.slugRepo).toBe('.this');
         expect(result[0]?.slug).toBe('local');
@@ -170,7 +179,7 @@ describe('discoverSkillExecutables', () => {
 
     when('discovering all skills', () => {
       then('finds skills from both roles', () => {
-        const result = discoverSkillExecutables({});
+        const result = discoverSkillExecutables({ repoPath: null });
         expect(result).toHaveLength(2);
         expect(result.map((s) => s.slugRole).sort()).toEqual([
           'designer',
@@ -181,7 +190,10 @@ describe('discoverSkillExecutables', () => {
 
     when('filtering by slugRole', () => {
       then('returns only skills from that role', () => {
-        const result = discoverSkillExecutables({ slugRole: 'mechanic' });
+        const result = discoverSkillExecutables({
+          repoPath: null,
+          slugRole: 'mechanic',
+        });
         expect(result).toHaveLength(1);
         expect(result[0]?.slugRole).toBe('mechanic');
         expect(result[0]?.slug).toBe('build');
@@ -208,12 +220,12 @@ describe('discoverSkillExecutables', () => {
 
     when('discovering skills', () => {
       then('finds both top-level and nested skills', () => {
-        const result = discoverSkillExecutables({});
+        const result = discoverSkillExecutables({ repoPath: null });
         expect(result).toHaveLength(2);
       });
 
       then('nested skill has correct slug', () => {
-        const result = discoverSkillExecutables({});
+        const result = discoverSkillExecutables({ repoPath: null });
         const nestedSkill = result.find((s) => s.slug === 'pretooluse');
         expect(nestedSkill).toBeDefined();
         expect(nestedSkill?.path).toContain('claude.hooks');
@@ -222,7 +234,10 @@ describe('discoverSkillExecutables', () => {
 
     when('filtering by nested skill slug', () => {
       then('finds the nested skill', () => {
-        const result = discoverSkillExecutables({ slugSkill: 'pretooluse' });
+        const result = discoverSkillExecutables({
+          repoPath: null,
+          slugSkill: 'pretooluse',
+        });
         expect(result).toHaveLength(1);
         expect(result[0]?.slug).toBe('pretooluse');
       });
@@ -245,7 +260,7 @@ describe('discoverSkillExecutables', () => {
 
     when('discovering all skills', () => {
       then('finds skill from external repo', () => {
-        const result = discoverSkillExecutables({});
+        const result = discoverSkillExecutables({ repoPath: null });
         expect(result).toHaveLength(1);
         expect(result[0]?.slugRepo).toBe('ehmpathy');
         expect(result[0]?.slugRole).toBe('mechanic');
@@ -255,7 +270,10 @@ describe('discoverSkillExecutables', () => {
 
     when('filtering by external slugRepo', () => {
       then('returns the skill', () => {
-        const result = discoverSkillExecutables({ slugRepo: 'ehmpathy' });
+        const result = discoverSkillExecutables({
+          repoPath: null,
+          slugRepo: 'ehmpathy',
+        });
         expect(result).toHaveLength(1);
         expect(result[0]?.slug).toBe('deploy');
       });
@@ -263,7 +281,10 @@ describe('discoverSkillExecutables', () => {
 
     when('filtering by wrong slugRepo', () => {
       then('returns empty', () => {
-        const result = discoverSkillExecutables({ slugRepo: '.this' });
+        const result = discoverSkillExecutables({
+          repoPath: null,
+          slugRepo: '.this',
+        });
         expect(result).toEqual([]);
       });
     });
@@ -296,7 +317,7 @@ describe('discoverSkillExecutables', () => {
 
     when('discovering skills', () => {
       then('traverses symlink and finds skills', () => {
-        const result = discoverSkillExecutables({});
+        const result = discoverSkillExecutables({ repoPath: null });
         expect(result).toHaveLength(1);
         expect(result[0]?.slug).toBe('init.claude');
         expect(result[0]?.slugRepo).toBe('ehmpathy');
@@ -305,7 +326,10 @@ describe('discoverSkillExecutables', () => {
 
     when('filtering by slugRepo', () => {
       then('finds skill through symlink', () => {
-        const result = discoverSkillExecutables({ slugRepo: 'ehmpathy' });
+        const result = discoverSkillExecutables({
+          repoPath: null,
+          slugRepo: 'ehmpathy',
+        });
         expect(result).toHaveLength(1);
         expect(result[0]?.slug).toBe('init.claude');
       });
@@ -340,7 +364,7 @@ describe('discoverSkillExecutables', () => {
 
     when('discovering skills', () => {
       then('finds the symlinked skill file', () => {
-        const result = discoverSkillExecutables({});
+        const result = discoverSkillExecutables({ repoPath: null });
         expect(result).toHaveLength(1);
         expect(result[0]?.slug).toBe('linked-skill');
       });
@@ -368,13 +392,15 @@ describe('discoverSkillExecutables', () => {
 
     when('discovering skills', () => {
       then('ignores broken symlink and finds valid skill', () => {
-        const result = discoverSkillExecutables({});
+        const result = discoverSkillExecutables({ repoPath: null });
         expect(result).toHaveLength(1);
         expect(result[0]?.slug).toBe('valid');
       });
 
       then('does not throw ENOENT error', () => {
-        expect(() => discoverSkillExecutables({})).not.toThrow();
+        expect(() =>
+          discoverSkillExecutables({ repoPath: null }),
+        ).not.toThrow();
       });
     });
   });
@@ -403,7 +429,7 @@ describe('discoverSkillExecutables', () => {
 
     when('discovering skills', () => {
       then('ignores broken symlink in nested directory', () => {
-        const result = discoverSkillExecutables({});
+        const result = discoverSkillExecutables({ repoPath: null });
         expect(result).toHaveLength(1);
         expect(result[0]?.slug).toBe('nested-valid');
       });
@@ -429,6 +455,7 @@ describe('discoverSkillExecutables', () => {
     when('filtering by slugRepo and slugRole', () => {
       then('returns only matching skill', () => {
         const result = discoverSkillExecutables({
+          repoPath: null,
           slugRepo: '.this',
           slugRole: 'mechanic',
         });
@@ -441,6 +468,7 @@ describe('discoverSkillExecutables', () => {
     when('filtering by all three: slugRepo, slugRole, slugSkill', () => {
       then('returns exact match', () => {
         const result = discoverSkillExecutables({
+          repoPath: null,
           slugRepo: 'ehmpathy',
           slugRole: 'mechanic',
           slugSkill: 'init',
