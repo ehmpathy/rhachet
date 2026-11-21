@@ -1,5 +1,8 @@
 import { ConstraintError } from 'helpful-errors';
 
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 /**
  * .what = the reads a pty-driven acceptance case takes off a rhachet render — the human
  *   FRAME off the tty stream, the machine PAYLOAD off the `--output json` channel, and the
@@ -87,40 +90,36 @@ export const asCliErrorFrameFromOutput = (input: {
 };
 
 /**
- * .what = the RAW trace line `genCloneSocketServer`'s `ready.catch` writes to stderr, pulled
- *   out of a pty stream — the unframed diagnostic a human reads ABOVE the rendered frame
- *
- * 🚨 .why it needs a readout of its own = `asCliErrorFrameFromOutput` spans from the glyph
- *   line down, so every line the enroll printed BEFORE the frame is dropped. that made this
- *   line invisible to every acceptance snapshot — a human sees it on a bind fault and no
- *   reviewer could. the frame readout is right to be a span; the cure is a second readout,
- *   never a widened first (raised by the r009 `behavior-friction-hazards` lane at i076).
- *
- * ⚠️ this readout takes NO position on whether the line should exist. it exists so the
- *   screen is legible in review — the trade that puts it there is litigated in
- *   `genCloneSocketServer`'s own `ready.catch` note, and it is a real cost stated as one.
- *
- * ⚠️ throws when absent, never returns null. a null would let a row pass empty on the very
- *   fault it was written to render (`rule.forbid.failhide`).
+ * .what = the clone daemon's trace log lines in a repo — every `daemon.<day>.log` under the
+ *   repo's clone-say cache dir, read whole and joined in filename (day) order
+ * .why = the daemon writes its trace lines to that log and never to the human's pane, so a
+ *   case that asserts a trace line was written reads it here, where an operator reads it
+ * .note = the dir is read by its published coordinates, never through a src import: the
+ *   location is part of the contract an operator relies on
+ * .note = throws when no log is there, never returns ''. an empty read would let a row pass on
+ *   the very fault it was written to trace (`rule.forbid.failhide`)
  */
-export const asCloneSocketTraceFromOutput = (input: {
-  output: string;
+export const asCloneDaemonTraceLogFromRepo = (input: {
+  repoPath: string;
 }): string => {
-  const lines = input.output.split('\n').map((line) => line.trimEnd());
-
-  // anchored on the emit's own opening words, which are the stable half of the line —
-  // its tail carries an errno and a socket path that vary by host and by run
-  const trace = lines.find((line) =>
-    line.includes('clone socket ready rejected with'),
-  );
-  if (!trace)
-    throw new ConstraintError('no clone socket trace line in output', {
-      hint: "the case may not have driven a `ready` rejection — only a bind fault, a chmod fault, or the bind bound reaches it. or `genCloneSocketServer`'s `ready.catch` was reworded or removed, in which case that change owes this readout's repair",
-      output: input.output.slice(0, 400),
+  const dir = join(input.repoPath, CLONE_DAEMON_TRACE_LOG_DIR_REL);
+  const names = existsSync(dir)
+    ? readdirSync(dir)
+        .filter((name) => /^daemon\.\d{4}-\d{2}-\d{2}\.log$/.test(name))
+        .sort()
+    : [];
+  if (names.length === 0)
+    throw new ConstraintError('no clone daemon trace log in the repo', {
+      hint: 'the case may not have reached the daemon, or the trace log moved; the log lives at <repo>/.agent/.cache/repo=rhachet/skill=clone-say/daemon.<day>.log',
+      dir,
     });
-
-  return trace;
+  return names.map((name) => readFileSync(join(dir, name), 'utf8')).join('');
 };
+
+/**
+ * .what = where the clone daemon's per-day trace logs live, relative to the repo root
+ */
+const CLONE_DAEMON_TRACE_LOG_DIR_REL = '.agent/.cache/repo=rhachet/skill=clone-say';
 
 /**
  * .what = the `asCloneReachBreadcrumb` treestruct, pulled out of a raw pty stream — its

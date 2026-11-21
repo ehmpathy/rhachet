@@ -356,7 +356,7 @@ describe('genCloneScreenFeed', () => {
       const traced: string[] = [];
       const feed = genCloneScreenFeed(
         { cols: 80, rows: 24 },
-        { emulator: faultEmulator, traceToStderr: (line) => traced.push(line) },
+        { emulator: faultEmulator, trace: (line) => traced.push(line) },
       );
       return { feed, traced };
     });
@@ -412,7 +412,7 @@ describe('genCloneScreenFeed', () => {
         { cols: 80, rows: 24 },
         {
           emulator: readFaultEmulator,
-          traceToStderr: (line) => traced.push(line),
+          trace: (line) => traced.push(line),
         },
       );
       feed.feed('now live');

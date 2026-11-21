@@ -3,9 +3,8 @@ import { MalfunctionError } from 'helpful-errors';
 import { chmodSync, unlinkSync } from 'node:fs';
 import { createServer, type Server, type Socket } from 'node:net';
 import { genCloneLoopLagWatch } from '../genCloneLoopLagWatch';
-import { getCloneTraceSink } from '../getCloneTraceSink';
+import { getOneCloneTraceSinkForDaemonAtCwd } from '../getOneCloneTraceSinkForDaemonAtCwd';
 import type { CloneScreenRead } from '../screen/genCloneScreenFeed';
-import { writeCloneTraceLine } from '../writeCloneTraceLine';
 import { asCloneDispatchAckFrame } from './asCloneDispatchAckFrame';
 import { asCloneDispatchFrame } from './asCloneDispatchFrame';
 import { asCloneDispatchFrameSplit } from './asCloneDispatchFrameSplit';
@@ -109,11 +108,14 @@ export const genCloneSocketServer = (
      *   the sink, and the only way to read the sink with no mock is to inject it.
      *
      * ⚠️ this is NOT `input.write` — that one writes INTO the child's pty and is the
-     *   dispatch path. this one is the operator's stderr and carries no dispatch.
+     *   dispatch path. this one is the daemon's durable trace log and carries no dispatch.
      *
-     * .note = the DEFAULT is the only value production uses, exactly as `bindTimeoutMs`
-     *   above. a `jest.spyOn(process.stderr, 'write')` would be a mock in an integration
-     *   test, which `rule.forbid.integration.mocks` forbids outright
+     * 🔴 the DEFAULT writes the trace log ONLY (`getOneCloneTraceSinkForDaemon`), never stderr:
+     *   an attended daemon's stderr is the human's pane, and a line there can be misread and
+     *   relayed to the clone as a prompt. the pty host passes its own instance of the same
+     *   sink, so the socket server, its write queue, and the screen feed share one gap record
+     * .note = a `jest.spyOn(process.stderr, 'write')` would be a mock in an integration test,
+     *   which `rule.forbid.integration.mocks` forbids outright — hence the injected seam
      */
     trace?: (line: string) => void;
   },
@@ -123,9 +125,9 @@ export const genCloneSocketServer = (
   ready: Promise<void>;
   close: () => Promise<void>;
 } => {
-  // the diagnostic trace sink — real stderr in prod, a capture in a clamp
-  const traceToStderr = getCloneTraceSink();
-  const trace = options?.trace ?? traceToStderr;
+  // the diagnostic trace sink — the durable trace log in prod, a capture in a clamp
+  const trace =
+    options?.trace ?? getOneCloneTraceSinkForDaemonAtCwd({ clone: null });
 
   // the queue BULK-writes each accepted message to the child in ONE pty write, then — once
   // it OBSERVES the content committed into the input box — writes the submit `\r`. a booted
@@ -136,73 +138,77 @@ export const genCloneSocketServer = (
   // ours to predict — so the daemon watches its own live screen for the content rather than
   // sleeps a guessed delay (awaitCloneSubmitReady). the queue AWAITS this whole sequence, so
   // the next message never overlaps this submit.
-  const queue = genCloneWriteQueue({
-    write: async ({ message, force }) => {
-      // the DEQUEUE gate — the read is current at the write now (the queue serialized this
-      // write, so a client-side probe taken before enqueue may be stale by up to the queue
-      // depth). the gate reads the rendered screen, classifies the input region, and withholds
-      // rather than paste blind (V3, case=2, case=6). the three-way decision is extracted so it
-      // is unit-testable apart from this socket + queue harness (computeCloneScreenDispatchGate)
-      // ⚠️ SETTLE before the read. the queue makes this read CURRENT WITH THE WRITE, which is
-      //   not the same as current with the CHILD: the emulator parses async off the child's
-      //   stream, so a read taken mid-parse sees a STALE grid. it can miss a human's
-      //   just-typed chars, classify the box `clear`, and let this write clobber the mid-type
-      //   — the exact case=2 hazard this gate exists to prevent. the settle awaits the
-      //   in-flight parse, so the classification reflects every byte received (fulcrum F10;
-      //   the drain semantics are MEASURED, `.agent/.notes/tool.probe-xterm-write-drain.js`)
-      await input.settle();
+  const queue = genCloneWriteQueue(
+    {
+      write: async ({ message, force }) => {
+        // the DEQUEUE gate — the read is current at the write now (the queue serialized this
+        // write, so a client-side probe taken before enqueue may be stale by up to the queue
+        // depth). the gate reads the rendered screen, classifies the input region, and withholds
+        // rather than paste blind (V3, case=2, case=6). the three-way decision is extracted so it
+        // is unit-testable apart from this socket + queue harness (computeCloneScreenDispatchGate)
+        // ⚠️ SETTLE before the read. the queue makes this read CURRENT WITH THE WRITE, which is
+        //   not the same as current with the CHILD: the emulator parses async off the child's
+        //   stream, so a read taken mid-parse sees a STALE grid. it can miss a human's
+        //   just-typed chars, classify the box `clear`, and let this write clobber the mid-type
+        //   — the exact case=2 hazard this gate exists to prevent. the settle awaits the
+        //   in-flight parse, so the classification reflects every byte received (fulcrum F10;
+        //   the drain semantics are MEASURED, `.agent/.notes/tool.probe-xterm-write-drain.js`)
+        await input.settle();
 
-      const gate = computeCloneScreenDispatchGate({
-        screen: input.read(),
-        message,
-        force,
-      });
-      if (!gate.proceed)
-        return { delivered: false as const, reason: gate.reason };
+        const gate = computeCloneScreenDispatchGate({
+          screen: input.read(),
+          message,
+          force,
+        });
+        if (!gate.proceed)
+          return { delivered: false as const, reason: gate.reason };
 
-      // the baseline count BEFORE the write — the submit waits for a RISE above it, never
-      // a presence, so a `--force` write into a box that already holds this text cannot
-      // submit early (the repo's rise rule, applied to the write path)
-      const countBefore = getCloneSubmitBaseline({
-        read: input.read,
-        message,
-      });
+        // the baseline count BEFORE the write — the submit waits for a RISE above it, never
+        // a presence, so a `--force` write into a box that already holds this text cannot
+        // submit early (the repo's rise rule, applied to the write path)
+        const countBefore = getCloneSubmitBaseline({
+          read: input.read,
+          message,
+        });
 
-      input.write(asCloneDispatchFrame({ message }));
+        input.write(asCloneDispatchFrame({ message }));
 
-      // hold the Enter until the content is OBSERVED committed into the box. the retired
-      // blind sleep guessed that interval and lost a bracketed paste outright; the daemon
-      // already holds the live screen, so the commit is watched rather than predicted. an
-      // unreadable feed degrades to that proven sleep (awaitCloneSubmitReady)
-      const ready = await awaitCloneSubmitReady({
-        read: input.read,
-        message,
-        countBefore,
-      });
+        // hold the Enter until the content is OBSERVED committed into the box. the retired
+        // blind sleep guessed that interval and lost a bracketed paste outright; the daemon
+        // already holds the live screen, so the commit is watched rather than predicted. an
+        // unreadable feed degrades to that proven sleep (awaitCloneSubmitReady)
+        const ready = await awaitCloneSubmitReady({
+          read: input.read,
+          message,
+          countBefore,
+        });
 
-      input.write(CLONE_SUBMIT);
+        input.write(CLONE_SUBMIT);
 
-      // confirm the Enter was TAKEN — a fresh TUI mid boot animation can swallow the one
-      // `\r`, which left the message in the box, unsent. re-send a bounded count of times
-      // while the box still holds it (awaitCloneSubmitTaken)
-      // 🔴 a brain-cli that EXITS on the submit (a `/exit`) took it — its exit is the proof.
-      //   so a dead child reads as an unfed screen, which ends the watch at once and acks
-      //   `delivered`, rather than re-send a `\r` into a defunct pty
-      await awaitCloneSubmitTaken({
-        read: () =>
-          input.isBrainCliAlive()
-            ? input.read()
-            : { live: false as const, reason: 'feed-not-live' as const },
-        message,
-        countBefore,
-        observedReady: ready.observed,
-        resubmit: () => {
-          if (input.isBrainCliAlive()) input.write(CLONE_SUBMIT);
-        },
-      });
-      return { delivered: true as const };
+        // confirm the Enter was TAKEN — a fresh TUI mid boot animation can swallow the one
+        // `\r`, which left the message in the box, unsent. re-send a bounded count of times
+        // while the box still holds it (awaitCloneSubmitTaken)
+        // 🔴 a brain-cli that EXITS on the submit (a `/exit`) took it — its exit is the proof.
+        //   so a dead child reads as an unfed screen, which ends the watch at once and acks
+        //   `delivered`, rather than re-send a `\r` into a defunct pty
+        await awaitCloneSubmitTaken({
+          read: () =>
+            input.isBrainCliAlive()
+              ? input.read()
+              : { live: false as const, reason: 'feed-not-live' as const },
+          message,
+          countBefore,
+          observedReady: ready.observed,
+          resubmit: () => {
+            if (input.isBrainCliAlive()) input.write(CLONE_SUBMIT);
+          },
+        });
+        return { delivered: true as const };
+      },
     },
-  });
+    // the queue's fault traces ride the same sink, so none of them reaches the pane
+    { trace },
+  );
 
   const reply = (
     socket: Socket,
@@ -394,8 +400,8 @@ export const genCloneSocketServer = (
     // a peer that hangs up mid-stream is NORMAL (EPIPE/ECONNRESET/ECONNABORTED) —
     // tear that connection down quietly, and never crash the server for the other
     // callers. but a swallow-all handler would hide a genuinely unexpected
-    // transport fault (EACCES, EBADF, …), so surface those to stderr first — they
-    // leave a trace to diagnose, then the socket is destroyed either way.
+    // transport fault (EACCES, EBADF, …), so trace those first — they leave a line in
+    // the trace log to diagnose, then the socket is destroyed either way.
     socket.on('error', (err) => {
       const code = (err as NodeJS.ErrnoException).code;
       const isPeerHangup =
@@ -426,7 +432,7 @@ export const genCloneSocketServer = (
   //
   //   ⚠️ it does not SWALLOW. the first fault rejects `ready`, which the caller reports
   //   through the classifier — to print it here too would double every enroll failure.
-  //   every fault PAST the first has no owner by construction, so it is written to stderr
+  //   every fault PAST the first has no owner by construction, so it is traced to the log
   //   rather than dropped: a trace, never a vanish (`rule.forbid.failhide`).
   // .note = deliberate mutation — two bindings local to this closure: whether `ready` has
   //   settled, and the handle that settles it. neither escapes
@@ -442,7 +448,7 @@ export const genCloneSocketServer = (
      * 🚨 the lockdown runs INSIDE the ready gate, never in `listen(path, cb)`'s callback:
      *   node registers that callback as one more `'listening'` listener, behind the gate's
      *   own, so it runs strictly AFTER `readySettled` is true. a lockdown fault there would
-     *   miss `failReady`, fall to the durable listener's bare-stderr branch, and leave the
+     *   miss `failReady`, fall to the durable listener's bare trace branch, and leave the
      *   caller's `await ready` already resolved — so the enroll emits its `🔌 reach this
      *   clone` breadcrumb for a server this code had just closed (`rule.forbid.failhide`),
      *   and `'chmod'`'s entry in `isCloneSocketBindFaultError`'s allowlist becomes a
@@ -512,8 +518,8 @@ export const genCloneSocketServer = (
         //   rather than lean on the next caller's stale-path delete
         //
         // ⚠️ ENOENT is the one errno allowed to pass: the file may never have been created,
-        //   and an absent file IS the state this seeks. every other errno is written to
-        //   stderr, so a genuine fs defect is never masked by the cleanup — but it does NOT
+        //   and an absent file IS the state this seeks. every other errno is traced to the
+        //   log, so a genuine fs defect is never masked by the cleanup — but it does NOT
         //   displace the rejection below, because the LOCKDOWN fault is the one the caller
         //   must act on and a promise settles exactly once (`rule.forbid.failhide`)
         try {
@@ -610,9 +616,10 @@ export const genCloneSocketServer = (
   //   marked malfunction — and an allowlist that skipped those would be silent in the exact
   //   scenario this handler exists for: no caller, so no report (`rule.forbid.failhide`)
   //
-  // ⚠️ it traces UNCONDITIONALLY, so an awaited fault is reported twice — one raw stderr line
-  //   ahead of the rendered frame. that second report is deliberate: do NOT add a claim latch
-  //   here (`rule.forbid.hidden-side-effects`)
+  // ⚠️ it traces UNCONDITIONALLY, so an awaited fault is reported twice — the rendered frame on
+  //   the human's screen, and one line in the trace log. that second report is deliberate, and
+  //   it never reaches the screen: do NOT add a claim latch here
+  //   (`rule.forbid.hidden-side-effects`)
   ready.catch((error) => {
     trace(
       `clone socket ready rejected with ${
@@ -651,33 +658,17 @@ export const genCloneSocketServer = (
     lagThresholdMs: CLONE_LOOP_LAG_THRESHOLD_MS,
   });
 
-  // 🔴 ONE liveness line per clone lifetime, to the DURABLE LOG ONLY — never stderr.
+  // 🔴 ONE liveness line per clone lifetime, to the DURABLE LOG — never stderr, which on an
+  //   attended daemon is the human's pane.
   // .why = the line exists to make the watch's SILENCE legible: an absent stall line and a
   //   watch that never ran produce the identical log, so a reader who concludes "the loop was
   //   healthy" from silence has inferred a mechanism from an outcome
   //   (`rule.forbid.mechanism-inferred-from-outcome`). that reader reads the LOG
-  // .why = stderr is the HUMAN'S TERMINAL, so a `trace` here was the wrong channel. a daemon
-  //   inherits the enroller's stderr (`genCloneEnrollDetached`: `stdio: ['ignore','pipe',
-  //   'inherit']`), so this line printed ABOVE the `😶 clone enrolled` header on every enroll —
-  //   diagnostic prose in the one line a human reads to learn the enroll worked
-  //   (`rule.forbid.surprises`). the operator channel and the human's screen are one fd here,
-  //   which is the claim `getCloneTraceSink`'s own docblock gets wrong
-  // .note = a fault of the durable write IS named on stderr, and that is no failhide of this
-  //   line — it reports that the line's ONLY copy was lost, which is the case a reader of the
-  //   log must know about before they read its silence as health
-  try {
-    writeCloneTraceLine({
-      repoPath: process.cwd(),
-      at: new Date(),
-      line: `clone daemon loop watch live (tick ${CLONE_LOOP_LAG_TICK_MS}ms, stall past ${CLONE_LOOP_LAG_THRESHOLD_MS}ms)\n`,
-    });
-  } catch (error) {
-    trace(
-      `clone daemon loop watch liveness line could not reach its durable log: ${
-        error instanceof Error ? error.message : String(error)
-      }\n`,
-    );
-  }
+  // .note = through `trace`, the one sink every daemon line takes, so it carries the same stamp
+  //   and the same fault policy (fallback, then a named gap) as the stall lines it vouches for
+  trace(
+    `clone daemon loop watch live (tick ${CLONE_LOOP_LAG_TICK_MS}ms, stall past ${CLONE_LOOP_LAG_THRESHOLD_MS}ms)\n`,
+  );
 
   const close = async (): Promise<void> => {
     loopLagWatch.stop();

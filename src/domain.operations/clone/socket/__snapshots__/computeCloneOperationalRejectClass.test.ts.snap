@@ -1,0 +1,19 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`computeCloneOperationalRejectClass given: the copy record when: read against the closed set then: the whole copy record is locked — a silent reword shows in review 1`] = `
+{
+  "auth-denied": "the caller is not the same unix user as the clone — a clone socket accepts only its own user; run the say as the user that enrolled the clone",
+  "auth-gate-timeout": "the clone could not confirm the caller is the same unix user within its bound (its \`ss\` peer-credential lookup did not settle) — the message was never written; retry, and if it recurs the host socket table is likely saturated (prune stale clones with \`rhx clone prune\`)",
+  "clone-drained": "the clone connection drained before the message was delivered",
+  "clone-stopped": "the clone is stopped",
+  "disallowed-control": "the message carries disallowed terminal control — send plain text",
+  "feed-faulted": "the clone screen feed faulted (its emulator threw), so the input read is in doubt — the say was withheld rather than pasted blind over the human; re-enroll the clone to rebuild the feed",
+  "frame-cap-exceeded": "the message exceeds the wire frame cap — send a shorter message",
+  "no-live-brain-cli": "no live brain-cli is behind this socket — the clone has exited; re-enroll it",
+  "not-a-say": "the dispatch request was not a say { message }",
+  "not-valid-json": "the dispatch request was not valid json",
+  "pty-write-fault": "the write to the clone pty faulted",
+  "queue-full": "the clone write queue is full — retry once the clone drains",
+  "server-fault": "the clone faulted while it handled the message — the message may not have been written; retry, and read the clone daemon trace (\`<repo>/.agent/.cache/repo=rhachet/skill=clone-say/daemon.<yyyy-mm-dd>.log\`, or \`<tmpdir>/rhachet.uid=<uid>/clone-trace/\` if that log was unwritable) for the line that names the throw",
+}
+`;

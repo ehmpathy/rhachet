@@ -16,6 +16,8 @@ exports[`rhx enroll reach surfaces (acceptance) given: [case1] a bare enroll wit
    └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50"
 `;
 
+exports[`rhx enroll reach surfaces (acceptance) given: [case1] a bare enroll with NO --as name when: [t0] the clone spawns without a name then: the daemon serves with no trace line on the pane, and its liveness line lands in the log 1`] = `"<iso> pid=<n> clone=@:<serial> clone daemon loop watch live (tick 1000ms, stall past 2000ms)"`;
+
 exports[`rhx enroll reach surfaces (acceptance) given: [case2] an enroll with --output json (the machine handoff) when: [t0] the machine reads stdout then: the json handoff shape is locked (machine contract) 1`] = `"{"outcome":"baked","serial":"__SERIAL__","slug":"super","socketEligible":true}"`;
 
 exports[`rhx enroll reach surfaces (acceptance) given: [case2c] a bare enroll (no --as) with --output json — the DEFAULT machine handoff when: [t0] the machine reads stdout then: the default json handoff shape is locked (slug=null machine contract) 1`] = `"{"outcome":"baked","serial":"__SERIAL__","slug":null,"socketEligible":true}"`;
@@ -106,8 +108,6 @@ exports[`rhx enroll reach surfaces (acceptance) given: [case7] an interactive en
 }"
 `;
 
-exports[`rhx enroll reach surfaces (acceptance) given: [case8] an interactive enroll where the addon loads, the device is granted, and the BIND faults when: [t0] the human reads their terminal then: the RAW trace line above the frame is locked too 1`] = `"clone socket ready rejected with a bind fault: listen EACCES: permission denied __SOCKET__"`;
-
 exports[`rhx enroll reach surfaces (acceptance) given: [case8] an interactive enroll where the addon loads, the device is granted, and the BIND faults when: [t0] the human reads their terminal then: the bind-fault frame is locked (visual spot-check) 1`] = `
 "💥 MalfunctionError: the reach socket is unavailable — its socket could not be bound
 
@@ -119,3 +119,5 @@ exports[`rhx enroll reach surfaces (acceptance) given: [case8] an interactive en
   "socketError": "listen EACCES: permission denied __SOCKET__"
 }"
 `;
+
+exports[`rhx enroll reach surfaces (acceptance) given: [case8] an interactive enroll where the addon loads, the device is granted, and the BIND faults when: [t0] the human reads their terminal then: the same fault lands in the daemon trace log, named 1`] = `"<iso> pid=<n> clone=@:<serial> clone socket ready rejected with a bind fault: listen EACCES: permission denied __SOCKET__"`;

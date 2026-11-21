@@ -88,11 +88,12 @@ describe('asCliErrorJson', () => {
     () => {
       // the two in-flight faults (wedged / exited-mid-dispatch) are thrown by sayClone
       // with a reachCause but NO reachState — so reachState alone reads them as a
-      // generic error (null). reachCause is the ONLY field that names them to a machine
-      const error = new ConstraintError(
+      // generic error (null). reachCause is the ONLY field that names them to a machine.
+      // a wedge is the server's to fix, so sayClone throws it as a MalfunctionError
+      const error = new MalfunctionError(
         'the clone accepted the connection but did not answer in time',
         {
-          hint: 'the brain may be busy — retry, or re-enroll if it stays unresponsive',
+          hint: 'the brain may be busy, or its daemon loop stalled — retry, and read the clone daemon trace (`<repo>/.agent/.cache/repo=rhachet/skill=clone-say/daemon.<yyyy-mm-dd>.log`, or `<tmpdir>/rhachet.uid=<uid>/clone-trace/` if that log was unwritable) for a stall line at that time; re-enroll if it stays unresponsive',
           reachCause: 'wedged',
         },
       );
@@ -500,10 +501,10 @@ describe('asCliErrorJson', () => {
             }),
           ),
           'reach, wedged — a cause with NO state': asSerialized(
-            new ConstraintError(
+            new MalfunctionError(
               'the clone accepted the connection but did not answer in time',
               {
-                hint: 'the brain may be busy — retry, or re-enroll if it stays unresponsive',
+                hint: 'the brain may be busy, or its daemon loop stalled — retry, and read the clone daemon trace (`<repo>/.agent/.cache/repo=rhachet/skill=clone-say/daemon.<yyyy-mm-dd>.log`, or `<tmpdir>/rhachet.uid=<uid>/clone-trace/` if that log was unwritable) for a stall line at that time; re-enroll if it stays unresponsive',
                 reachCause: 'wedged',
               },
             ),

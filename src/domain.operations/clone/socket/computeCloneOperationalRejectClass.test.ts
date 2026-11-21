@@ -132,6 +132,13 @@ describe('computeCloneOperationalRejectClass', () => {
           );
         },
       );
+
+      then(
+        'the whole copy record is locked — a silent reword shows in review',
+        () => {
+          expect(CLONE_OPERATIONAL_REJECT_COPY).toMatchSnapshot();
+        },
+      );
     });
   });
 

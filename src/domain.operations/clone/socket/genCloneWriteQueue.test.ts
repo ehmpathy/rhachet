@@ -258,14 +258,16 @@ describe('genCloneWriteQueue', () => {
           // clamp the trace so the fault leaves a loud trail (rule.forbid.failhide),
           // captured here rather than spilled to the real stderr
           const traced: string[] = [];
-          const queue = genCloneWriteQueue({
-            write: ({ message }) => {
-              if (message === 'boom') throw new Error('pty write faulted');
-              written.push(message);
-              return { delivered: true as const };
+          const queue = genCloneWriteQueue(
+            {
+              write: ({ message }) => {
+                if (message === 'boom') throw new Error('pty write faulted');
+                written.push(message);
+                return { delivered: true as const };
+              },
             },
-            traceToStderr: (line) => traced.push(line),
-          });
+            { trace: (line) => traced.push(line) },
+          );
 
           const phasesByMessage: Record<string, string[]> = {};
           await new Promise<void>((done) => {
@@ -324,17 +326,19 @@ describe('genCloneWriteQueue', () => {
             async () => {
               const written: string[] = [];
               const traced: string[] = [];
-              const queue = genCloneWriteQueue({
-                write: ({ message }) => {
-                  if (message === 'boom')
-                    // a genuine code bug, not a pty errno — the exact shape the mild
-                    // pty-write-fault trace must not hide behind
-                    throw new TypeError("cannot read 'x' of undefined");
-                  written.push(message);
-                  return { delivered: true as const };
+              const queue = genCloneWriteQueue(
+                {
+                  write: ({ message }) => {
+                    if (message === 'boom')
+                      // a genuine code bug, not a pty errno — the exact shape the mild
+                      // pty-write-fault trace must not hide behind
+                      throw new TypeError("cannot read 'x' of undefined");
+                    written.push(message);
+                    return { delivered: true as const };
+                  },
                 },
-                traceToStderr: (line) => traced.push(line),
-              });
+                { trace: (line) => traced.push(line) },
+              );
 
               const phasesByMessage: Record<string, string[]> = {};
               await new Promise<void>((done) => {

@@ -39,6 +39,10 @@ export const genPtyCloneHostDetached = (input: {
 }): PtyCloneHost => ({
   writeOut: input.writeOut,
 
+  // the mirror sink is the caller's and sync, with no terminal behind it; naught to switch,
+  //   no queue to drain
+  enterAsyncMirror: () => async () => undefined,
+
   // no human is at the keyboard of a detached clone. the host process's own stdin
   // belongs to whoever spawned it, so to pump it in would inject foreign bytes
   onInput: () => () => undefined,
