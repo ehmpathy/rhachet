@@ -14,6 +14,10 @@ usage:
   rhx test.acceptance.credfree --scope 'focus\\.acceptance' --maxWorkers 100%
 options:
   --scope       jest path regex for the suites to run (required)
+                🟡 it matches the ABSOLUTE path, worktree dir included: in
+                a worktree \`…feat-keyrack/\`, \`--scope 'keyrack'\` runs EVERY suite.
+                anchor it on the file name: 'keyrack\\.acceptance'.
+                a scope that matches the repo root is refused, exit 2
   --resnap      write snapshots (default: verify only, under --ci)
   --maxWorkers  jest width, e.g. 100% to go wide on an idle box
                 (default: a quarter of the cores, at least one, on a shared
@@ -39,7 +43,8 @@ guarantee:
 
 exports[`test.acceptance.credfree given: [case2] a call it must refuse when: [t0] --scope is absent then: it refuses with exit 2 and shows a scope to pass 1`] = `
 "✋ ConstraintError: --scope is required
-   └─ e.g. --scope 'focus\\.acceptance'
+   ├─ e.g. rhx test.acceptance.credfree --scope 'init\\.focus\\.acceptance'
+   └─ see rhx test.acceptance.credfree --help
 "
 `;
 
