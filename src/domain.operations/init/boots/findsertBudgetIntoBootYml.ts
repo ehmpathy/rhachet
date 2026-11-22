@@ -1,4 +1,5 @@
 import { computeBootMode } from '@src/domain.operations/role/computeBootMode';
+import { getOneRoleBootSpecOrFaultFromPath } from '@src/domain.operations/role/getOneRoleBootSpecOrFaultFromPath';
 import { parseBootYamlRaw } from '@src/domain.operations/role/parseBootYamlRaw';
 import { readOneBootSpecFile } from '@src/domain.operations/role/readOneBootSpecFile';
 
@@ -42,6 +43,14 @@ export const findsertBudgetIntoBootYml = (input: {
   pathToBoot: string;
 }): 'created' | 'extant' | 'absent' => {
   if (!existsSync(input.pathToBoot)) return 'absent';
+
+  // a spec that will not parse — bad yaml, a mixed mode, a stray `of:` — is left for its author;
+  //   the render sets it aside and names it (`rule.forbid.content-checks-that-halt-enroll`), so
+  //   this guard never halts the remedy path
+  const { fault } = getOneRoleBootSpecOrFaultFromPath({
+    pathToSpec: input.pathToBoot,
+  });
+  if (fault) return 'absent';
 
   // .note = a spec that vanishes after the check is classified as a caller race
   const content = readOneBootSpecFile({ pathToSpec: input.pathToBoot });

@@ -21,6 +21,9 @@ import { setBrainDirAuthMigrated } from '@src/domain.operations/actor/enrolled/s
 import { setBrainDirSettingsLayout } from '@src/domain.operations/actor/enrolled/setBrainDirSettingsLayout';
 import { asRoleRefsOfActorExpanded } from '@src/domain.operations/actor/manifest/asRoleRefsOfActorExpanded';
 import { getOneActorExpandedOfRepo } from '@src/domain.operations/actor/manifest/getOneActorExpandedOfRepo';
+import { asRoleContentDefectLabels } from '@src/domain.operations/boot/asRoleContentDefectLabels';
+import { asRoleContentDefectReceiptLines } from '@src/domain.operations/boot/asRoleContentDefectReceiptLines';
+import { asRoleSlugsOfSpecDefects } from '@src/domain.operations/boot/asRoleSlugsOfSpecDefects';
 import { assertRoleFociDeclared } from '@src/domain.operations/boot/assertRoleFociDeclared';
 import { getAllRolesAtFocusAlwaysShed } from '@src/domain.operations/boot/getAllRolesAtFocusAlwaysShed';
 import { setBrainDirBoot } from '@src/domain.operations/boot/setBrainDirBoot';
@@ -29,6 +32,7 @@ import { asBrainAuthState } from '@src/domain.operations/brain/auth/asBrainAuthS
 import { assertBrainAuthNotDead } from '@src/domain.operations/brain/auth/assertBrainAuthNotDead';
 import { getBrainAuthPath } from '@src/domain.operations/brain/auth/getBrainAuthPath';
 import { getSupportedBrainCommand } from '@src/domain.operations/brain/getSupportedBrainCommand';
+import { isCloneStopSweepArmed } from '@src/domain.operations/brains/isCloneStopSweepArmed';
 import { asCloneAccrualWarnLine } from '@src/domain.operations/clone/asCloneAccrualWarnLine';
 import { asCloneAddressFromHandoff } from '@src/domain.operations/clone/asCloneAddressFromHandoff';
 import { asCloneDetachHostArgv } from '@src/domain.operations/clone/asCloneDetachHostArgv';
@@ -717,12 +721,36 @@ const performEnroll = async (input: {
   //   stream a real fault must own. a render that FAILS still throws, loud, with its hint
   // .note = the spawn names `bootMdPath` as its system-prompt file, so a clone boots the
   //   exact file this render wrote and proved delivered
-  const { bootMdPath } = await setBrainDirBoot({
+  const { bootMdPath, defects } = await setBrainDirBoot({
     brainDir,
     roles: refsEnrolled,
     repoPath,
     scope: { kind: 'actor', actorExid: exid },
   });
+
+  // name each content defect the render set aside; the clone is still born, so it can repair
+  //   them (`rule.forbid.content-checks-that-halt-enroll`). stderr, as every enroll receipt is.
+  //   the arm is read for THIS clone: a clone whose roles drop the carrier's hook gets no hold
+  //   .note = the receipt ends on a blank line, as its peer receipts do, so the next block stands apart
+  const linesDefects = asRoleContentDefectReceiptLines(
+    { defects, for: 'clone' },
+    {
+      getIsSweepArmed: () =>
+        isCloneStopSweepArmed({
+          gitroot: repoPath,
+          roles: enrollment.roles,
+          isRepoActor: exid === getOneRepoActorExid({ repoPath }),
+        }),
+    },
+  );
+  if (linesDefects.length > 0) console.error([...linesDefects, ''].join('\n'));
+
+  // the same defects, for a machine caller: the json handoff carries them, so a supervisor of an
+  //   `--output json` or `--async` clone learns the clone boots degraded with no stderr parse
+  const factsDefects =
+    defects.length > 0
+      ? { defects: asRoleContentDefectLabels({ defects }) }
+      : {};
 
   // observe the shared login every clone reads, to say plainly when there is none (D13)
   //
@@ -770,6 +798,7 @@ const performEnroll = async (input: {
         refs: refsEnrolled,
         repoPath,
       }),
+      rolesAwaitRepair: asRoleSlugsOfSpecDefects({ defects }),
     }).forEach((line) => console.error(line));
 
   // refuse a clone that would boot into a dead shared login, before any spawn (case 2)
@@ -868,6 +897,7 @@ const performEnroll = async (input: {
           serial: result.clone.serial,
           slug,
           socketEligible: result.clone.socketEligible,
+          ...factsDefects,
         }),
       );
       return;
@@ -908,6 +938,7 @@ const performEnroll = async (input: {
         slug,
         socketEligible: result.clone.socketEligible,
         ...(accrual.warn ? { accrualWarn: accrual } : {}),
+        ...factsDefects,
       }),
     );
 

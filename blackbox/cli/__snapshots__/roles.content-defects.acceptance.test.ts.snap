@@ -1,0 +1,350 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx roles, content defects are held at the stop and never refuse (acceptance) given: [case1] a .this role with one orphan-min defect when: [t0] the onStop sweep runs then: the hold a clone reads is locked 1`] = `
+"🧢 roles cost --all --when hook.onStop
+   └─ ✋ ConstraintError: 1 role content defect, set aside at boot
+      └─ .agent/repo=.this/role=any/briefs/lost.md.min
+         └─ an orphan .md.min, skipped — restore its .md source, or delete the .md.min
+
+
+✋ ConstraintError: owned roles hold role content defects that a boot set aside
+
+{
+  "hint": "repair each file the readout names, then stop again",
+  "defects": [
+    ".agent/repo=.this/role=any/briefs/lost.md.min (orphan-min)"
+  ]
+}
+
+[args] roles,cost,--all,--when,hook.onStop
+
+"
+`;
+
+exports[`rhx roles, content defects are held at the stop and never refuse (acceptance) given: [case1] a .this role with one orphan-min defect when: [t1] a human runs the roster then: the receipt a human reads is locked 1`] = `
+"🟡 boot set aside 1 role content defect — each role still boots; each row names its fix
+   ├─ .agent/repo=.this/role=any/briefs/lost.md.min
+   │  └─ an orphan .md.min, skipped — restore its .md source, or delete the .md.min
+   └─ no stop sweep is armed in this repo, so no stop will hold on what it names"
+`;
+
+exports[`rhx roles, content defects are held at the stop and never refuse (acceptance) given: [case2] a .this role with one boundary-literal defect when: [t0] the onStop sweep runs then: the hold a clone reads is locked 1`] = `
+"🧢 roles cost --all --when hook.onStop
+   └─ ✋ ConstraintError: 1 role content defect, set aside at boot
+      └─ .agent/repo=.this/role=any/briefs/core.md
+         └─ holds the cache boundary literal, defanged — name it another way, e.g. "the system prompt boundary line"
+
+
+✋ ConstraintError: owned roles hold role content defects that a boot set aside
+
+{
+  "hint": "repair each file the readout names, then stop again",
+  "defects": [
+    ".agent/repo=.this/role=any/briefs/core.md (boundary-literal)"
+  ]
+}
+
+[args] roles,cost,--all,--when,hook.onStop
+
+"
+`;
+
+exports[`rhx roles, content defects are held at the stop and never refuse (acceptance) given: [case2] a .this role with one boundary-literal defect when: [t1] a human runs the roster then: the receipt a human reads is locked 1`] = `
+"🟡 boot set aside 1 role content defect — each role still boots; each row names its fix
+   ├─ .agent/repo=.this/role=any/briefs/core.md
+   │  └─ holds the cache boundary literal, defanged — name it another way, e.g. "the system prompt boundary line"
+   └─ no stop sweep is armed in this repo, so no stop will hold on what it names"
+`;
+
+exports[`rhx roles, content defects are held at the stop and never refuse (acceptance) given: [case3] a .this role with one spec-unparsed defect when: [t0] the onStop sweep runs then: the hold a clone reads is locked 1`] = `
+"🧢 roles cost --all --when hook.onStop
+   └─ ✋ ConstraintError: 1 role content defect, set aside at boot
+      └─ .agent/repo=.this/role=any/boot.yml
+         ├─ refused as a boot spec, so the role boots refs-only — repair what the row below names
+         └─ boot.yml has invalid yaml — Flow sequence in block collection must be sufficiently indented and end with a ] at line 4, column 1
+
+
+✋ ConstraintError: owned roles hold role content defects that a boot set aside
+
+{
+  "hint": "repair each file the readout names, then stop again",
+  "defects": [
+    ".agent/repo=.this/role=any/boot.yml (spec-unparsed)"
+  ]
+}
+
+[args] roles,cost,--all,--when,hook.onStop
+
+"
+`;
+
+exports[`rhx roles, content defects are held at the stop and never refuse (acceptance) given: [case3] a .this role with one spec-unparsed defect when: [t1] a human runs the roster then: the receipt a human reads is locked 1`] = `
+"🟡 boot set aside 1 role content defect — each role still boots; each row names its fix
+   ├─ .agent/repo=.this/role=any/boot.yml
+   │  ├─ refused as a boot spec, so the role boots refs-only — repair what the row below names
+   │  └─ boot.yml has invalid yaml — Flow sequence in block collection must be sufficiently indented and end with a ] at line 4, column 1
+   └─ a stop holds until each owned row is repaired"
+`;
+
+exports[`rhx roles, content defects are held at the stop and never refuse (acceptance) given: [case4.1] a linked package role whose said brief holds the cache boundary literal when: [t0] the onStop sweep runs then: the warn the brain-cli reads is one json line, its message locked 1`] = `
+"🧢 roles cost --all --when hook.onStop
+   └─ 🟡 1 linked role content defect, set aside at boot
+      └─ .agent/repo=fixturepkg/role=lint/briefs/core.md
+         ├─ holds the cache boundary literal, defanged — upgrade via rhx upgrade
+         ├─ or mod via a write to .agent/repo=.mods/role=lint/briefs/core.md plus a .agent/repo=.mods/role=lint/boot.yml with of: fixturepkg/lint that says the file, then rhx init --hooks
+         └─ or report boundary-literal in repo=fixturepkg/role=lint to the owner of the rhachet-roles-fixturepkg package"
+`;
+
+exports[`rhx roles, content defects are held at the stop and never refuse (acceptance) given: [case4.1] a linked package role whose said brief holds the cache boundary literal when: [t1] a human runs the roster then: the receipt a human reads is locked 1`] = `
+"🟡 boot set aside 1 role content defect — each role still boots; each row names its fix
+   ├─ .agent/repo=fixturepkg/role=lint/briefs/core.md
+   │  ├─ holds the cache boundary literal, defanged — upgrade via rhx upgrade
+   │  ├─ or mod via a write to .agent/repo=.mods/role=lint/briefs/core.md plus a .agent/repo=.mods/role=lint/boot.yml with of: fixturepkg/lint that says the file, then rhx init --hooks
+   │  └─ or report boundary-literal in repo=fixturepkg/role=lint to the owner of the rhachet-roles-fixturepkg package
+   └─ no stop sweep is armed in this repo, so no stop will hold on what it names"
+`;
+
+exports[`rhx roles, content defects are held at the stop and never refuse (acceptance) given: [case4.2] a linked package role whose boot.yml will not parse when: [t0] the onStop sweep runs then: the warn the brain-cli reads is one json line, its message locked 1`] = `
+"🧢 roles cost --all --when hook.onStop
+   └─ 🟡 1 linked role content defect, set aside at boot
+      └─ .agent/repo=fixturepkg/role=lint/boot.yml
+         ├─ refused as a boot spec, so the role boots refs-only — upgrade via rhx upgrade
+         ├─ or report spec-unparsed in repo=fixturepkg/role=lint to the owner of the rhachet-roles-fixturepkg package
+         └─ boot.yml has invalid yaml — Flow sequence in block collection must be sufficiently indented and end with a ] at line 4, column 1"
+`;
+
+exports[`rhx roles, content defects are held at the stop and never refuse (acceptance) given: [case4.2] a linked package role whose boot.yml will not parse when: [t1] a human runs the roster then: the receipt a human reads is locked 1`] = `
+"🟡 boot set aside 1 role content defect — each role still boots; each row names its fix
+   ├─ .agent/repo=fixturepkg/role=lint/boot.yml
+   │  ├─ refused as a boot spec, so the role boots refs-only — upgrade via rhx upgrade
+   │  ├─ or report spec-unparsed in repo=fixturepkg/role=lint to the owner of the rhachet-roles-fixturepkg package
+   │  └─ boot.yml has invalid yaml — Flow sequence in block collection must be sufficiently indented and end with a ] at line 4, column 1
+   └─ no stop sweep is armed in this repo, so no stop will hold on what it names"
+`;
+
+exports[`rhx roles, content defects are held at the stop and never refuse (acceptance) given: [case4] a linked package role with an orphan .md.min when: [t0] the onStop sweep runs then: the warn the brain-cli reads is one json line, its message locked 1`] = `
+"🧢 roles cost --all --when hook.onStop
+   └─ 🟡 1 linked role content defect, set aside at boot
+      └─ .agent/repo=fixturepkg/role=lint/briefs/gone.md.min
+         ├─ an orphan .md.min, skipped — upgrade via rhx upgrade
+         ├─ or mod via a write to .agent/repo=.mods/role=lint/briefs/gone.md plus a .agent/repo=.mods/role=lint/boot.yml with of: fixturepkg/lint that says the file, then rhx init --hooks
+         └─ or report orphan-min in repo=fixturepkg/role=lint to the owner of the rhachet-roles-fixturepkg package"
+`;
+
+exports[`rhx roles, content defects are held at the stop and never refuse (acceptance) given: [case4] a linked package role with an orphan .md.min when: [t1] a human runs the roster then: the receipt a human reads is locked 1`] = `
+"🟡 boot set aside 1 role content defect — each role still boots; each row names its fix
+   ├─ .agent/repo=fixturepkg/role=lint/briefs/gone.md.min
+   │  ├─ an orphan .md.min, skipped — upgrade via rhx upgrade
+   │  ├─ or mod via a write to .agent/repo=.mods/role=lint/briefs/gone.md plus a .agent/repo=.mods/role=lint/boot.yml with of: fixturepkg/lint that says the file, then rhx init --hooks
+   │  └─ or report orphan-min in repo=fixturepkg/role=lint to the owner of the rhachet-roles-fixturepkg package
+   └─ no stop sweep is armed in this repo, so no stop will hold on what it names"
+`;
+
+exports[`rhx roles, content defects are held at the stop and never refuse (acceptance) given: [case4] a linked package role with an orphan .md.min when: [t2] init rerenders every brain dir (vision case 8 [t0]) then: the linked rerender receipt is locked 1`] = `
+"🟡 boot set aside 1 role content defect — each role still boots; each row names its fix
+   ├─ .agent/repo=fixturepkg/role=lint/briefs/gone.md.min
+   │  ├─ an orphan .md.min, skipped — upgrade via rhx upgrade
+   │  ├─ or mod via a write to .agent/repo=.mods/role=lint/briefs/gone.md plus a .agent/repo=.mods/role=lint/boot.yml with of: fixturepkg/lint that says the file, then rhx init --hooks
+   │  └─ or report orphan-min in repo=fixturepkg/role=lint to the owner of the rhachet-roles-fixturepkg package
+   └─ no stop sweep is armed in this repo, so no stop will hold on what it names"
+`;
+
+exports[`rhx roles, content defects are held at the stop and never refuse (acceptance) given: [case5] an owned orphan in a role whose spec the roster costs when: [t0] a human runs the roster then: the tagged row and its receipt are locked 1`] = `
+"⋯ (roster header and rows cut)
+   ├─    176 tokens (no budget)  .agent/repo=.this/role=any/boot.yml  🟡 1 role content defect set aside
+⋯ (roster rows cut)
+
+🟡 boot set aside 1 role content defect — each role still boots; each row names its fix
+   ├─ .agent/repo=.this/role=any/briefs/lost.md.min
+   │  └─ an orphan .md.min, skipped — restore its .md source, or delete the .md.min
+   └─ no stop sweep is armed in this repo, so no stop will hold on what it names"
+`;
+
+exports[`rhx roles, content defects are held at the stop and never refuse (acceptance) given: [case6] a .this role that a mod also names (an identity refusal, F18) when: [t0] a human runs the roster then: the notice a human reads is locked 1`] = `
+"
+🟡 a boot spec could not be costed — it is absent from the roster below
+   ├─ spec  = .agent/repo=.this/role=any/boot.yml
+   ├─ fault = ✋ ConstraintError: the mod of role=any is refused: its \`of: .this/any\` names a role this repo owns
+   └─ hint  = repair what the fault names, or report it upstream where it is a linked role
+
+"
+`;
+
+exports[`rhx roles, content defects are held at the stop and never refuse (acceptance) given: [case7.2] a .this role whose one file is an orphan .md.min (F15 bound) when: [t0] a human boots the role alone then: the empty boot a human reads is locked 1`] = `
+"stdout:
+🧢 roles boot --repo .this --role any
+   └─ 🟡 no resources found — this boot emits naught
+
+stderr:
+"
+`;
+
+exports[`rhx roles, content defects are held at the stop and never refuse (acceptance) given: [case7] an orphan in a .this role that declares no boot.yml when: [t0] the onStop sweep runs then: the hold a clone reads is locked 1`] = `
+"🧢 roles cost --all --when hook.onStop
+   └─ ✋ ConstraintError: 1 role content defect, set aside at boot
+      └─ .agent/repo=.this/role=nospec/briefs/stray.md.min
+         └─ an orphan .md.min, skipped — restore its .md source, or delete the .md.min
+
+
+✋ ConstraintError: owned roles hold role content defects that a boot set aside
+
+{
+  "hint": "repair each file the readout names, then stop again",
+  "defects": [
+    ".agent/repo=.this/role=nospec/briefs/stray.md.min (orphan-min)"
+  ]
+}
+
+[args] roles,cost,--all,--when,hook.onStop
+
+"
+`;
+
+exports[`rhx roles, content defects are held at the stop and never refuse (acceptance) given: [case8.boundary-literal] a rerender over an owned boundary-literal defect (the sweep init, upgrade and roles link end on) when: [t0] init rerenders every brain dir then: the receipt a human reads is locked 1`] = `
+"🟡 boot set aside 1 role content defect — each role still boots; each row names its fix
+   ├─ .agent/repo=.this/role=any/briefs/core.md
+   │  └─ holds the cache boundary literal, defanged — name it another way, e.g. "the system prompt boundary line"
+   └─ a stop holds until each owned row is repaired"
+`;
+
+exports[`rhx roles, content defects are held at the stop and never refuse (acceptance) given: [case8.orphan-min] a rerender over an owned orphan-min defect (the sweep init, upgrade and roles link end on) when: [t0] init rerenders every brain dir then: the receipt a human reads is locked 1`] = `
+"🟡 boot set aside 1 role content defect — each role still boots; each row names its fix
+   ├─ .agent/repo=.this/role=any/briefs/lost.md.min
+   │  └─ an orphan .md.min, skipped — restore its .md source, or delete the .md.min
+   └─ a stop holds until each owned row is repaired"
+`;
+
+exports[`rhx roles, content defects are held at the stop and never refuse (acceptance) given: [case8.spec-mixed-modes] a budgeted role=any spec that parses as yaml but mixes two modes (the carrier of the sweep) when: [t0] init rerenders every brain dir then: the armed receipt is locked: it announces the hold the stop below prints 1`] = `
+"🟡 boot set aside 1 role content defect — each role still boots; each row names its fix
+   ├─ .agent/repo=.this/role=any/boot.yml
+   │  ├─ refused as a boot spec, so the role boots refs-only — repair what the row below names
+   │  └─ mixed mode not allowed — use either top-level briefs/skills OR always/subject, not both
+   └─ a stop holds until each owned row is repaired"
+`;
+
+exports[`rhx roles, content defects are held at the stop and never refuse (acceptance) given: [case8.spec-mixed-modes] a budgeted role=any spec that parses as yaml but mixes two modes (the carrier of the sweep) when: [t1] the onStop sweep runs then: the hold a clone reads is locked 1`] = `
+"🧢 roles cost --all --when hook.onStop
+   └─ ✋ ConstraintError: 1 role content defect, set aside at boot
+      └─ .agent/repo=.this/role=any/boot.yml
+         ├─ refused as a boot spec, so the role boots refs-only — repair what the row below names
+         └─ mixed mode not allowed — use either top-level briefs/skills OR always/subject, not both
+
+
+✋ ConstraintError: owned roles hold role content defects that a boot set aside
+
+{
+  "hint": "repair each file the readout names, then stop again",
+  "defects": [
+    ".agent/repo=.this/role=any/boot.yml (spec-unparsed)"
+  ]
+}
+
+[args] roles,cost,--all,--when,hook.onStop
+
+"
+`;
+
+exports[`rhx roles, content defects are held at the stop and never refuse (acceptance) given: [case8.spec-unparsed] a rerender over an owned spec-unparsed defect (the sweep init, upgrade and roles link end on) when: [t0] init rerenders every brain dir then: the receipt a human reads is locked 1`] = `
+"🟡 boot set aside 1 role content defect — each role still boots; each row names its fix
+   ├─ .agent/repo=.this/role=any/boot.yml
+   │  ├─ refused as a boot spec, so the role boots refs-only — repair what the row below names
+   │  └─ boot.yml has invalid yaml — Flow sequence in block collection must be sufficiently indented and end with a ] at line 4, column 1
+   └─ a stop holds until each owned row is repaired"
+`;
+
+exports[`rhx roles, content defects are held at the stop and never refuse (acceptance) given: [case9] an owned orphan in a role whose boot is past its budget when: [t0] the onStop sweep runs then: the hold a clone reads is locked 1`] = `
+"🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 boot spec over budget
+   │  └─ .agent/repo=.this/role=any/boot.yml (184 / 1 tokens)
+   │
+   ├─ some resources must go — you choose which
+   │  └─ rhx cost --what .agent/repo=.this/role=any/boot.yml   sorts every batch by what it costs
+   │
+   ├─ fix — four strategies, cheapest first
+   │  ├─ catalogize  replace a set with one catalog that indexes it
+   │  ├─ condense    author an x.md.min beside x.md
+   │  ├─ reference   move a say entry to ref (it stays addressable, costs its path line)
+   │  └─ eliminate   list what does not earn its boot under \`not\` (the file stays)
+   │
+   └─ ✋ ConstraintError: 1 role content defect, set aside at boot
+      └─ .agent/repo=.this/role=any/briefs/lost.md.min
+         └─ an orphan .md.min, skipped — restore its .md source, or delete the .md.min
+
+
+✋ ConstraintError: boot specs exceed their declared budget
+
+{
+  "hint": "trim a resource — catalogize a set, condense or ref a say entry, list one under \`not\` — or raise budget.tokens deliberately",
+  "specsOver": [
+    ".agent/repo=.this/role=any/boot.yml"
+  ],
+  "defects": [
+    ".agent/repo=.this/role=any/briefs/lost.md.min (orphan-min)"
+  ]
+}
+
+[args] roles,cost,--all,--when,hook.onStop
+
+"
+`;
+
+exports[`rhx roles, content defects are held at the stop and never refuse (acceptance) given: [case10] an owned orphan and a linked orphan together (vision case 6) when: [t0] the onStop sweep runs then: the hold a clone reads is locked, with the linked row absent 1`] = `
+"🧢 roles cost --all --when hook.onStop
+   └─ ✋ ConstraintError: 1 role content defect, set aside at boot
+      └─ .agent/repo=.this/role=any/briefs/lost.md.min
+         └─ an orphan .md.min, skipped — restore its .md source, or delete the .md.min
+
+
+✋ ConstraintError: owned roles hold role content defects that a boot set aside
+
+{
+  "hint": "repair each file the readout names, then stop again",
+  "defects": [
+    ".agent/repo=.this/role=any/briefs/lost.md.min (orphan-min)"
+  ]
+}
+
+[args] roles,cost,--all,--when,hook.onStop
+
+"
+`;
+
+exports[`rhx roles, content defects are held at the stop and never refuse (acceptance) given: [case11] the densest stop: three kinds, two owners, two readouts (vision row 16) when: [t0] the onStop sweep runs then: the densest hold a clone reads is locked 1`] = `
+"🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 boot spec over budget
+   │  └─ .agent/repo=.this/role=any/boot.yml (184 / 1 tokens)
+   │
+   ├─ some resources must go — you choose which
+   │  └─ rhx cost --what .agent/repo=.this/role=any/boot.yml   sorts every batch by what it costs
+   │
+   ├─ fix — four strategies, cheapest first
+   │  ├─ catalogize  replace a set with one catalog that indexes it
+   │  ├─ condense    author an x.md.min beside x.md
+   │  ├─ reference   move a say entry to ref (it stays addressable, costs its path line)
+   │  └─ eliminate   list what does not earn its boot under \`not\` (the file stays)
+   │
+   └─ ✋ ConstraintError: 2 role content defects, set aside at boot
+      ├─ .agent/repo=.this/role=any/briefs/lost.md.min
+      │  └─ an orphan .md.min, skipped — restore its .md source, or delete the .md.min
+      └─ .agent/repo=.this/role=broken/boot.yml
+         ├─ refused as a boot spec, so the role boots refs-only — repair what the row below names
+         └─ boot.yml has invalid yaml — Flow sequence in block collection must be sufficiently indented and end with a ] at line 3, column 1
+
+
+✋ ConstraintError: boot specs exceed their declared budget
+
+{
+  "hint": "trim a resource — catalogize a set, condense or ref a say entry, list one under \`not\` — or raise budget.tokens deliberately",
+  "specsOver": [
+    ".agent/repo=.this/role=any/boot.yml"
+  ],
+  "defects": [
+    ".agent/repo=.this/role=any/briefs/lost.md.min (orphan-min)",
+    ".agent/repo=.this/role=broken/boot.yml (spec-unparsed)"
+  ]
+}
+
+[args] roles,cost,--all,--when,hook.onStop
+
+"
+`;

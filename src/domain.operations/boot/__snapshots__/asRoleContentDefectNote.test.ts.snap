@@ -1,0 +1,7 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asRoleContentDefectNote given: [case3] a linked orphan-min defect when: [t0] the note is read then: the rows match the snapshot 1`] = `
+"an orphan .md.min, skipped — upgrade via rhx upgrade
+or mod via a write to .agent/repo=.mods/role=mechanic/briefs/gone.md plus a .agent/repo=.mods/role=mechanic/boot.yml with of: ehmpathy/mechanic that says the file, then rhx init --hooks
+or report orphan-min in repo=ehmpathy/role=mechanic to the owner of the rhachet-roles-ehmpathy package"
+`;

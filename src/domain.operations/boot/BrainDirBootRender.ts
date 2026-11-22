@@ -1,3 +1,5 @@
+import type { RoleContentDefect } from '@src/domain.objects/RoleContentDefect';
+
 import type { BootStats } from './BootStats';
 
 /**
@@ -33,6 +35,12 @@ export type BrainDirBootRender = {
    *        an identical re-render is not. like `bootMdCreated`, it is knowable only at write time
    */
   bootMdChanged: boolean;
+  /**
+   * .what = each content defect the render set aside, across every role
+   * .why = a content defect never halts a render (`rule.forbid.content-checks-that-halt-enroll`);
+   *        the caller prints one 🟡 receipt per defect, so the set-aside is never silent
+   */
+  defects: RoleContentDefect[];
 };
 
 /**

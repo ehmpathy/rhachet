@@ -1,4 +1,3 @@
-import glob from 'fast-glob';
 import { ConstraintError } from 'helpful-errors';
 
 import { BOOT_WALK_DIRS_SKIPPED } from '@src/domain.operations/role/briefs/constants';
@@ -8,6 +7,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { relative } from 'node:path';
 import { asBootFingerprintDigest } from './asBootFingerprintDigest';
+import { getAllRepoThisRoleDirs } from './getAllRepoThisRoleDirs';
 
 /**
  * .what = the reach the onStop budget hook sweeps — this repo's own roles, and no other
@@ -78,14 +78,8 @@ export const getOneRepoThisBootFingerprint = async (input: {
 const getAllRepoThisBootFingerprintLines = async (input: {
   cwd: string;
 }): Promise<string[]> => {
-  // find each `.this` role dir — one level, so no descent and no cycle
-  const dirsRole = await glob(['.agent/repo=.this/role=*'], {
-    cwd: input.cwd,
-    absolute: true,
-    onlyDirectories: true,
-    dot: true,
-    deep: 1,
-  });
+  // find each `.this` role dir, the same set the owned content scan renders
+  const dirsRole = await getAllRepoThisRoleDirs({ cwd: input.cwd });
 
   // walk each role dir with the payload's own walk and skip list, so the fingerprint reaches
   //   exactly the files `genBootPayload` measures. its realpath ancestor guard ends a symlink

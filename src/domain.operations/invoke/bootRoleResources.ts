@@ -2,12 +2,12 @@ import type { PickOne } from 'type-fns';
 
 import { asBootEmittedPayload } from '@src/domain.operations/boot/asBootEmittedPayload';
 import { asBootSubjectFlagSuffix } from '@src/domain.operations/boot/asBootSubjectFlagSuffix';
+import { asRoleContentDefectReceiptLines } from '@src/domain.operations/boot/asRoleContentDefectReceiptLines';
 import { assertBootWithinBudget } from '@src/domain.operations/boot/assertBootWithinBudget';
 import { emitBootPayloadDrained } from '@src/domain.operations/boot/emitBootPayloadDrained';
 import { genBootPayload } from '@src/domain.operations/boot/genBootPayload';
 import { getOneBootBudgetRung } from '@src/domain.operations/boot/getOneBootBudgetRung';
 import { getOneBootSource } from '@src/domain.operations/boot/getOneBootSource';
-
 /**
  * .what = boots resources (readme, briefs, skills) from a role default or a declared manifest
  * .why = outputs resources with stats for context load
@@ -99,6 +99,22 @@ export const bootRoleResources = async ({
   //
   // ⇒ the exact cost of an uncapped payload is answerable by the command whose job that is:
   //   `roles cost`, per spec, or `roles cost --all` across the repo.
+
+  // name each content defect the render set aside, on stderr: stdout is the payload a brain
+  //   reads, byte for byte, and a set-aside with no notice is a failhide
+  //   (`rule.forbid.content-checks-that-halt-enroll`)
+  // .note = the arm read loads the hook-sync graph, so it loads only where a defect was set
+  //   aside; a clean boot, the common case, pays no extra load (`rule.require.thinnest-import-path`)
+  if (payload.defects.length > 0) {
+    const { isRepoStopSweepArmed } = await import(
+      '../brains/isRepoStopSweepArmed'
+    );
+    const linesDefects = asRoleContentDefectReceiptLines(
+      { defects: payload.defects, for: 'human' },
+      { getIsSweepArmed: () => isRepoStopSweepArmed({ gitroot: cwd }) },
+    );
+    console.error([...linesDefects, ''].join('\n'));
+  }
 
   // emit the payload: stats header, body, stats footer
   //

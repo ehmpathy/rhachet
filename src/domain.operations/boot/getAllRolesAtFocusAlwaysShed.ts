@@ -1,5 +1,5 @@
 import type { RoleLinkRefAtFocus } from '@src/domain.objects/RoleLinkRefAtFocus';
-import { getOneRoleBootSpecFromRef } from '@src/domain.operations/role/getOneRoleBootSpecFromRef';
+import { getOneRoleBootSpecOrDefectFromRef } from '@src/domain.operations/role/getOneRoleBootSpecOrDefectFromRef';
 
 import { isAlwaysShed } from './isAlwaysShed';
 
@@ -9,6 +9,7 @@ import { isAlwaysShed } from './isAlwaysShed';
  *        surprise to the human who enrolled the focus
  *
  * .note = only a focused ref reads its spec; a whole role never sheds
+ * .note = a spec that will not parse renders whole, refs-only, so it sheds naught
  */
 export const getAllRolesAtFocusAlwaysShed = (input: {
   refs: RoleLinkRefAtFocus[];
@@ -17,12 +18,14 @@ export const getAllRolesAtFocusAlwaysShed = (input: {
   input.refs
     .filter((ref) => ref.subjects !== null)
     .filter((ref) => {
-      const config = getOneRoleBootSpecFromRef({
+      const { spec, defect } = getOneRoleBootSpecOrDefectFromRef({
         ref,
         repoPath: input.repoPath,
       });
       return (
-        config !== null && isAlwaysShed({ config, subjects: ref.subjects })
+        !defect &&
+        spec !== null &&
+        isAlwaysShed({ config: spec, subjects: ref.subjects })
       );
     })
     .map((ref) => ref.role);

@@ -1,8 +1,9 @@
 import { ConstraintError } from 'helpful-errors';
-import { getError, given, then, when } from 'test-fns';
+import { getError, given, then, useBeforeAll, when } from 'test-fns';
 
 import { genSampleRepoWithRoles } from '@src/.test/assets/genSampleRepoWithRoles';
 import { ContextCli } from '@src/domain.objects/ContextCli';
+import { findsertActorOndisk } from '@src/domain.operations/actor/enrolled/findsertActorOndisk';
 
 import { chmodSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -126,4 +127,94 @@ describe('syncAndReportBrainDirBoots', () => {
       );
     });
   });
+
+  given(
+    '[case4] the repo actor and a declared peer share a role that holds an orphan .md.min',
+    () => {
+      const scene = useBeforeAll(async () => {
+        const roles = [
+          { repo: 'fixture', role: 'any' },
+          { repo: 'fixture', role: 'omega' },
+        ];
+        const repoPath = genSampleRepoWithRoles({
+          slug: 'sweep-defect-shared',
+          roles,
+          gitignore: '.agent/.actors/\n',
+        });
+        writeFileSync(
+          join(repoPath, 'package.json'),
+          JSON.stringify({ name: 'sweep-defect-shared', private: true }),
+        );
+        writeFileSync(
+          join(repoPath, '.agent', 'actors.yml'),
+          [
+            "ambient: '@crew'",
+            'actor:',
+            '  - slug: crew',
+            '    brain: claude',
+            '    roles: [fixture/any, fixture/omega]',
+            '  - slug: peer',
+            '    brain: claude',
+            '    roles: [fixture/omega]',
+            '',
+          ].join('\n'),
+        );
+        writeFileSync(
+          join(
+            repoPath,
+            '.agent',
+            'repo=fixture',
+            'role=omega',
+            'briefs',
+            'gone.md.min',
+          ),
+          '# gone\n',
+        );
+        // a stale peer record, so the sweep re-derives the peer and renders its corpus too
+        await findsertActorOndisk(
+          {
+            repoPath,
+            brain: 'claude',
+            roles: ['any'],
+            delta: 'any',
+            reason: null,
+            exidDeclared: 'slug=peer',
+            logEnrollment: false,
+          },
+          { repo: { ambient: { exid: 'slug=crew', roles: ['any'] } } },
+        );
+        return { repoPath };
+      });
+
+      when('[t0] the sweep runs', () => {
+        const stderr = useBeforeAll(async () => {
+          const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
+          await syncAndReportBrainDirBoots(
+            {
+              repoPath: scene.repoPath,
+              env: genShimEnv({ dir: scene.repoPath, version: '2.1.277' }),
+            },
+            new ContextCli({ cwd: scene.repoPath, gitroot: scene.repoPath }),
+          );
+          const lines = spy.mock.calls.map((call) => String(call[0]));
+          spy.mockRestore();
+          return { text: lines.join('\n') };
+        });
+
+        then(
+          'the receipt names the shared defect once, never once per actor',
+          () => {
+            expect(stderr.text).toContain(
+              '🟡 boot set aside 1 role content defect',
+            );
+            expect(
+              stderr.text.split(
+                '.agent/repo=fixture/role=omega/briefs/gone.md.min',
+              ).length - 1,
+            ).toEqual(1);
+          },
+        );
+      });
+    },
+  );
 });

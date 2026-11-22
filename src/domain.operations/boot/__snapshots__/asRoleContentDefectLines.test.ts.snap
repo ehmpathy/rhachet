@@ -1,0 +1,9 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asRoleContentDefectLines given: [case3] two defects when: [t0] the lines are rendered under an indent then: the lines match the snapshot 1`] = `
+"   ├─ .agent/repo=.this/role=any/briefs/lost.md.min
+   │  └─ an orphan .md.min, skipped — restore its .md source, or delete the .md.min
+   └─ .agent/repo=.this/role=lint/boot.yml
+      ├─ refused as a boot spec, so the role boots refs-only — repair what the row below names
+      └─ boot.yml has invalid yaml"
+`;

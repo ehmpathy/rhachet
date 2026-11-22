@@ -62,19 +62,19 @@ describe('genOneRepoThisBootBudgetVerdict', () => {
 
     when('[t0] the verdict is first asked', () => {
       then('it reports naught over budget, from a fresh sweep', () => {
-        expect(scene.first).toEqual({ over: [], memo: 'miss' });
+        expect(scene.first).toEqual({ over: [], defects: [], memo: 'miss' });
       });
     });
 
     when('[t1] the verdict is asked again with naught changed', () => {
       then('it returns the memoized clean verdict', () => {
-        expect(scene.second).toEqual({ over: [], memo: 'hit' });
+        expect(scene.second).toEqual({ over: [], defects: [], memo: 'hit' });
       });
     });
 
     when('[t2] the verdict is asked after an edit to a brief', () => {
       then('the memo is voided and the sweep reruns', () => {
-        expect(scene.third).toEqual({ over: [], memo: 'miss' });
+        expect(scene.third).toEqual({ over: [], defects: [], memo: 'miss' });
       });
     });
   });
@@ -144,7 +144,7 @@ describe('genOneRepoThisBootBudgetVerdict', () => {
 
       when('[t0] the verdict is asked before the rewrite', () => {
         then('it reports naught over budget', () => {
-          expect(scene.first).toEqual({ over: [], memo: 'miss' });
+          expect(scene.first).toEqual({ over: [], defects: [], memo: 'miss' });
         });
       });
 
@@ -161,6 +161,44 @@ describe('genOneRepoThisBootBudgetVerdict', () => {
             expect(scene.second.over).toHaveLength(1);
           },
         );
+      });
+    },
+  );
+
+  given(
+    '[case4] a .this role within budget that holds an orphan .md.min',
+    () => {
+      const scene = useBeforeAll(async () => {
+        const { repo, pathToBrief } = genRepoWithRoleAnyBoot({
+          slug: 'repo-this-verdict-orphan',
+          budgetTokens: 50_000,
+        });
+        writeFileSync(
+          `${pathToBrief.slice(0, -'core.md'.length)}lost.md.min`,
+          '# lost\n',
+        );
+        const first = await genOneRepoThisBootBudgetVerdict({ cwd: repo });
+        const second = await genOneRepoThisBootBudgetVerdict({ cwd: repo });
+        return { first, second };
+      });
+
+      when('[t0] the verdict is first asked', () => {
+        then('it names the orphan as a content defect', () => {
+          expect(scene.first.over).toEqual([]);
+          expect(scene.first.defects.map((one) => one.kind)).toEqual([
+            'orphan-min',
+          ]);
+          expect(scene.first.defects[0]?.pathToFile).toEqual(
+            '.agent/repo=.this/role=any/briefs/lost.md.min',
+          );
+        });
+      });
+
+      when('[t1] the verdict is asked again with naught changed', () => {
+        then('🔴 it sweeps again — a defect verdict is never memoized', () => {
+          expect(scene.second.memo).toEqual('miss');
+          expect(scene.second.defects).toHaveLength(1);
+        });
       });
     },
   );

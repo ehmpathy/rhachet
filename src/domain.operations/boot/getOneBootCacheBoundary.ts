@@ -9,6 +9,15 @@ import { BOOT_STATS_ZERO, type BootStats } from './BootStats';
 export const BOOT_CACHE_BOUNDARY_LINE = '__SYSTEM_PROMPT_DYNAMIC_BOUNDARY__';
 
 /**
+ * .what = the form the boundary literal takes once a role file's copy is set aside
+ * .why = a role file that holds the literal would split the cache at the wrong place; the
+ *        render replaces each copy with this text, which holds zero copies of the literal, so
+ *        the corpus count check still proves the render placed exactly one
+ */
+export const BOOT_CACHE_BOUNDARY_DEFANGED =
+  '[rhachet: a copy of the cache boundary literal, set aside]';
+
+/**
  * .what = the boundary as a boot body with a zero census, in the shape of a role's
  * .why = the corpus joins bodies; the boundary joins the same way, between the published
  *        roles and the `repo=.this` roles

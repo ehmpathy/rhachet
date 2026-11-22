@@ -3,6 +3,8 @@ import { getError, given, then, useBeforeAll, when } from 'test-fns';
 
 import { genSampleRepoWithSubjects } from '@src/.test/assets/genSampleRepoWithSubjects';
 
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { assertRoleFociDeclared } from './assertRoleFociDeclared';
 
 describe('assertRoleFociDeclared', () => {
@@ -80,5 +82,33 @@ describe('assertRoleFociDeclared', () => {
         );
       },
     );
+  });
+
+  given('[case2] a focused role whose boot.yml will not parse', () => {
+    const scene = useBeforeAll(async () => {
+      const repoPath = genSampleRepoWithSubjects({
+        slug: 'assertRoleFociDeclared-c2',
+      });
+      writeFileSync(
+        join(repoPath, '.agent', 'repo=.this', 'role=any', 'boot.yml'),
+        'subjects:\n  flow: [unclosed\n',
+      );
+      return { repoPath };
+    });
+
+    when('[t0] the focus is checked before the birth', () => {
+      then(
+        'it never halts: the spec is content, and the render names it',
+        () => {
+          expect(() =>
+            assertRoleFociDeclared({
+              refs: [{ repo: '.this', role: 'any', subjects: ['flow'] }],
+              rolesFocusTyped: ['any'],
+              repoPath: scene.repoPath,
+            }),
+          ).not.toThrow();
+        },
+      );
+    });
   });
 });

@@ -1,4 +1,3 @@
-import { ConstraintError } from 'helpful-errors';
 import {
   genTempDir,
   getError,
@@ -9,6 +8,7 @@ import {
 } from 'test-fns';
 
 import { genSampleFileTree } from '@src/.test/assets/genSampleFileTree';
+import { getAllRepoThisRoleContentDefects } from '@src/domain.operations/boot/getAllRepoThisRoleContentDefects';
 
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -133,17 +133,19 @@ describe('getAllRepoThisRolesWithHooks', () => {
   });
 
   given('[case5] a malformed boot.yml beside a budgeted one', () => {
-    const scene = useBeforeAll(async () => ({
-      result: getAllRepoThisRolesWithHooks({
-        gitroot: genRepoWithRoleBoots({
-          slug: 'repo-this-hooks-malformed',
-          roles: {
-            any: BOOT_YML_BUDGETED,
-            broken: 'budget:\n  tokens: lots\n',
-          },
-        }),
-      }),
-    }));
+    const scene = useBeforeAll(async () => {
+      const gitroot = genRepoWithRoleBoots({
+        slug: 'repo-this-hooks-malformed',
+        roles: {
+          any: BOOT_YML_BUDGETED,
+          broken: 'budget:\n  tokens: lots\n',
+        },
+      });
+      return {
+        result: getAllRepoThisRolesWithHooks({ gitroot }),
+        defects: await getAllRepoThisRoleContentDefects({ cwd: gitroot }),
+      };
+    });
 
     when('[t0] the roles are read', () => {
       then('the gate is still armed by the healthy role', () => {
@@ -151,32 +153,81 @@ describe('getAllRepoThisRolesWithHooks', () => {
       });
 
       then(
-        'the malformed role is returned as a ConstraintError, never a throw',
+        'the malformed role is a content defect: it raises no sync error',
         () => {
-          expect(scene.result.errors).toHaveLength(1);
-          expect(scene.result.errors[0]?.roleSlug).toEqual('broken');
-          expect(scene.result.errors[0]?.error).toBeInstanceOf(ConstraintError);
+          expect(scene.result.errors).toEqual([]);
+        },
+      );
+
+      then(
+        'the stop sweep names the malformed spec, with the parser line',
+        () => {
+          // the error moved, never vanished: the sweep and its receipt name it
+          //   (`rule.forbid.content-checks-that-halt-enroll`)
+          const defect = scene.defects.find(
+            (one) =>
+              one.pathToFile === '.agent/repo=.this/role=broken/boot.yml',
+          );
+          expect(defect?.kind).toEqual('spec-unparsed');
+          expect(defect?.detail).toBeTruthy();
         },
       );
     });
   });
 
   given('[case6] a boot.yml that is not valid yaml', () => {
+    const scene = useBeforeAll(async () => {
+      const gitroot = genRepoWithRoleBoots({
+        slug: 'repo-this-hooks-badyaml',
+        roles: { any: 'budget: [unclosed\n' },
+      });
+      return {
+        result: getAllRepoThisRolesWithHooks({ gitroot }),
+        defects: await getAllRepoThisRoleContentDefects({ cwd: gitroot }),
+      };
+    });
+
+    when('[t0] the roles are read', () => {
+      then(
+        'it arms the sweep on itself, since its budget is unknown, not absent (F17)',
+        () => {
+          expect(
+            scene.result.roles.map((role) => [role.repo, role.slug]),
+          ).toEqual([['.this', 'any']]);
+        },
+      );
+
+      then('it raises no sync error, so a rerender never halts on it', () => {
+        expect(scene.result.errors).toEqual([]);
+      });
+
+      then('the stop sweep names the spec with the yaml fault', () => {
+        expect(scene.defects.map((one) => [one.kind, one.pathToFile])).toEqual([
+          ['spec-unparsed', '.agent/repo=.this/role=any/boot.yml'],
+        ]);
+        expect(scene.defects[0]?.detail).toContain('invalid yaml');
+      });
+    });
+  });
+
+  given('[case6.1] a boot.yml that parses as yaml but mixes two modes', () => {
     const scene = useBeforeAll(async () => ({
       result: getAllRepoThisRolesWithHooks({
         gitroot: genRepoWithRoleBoots({
-          slug: 'repo-this-hooks-badyaml',
-          roles: { any: 'budget: [unclosed\n' },
+          slug: 'repo-this-hooks-mixedmode',
+          roles: {
+            any: 'briefs:\n  say:\n    - briefs/a.md\nalways:\n  briefs:\n    say:\n      - briefs/a.md\n',
+          },
         }),
       }),
     }));
 
     when('[t0] the roles are read', () => {
-      then('it returns a yaml error for that role, never a throw', () => {
-        expect(scene.result.roles).toEqual([]);
-        expect(scene.result.errors[0]?.error.message).toContain(
-          'boot.yml has invalid yaml',
-        );
+      then('it arms the sweep on itself, with no sync error', () => {
+        expect(
+          scene.result.roles.map((role) => [role.repo, role.slug]),
+        ).toEqual([['.this', 'any']]);
+        expect(scene.result.errors).toEqual([]);
       });
     });
   });

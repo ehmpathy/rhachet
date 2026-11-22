@@ -1,0 +1,34 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asRoleContentDefectReceiptLines given: [case2] a render that set one of each kind aside when: [t0] the receipt renders then: the receipt matches its snapshot 1`] = `
+"🟡 boot set aside 3 role content defects — the clone still boots; each row names its fix
+   ├─ .agent/repo=.this/role=any/briefs/lost.md.min
+   │  └─ an orphan .md.min, skipped — restore its .md source, or delete the .md.min
+   ├─ .agent/repo=.this/role=any/briefs/core.md
+   │  └─ holds the cache boundary literal, defanged — name it another way, e.g. "the system prompt boundary line"
+   ├─ .agent/repo=.this/role=lint/boot.yml
+   │  ├─ refused as a boot spec, so the role boots refs-only — repair what the row below names
+   │  └─ boot.yml has invalid yaml
+   └─ a stop holds this clone until each owned row is repaired"
+`;
+
+exports[`asRoleContentDefectReceiptLines given: [case2] a render that set one of each kind aside when: [t1] the receipt renders in a repo that arms no stop sweep then: the receipt matches its snapshot 1`] = `
+"🟡 boot set aside 3 role content defects — the clone still boots; each row names its fix
+   ├─ .agent/repo=.this/role=any/briefs/lost.md.min
+   │  └─ an orphan .md.min, skipped — restore its .md source, or delete the .md.min
+   ├─ .agent/repo=.this/role=any/briefs/core.md
+   │  └─ holds the cache boundary literal, defanged — name it another way, e.g. "the system prompt boundary line"
+   ├─ .agent/repo=.this/role=lint/boot.yml
+   │  ├─ refused as a boot spec, so the role boots refs-only — repair what the row below names
+   │  └─ boot.yml has invalid yaml
+   └─ no stop sweep is armed for this clone, so this receipt is the one notice"
+`;
+
+exports[`asRoleContentDefectReceiptLines given: [case3.1] only linked defects, in a repo that arms a stop sweep when: [t0] the receipt renders then: the armed, linked-only receipt is locked 1`] = `
+"🟡 boot set aside 1 role content defect — the clone still boots; each row names its fix
+   ├─ .agent/repo=ehmpathy/role=mechanic/briefs/gone.md.min
+   │  ├─ an orphan .md.min, skipped — upgrade via rhx upgrade
+   │  ├─ or mod via a write to .agent/repo=.mods/role=mechanic/briefs/gone.md plus a .agent/repo=.mods/role=mechanic/boot.yml with of: ehmpathy/mechanic that says the file, then rhx init --hooks
+   │  └─ or report orphan-min in repo=ehmpathy/role=mechanic to the owner of the rhachet-roles-ehmpathy package
+   └─ each row is a linked role, so a stop names them and holds on none"
+`;

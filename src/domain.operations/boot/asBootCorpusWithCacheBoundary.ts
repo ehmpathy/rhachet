@@ -3,7 +3,6 @@ import { MalfunctionError } from 'helpful-errors';
 import type { RoleLinkRef } from '@src/domain.objects/RoleLinkRef';
 
 import { asBootCorpus } from './asBootCorpus';
-import { assertRoleBootsFreeOfCacheBoundary } from './assertRoleBootsFreeOfCacheBoundary';
 import type { BootStats } from './BootStats';
 import {
   BOOT_CACHE_BOUNDARY_LINE,
@@ -14,20 +13,16 @@ import { getOneRhachetBootIntro } from './getOneRhachetBootIntro';
 /**
  * .what = join the rendered roles into one boot corpus: the intro, the published roles, the
  *   boundary line, then the `repo=.this` roles
- * .why = the boundary's three duties live in one pure function: refuse a role body that holds
- *   the literal, place the line once between the two groups, and prove the joined corpus holds
- *   it exactly as many times as wanted
+ * .why = the boundary's two duties live in one pure function: place the line once between the
+ *   two groups, and prove the joined corpus holds it exactly as many times as wanted
  * .note = no local tail, no boundary: a corpus of published roles alone is one stable block
+ * .note = a role file's own copy of the literal never reaches here: the role render defangs it
+ *   (`asBootSayResourcesDefanged`), so a copy found by the count check is the render's own fault
  */
 export const asBootCorpusWithCacheBoundary = (input: {
   published: { ref: RoleLinkRef; body: string; stats: BootStats }[];
   local: { ref: RoleLinkRef; body: string; stats: BootStats }[];
 }): { body: string; stats: BootStats } => {
-  // refuse a role body that holds the boundary line
-  assertRoleBootsFreeOfCacheBoundary({
-    roles: [...input.published, ...input.local],
-  });
-
   // the rhachet intro leads; the boundary line parts the stable prefix from the local tail
   const isLocalTailPresent = input.local.length > 0;
   const corpus = asBootCorpus({

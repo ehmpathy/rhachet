@@ -1,0 +1,97 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx enroll, content defects never halt a clone birth (integration) given: [case1] a .this role with one orphan-min defect when: [t0] a clone is enrolled then: the receipt a human reads is locked 1`] = `
+"🟡 boot set aside 1 role content defect — the clone still boots; each row names its fix
+   ├─ .agent/repo=.this/role=any/briefs/lost.md.min
+   │  └─ an orphan .md.min, skipped — restore its .md source, or delete the .md.min
+   └─ no stop sweep is armed for this clone, so this receipt is the one notice"
+`;
+
+exports[`rhx enroll, content defects never halt a clone birth (integration) given: [case2] a .this role with one boundary-literal defect when: [t0] a clone is enrolled then: the receipt a human reads is locked 1`] = `
+"🟡 boot set aside 1 role content defect — the clone still boots; each row names its fix
+   ├─ .agent/repo=.this/role=any/briefs/core.md
+   │  └─ holds the cache boundary literal, defanged — name it another way, e.g. "the system prompt boundary line"
+   └─ no stop sweep is armed for this clone, so this receipt is the one notice"
+`;
+
+exports[`rhx enroll, content defects never halt a clone birth (integration) given: [case3] a .this role with one spec-unparsed defect when: [t0] a clone is enrolled then: the receipt a human reads is locked 1`] = `
+"🟡 boot set aside 1 role content defect — the clone still boots; each row names its fix
+   ├─ .agent/repo=.this/role=any/boot.yml
+   │  ├─ refused as a boot spec, so the role boots refs-only — repair what the row below names
+   │  └─ boot.yml has invalid yaml — Flow sequence in block collection must be sufficiently indented and end with a ] at line 4, column 1
+   └─ a stop holds this clone until each owned row is repaired"
+`;
+
+exports[`rhx enroll, content defects never halt a clone birth (integration) given: [case4] a boundary literal defect, at the boot corpus when: [t0] the corpus is read then: the defanged block the brain reads is locked 1`] = `
+"<brief.say path=".agent/repo=.this/role=any/briefs/core.md">
+# core
+
+the render splits the prompt at this line:
+
+\`\`\`
+[rhachet: a copy of the cache boundary literal, set aside]
+\`\`\`
+
+</brief.say>"
+`;
+
+exports[`rhx enroll, content defects never halt a clone birth (integration) given: [case5] an unparseable boot.yml, at the boot corpus when: [t0] the corpus is read then: the refs-only lines the brain reads are locked 1`] = `"<brief.ref path=".agent/repo=.this/role=any/briefs/core.md"/>"`;
+
+exports[`rhx enroll, content defects never halt a clone birth (integration) given: [case6] a linked package role with an orphan .md.min when: [t0] a clone is enrolled then: the receipt a human reads is locked 1`] = `
+"🟡 boot set aside 1 role content defect — the clone still boots; each row names its fix
+   ├─ .agent/repo=fixturepkg/role=lint/briefs/gone.md.min
+   │  ├─ an orphan .md.min, skipped — upgrade via rhx upgrade
+   │  ├─ or mod via a write to .agent/repo=.mods/role=lint/briefs/gone.md plus a .agent/repo=.mods/role=lint/boot.yml with of: fixturepkg/lint that says the file, then rhx init --hooks
+   │  └─ or report orphan-min in repo=fixturepkg/role=lint to the owner of the rhachet-roles-fixturepkg package
+   └─ no stop sweep is armed for this clone, so this receipt is the one notice"
+`;
+
+exports[`rhx enroll, content defects never halt a clone birth (integration) given: [case7.1] an armed repo, and a clone whose roles drop the carrier (vision row 20.1) when: [t0] a clone is enrolled with \`--roles -any\` then: the receipt a clone without the carrier reads is locked 1`] = `
+"🟡 boot set aside 1 role content defect — the clone still boots; each row names its fix
+   ├─ .agent/repo=.this/role=side/briefs/lost.md.min
+   │  └─ an orphan .md.min, skipped — restore its .md source, or delete the .md.min
+   └─ no stop sweep is armed for this clone, so this receipt is the one notice"
+`;
+
+exports[`rhx enroll, content defects never halt a clone birth (integration) given: [case7] an owned orphan in a repo that arms the stop sweep (a budget) when: [t0] a clone is enrolled then: the armed receipt a clone reads is locked 1`] = `
+"🟡 boot set aside 1 role content defect — the clone still boots; each row names its fix
+   ├─ .agent/repo=.this/role=any/briefs/lost.md.min
+   │  └─ an orphan .md.min, skipped — restore its .md source, or delete the .md.min
+   └─ a stop holds this clone until each owned row is repaired"
+`;
+
+exports[`rhx enroll, content defects never halt a clone birth (integration) given: [case8] a focused enroll on a role whose boot.yml will not parse when: [t0] a clone is enrolled with a focus on that role then: the receipt a focused enroll prints is locked 1`] = `
+"🟡 boot set aside 1 role content defect — the clone still boots; each row names its fix
+   ├─ .agent/repo=.this/role=any/boot.yml
+   │  ├─ refused as a boot spec, so the role boots refs-only — repair what the row below names
+   │  └─ boot.yml has invalid yaml — Flow sequence in block collection must be sufficiently indented and end with a ] at line 4, column 1
+   └─ a stop holds this clone until each owned row is repaired"
+`;
+
+exports[`rhx enroll, content defects never halt a clone birth (integration) given: [case9] an owned orphan, enrolled by a machine caller (--output json) when: [t0] a supervisor enrolls with the machine handoff then: the machine handoff a supervisor parses is locked 1`] = `
+"{"outcome":"baked","serial":"__SERIAL__","slug":null,"socketEligible":true,"defects":[".agent/repo=.this/role=any/briefs/lost.md.min (orphan-min)"]}
+"
+`;
+
+exports[`rhx enroll, content defects never halt a clone birth (integration) given: [case10] an owned orphan, enrolled as a detached host (--async) when: [t0] the clone is enrolled detached then: the detached receipt is locked 1`] = `
+"🟡 boot set aside 1 role content defect — the clone still boots; each row names its fix
+   ├─ .agent/repo=.this/role=any/briefs/lost.md.min
+   │  └─ an orphan .md.min, skipped — restore its .md source, or delete the .md.min
+   └─ no stop sweep is armed for this clone, so this receipt is the one notice"
+`;
+
+exports[`rhx enroll, content defects never halt a clone birth (integration) given: [case12] mixed defects: a linked orphan, an owned orphan, and an owned spec that will not parse beside an orphan (vision case 6) when: [t0] a clone is enrolled then: the mixed receipt a clone reads is locked 1`] = `
+"🟡 boot set aside 4 role content defects — the clone still boots; each row names its fix
+   ├─ .agent/repo=fixturepkg/role=lint/briefs/gone.md.min
+   │  ├─ an orphan .md.min, skipped — upgrade via rhx upgrade
+   │  ├─ or mod via a write to .agent/repo=.mods/role=lint/briefs/gone.md plus a .agent/repo=.mods/role=lint/boot.yml with of: fixturepkg/lint that says the file, then rhx init --hooks
+   │  └─ or report orphan-min in repo=fixturepkg/role=lint to the owner of the rhachet-roles-fixturepkg package
+   ├─ .agent/repo=.this/role=any/briefs/lost.md.min
+   │  └─ an orphan .md.min, skipped — restore its .md source, or delete the .md.min
+   ├─ .agent/repo=.this/role=side/briefs/lost.md.min
+   │  └─ an orphan .md.min, skipped — restore its .md source, or delete the .md.min
+   ├─ .agent/repo=.this/role=side/boot.yml
+   │  ├─ refused as a boot spec, so the role boots refs-only — repair what the row below names
+   │  └─ boot.yml has invalid yaml — Flow sequence in block collection must be sufficiently indented and end with a ] at line 4, column 1
+   └─ a stop holds this clone until each owned row is repaired"
+`;

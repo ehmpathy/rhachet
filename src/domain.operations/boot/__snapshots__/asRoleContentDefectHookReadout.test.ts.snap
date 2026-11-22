@@ -1,0 +1,14 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asRoleContentDefectHookReadout given: [case1] the stop hold over owned defects when: [t0] the readout renders then: the readout matches its snapshot 1`] = `
+"🧢 roles cost --all --when hook.onStop
+   └─ ✋ ConstraintError: 3 role content defects, set aside at boot
+      ├─ .agent/repo=.this/role=any/briefs/lost.md.min
+      │  └─ an orphan .md.min, skipped — restore its .md source, or delete the .md.min
+      ├─ .agent/repo=.this/role=any/briefs/core.md
+      │  └─ holds the cache boundary literal, defanged — name it another way, e.g. "the system prompt boundary line"
+      └─ .agent/repo=.this/role=lint/boot.yml
+         ├─ refused as a boot spec, so the role boots refs-only — repair what the row below names
+         └─ boot.yml has invalid yaml
+"
+`;

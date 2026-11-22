@@ -1,4 +1,5 @@
 import type { ContextCli } from '@src/domain.objects/ContextCli';
+import type { RoleContentDefect } from '@src/domain.objects/RoleContentDefect';
 import { REPO_ACTOR_EXID } from '@src/domain.operations/actor/enrolled/constants';
 import { getOneRepoActorExid } from '@src/domain.operations/actor/enrolled/getOneRepoActorExid';
 import { getAllRepoActorRoleRefs } from '@src/domain.operations/actor/manifest/getAllRepoActorRoleRefs';
@@ -30,6 +31,9 @@ import { syncActiveActorBrainDirs } from './syncActiveActorBrainDirs';
  *         moved and dropped. it is null on a repo actor failure, where no link was made
  * .note = `settings` names what the repo actor's settings layout findsert did; null on a
  *         repo actor failure
+ * .note = `defectsDeclared` names each content defect a declared actor's re-derive render set
+ *         aside, in actor order; that render is no member of `renders`, so the caller adds
+ *         them to its one receipt
  * .note = `modsChanged` names each role whose modded view this sync rewrote, so the caller
  *         can tell the author that live clones keep their prior boot (usecase 8)
  * .note = `modsReverted` names each role whose mod is gone, now returned to its published form
@@ -47,6 +51,7 @@ export const syncBootsForBrainDirs = async (
   failures: BrainDirBootFailure[];
   symlink: BrainDirSyncSymlink | null;
   settings: ReturnType<typeof asRepoActorBrainDirOutcome>['settings'];
+  defectsDeclared: RoleContentDefect[];
   modsChanged: string[];
   modsReverted: string[];
   modsUnplaced: Array<{ role: string; error: Error }>;
@@ -115,7 +120,7 @@ export const syncBootsForBrainDirs = async (
         },
         context,
       )
-    : { failures: [] };
+    : { failures: [], defects: [] };
 
   // each active actor; its own failures are already collected per scope
   const actorOutcome = await syncActiveActorBrainDirs({
@@ -142,6 +147,7 @@ export const syncBootsForBrainDirs = async (
       now: repoActorOutcome.symlink,
     }),
     settings: repoActorOutcome.settings,
+    defectsDeclared: declaredOutcome.defects,
     modsChanged,
     modsReverted,
     modsUnplaced,

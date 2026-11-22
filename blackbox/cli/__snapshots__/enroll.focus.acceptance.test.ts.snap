@@ -139,19 +139,19 @@ exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case6] a nati
    └─ lean sheds its always block, as its focus declares — its always briefs and skills do not boot"
 `;
 
-exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case6] a native role whose small subject opts out of always when: [t1] the subject misspells the key as \`inherits\` (K2) then: the refusal matches its snapshot 1`] = `
-"
-✋ ConstraintError: boot.yml declares an \`always\` inheritance under a key no render reads — as written, the subject still boots \`always\`
+exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case6] a native role whose small subject opts out of always when: [t1] the subject misspells the key as \`inherits\` (K2) then: the receipt matches its snapshot 1`] = `
+"🟡 boot set aside 1 role content defect — the clone still boots; each row names its fix
+   ├─ .agent/repo=.this/role=lean/boot.yml
+   │  ├─ refused as a boot spec, so the role boots refs-only — repair what the row below names
+   │  └─ boot.yml declares an \`always\` inheritance under a key no render reads — a render would ignore it, so the subject would boot \`always\` — rename \`inherits\` to \`inherit\`
+   └─ a stop holds this clone until each owned row is repaired
 
-{
-  "hint": "rename \`inherits\` to \`inherit\` in /TMP_TEST_DIR/.agent/repo=.this/role=lean/boot.yml; if the role is a package you do not own, report it to that package, and enroll without this role (\`--roles -<role>\`) until its fix ships — every boot of the role reads this file",
-  "path": "/TMP_TEST_DIR/.agent/repo=.this/role=lean/boot.yml",
-  "section": "subject.tiny",
-  "key": "inherits",
-  "expected": "inherit"
-}
+🧢 focus
+   └─ lean focused at ::tiny, which takes effect once its boot.yml is repaired
 
-[args] enroll,claude,--roles,lean::tiny
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
 
 "
 `;

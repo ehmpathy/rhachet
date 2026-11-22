@@ -1,5 +1,7 @@
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { RoleDelta } from '@src/domain.objects/RoleDelta';
+import { asRoleSlugsOfSpecDefects } from '@src/domain.operations/boot/asRoleSlugsOfSpecDefects';
+import { getAllRoleSpecDefectsOfRefs } from '@src/domain.operations/boot/getAllRoleSpecDefectsOfRefs';
 import { getAllRolesAtFocusAlwaysShed } from '@src/domain.operations/boot/getAllRolesAtFocusAlwaysShed';
 import { getAllLinkedRoleRefs } from '@src/domain.operations/role/getAllLinkedRoleRefs';
 import { getRoleDeltasOfKind } from '@src/domain.operations/roles/deltas/getRoleDeltasOfKind';
@@ -47,6 +49,14 @@ export const setInitRoleFoci = async (
     alwaysShed: getAllRolesAtFocusAlwaysShed({
       refs: asRoleRefsAtFocus({ refs: refsLinkedAfter, foci: recorded.foci }),
       repoPath: context.gitroot,
+    }),
+    // a role whose spec will not parse boots refs-only, so its focus reads as not yet in effect;
+    //   the rerender receipt that follows names the spec and its fix
+    rolesAwaitRepair: asRoleSlugsOfSpecDefects({
+      defects: getAllRoleSpecDefectsOfRefs({
+        refs: refsLinkedAfter,
+        repoPath: context.gitroot,
+      }),
     }),
   });
   return { lines };

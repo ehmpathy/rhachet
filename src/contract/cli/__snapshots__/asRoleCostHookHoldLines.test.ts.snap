@@ -1,0 +1,18 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asRoleCostHookHoldLines given: [case2] two readouts, a budget breach then a content defect when: [t0] the hold is composed then: the frame is locked 1`] = `
+"🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 boot spec over budget
+   │  └─ .agent/repo=.this/role=any/boot.yml (9k / 1k tokens)
+   │
+   ├─ fix — four strategies, cheapest first
+   │  ├─ catalogize  replace a set with one catalog that indexes it
+   │  ├─ condense    author an x.md.min beside x.md
+   │  ├─ reference   move a say entry to ref (it stays addressable, costs its path line)
+   │  └─ eliminate   list what does not earn its boot under \`not\` (the file stays)
+   │
+   └─ ✋ ConstraintError: 1 role content defect, set aside at boot
+      └─ .agent/repo=.this/role=any/briefs/lost.md.min
+         └─ an orphan .md.min, skipped — restore its .md source, or delete the .md.min
+"
+`;

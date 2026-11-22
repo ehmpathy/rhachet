@@ -236,22 +236,23 @@ exports[`rhachet roles cost given: [case5] a flag set that addresses no boot whe
 "
 `;
 
-exports[`rhachet roles cost given: [case6] a role dir with an orphan .md.min when: [t0] roles cost --repo .this --role any then: the refusal renders as snapshotted — on STDERR: stderr-orphan-min 1`] = `
-"
-✋ ConstraintError: orphan .md.min file(s) detected without .md source:
-  - /TMP_REPO/.agent/repo=.this/role=any/briefs/orphan.md.min
+exports[`rhachet roles cost given: [case6] a role dir with an orphan .md.min when: [t0] roles cost --repo .this --role any then: the cost report of a role that holds an orphan is locked: stdout-orphan-min 1`] = `
+"🧢 roles cost --repo .this --role any
+   ├─ tokens  = 178 (full emitted payload, o200k_base)
+   ├─ budget  = none declared — this boot is uncapped
+   ├─ batches = 1 say · 0 ref
+   ├─ chrome  = 142 tokens (79.8%) — stats blocks, xml, join seams
+   │
+   └─ where the tokens go
+      └─ 36  20.2%  .agent/repo=.this/role=any/readme.md
 
-each .md.min file must have a matched .md source file.
+   .note = the column plus chrome is the total. chrome is the renderer's own floor —
+           no edit to a say or ref entry reaches it.
 
-{
-  "hint": "a .md.min is derived from its .md source — restore the absent .md, or delete the orphan .md.min",
-  "orphanPaths": [
-    "/TMP_REPO/.agent/repo=.this/role=any/briefs/orphan.md.min"
-  ]
-}
-
-[args] roles,cost,--repo,.this,--role,any
-
+🟡 boot set aside 1 role content defect — each role still boots; each row names its fix
+   ├─ .agent/repo=.this/role=any/briefs/orphan.md.min
+   │  └─ an orphan .md.min, skipped — restore its .md source, or delete the .md.min
+   └─ no stop sweep is armed in this repo, so no stop will hold on what it names
 "
 `;
 
@@ -357,12 +358,12 @@ exports[`rhachet roles cost given: [case9] a repo with one spec under, one over,
 "
 `;
 
-exports[`rhachet roles cost given: [case10] a repo where one spec cannot be parsed when: [t0] roles cost --all then: the fault block renders as snapshotted — on STDERR: stderr-all-unreadable 1`] = `
+exports[`rhachet roles cost given: [case10.1] a repo where a route manifest, not a role spec, cannot be parsed when: [t0] roles cost --all then: the stderr notice is locked: stderr-all-unreadable-manifest 1`] = `
 "
-🟡 a boot spec could not be read — it is absent from the roster below
-   ├─ spec  = .agent/repo=.this/role=broken/boot.yml
+🟡 a boot spec could not be costed — it is absent from the roster below
+   ├─ spec  = .behavior/v2026_01_01.route/boot.yml
    ├─ fault = ✋ ConstraintError: boot.yml has invalid yaml
-   └─ hint: repair the spec, or report it upstream where it is a linked role
+   └─ hint  = repair what the fault names, or report it upstream where it is a linked role
 
 "
 `;
@@ -379,6 +380,12 @@ exports[`rhachet roles cost given: [case10] a repo where one spec cannot be pars
 
    .note = a spec outside these paths is not swept. name it directly to cost it —
            \`roles cost --what <path>\`.
+
+🟡 boot set aside 1 role content defect — each role still boots; each row names its fix
+   ├─ .agent/repo=.this/role=broken/boot.yml
+   │  ├─ refused as a boot spec, so the role boots refs-only — repair what the row below names
+   │  └─ boot.yml has invalid yaml — Block collections are not allowed within flow collections at line 12, column 10
+   └─ a stop holds until each owned row is repaired
 
 "
 `;

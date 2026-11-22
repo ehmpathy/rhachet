@@ -51,8 +51,7 @@ export const setBrainDirBoot = async (input: {
     Promise.all(local.map(renderOne)),
   ]);
 
-  // join the corpus around the boundary line, before any write; a role body that holds the
-  //   literal is refused here
+  // join the corpus around the boundary line, before any write
   const corpus = asBootCorpusWithCacheBoundary({
     published: contentsPublished,
     local: contentsLocal,
@@ -92,5 +91,8 @@ export const setBrainDirBoot = async (input: {
     agentsMdReset,
     bootMdCreated,
     bootMdChanged,
+    defects: [...contentsPublished, ...contentsLocal].flatMap(
+      (one) => one.defects,
+    ),
   };
 };

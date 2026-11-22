@@ -7,7 +7,11 @@ describe('asRoleFocusReceiptLines', () => {
     when('[t0] the receipt renders', () => {
       then('naught renders, so an unfocused enroll prints as it did', () => {
         expect(
-          asRoleFocusReceiptLines({ changes: [], alwaysShed: [] }),
+          asRoleFocusReceiptLines({
+            changes: [],
+            alwaysShed: [],
+            rolesAwaitRepair: [],
+          }),
         ).toEqual([]);
       });
     });
@@ -22,6 +26,7 @@ describe('asRoleFocusReceiptLines', () => {
         { role: 'architect', kind: 'widen', from: ['terms'], to: null },
       ],
       alwaysShed: ['mechanic'],
+      rolesAwaitRepair: [],
     });
 
     when('[t0] the receipt renders', () => {
@@ -52,6 +57,7 @@ describe('asRoleFocusReceiptLines', () => {
         { role: 'mechanic', kind: 'unchanged', from: ['flow'], to: ['flow'] },
       ],
       alwaysShed: [],
+      rolesAwaitRepair: [],
     });
 
     when('[t0] the receipt renders', () => {
@@ -64,6 +70,29 @@ describe('asRoleFocusReceiptLines', () => {
 
       then('the receipt matches its snapshot', () => {
         expect(lines.join('\n')).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case4] a focus on a role whose boot spec the render refused', () => {
+    const lines = asRoleFocusReceiptLines({
+      changes: [
+        { role: 'lean', kind: 'given', from: null, to: ['tiny'] },
+        { role: 'reviewer', kind: 'given', from: null, to: ['flow'] },
+      ],
+      alwaysShed: [],
+      rolesAwaitRepair: ['lean'],
+    });
+
+    when('[t0] the receipt renders', () => {
+      then('that focus reads as recorded, not yet in effect', () => {
+        expect(lines).toContain(
+          '   ├─ lean focused at ::tiny, which takes effect once its boot.yml is repaired',
+        );
+      });
+
+      then('a focus on a sound role reads as applied', () => {
+        expect(lines).toContain('   └─ reviewer focused at ::flow');
       });
     });
   });

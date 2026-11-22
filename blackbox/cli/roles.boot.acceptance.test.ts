@@ -302,18 +302,62 @@ describe('rhachet roles boot', () => {
         }),
       );
 
-      then('exits with non-zero status', () => {
-        expect(result.status).not.toEqual(0);
+      then('the boot is never halted on a content defect: exit 0', () => {
+        // an orphan is never a ref, so the boot skips it; the stop sweep names it
+        //   (`rule.forbid.content-checks-that-halt-enroll`)
+        expect(result.status).toEqual(0);
       });
 
-      then('stderr names the orphan file', () => {
+      then('the orphan is absent from the payload', () => {
+        expect(result.stdout).not.toContain('orphan.md.min');
+      });
+
+      then('stderr names the orphan on a 🟡 receipt, beside the payload', () => {
+        // the set-aside is still said aloud (`rule.forbid.failhide`): on stderr, since stdout is
+        //   the payload a brain reads
+        expect(result.stderr).toContain('🟡 boot set aside 1 role content defect');
         expect(result.stderr).toContain('orphan.md.min');
+        expect(result.stderr).toContain('restore its .md source, or delete the .md.min');
       });
 
-      then('the refusal renders as snapshotted — on STDERR', () => {
-        // .readout = `asSnapshotSafe` over raw STDERR — no error-readout wrapper
+      then('the payload of a role that holds an orphan is locked', () => {
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot(
+          'stdout-orphan-min',
+        );
+      });
+
+      then('the receipt of a role that holds an orphan is locked', () => {
         expect(asSnapshotSafe(result.stderr)).toMatchSnapshot(
           'stderr-orphan-min',
+        );
+      });
+    });
+  });
+
+  given('[case6.1] repo whose role boot.yml will not parse', () => {
+    const repo = useBeforeAll(async () => {
+      const made = await genTestTempRepo({ fixture: 'with-boot-spec-unreadable' });
+      return made;
+    });
+
+    when('[t0] roles boot --repo .this --role broken', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['roles', 'boot', '--repo', '.this', '--role', 'broken'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('the boot refuses: a boot reads the spec strict, since no clone is born here (F16)', () => {
+        expect(result.status).toEqual(2);
+        expect(result.stderr).toContain('ConstraintError');
+        expect(result.stderr).toContain('boot.yml');
+      });
+
+      then('the refusal is locked', () => {
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot(
+          'stderr-spec-unparsed',
         );
       });
     });

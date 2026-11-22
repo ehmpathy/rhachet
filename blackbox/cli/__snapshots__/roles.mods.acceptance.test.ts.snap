@@ -1352,10 +1352,10 @@ exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.4]
 exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.4] a mod that holds a readme when: [t0] init renders the view, then the sweep runs and the role is booted then: the sweep stdout and stderr match their snapshot 1`] = `
 {
   "stderr": "
-🟡 a boot spec could not be read — it is absent from the roster below
+🟡 a boot spec could not be costed — it is absent from the roster below
    ├─ spec  = .agent/repo=test/role=surfer/boot.yml
    ├─ fault = ✋ ConstraintError: the mod of role=surfer is refused: it holds readme.md, a kind a mod cannot change
-   └─ hint: repair the spec, or report it upstream where it is a linked role
+   └─ hint  = repair what the fault names, or report it upstream where it is a linked role
 
 ",
   "stdout": "🧢 0 boot specs priced — 1 withheld by a mod (named below)
@@ -1430,10 +1430,10 @@ exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.5]
 exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.5] a mod that holds an init when: [t0] init renders the view, then the sweep runs and the role is booted then: the sweep stdout and stderr match their snapshot 1`] = `
 {
   "stderr": "
-🟡 a boot spec could not be read — it is absent from the roster below
+🟡 a boot spec could not be costed — it is absent from the roster below
    ├─ spec  = .agent/repo=test/role=surfer/boot.yml
    ├─ fault = ✋ ConstraintError: the mod of role=surfer is refused: it holds inits/claude.hooks.sh, a kind a mod cannot change
-   └─ hint: repair the spec, or report it upstream where it is a linked role
+   └─ hint  = repair what the fault names, or report it upstream where it is a linked role
 
 ",
   "stdout": "🧢 0 boot specs priced — 1 withheld by a mod (named below)
@@ -1508,10 +1508,10 @@ exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.6]
 exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.6] a mod that holds a keyrack manifest when: [t0] init renders the view, then the sweep runs and the role is booted then: the sweep stdout and stderr match their snapshot 1`] = `
 {
   "stderr": "
-🟡 a boot spec could not be read — it is absent from the roster below
+🟡 a boot spec could not be costed — it is absent from the roster below
    ├─ spec  = .agent/repo=test/role=surfer/boot.yml
    ├─ fault = ✋ ConstraintError: the mod of role=surfer is refused: it holds keyrack.yml, a kind a mod cannot change
-   └─ hint: repair the spec, or report it upstream where it is a linked role
+   └─ hint  = repair what the fault names, or report it upstream where it is a linked role
 
 ",
   "stdout": "🧢 0 boot specs priced — 1 withheld by a mod (named below)

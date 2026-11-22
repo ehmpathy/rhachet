@@ -174,4 +174,45 @@ describe('findsertRepoThisRoleAnyBootGuard', () => {
       });
     });
   });
+
+  given('[case6] a boot.yml whose yaml will not parse', () => {
+    const scene = useBeforeAll(async () => {
+      const content = 'always:\n  briefs: [unclosed\n';
+      const { repo, roleDir } = genRepoWithRoleAny({
+        slug: 'repo-this-guard-spec-unparsed',
+        files: { 'boot.yml': content },
+      });
+      const result = findsertRepoThisRoleAnyBootGuard({ repoPath: repo });
+      const bootAfter = readFileSync(join(roleDir, 'boot.yml'), 'utf8');
+      return { content, result, bootAfter };
+    });
+
+    when('[t0] the guard is findserted', () => {
+      then('it leaves the spec for its author, and never halts', () => {
+        expect(scene.result.budget).toEqual('absent');
+        expect(scene.bootAfter).toEqual(scene.content);
+      });
+    });
+  });
+
+  given('[case6.1] a boot.yml that parses as yaml but mixes two modes', () => {
+    const scene = useBeforeAll(async () => {
+      const content =
+        'briefs:\n  say:\n    - briefs/a.md\nalways:\n  briefs:\n    say:\n      - briefs/a.md\n';
+      const { repo, roleDir } = genRepoWithRoleAny({
+        slug: 'repo-this-guard-spec-mixedmode',
+        files: { 'boot.yml': content },
+      });
+      const result = findsertRepoThisRoleAnyBootGuard({ repoPath: repo });
+      const bootAfter = readFileSync(join(roleDir, 'boot.yml'), 'utf8');
+      return { content, result, bootAfter };
+    });
+
+    when('[t0] the guard is findserted', () => {
+      then('it leaves the spec for its author, and never halts', () => {
+        expect(scene.result.budget).toEqual('absent');
+        expect(scene.bootAfter).toEqual(scene.content);
+      });
+    });
+  });
 });
