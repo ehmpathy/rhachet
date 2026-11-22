@@ -486,10 +486,14 @@ describe('rhx enroll --roles <role>::<subject> (acceptance)', () => {
             '',
           ].join('\n'),
         );
+        // a pinned HOME, so the box's grove does not decide the receipt; the snap strips the login line
         return invokeRhachetCliBinary({
           args: ['enroll', 'claude', '--roles', 'lean::tiny'],
           cwd: dir,
-          env: { PATH: stubPath },
+          env: {
+            PATH: stubPath,
+            HOME: genTempDir({ slug: 'enroll-focus-corrupt-home' }),
+          },
           logOnError: false,
         });
       });
@@ -502,7 +506,10 @@ describe('rhx enroll --roles <role>::<subject> (acceptance)', () => {
       });
 
       then('the receipt matches its snapshot', () => {
-        expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+        // the runner's own credentials decide `ℹ no claude login at …`, so it is not snapped
+        expect(
+          asSnapshotSafe(run.stderr).replace(/^ℹ no claude login at .*\n?/gm, ''),
+        ).toMatchSnapshot();
       });
     });
   });

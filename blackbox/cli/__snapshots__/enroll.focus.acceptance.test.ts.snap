@@ -148,6 +148,7 @@ exports[`rhx enroll --roles <role>::<subject> (acceptance) given: [case6] a nati
 
 🧢 focus
    └─ lean focused at ::tiny, which takes effect once its boot.yml is repaired
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
 
 😶 clone enrolled
    ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
