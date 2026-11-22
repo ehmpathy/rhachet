@@ -84,6 +84,7 @@ export const genBrainCliConfigArtifact = async (input: {
   const withinLocks = () =>
     setActorSettingsRepoWithinLock({
       enrollment,
+      repoPath,
       repoActorBrainDir,
       actorBrainDir,
       isRepoActor,
@@ -114,6 +115,7 @@ export const genBrainCliConfigArtifact = async (input: {
  */
 const setActorSettingsRepoWithinLock = async (input: {
   enrollment: BrainCliEnrollmentManifest;
+  repoPath: string;
   repoActorBrainDir: string;
   actorBrainDir: string;
   isRepoActor: boolean;
@@ -121,6 +123,7 @@ const setActorSettingsRepoWithinLock = async (input: {
 }): Promise<{ configPath: string }> => {
   const {
     enrollment,
+    repoPath,
     repoActorBrainDir,
     actorBrainDir,
     isRepoActor,
