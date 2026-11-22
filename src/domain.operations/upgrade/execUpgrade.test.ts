@@ -43,7 +43,7 @@ jest.mock(
  * .why = it probes the repo actor brain dir on disk, and this suite's `/test` gitroot has none;
  *   its refusals are clamped in `assertRepoActorBrainDirReadyForRoleInits.integration.test.ts`,
  *   `assertRepoActorBrainDirWritable.integration.test.ts`,
- *   `assertRepoBrainDirSymlinkLandsHere.integration.test.ts`, and upgrade.acceptance [case18]
+ *   `assertRepoBrainDirSymlinkLandsHere.integration.test.ts`, and upgrade.acceptance [case19]
  */
 jest.mock(
   '@src/domain.operations/init/boots/assertRepoActorBrainDirReadyForRoleInits',

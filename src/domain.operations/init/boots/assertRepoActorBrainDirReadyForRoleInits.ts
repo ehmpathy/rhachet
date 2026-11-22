@@ -9,7 +9,7 @@ import { assertRepoBrainDirSymlinkLandsHere } from './assertRepoBrainDirSymlinkL
  * .why = `rhx init --roles` and `rhx upgrade` both run role inits that write through
  *   `<repo>/.claude` into this dir. one this process cannot write (vision case 2), or a
  *   `<repo>/.claude` that lands elsewhere (vision case 4), would leave a part-way tree; each
- *   refusal names its cause instead (inventory case=10)
+ *   refusal names its cause instead (inventory case=27)
  * .note = runs after the layout step, so the dir and the link it probes are the ones the inits meet
  */
 export const assertRepoActorBrainDirReadyForRoleInits = (input: {

@@ -20,7 +20,7 @@ the role loop is fulcrum F6, open to the commander.
   [case4] [case5] [case6] — elsewhere, a dangle, and a file each refuse
 - `blackbox/cli/init.preflight.acceptance.test.ts` [case2] — `rhx init --roles …` refuses, the link
   is untouched, and the rerun after the fix passes
-- `blackbox/cli/upgrade.acceptance.test.ts` [case18] [t1] — the same refusal on `rhx upgrade`
+- `blackbox/cli/upgrade.acceptance.test.ts` [case19] [t1] — the same refusal on `rhx upgrade`
 - owed: the red→green run of the upgrade case, held on a host keyrack AWS unlock
 
 ## .source

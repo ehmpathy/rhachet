@@ -64,7 +64,7 @@ describe('assertRepoActorBrainDirWritable', () => {
   });
 
   given(
-    '[case3] a writable dir whose settings.of.repo.json this process cannot write (inventory case=10)',
+    '[case3] a writable dir whose settings.of.repo.json this process cannot write (inventory case=27)',
     () => {
       when('[t0] the dir is probed', () => {
         then(

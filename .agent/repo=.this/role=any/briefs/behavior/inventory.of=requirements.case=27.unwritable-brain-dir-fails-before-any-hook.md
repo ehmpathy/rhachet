@@ -24,7 +24,7 @@ path, the errno, the owner, the mode and the fix.
   0o555 [case2] and a `settings.of.repo.json` at 0o444 [case3] refuse and change no byte
 - `blackbox/cli/init.preflight.acceptance.test.ts` [case1] [case2] — `rhx init --roles … --hooks`
   refuses with no role linked and no hook synced
-- `blackbox/cli/upgrade.acceptance.test.ts` [case18] — the same two refusals on `rhx upgrade`.
+- `blackbox/cli/upgrade.acceptance.test.ts` [case19] — the same two refusals on `rhx upgrade`.
   owed: its red→green run, held on a host keyrack AWS unlock (2026-10-25)
 
 ## .source

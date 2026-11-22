@@ -53,13 +53,13 @@ reviewer checks a change against it.
 | 24 | [a deleted mod returns the role to its published layout](./inventory.of=requirements.case=24.deleted-mod-returns-the-published-role.md) | proven |
 | 25 | [`roles cost` marks a modded role, and a mod arms the one stop sweep](./inventory.of=requirements.case=25.modded-role-marked-arms-the-stop-sweep.md) | proven 2026-11-17, as amended (F23 reversed to (a)) |
 | 26 | [a shadow skill runs beside its published peers](./inventory.of=requirements.case=26.shadow-skill-finds-its-published-peer.md) | proven |
-| 27 | [a brain dir `rhx init` cannot write fails loud before any role's hook lands](./inventory.of=requirements.case=10.unwritable-brain-dir-fails-before-any-hook.md) | owed |
-| 28 | [an init that fails part way leaves no hooks for roles not enrolled](./inventory.of=requirements.case=11.partial-init-leaves-no-unenrolled-hooks.md) | owed |
-| 29 | [a `<repo>/.claude` link that lands on the repo actor brain dir is accepted](./inventory.of=requirements.case=12.claude-link-that-lands-here-is-accepted.md) | owed |
-| 30 | [a `<repo>/.claude` link that aims elsewhere refuses before any role links](./inventory.of=requirements.case=13.claude-link-that-aims-elsewhere-refuses-first.md) | owed |
-| 31 | [a foreign lock cache is named before any key is taken](./inventory.of=requirements.case=14.foreign-lock-cache-is-named.md) | owed |
-| 32 | [a global rhx that differs from the repo's pin is named](./inventory.of=requirements.case=15.global-rhx-skew-is-named.md) | owed |
-| 33 | [a booted clone with the declared lock cache writes boot.md, silent](./inventory.of=requirements.case=16.declared-lock-cache-boot-write-is-silent.md) | owed |
+| 27 | [a brain dir `rhx init` cannot write fails loud before any role's hook lands](./inventory.of=requirements.case=27.unwritable-brain-dir-fails-before-any-hook.md) | owed |
+| 28 | [an init that fails part way leaves no hooks for roles not enrolled](./inventory.of=requirements.case=28.partial-init-leaves-no-unenrolled-hooks.md) | owed |
+| 29 | [a `<repo>/.claude` link that lands on the repo actor brain dir is accepted](./inventory.of=requirements.case=29.claude-link-that-lands-here-is-accepted.md) | owed |
+| 30 | [a `<repo>/.claude` link that aims elsewhere refuses before any role links](./inventory.of=requirements.case=30.claude-link-that-aims-elsewhere-refuses-first.md) | owed |
+| 31 | [a foreign lock cache is named before any key is taken](./inventory.of=requirements.case=31.foreign-lock-cache-is-named.md) | owed |
+| 32 | [a global rhx that differs from the repo's pin is named](./inventory.of=requirements.case=32.global-rhx-skew-is-named.md) | owed |
+| 33 | [a booted clone with the declared lock cache writes boot.md, silent](./inventory.of=requirements.case=33.declared-lock-cache-boot-write-is-silent.md) | owed |
 
 🔴 marks a critical requirement: its regression ships harm on every install or every clone. each
 entry's own file cites its proof by path.

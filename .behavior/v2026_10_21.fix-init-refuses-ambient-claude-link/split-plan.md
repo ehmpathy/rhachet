@@ -74,12 +74,12 @@ L0 ─┬─ L1 ────────────────────┐
 | `src/infra/lock/assertRepoMutexCacheFit.integration.test.ts` | 84 | 0 |
 | `src/infra/lock/withRepoMutex.ts` | 30 | 1 |
 | `src/infra/lock/withRepoMutex.integration.test.ts` | 4 | 2 |
-| `.agent/repo=.this/role=any/briefs/behavior/inventory.of=requirements.case=14.foreign-lock-cache-is-named.md` | 26 | 0 |
-| `.agent/repo=.this/role=any/briefs/behavior/inventory.of=requirements.case=16.declared-lock-cache-boot-write-is-silent.md` | 24 | 0 |
-| `.agent/repo=.this/role=any/briefs/behavior/inventory.of=requirements._.md` — rows 14, 16 | ≈ 2 | 0 |
+| `.agent/repo=.this/role=any/briefs/behavior/inventory.of=requirements.case=31.foreign-lock-cache-is-named.md` | 26 | 0 |
+| `.agent/repo=.this/role=any/briefs/behavior/inventory.of=requirements.case=33.declared-lock-cache-boot-write-is-silent.md` | 24 | 0 |
+| `.agent/repo=.this/role=any/briefs/behavior/inventory.of=requirements._.md` — rows 31, 33 | ≈ 2 | 0 |
 | **total** | **≈ 387** | **3** |
 
-- inventory cases 14 and 16 land with their proofs
+- inventory cases 31 and 33 land with their proofs
 
 ### L2 — a `.claude` link that lands here is accepted (~17 min)
 
@@ -96,8 +96,8 @@ L0 ─┬─ L1 ────────────────────┐
 | `src/domain.operations/init/boots/setRepoBrainDirSymlink.integration.test.ts` | 9 | 0 |
 | `blackbox/cli/init.preflight.acceptance.test.ts` — the suite head + [case6] | ≈ 166 | 0 |
 | `blackbox/cli/__snapshots__/init.preflight.acceptance.test.ts.snap` — [case6] t0, t1 | ≈ 75 | 0 |
-| `.agent/repo=.this/role=any/briefs/behavior/inventory.of=requirements.case=12.claude-link-that-lands-here-is-accepted.md` | 27 | 0 |
-| `.agent/repo=.this/role=any/briefs/behavior/inventory.of=requirements._.md` — row 12 | ≈ 1 | 0 |
+| `.agent/repo=.this/role=any/briefs/behavior/inventory.of=requirements.case=29.claude-link-that-lands-here-is-accepted.md` | 27 | 0 |
+| `.agent/repo=.this/role=any/briefs/behavior/inventory.of=requirements._.md` — row 29 | ≈ 1 | 0 |
 | **total** | **≈ 627** | **43** |
 
 - this is the layer that cures #657's refusal; its pr refs #657
@@ -119,11 +119,11 @@ L0 ─┬─ L1 ────────────────────┐
 | `src/domain.operations/upgrade/execUpgrade.test.ts` | 11 | 0 |
 | `blackbox/cli/init.preflight.acceptance.test.ts` — [case1], [case2], [case5] | ≈ 210 | 0 |
 | `blackbox/cli/__snapshots__/init.preflight.acceptance.test.ts.snap` — [case1], [case2], [case5] | ≈ 62 | 0 |
-| `blackbox/cli/upgrade.acceptance.test.ts` — imports + [case18] | ≈ 181 | 1 |
-| `blackbox/cli/__snapshots__/upgrade.acceptance.test.ts.snap` — [case18] t0, t1 | ≈ 47 | 0 |
-| `.agent/repo=.this/role=any/briefs/behavior/inventory.of=requirements.case=10.unwritable-brain-dir-fails-before-any-hook.md` | 33 | 0 |
-| `.agent/repo=.this/role=any/briefs/behavior/inventory.of=requirements.case=13.claude-link-that-aims-elsewhere-refuses-first.md` | 28 | 0 |
-| `.agent/repo=.this/role=any/briefs/behavior/inventory.of=requirements._.md` — rows 10, 13 | ≈ 2 | 0 |
+| `blackbox/cli/upgrade.acceptance.test.ts` — imports + [case19] | ≈ 181 | 1 |
+| `blackbox/cli/__snapshots__/upgrade.acceptance.test.ts.snap` — [case19] t0, t1 | ≈ 47 | 0 |
+| `.agent/repo=.this/role=any/briefs/behavior/inventory.of=requirements.case=27.unwritable-brain-dir-fails-before-any-hook.md` | 33 | 0 |
+| `.agent/repo=.this/role=any/briefs/behavior/inventory.of=requirements.case=30.claude-link-that-aims-elsewhere-refuses-first.md` | 28 | 0 |
+| `.agent/repo=.this/role=any/briefs/behavior/inventory.of=requirements._.md` — rows 27, 30 | ≈ 2 | 0 |
 | **total** | **≈ 1014** | **12** |
 
 - fulcrums F6, F12 and F13 ride here
@@ -148,10 +148,10 @@ L0 ─┬─ L1 ────────────────────┐
 | `src/contract/cli/invokeInit.ts` — imports, the part-way catch, the boots-then-hooks swap | ≈ 30 | 21 |
 | `blackbox/cli/init.preflight.acceptance.test.ts` — [case3] | ≈ 116 | 0 |
 | `blackbox/cli/__snapshots__/init.preflight.acceptance.test.ts.snap` — [case3] | ≈ 58 | 0 |
-| `blackbox/cli/upgrade.acceptance.test.ts` — [case19] | ≈ 62 | 0 |
-| `blackbox/cli/__snapshots__/upgrade.acceptance.test.ts.snap` — [case19] | ≈ 50 | 0 |
-| `.agent/repo=.this/role=any/briefs/behavior/inventory.of=requirements.case=11.partial-init-leaves-no-unenrolled-hooks.md` | 37 | 0 |
-| `.agent/repo=.this/role=any/briefs/behavior/inventory.of=requirements._.md` — row 11 | ≈ 1 | 0 |
+| `blackbox/cli/upgrade.acceptance.test.ts` — [case20] | ≈ 62 | 0 |
+| `blackbox/cli/__snapshots__/upgrade.acceptance.test.ts.snap` — [case20] | ≈ 50 | 0 |
+| `.agent/repo=.this/role=any/briefs/behavior/inventory.of=requirements.case=28.partial-init-leaves-no-unenrolled-hooks.md` | 37 | 0 |
+| `.agent/repo=.this/role=any/briefs/behavior/inventory.of=requirements._.md` — row 28 | ≈ 1 | 0 |
 | **total** | **≈ 764** | **29** |
 
 - fulcrums F1, F2, F5, F8 and F9 ride here
@@ -167,8 +167,8 @@ L0 ─┬─ L1 ────────────────────┐
 | `src/contract/cli/invokeInit.integration.test.ts` — the two skew `when` blocks | ≈ 43 | 0 |
 | `blackbox/cli/init.preflight.acceptance.test.ts` — [case4] | ≈ 46 | 0 |
 | `blackbox/cli/__snapshots__/init.preflight.acceptance.test.ts.snap` — [case4] | ≈ 2 | 0 |
-| `.agent/repo=.this/role=any/briefs/behavior/inventory.of=requirements.case=15.global-rhx-skew-is-named.md` | 27 | 0 |
-| `.agent/repo=.this/role=any/briefs/behavior/inventory.of=requirements._.md` — row 15, and the index head | ≈ 8 | 4 |
+| `.agent/repo=.this/role=any/briefs/behavior/inventory.of=requirements.case=32.global-rhx-skew-is-named.md` | 27 | 0 |
+| `.agent/repo=.this/role=any/briefs/behavior/inventory.of=requirements._.md` — row 32, and the index head | ≈ 8 | 4 |
 | **total** | **≈ 201** | **4** |
 
 - fulcrum F3 rides here

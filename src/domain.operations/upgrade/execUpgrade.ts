@@ -374,7 +374,7 @@ export const execUpgrade = async (
       repoPath: context.gitroot,
     });
 
-    // refuse a brain dir no init may write through, before any role links (case 10)
+    // refuse a brain dir no init may write through, before any role links (inventory case=27)
     assertRepoActorBrainDirReadyForRoleInits({ repoPath: context.gitroot });
     await initRolesFromPackages({ specifiers }, context);
 

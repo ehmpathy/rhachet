@@ -204,7 +204,7 @@ export const invokeInit = ({ program }: { program: Command }): void => {
             : null;
 
         // flag: --roles or a manifest => refuse a brain dir no init may write through, before
-        //   any role links (case 10)
+        //   any role links (inventory case=27)
         if (deltas !== null || actorsManifest)
           assertRepoActorBrainDirReadyForRoleInits({
             repoPath: context.gitroot,

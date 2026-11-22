@@ -30,7 +30,7 @@ const getOneErrnoOfNoWriteOrNull = (input: {
  * .why = each role init writes through `<repo>/.claude` into this dir, and into
  *   `settings.of.repo.json` by name; with no write, the first role links and its init faults deep in
  *   a role's executable, which leaves a part-way tree. a probe before any role names the target, its
- *   owner and its mode instead (vision case 2, inventory case=10)
+ *   owner and its mode instead (vision case 2, inventory case=27)
  *
  * .note = probe one: a create of a file whose name carries this pid (so two inits never race on one
  *   probe file), then its removal. probe two: an open-for-write of `settings.of.repo.json` with

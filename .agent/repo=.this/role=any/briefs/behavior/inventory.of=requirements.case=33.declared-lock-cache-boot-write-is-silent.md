@@ -5,7 +5,7 @@ part of the [requirements inventory](./inventory.of=requirements._.md).
 ## .the requirement
 
 a booted clone whose rhx loads the `simple-on-disk-cache` rhachet declares takes the repo mutex,
-writes boot.md, and releases the lock. the foreign-cache guard (case 14) stays silent on the
+writes boot.md, and releases the lock. the foreign-cache guard (case 31) stays silent on the
 declared copy; two sections on one key run one after the other.
 
 ## .clamp
