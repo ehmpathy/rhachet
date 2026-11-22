@@ -1,14 +1,12 @@
 import { realpathSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { given, then, useBeforeAll, useThen, when } from 'test-fns';
 
 import { genBrokenKeyrackManifestYml } from '@/blackbox/.test/infra/genBrokenKeyrackManifestYml';
 // ⚠️ .why.src-import = this ONE helper lives under `src/.test/` rather than beside its peers in
 //        `blackbox/.test/`, because an integration test needs it too. a temp-dir helper copied
-//        into both trees is a CLEANUP CONTRACT maintained twice — and this helper's contract is
-//        exactly the kind that rots when copied: it leaked one dir per spawn until its
-//        `SIGINT`/`SIGTERM` handlers were added, a repair a second copy would not have received.
-//        so it is hoisted to the one tree both tiers can reach
+//        into both trees is a CLEANUP CONTRACT maintained twice — and a cleanup contract is
+//        exactly the kind that rots when copied (it once leaked one dir per spawn). so it is
+//        hoisted to the one tree both tiers can reach
 //        (`rule.require.shared-test-fixtures`)
 // .note = `rule.require.acceptance.blackbox` bounds what an acceptance test may INVOKE — the
 //        subject must be reached through the published contract, which it is
@@ -43,10 +41,11 @@ import {
  *        per-run suffix, so a raw snapshot is green exactly once, on the run that wrote it
  * .note = the swap is on the EXACT path this run used, never a `/tmp/...` pattern, so a real
  *         path a render should have kept cannot be masked by a near-miss match
- * .note = `asSnapshotSafe` rewrites the os temp root to `/TMP_ROOT`, so the swap also takes the
- *         dir's `/TMP_ROOT/…` name — else the exact-path split finds no `cwd` left to match and
- *         the per-run suffix leaks into the snapshot. a repo cwd is already `/TMP_REPO` by then,
- *         and stays so
+ * .note = `asSnapshotSafe` rewrites a temp dir (a genTempDir dir to `/TMP_TEST_DIR`, the os
+ *         temp root to `/TMP_ROOT`), so the swap also takes the name the masker leaves for this
+ *         cwd — derived by the masker itself, so it cannot drift from it — else the exact-path
+ *         split finds no `cwd` left to match. a repo cwd is already `/TMP_REPO` by then, and
+ *         stays so
  * .note = it composes `asSnapshotSafe` FIRST, which strips ansi sgr bytes among other run
  *         volatiles. `emitKeyrackKeyBranch` paints every `tip:` line with `\x1b[2m…\x1b[0m`, so
  *         any row whose render carries a tip would otherwise commit raw escape bytes — the
@@ -63,10 +62,8 @@ const asTempCwdMasked = (input: { output: string; cwd: string }): string =>
     // both names of the dir: a temp root reached through a symlink (macos `/var` →
     //   `/private/var`) renders as either (rule.require.mask-both-names-of-a-temp-dir)
     realpathSync(input.cwd),
-    // and the name `asSnapshotSafe` leaves once it rewrites the os temp root to `/TMP_ROOT`
-    ...[input.cwd, realpathSync(input.cwd)].map((name) =>
-      name.replace(tmpdir(), '/TMP_ROOT'),
-    ),
+    // and the name `asSnapshotSafe` leaves once its own masks rewrite the dir
+    ...[input.cwd, realpathSync(input.cwd)].map((name) => asSnapshotSafe(name)),
   ].reduce(
     (output, name) => output.split(name).join('$TESTCWD'),
     asSnapshotSafe(input.output),

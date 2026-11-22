@@ -4,11 +4,11 @@ import {
   TEST_AGE_IDENTITY,
   TEST_AGE_RECIPIENT,
 } from '@src/.test/assets/keyrack/age/testAgeKeys';
+import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
 import {
   genMockPromptHiddenInput,
   setMockPromptValues,
 } from '@src/.test/infra/mockPromptHiddenInput';
-import { withTempHome } from '@src/.test/infra/withTempHome';
 import {
   KeyrackHostManifest,
   KeyrackKeyRecipient,
@@ -60,12 +60,19 @@ const genTestContext = (input: {
   }) as unknown as ContextKeyrack;
 
 describe('vaultAdapterOsSecure', () => {
-  const tempHome = withTempHome({ name: 'vaultAdapterOsSecure' });
+  const tempHome = {
+    path: genTempDirPhysical({ slug: 'home-vaultAdapterOsSecure' }),
+  };
+  const homeOriginal = process.env.HOME;
   const testIdentity = TEST_AGE_IDENTITY;
   const testRecipient = TEST_AGE_RECIPIENT;
 
-  beforeAll(() => tempHome.setup());
-  afterAll(() => tempHome.teardown());
+  beforeAll(() => {
+    process.env.HOME = tempHome.path;
+  });
+  afterAll(() => {
+    process.env.HOME = homeOriginal;
+  });
 
   beforeEach(async () => {
     // clean up vault directory before each test

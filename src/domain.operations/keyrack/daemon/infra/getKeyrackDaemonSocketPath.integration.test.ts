@@ -19,11 +19,9 @@
  */
 import { given, then, when } from 'test-fns';
 
+import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
 import { getHomeHash } from '@src/infra/host/getHomeHash';
 
-import { mkdtempSync, rmdirSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { getKeyrackDaemonSocketPathForTests } from '../../../../../blackbox/.test/infra/getKeyrackDaemonSocketPathForTests';
 import { getKeyrackDaemonSocketPath } from './getKeyrackDaemonSocketPath';
 import { getLoginSessionId } from './getLoginSessionId';
@@ -198,14 +196,11 @@ describe('getKeyrackDaemonSocketPath', () => {
         const pathBefore = getKeyrackDaemonSocketPath();
 
         // change HOME to a different path
-        const tempDir = mkdtempSync(join(tmpdir(), 'keyrack-test-'));
+        const tempDir = genTempDirPhysical({ slug: 'keyrack-home' });
         process.env['HOME'] = tempDir;
 
         const pathAfter = getKeyrackDaemonSocketPath();
         expect(pathAfter).not.toEqual(pathBefore);
-
-        // cleanup
-        rmdirSync(tempDir);
       });
 
       then('same session id, different home hash', () => {
@@ -214,7 +209,7 @@ describe('getKeyrackDaemonSocketPath', () => {
         const pathBefore = getKeyrackDaemonSocketPath();
 
         // change HOME to a different path
-        const tempDir = mkdtempSync(join(tmpdir(), 'keyrack-test-'));
+        const tempDir = genTempDirPhysical({ slug: 'keyrack-home' });
         process.env['HOME'] = tempDir;
 
         const homeHashAfter = getHomeHash();
@@ -228,9 +223,6 @@ describe('getKeyrackDaemonSocketPath', () => {
         expect(homeHashAfter).not.toEqual(homeHashBefore);
         expect(pathBefore).toContain(`.${homeHashBefore}.`);
         expect(pathAfter).toContain(`.${homeHashAfter}.`);
-
-        // cleanup
-        rmdirSync(tempDir);
       });
     });
   });

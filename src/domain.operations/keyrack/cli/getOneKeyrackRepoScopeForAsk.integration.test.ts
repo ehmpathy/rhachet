@@ -1,8 +1,8 @@
 import { ConstraintError } from 'helpful-errors';
 import { getError, given, then, useBeforeAll, when } from 'test-fns';
 
+import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
 import { genTestTempDirNonRepo } from '@src/.test/infra/genTestTempDirNonRepo';
-import { withTempHome } from '@src/.test/infra/withTempHome';
 
 import { execSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -24,14 +24,17 @@ import { getOneKeyrackRepoScopeForAsk } from './getOneKeyrackRepoScopeForAsk';
  *         that setup would test the host manifest rather than this decision
  */
 describe('getOneKeyrackRepoScopeForAsk.integration', () => {
-  const tempHome = withTempHome({ name: 'getOneKeyrackRepoScopeForAsk' });
+  const tempHome = {
+    path: genTempDirPhysical({ slug: 'home-getOneKeyrackRepoScopeForAsk' }),
+  };
+  const homeOriginal = process.env.HOME;
 
   beforeAll(() => {
-    tempHome.setup();
+    process.env.HOME = tempHome.path;
   });
 
   afterAll(() => {
-    tempHome.teardown();
+    process.env.HOME = homeOriginal;
   });
 
   given('[case1] a cwd that is NOT a git repo — the onNoRepo axis', () => {

@@ -20,6 +20,7 @@ import { getLoginSessionId } from './getLoginSessionId';
  */
 describe('getAllKeyrackDaemonSocketPaths', () => {
   // use a temp directory for test sockets
+  // .tempdir.exempt = unix socket path cap (~108 bytes); removed by this file's afterAll
   const testRuntimeDir = `/tmp/keyrack-test-runtime-${process.pid}`;
 
   beforeAll(() => {

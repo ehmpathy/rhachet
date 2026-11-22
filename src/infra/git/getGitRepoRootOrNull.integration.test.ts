@@ -1,7 +1,8 @@
 import { getError, given, then, when } from 'test-fns';
 
-import { chmodSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
+
+import { chmodSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { getGitRepoRootOrNull } from './getGitRepoRootOrNull';
 
@@ -11,14 +12,14 @@ import { getGitRepoRootOrNull } from './getGitRepoRootOrNull';
  * .why = a cli (keyrack get/unlock, and the cli-wide genContextCli bootstrap) must run from a
  *   cwd that is not a git repo. the no-repo case is benign, so it yields null and never exits 1.
  *
- * .note = the non-repo dir is made under os.tmpdir() (NOT genTempDir, which is repo-scoped and
- *   therefore always inside this git repo — useless for a "not a git repo" probe). this mirrors
- *   genTestTempRepo's own use of tmpdir() for isolated, outside-the-repo workspaces.
+ * .note = each dir is genTempDirPhysical's PHYSICAL path (/tmp/test-fns/{repo}/.temp/…), which
+ *   has no git repo above it — unlike the in-repo symlink handle genTempDir returns. so it
+ *   serves a "not a git repo" probe, and the run's teardown still reclaims it.
  */
 describe('getGitRepoRootOrNull (integration)', () => {
   given('[case1] a cwd that is NOT inside a git repo', () => {
     // a bare dir under the OS temp root — outside any git repo, never git-inited
-    const nonRepoCwd = mkdtempSync(join(tmpdir(), 'get-git-root-or-null-'));
+    const nonRepoCwd = genTempDirPhysical({ slug: 'get-git-root-or-null' });
 
     when('[t0] the root is asked for', () => {
       then('it is null (the benign no-repo case, never a throw)', async () => {
@@ -40,7 +41,7 @@ describe('getGitRepoRootOrNull (integration)', () => {
 
   given('[case3] a worktree nested inside its main repo', () => {
     // a main repo (`.git` dir) that holds a worktree (`.git` file) two levels down
-    const mainRoot = mkdtempSync(join(tmpdir(), 'get-git-root-nested-'));
+    const mainRoot = genTempDirPhysical({ slug: 'get-git-root-nested' });
     const worktreeRoot = join(mainRoot, '.claude', 'worktrees', 'feat');
     mkdirSync(join(mainRoot, '.git'));
     mkdirSync(join(worktreeRoot, 'src'), { recursive: true });
@@ -73,8 +74,9 @@ describe('getGitRepoRootOrNull (integration)', () => {
 
   given('[case4] a cwd under a dir the walk cannot read', () => {
     // a dir with no permissions: a stat of any path inside it fails with EACCES, not ENOENT
-    const lockedDir = mkdtempSync(join(tmpdir(), 'get-git-root-locked-'));
+    const lockedDir = genTempDirPhysical({ slug: 'get-git-root-locked' });
     chmodSync(lockedDir, 0o000);
+    // restore access, so the run's teardown can reclaim the dir
     afterAll(() => chmodSync(lockedDir, 0o700));
 
     when('[t0] the root is asked for from inside it', () => {

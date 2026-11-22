@@ -1,7 +1,6 @@
 import * as fs from 'fs/promises';
-import * as os from 'os';
 import * as path from 'path';
-import { given, then, useBeforeAll, when } from 'test-fns';
+import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
 import type { BrainHook } from '@src/domain.objects/BrainHook';
 
@@ -10,8 +9,7 @@ import { genBrainHooksAdapterForOpencode } from './genBrainHooksAdapterForOpenco
 describe('genBrainHooksAdapterForOpencode', () => {
   given('[case1] empty repo (no .opencode/plugin/)', () => {
     const repo = useBeforeAll(async () => {
-      const dir = path.join(os.tmpdir(), `opencode-test-${Date.now()}`);
-      await fs.mkdir(dir, { recursive: true });
+      const dir = genTempDir({ slug: 'opencode-test' });
       return { path: dir };
     });
 
@@ -62,8 +60,7 @@ describe('genBrainHooksAdapterForOpencode', () => {
 
   given('[case2] repo with hooks', () => {
     const repo = useBeforeAll(async () => {
-      const dir = path.join(os.tmpdir(), `opencode-test-${Date.now()}`);
-      await fs.mkdir(dir, { recursive: true });
+      const dir = genTempDir({ slug: 'opencode-test' });
 
       // create initial hooks
       const adapter = genBrainHooksAdapterForOpencode({ repoPath: dir });
@@ -143,8 +140,7 @@ describe('genBrainHooksAdapterForOpencode', () => {
 
   given('[case3] hook with tool filter', () => {
     const repo = useBeforeAll(async () => {
-      const dir = path.join(os.tmpdir(), `opencode-test-${Date.now()}`);
-      await fs.mkdir(dir, { recursive: true });
+      const dir = genTempDir({ slug: 'opencode-test' });
       return { path: dir };
     });
 

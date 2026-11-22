@@ -1,11 +1,9 @@
-import * as os from 'os';
-import * as path from 'path';
-import { given, then, when } from 'test-fns';
+import { genTempDir, given, then, when } from 'test-fns';
 
 import { getBrainHooks } from './getBrainHooks';
 
 describe('getBrainHooks', () => {
-  const repoPath = path.join(os.tmpdir(), 'test-repo');
+  const repoPath = genTempDir({ slug: 'brain-hooks-repo' });
 
   given('[case1] supported brain specifier', () => {
     when('[t0] brain is "opencode"', () => {

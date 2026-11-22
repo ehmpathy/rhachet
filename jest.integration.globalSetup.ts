@@ -16,9 +16,13 @@
 export default async (globalConfig: {
   globalTeardown?: string | null;
 }): Promise<void> => {
-  // mint this run's autoprune id before workers fork; jest allows one globalSetup, so we compose it
-  const { default: setupAutoprune } = await import('test-fns/autoprune.setup.jest');
-  await setupAutoprune(globalConfig);
+  // the run's temp-dir reclaim (mint the autoprune id before workers fork, and reclaim on a
+  // signal); jest allows one globalSetup, so we compose it — first, so an interrupt within the
+  // ~20s keyrack spawn below still reclaims
+  const { setAutopruneForRun } = await import(
+    './src/.test/infra/setAutopruneForRun'
+  );
+  await setAutopruneForRun({ globalConfig });
 
   // source api keys into process.env
   const { keyrack } = await import('rhachet/keyrack');

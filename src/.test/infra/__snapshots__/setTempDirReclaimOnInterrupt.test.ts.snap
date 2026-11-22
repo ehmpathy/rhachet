@@ -1,0 +1,3 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`setTempDirReclaimOnInterrupt given: [case2] the teardown itself throws when: [t0] SIGINT arrives then: the fault is reported under a qualified header, with the age gate as backstop 1`] = `"💥 MalfunctionError: the SIGINT reclaim of this run's temp dirs failed; the test-fns age gate will reclaim them"`;

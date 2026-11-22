@@ -1,9 +1,9 @@
 import * as fs from 'fs/promises';
 import { ConstraintError } from 'helpful-errors';
-import * as os from 'os';
 import * as path from 'path';
 import { getError, given, then, useBeforeAll, when } from 'test-fns';
 
+import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
 import { ContextCli } from '@src/domain.objects/ContextCli';
 
 import { discoverBrainPackages } from './discoverBrainPackages';
@@ -11,8 +11,7 @@ import { discoverBrainPackages } from './discoverBrainPackages';
 describe('discoverBrainPackages', () => {
   given('[case1] package.json with brain packages', () => {
     const scene = useBeforeAll(async () => {
-      const dir = path.join(os.tmpdir(), `test-brains-${Date.now()}`);
-      await fs.mkdir(dir, { recursive: true });
+      const dir = genTempDirPhysical({ slug: 'test-brains' });
       await fs.writeFile(
         path.join(dir, 'package.json'),
         JSON.stringify({
@@ -51,8 +50,7 @@ describe('discoverBrainPackages', () => {
 
   given('[case2] package.json with no brain packages', () => {
     const scene = useBeforeAll(async () => {
-      const dir = path.join(os.tmpdir(), `test-no-brains-${Date.now()}`);
-      await fs.mkdir(dir, { recursive: true });
+      const dir = genTempDirPhysical({ slug: 'test-no-brains' });
       await fs.writeFile(
         path.join(dir, 'package.json'),
         JSON.stringify({
@@ -76,8 +74,7 @@ describe('discoverBrainPackages', () => {
 
   given('[case3] no package.json file', () => {
     const scene = useBeforeAll(async () => {
-      const dir = path.join(os.tmpdir(), `test-no-pkg-${Date.now()}`);
-      await fs.mkdir(dir, { recursive: true });
+      const dir = genTempDirPhysical({ slug: 'test-no-pkg' });
       const context = new ContextCli({ cwd: dir, gitroot: dir });
       const result = await discoverBrainPackages(context);
       return { dir, result };
@@ -98,8 +95,7 @@ describe('discoverBrainPackages', () => {
     //        degrade the corrupt manifest to the same [] as a healthy no-brains repo — which
     //        would silently drop every brain (the exact bug class #429 kills).
     const scene = useBeforeAll(async () => {
-      const dir = path.join(os.tmpdir(), `test-malformed-pkg-${Date.now()}`);
-      await fs.mkdir(dir, { recursive: true });
+      const dir = genTempDirPhysical({ slug: 'test-malformed-pkg' });
       // a corrupt manifest — unclosed braces, the shape of a real merge-conflict breakage
       await fs.writeFile(
         path.join(dir, 'package.json'),

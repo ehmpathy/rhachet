@@ -63,8 +63,33 @@ a probe's catch may swallow a miss and must rethrow everything else
 
 ## .disputes
 
-none open. `probe` was coined and adopted in the same round, with no synonym reached for in any
-contract.
+### dispute: probe (design-time sense) — raised 2026-08-31 — status: RESOLVED (one concept, two layers)
+- raised.by  = beaver, behavior `v2026_08_30.fix-test-tempdir-leak`
+- claim      = the round used `probe` ~20× for a **throwaway experiment** ("probe 1: does
+               `process.on('exit')` fire in a jest worker?"), not for a read before a write. that
+               is a second sense of a declared term, which `rule.forbid.domain-term-ambiguity`
+               forbids — one concept per word.
+- counter    = the two share the **defining property**, and the etymology above states it without
+               reference to writes: *"a probe is sent out to learn what is there, and it returns
+               useful knowledge whether or not it finds a thing."* probe 1 returned its knowledge
+               by finding **no log line at all** — and that absence was the finding, not a fault.
+               so the invariant holds unchanged at both layers:
+
+               > a probe miss is data; anything else is a defect.
+
+               what differs is only *what the answer gates*: a runtime probe gates a **write**, a
+               design-time probe gates a **commitment**. that is one concept read at two layers,
+               the way `get` names one act whether it reads a row or a file.
+- resolution = the word holds at both layers. `.what` marked to say its body describes the runtime
+               instance rather than the bound of the concept, and the design-time refs added. no
+               new term coined — a second word here would split one invariant across two names,
+               which is the ambiguity the rule exists to prevent.
+
+**why this was worth an entry rather than a silent reuse.** the alternatives i would otherwise have
+reached for are `test 1/2/3` and `attempt 1/2/3` — both **forbidden synonyms** of `probe`, and
+`test` for the exact reason it would collide here: a document about a test suite cannot also call
+its experiments tests. so the reuse was the conforming move, and the entry records that it was
+judged rather than assumed.
 
 ⚠️ **one deferral it retires.** `miss` was deferred in the round of 2026-08-04 with a checkable
 reason: *"there is no `Miss` object and no `getMiss` operation — `miss` appears only in a test

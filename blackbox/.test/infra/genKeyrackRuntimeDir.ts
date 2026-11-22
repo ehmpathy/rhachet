@@ -43,6 +43,7 @@ export const genKeyrackRuntimeDir = (input: { dir: string }): string => {
     process.env['XDG_RUNTIME_DIR'] ??
     (uid === undefined ? null : `/run/user/${uid}`);
   const base =
+    // .tempdir.exempt = unix socket path cap (~108 bytes); a short link base, never a dir this makes
     baseRuntime !== null && existsSync(baseRuntime) ? baseRuntime : tmpdir();
   const slug = createHash('sha256').update(input.dir).digest('hex').slice(0, 8);
   const dirLink = join(base, `rk.${slug}`);

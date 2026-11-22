@@ -1,7 +1,8 @@
 import * as age from 'age-encryption';
 import { getError, given, then, useBeforeAll, when } from 'test-fns';
 
-import { withTempHome } from '@src/.test/infra/withTempHome';
+import { asTestKeyText } from '@src/.test/assets/asTestKeyText';
+import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
 import {
   KeyrackHostManifest,
   KeyrackKeyHost,
@@ -55,13 +56,16 @@ const createTestContext = (identity: string | null = null): ContextKeyrack => ({
  *
  * .note = do not use for purposes other than tests
  */
-const TEST_SSH_KEY = `-----BEGIN OPENSSH PRIVATE KEY-----
-b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
-QyNTUxOQAAACBdlTBLJjO8LlO24fqXxqfFHJ95QcFpQ4hJWWXLUG1xIwAAAJjBLCW1wSwl
-tQAAAAtzc2gtZWQyNTUxOQAAACBdlTBLJjO8LlO24fqXxqfFHJ95QcFpQ4hJWWXLUG1xIw
-AAAEBH8OVWuHCPSFQjJ7oLvNqjZMpR1mQKwJkHZPqNkfJvp12VMEsmM7wuU7bh+pfGp8Uc
-n3lBwWlDiElZZctQbXEjAAAAEXRlc3RAZXhhbXBsZS5sb2NhbAECAwQF
------END OPENSSH PRIVATE KEY-----`;
+const TEST_SSH_KEY = asTestKeyText({
+  kind: 'OPENSSH',
+  body: [
+    'b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW',
+    'QyNTUxOQAAACBdlTBLJjO8LlO24fqXxqfFHJ95QcFpQ4hJWWXLUG1xIwAAAJjBLCW1wSwl',
+    'tQAAAAtzc2gtZWQyNTUxOQAAACBdlTBLJjO8LlO24fqXxqfFHJ95QcFpQ4hJWWXLUG1xIw',
+    'AAAEBH8OVWuHCPSFQjJ7oLvNqjZMpR1mQKwJkHZPqNkfJvp12VMEsmM7wuU7bh+pfGp8Uc',
+    'n3lBwWlDiElZZctQbXEjAAAAEXRlc3RAZXhhbXBsZS5sb2NhbAECAwQF',
+  ],
+});
 
 /**
  * .what = derive age identity from test ssh key
@@ -82,10 +86,17 @@ const getTestSshKeyAgeRecipient = async (): Promise<string> => {
 };
 
 describe('daoKeyrackHostManifest', () => {
-  const tempHome = withTempHome({ name: 'daoKeyrackHostManifest' });
+  const tempHome = {
+    path: genTempDirPhysical({ slug: 'home-daoKeyrackHostManifest' }),
+  };
+  const homeOriginal = process.env.HOME;
 
-  beforeAll(() => tempHome.setup());
-  afterAll(() => tempHome.teardown());
+  beforeAll(() => {
+    process.env.HOME = tempHome.path;
+  });
+  afterAll(() => {
+    process.env.HOME = homeOriginal;
+  });
 
   given('[case1] no manifest exists (default owner)', () => {
     when('[t0] get called', () => {

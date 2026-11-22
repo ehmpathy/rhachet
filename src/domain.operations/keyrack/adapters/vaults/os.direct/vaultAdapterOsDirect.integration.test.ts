@@ -1,10 +1,10 @@
 import { given, then, when } from 'test-fns';
 
+import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
 import {
   genMockPromptHiddenInput,
   setMockPromptValues,
 } from '@src/.test/infra/mockPromptHiddenInput';
-import { withTempHome } from '@src/.test/infra/withTempHome';
 
 import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
@@ -19,10 +19,17 @@ jest.mock('@src/infra/promptHiddenInput', () => genMockPromptHiddenInput());
 import { vaultAdapterOsDirect } from './vaultAdapterOsDirect';
 
 describe('vaultAdapterOsDirect', () => {
-  const tempHome = withTempHome({ name: 'vaultAdapterOsDirect' });
+  const tempHome = {
+    path: genTempDirPhysical({ slug: 'home-vaultAdapterOsDirect' }),
+  };
+  const homeOriginal = process.env.HOME;
 
-  beforeAll(() => tempHome.setup());
-  afterAll(() => tempHome.teardown());
+  beforeAll(() => {
+    process.env.HOME = tempHome.path;
+  });
+  afterAll(() => {
+    process.env.HOME = homeOriginal;
+  });
 
   beforeEach(() => {
     // clean up store before each test

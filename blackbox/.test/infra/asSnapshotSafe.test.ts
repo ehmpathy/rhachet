@@ -1,4 +1,4 @@
-import { given, then, when } from 'test-fns';
+import { getOneTempDirRoot, given, then, when } from 'test-fns';
 
 import { asSnapshotSafe } from './invokeRhachetCliBinary';
 
@@ -189,9 +189,22 @@ describe('asSnapshotSafe path mask', () => {
       then('the root is masked, and the path below it survives', () => {
         // the path below the root names WHICH file the census reports on, so it is the
         // half a reader is owed — a mask that ate it would pin a census of no file
+        // the shape genTestTempRepo allocates via genTempDir, under the derived root
+        const root = getOneTempDirRoot().pathPhysical;
         expect(
-          asSnapshotSafe('/tmp/rhachet-test-a1b2c3/.agent/.actors/x/boot.md'),
+          asSnapshotSafe(
+            `${root}/2026-01-19T12-34-56.789Z.r7f3a91c2.rhachet-test.a1b2c3d4/.agent/.actors/x/boot.md`,
+          ),
         ).toEqual('/TMP_REPO/.agent/.actors/x/boot.md');
+      });
+
+      then('a suffixed temp repo is masked the same way', () => {
+        const root = getOneTempDirRoot().pathPhysical;
+        expect(
+          asSnapshotSafe(
+            `${root}/2026-01-19T12-34-56.789Z.r7f3a91c2.rhachet-test-roles.a1b2c3d4/x`,
+          ),
+        ).toEqual('/TMP_REPO/x');
       });
     });
   });

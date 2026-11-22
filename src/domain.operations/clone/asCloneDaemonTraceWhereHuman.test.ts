@@ -31,6 +31,7 @@ describe('asCloneDaemonTraceWhereHuman', () => {
       then('the fallback part is the dir the daemon falls back to', () => {
         // the copy closes the dir with a `/`, so a reader sees it is a dir; the constant does not
         const filled = fallbackPart!
+          // .tempdir.exempt = a path read to fill a template; this makes no dir
           .replace('<tmpdir>', tmpdir())
           .replace('<uid>', String(process.getuid?.() ?? 'none'))
           .replace(/\/$/, '');

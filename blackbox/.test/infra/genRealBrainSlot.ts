@@ -36,6 +36,7 @@ import { MalfunctionError } from 'helpful-errors';
  *   `rule.forbid.builds-while-a-blackbox-run-is-inflight` already names, and a run-scoped
  *   semaphore would be blind to the peer run.
  */
+// .tempdir.exempt = host-wide state shared across runs on purpose: a semaphore (see .note above)
 const SLOT_DIR = join(tmpdir(), 'rhachet.realbrain.slots');
 
 /**

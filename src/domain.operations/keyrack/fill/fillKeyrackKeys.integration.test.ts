@@ -21,7 +21,7 @@ import {
   KeyrackKeyRecipient,
 } from '@src/domain.objects/keyrack';
 
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { pruneKeyrackDaemon } from '../daemon/sdk';
 import { fillKeyrackKeys } from './fillKeyrackKeys';
@@ -106,6 +106,7 @@ describe('fillKeyrackKeys.integration', () => {
   // isolate XDG_RUNTIME_DIR to prevent pruneKeyrackDaemon from kill of real daemons
   // .note = without this, pruneKeyrackDaemon({ owner: '@all' }) scans the REAL
   //         runtime dir and kills daemons outside this test's scope
+  // .tempdir.exempt = unix socket path cap (~108 bytes); removed by this file's afterAll
   const testRuntimeDir = `/tmp/keyrack-fill-test-${process.pid}`;
   let originalXdgRuntimeDir: string | undefined;
 
@@ -130,6 +131,9 @@ describe('fillKeyrackKeys.integration', () => {
 
     // restore the stdin.isTTY override this file's prompts opted into
     clearMockPromptLineValues();
+
+    // remove the isolated runtime dir — a socket dir cannot be a genTempDir
+    rmSync(testRuntimeDir, { recursive: true, force: true });
 
     return testHome.teardown();
   });

@@ -33,7 +33,7 @@ import { getError, given, then, useBeforeAll, when } from 'test-fns';
 import { genMockKeyrackHostManifest } from '@src/.test/assets/genMockKeyrackHostManifest';
 import { genMockKeyrackRepoManifest } from '@src/.test/assets/genMockKeyrackRepoManifest';
 import { genMockVaultAdapter } from '@src/.test/assets/genMockVaultAdapter';
-import { withTempHome } from '@src/.test/infra/withTempHome';
+import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
 import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
 import {
   KeyrackHostManifest,
@@ -48,10 +48,17 @@ import { existsSync, readFileSync, unlinkSync } from 'node:fs';
 import { unlockKeyrackKeys } from './unlockKeyrackKeys';
 
 describe('unlockKeyrackKeys.integration', () => {
-  const tempHome = withTempHome({ name: 'unlockKeyrackKeys-integration' });
+  const tempHome = {
+    path: genTempDirPhysical({ slug: 'home-unlockKeyrackKeys-integration' }),
+  };
+  const homeOriginal = process.env.HOME;
 
-  beforeAll(() => tempHome.setup());
-  afterAll(() => tempHome.teardown());
+  beforeAll(() => {
+    process.env.HOME = tempHome.path;
+  });
+  afterAll(() => {
+    process.env.HOME = homeOriginal;
+  });
 
   beforeEach(() => {
     // session identity removed - use _testIdentity in get()

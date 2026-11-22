@@ -1,8 +1,9 @@
 import { getError, given, then, when } from 'test-fns';
 
+import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
 import { delFileSync } from '@src/infra/filesystem/delFileSync';
 
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, writeFileSync } from 'node:fs';
 
 /**
  * .what = clamps the one shape several lifecycle paths need: delete a file, treat
@@ -14,11 +15,7 @@ import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
  */
 describe('delFileSync', () => {
   // a scoped dir, so no case can reach a file another case owns
-  const workDir = mkdtempSync('/tmp/dfs-');
-
-  afterAll(() => {
-    rmSync(workDir, { recursive: true, force: true });
-  });
+  const workDir = genTempDirPhysical({ slug: 'del-file-sync' });
 
   /**
    * [uc1] the happy path — a file that is present is removed

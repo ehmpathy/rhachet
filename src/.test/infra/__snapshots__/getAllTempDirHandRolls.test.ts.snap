@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`getAllTempDirHandRolls given: [case7] the report a contributor meets when: [t0] there are hits then: it names each hit and the fix 1`] = `
+"✋ ConstraintError: 2 hand-rolled test temp dir(s) — a dir made outside genTempDir is never reclaimed by its run
+   ├─ blackbox/cli/x.acceptance.test.ts:1 [mkdtemp] const dir = mkdtempSync(join(tmpdir(), 'x-'));
+   ├─ blackbox/cli/x.acceptance.test.ts:1 [tmpdir()] const dir = mkdtempSync(join(tmpdir(), 'x-'));
+   └─ fix: allocate via genTempDir, or genTempDirPhysical (src/.test/infra/genTempDirPhysical.ts) for a physical path;
+      or, for unix socket path cap / a path read / host-wide state only, mark the line above with
+      \`// .tempdir.exempt = <reason>\` (see .agent/repo=.this/role=any/briefs/rule.require.test-tempdir-via-gentempdir.md)"
+`;

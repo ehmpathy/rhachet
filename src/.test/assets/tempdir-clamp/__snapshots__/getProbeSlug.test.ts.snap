@@ -1,0 +1,20 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`getProbeHoldMs given: [case2] a malformed hold was handed when: [t0] a probe asks for it then: it refuses as a ConstraintError that names the env var and the fix 1`] = `
+"✋ ConstraintError: a tempdir-clamp probe was handed a hold that is not a count of ms
+
+{
+  "env": "TEMPDIR_CLAMP_HOLD_MS",
+  "value": "60s",
+  "hint": "set it to a whole number of ms, e.g. 60000 — or leave it unset for no hold"
+}"
+`;
+
+exports[`getProbeSlug given: [case1] the clamp handed no slug when: [t0] a probe asks for it then: it refuses as a ConstraintError that names the env var and the fix 1`] = `
+"✋ ConstraintError: a tempdir-clamp probe was run with no slug
+
+{
+  "env": "TEMPDIR_CLAMP_SLUG",
+  "hint": "run the probes via genTempDirPhysical.integration.test.ts, which sets it"
+}"
+`;

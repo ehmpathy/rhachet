@@ -2,6 +2,8 @@ import { spawn, spawnSync, type SpawnSyncReturns } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 
+import { getTestTempRepoPathPattern } from './getTestTempRepoPathPattern';
+
 /**
  * .what = strip machine-specific content from CLI output for snapshots
  * .why = paths and pids vary by machine — strip them so snapshots work across environments
@@ -63,8 +65,9 @@ export const asSnapshotSafe = (output: string): string => {
         /\/(?:home\/[^/]+|Users\/[^/]+|runner\/work)\/[^)\s"]+/g,
         '/PATH_STRIPPED',
       )
-      // strip temp test repo paths (vary by run)
-      .replace(/\/tmp\/rhachet-test-[a-z0-9-]+/g, '/TMP_REPO')
+      // strip temp test repo paths (vary by run). BEFORE the genTempDir root mask
+      // below, which would otherwise claim a temp test repo as a generic temp dir
+      .replace(getTestTempRepoPathPattern(), '/TMP_REPO')
       // strip a `genTempDir` root. its shape is fixed by test-fns —
       // `/tmp/test-fns/<repo-dirname>/.temp/<stamp>.<slug>.<8hex>` — and BOTH of its
       // variable segments move: the repo-dirname differs per checkout (a worktree
@@ -99,6 +102,7 @@ export const asSnapshotSafe = (output: string): string => {
       //   `/var/tmp` stays unmasked. `\\s` in the template yields the regex `\s`
       .replace(
         new RegExp(
+          // .tempdir.exempt = a path read to build a mask; this makes no dir
           `(^|["\\s])${tmpdir().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=[/"\\s]|$)`,
           'gm',
         ),

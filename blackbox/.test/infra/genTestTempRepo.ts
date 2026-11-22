@@ -9,11 +9,11 @@ import {
   unlinkSync,
   writeFileSync,
 } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 import { encryptToRecipients } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
 import { KeyrackKeyRecipient } from '@src/domain.objects/keyrack';
+import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
 import { getTestSshAgeRecipient } from '@src/.test/infra/withTestSshAgent';
 
 /**
@@ -56,11 +56,13 @@ const ASSETS_DIR = resolve(__dirname, '../assets');
 export type TestRepoFixture = string;
 
 /**
- * .what = creates an isolated test repo in os.tmpdir()
+ * .what = creates an isolated test repo, physically outside any repo
  * .why =
  *   - maximally portable and isolated test environments
- *   - OS handles cleanup (no manual teardown needed)
  *   - each test gets a fresh workspace
+ *   - allocated via genTempDir, so the run that made it reclaims it at its
+ *     globalTeardown (test-fns autoprune) — no os cleanup is relied on, since
+ *     none keeps up (12,901 leaked dirs on one machine, ehmpathy/rhachet#488)
  */
 export const genTestTempRepo = async (input: {
   /** fixture template to use */
@@ -86,18 +88,18 @@ export const genTestTempRepo = async (input: {
   /** absolute path to the test repo */
   path: string;
 }> => {
-  // gen unique temp directory path
-  const uniqueId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const suffix = input.suffix ? `-${input.suffix}` : '';
-  const repoPath = join(tmpdir(), `rhachet-test-${uniqueId}${suffix}`);
-
   // fail fast if fixture dne
   const fixturePath = join(ASSETS_DIR, input.fixture);
   if (!existsSync(fixturePath))
     throw new Error(`fixture not found: ${input.fixture} (${fixturePath})`);
 
-  // copy fixture assets into temp repo
-  cpSync(fixturePath, repoPath, { recursive: true });
+  // allocate the temp repo: clone the fixture, git init (no commits)
+  const suffix = input.suffix ? `-${input.suffix}` : '';
+  const repoPath = genTempDirPhysical({
+    slug: `rhachet-test${suffix}`,
+    clone: fixturePath,
+    git: { commits: { init: false, fixture: false } },
+  });
 
   // make shell skills executable
   setSkillsExecutable({ dir: repoPath });
@@ -117,17 +119,6 @@ export const genTestTempRepo = async (input: {
 
   // convert old manifest format to encrypted format if needed
   await convertLegacyManifest({ repoPath });
-
-  // init git repo (required for rhachet)
-  execSync('git init', { cwd: repoPath, stdio: 'ignore' });
-  execSync('git config user.email "test@example.com"', {
-    cwd: repoPath,
-    stdio: 'ignore',
-  });
-  execSync('git config user.name "Test User"', {
-    cwd: repoPath,
-    stdio: 'ignore',
-  });
 
   // install dependencies if requested and package.json exists
   // use bun install for bun-compatible node_modules structure

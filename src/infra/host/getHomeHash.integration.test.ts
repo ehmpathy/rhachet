@@ -1,14 +1,9 @@
 import { given, then, when } from 'test-fns';
 
+import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
+
 import { createHash } from 'node:crypto';
-import {
-  mkdtempSync,
-  realpathSync,
-  rmdirSync,
-  symlinkSync,
-  unlinkSync,
-} from 'node:fs';
-import { tmpdir } from 'node:os';
+import { mkdirSync, realpathSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { getHomeHash } from './getHomeHash';
 
@@ -40,14 +35,11 @@ describe('getHomeHash', () => {
         const hashBefore = getHomeHash();
 
         // change HOME to a different path
-        const tempDir = mkdtempSync(join(tmpdir(), 'homehash-test-'));
+        const tempDir = genTempDirPhysical({ slug: 'homehash' });
         process.env['HOME'] = tempDir;
 
         const hashAfter = getHomeHash();
         expect(hashAfter).not.toEqual(hashBefore);
-
-        // cleanup
-        rmdirSync(tempDir);
       });
     });
   });
@@ -82,15 +74,17 @@ describe('getHomeHash', () => {
     let symlinkDir: string;
 
     beforeEach(() => {
-      tempDir = mkdtempSync(join(tmpdir(), 'homehash-test-real-'));
-      symlinkDir = join(tmpdir(), `homehash-test-symlink-${Date.now()}`);
+      // both the real dir and its symlink live inside one genTempDir, so the
+      // run's teardown reclaims them together
+      const scopeDir = genTempDirPhysical({ slug: 'homehash-symlink' });
+      tempDir = join(scopeDir, 'real');
+      mkdirSync(tempDir);
+      symlinkDir = join(scopeDir, 'symlink');
       symlinkSync(tempDir, symlinkDir);
     });
 
     afterEach(() => {
       process.env['HOME'] = homeOriginal;
-      unlinkSync(symlinkDir); // symlinks are removed with unlink, not rmdir
-      rmdirSync(tempDir);
     });
 
     when('[t0] HOME points to symlink', () => {

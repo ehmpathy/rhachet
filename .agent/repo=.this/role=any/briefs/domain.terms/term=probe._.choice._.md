@@ -27,10 +27,16 @@ get   : "give me the value"      — absent is a problem
 probe : "is there a value?"      — absent is an answer
 ```
 
+the definition above describes the **runtime** instance — a read before a write. the concept also
+holds at **design time**, where a throwaway experiment asks a question whose absent answer is the
+expected one. see the 2026-08-31 dispute in the reason file for why that is one concept at two
+layers, never two senses of one word.
+
 ## .refs
 - `src/domain.operations/keyrack/fill/isKeyrackFillProbeMiss.ts`  # the declared dop
 - `src/domain.operations/keyrack/fill/fillKeyrackKeys.ts`         # the vault probe it guards
 - `src/domain.operations/upgrade/execNpmInstallGlobal.ts`         # `getPnpmPresence`, `PROBE_TIMEOUT_MS`
+- `.behavior/v2026_08_30.fix-test-tempdir-leak/1.vision.yield.md` # the design-time instance — probes 1-4
 
 ## .why it is a noun, not a verb
 

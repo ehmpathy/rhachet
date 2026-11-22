@@ -11,6 +11,7 @@ import {
   setupEnrollFixture,
   setRealClaudeFirstRunAccepted,
 } from '@/blackbox/.test/infra/enrollCloneHarness';
+import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
 
 /**
  * .what = the real-brain clamp for the BULK-write `say` path. the socket server writes
@@ -43,7 +44,7 @@ const buildLongPrompt = (wanted: string): string => {
   return `Ignore the filler text below. ${filler} When you are done, reply with exactly this text and no other words: ${wanted}`;
 };
 
-describe('rhx clone say BULK-write probe vs a REAL claude (real acceptance)', () => {
+describeBrainLiveOnDemand('rhx clone say BULK-write probe vs a REAL claude (real acceptance)', () => {
   given('[case1] a real, authenticated claude, the bulk-write say path', () => {
     const scene = useBeforeAll(async () => {
       const { binDir } = getRealClaudeOrThrow();

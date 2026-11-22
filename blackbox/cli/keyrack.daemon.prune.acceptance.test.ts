@@ -36,6 +36,7 @@ describe('keyrack daemon prune', () => {
     // machine is actively using, mid-test-run — and its own count would depend on
     // whatever else happened to be alive. the scope is what makes it both safe
     // and deterministic
+    // .tempdir.exempt = unix socket path cap (~108 bytes); removed by this file's afterAll
     const runtimeDir = mkdtempSync('/tmp/kdp-');
 
     const repoOne = useBeforeAll(async () =>
@@ -190,6 +191,7 @@ describe('keyrack daemon prune', () => {
    * cheapest way to pin them without a reap that could race [case1].
    */
   given('[case2] a runtime dir with no keyrack daemon in it', () => {
+    // .tempdir.exempt = unix socket path cap (~108 bytes); removed by this file's afterAll
     const runtimeDir = mkdtempSync('/tmp/kdp-empty-');
 
     const repo = useBeforeAll(async () =>
@@ -304,6 +306,7 @@ describe('keyrack daemon prune', () => {
     jest.setTimeout(60000);
 
     // a runtime dir of this case's own, for the same reason [case1] takes one
+    // .tempdir.exempt = unix socket path cap (~108 bytes); removed by this file's afterAll
     const runtimeDir = mkdtempSync('/tmp/kdp-one-');
 
     const repo = useBeforeAll(async () =>

@@ -1,8 +1,9 @@
-import { chmodSync, mkdtempSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { chmodSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 import { given, then, useBeforeAll, when } from 'test-fns';
+
+import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
 
 import { genTestPathWithout } from '../.test/infra/genTestPathWithout';
 import {
@@ -21,11 +22,18 @@ import {
  * .note = every refusal is asserted on stderr
  */
 /**
- * .what = collapse a farm's random `mkdtemp` suffix, which `asSnapshotSafe` leaves intact
- *   (`rule.require.mask-both-names-of-a-temp-dir`)
+ * .what = collapse a farm's whole temp dir path (its root, run stamp, and uuid all vary)
+ *   to one stable name (`rule.require.mask-both-names-of-a-temp-dir`)
+ * .note = applied to the RAW output, before `asSnapshotSafe`, so no broader temp-root mask
+ *   can carve the farm's slug out of the path first
  */
 const asFarmSafe = (output: string): string =>
-  output.replace(/install-age-farm-[A-Za-z0-9]+/g, 'install-age-farm-MASKED');
+  output.replace(
+    // the first class stops at whitespace, a quote, or a colon, so a `where:` label glued to
+    // the path is never swallowed — the mask consumes the path alone
+    /\/[^\s"':]*\.install-age-farm\.[0-9a-f]{8}/g,
+    '/TMP_ROOT/install-age-farm-MASKED',
+  );
 
 /**
  * .what = a PATH that carries every real binary except the ones named
@@ -33,7 +41,7 @@ const asFarmSafe = (output: string): string =>
 const genOnePathWithout = (input: { binaries: string[] }): string =>
   genTestPathWithout({
     binaries: input.binaries,
-    into: mkdtempSync(join(tmpdir(), 'install-age-farm-')),
+    into: genTempDirPhysical({ slug: 'install-age-farm' }),
     path: process.env.PATH ?? '',
   });
 
@@ -144,7 +152,7 @@ describe('install.age', () => {
 
       then('the present-branch plan render is pinned', () => {
         // the `where:` line carries the farm path, so both of its volatile names are masked
-        expect(asFarmSafe(asSnapshotSafe(result.stdout))).toMatchSnapshot(
+        expect(asSnapshotSafe(asFarmSafe(result.stdout))).toMatchSnapshot(
           'stdout-plan-age-present',
         );
       });
@@ -191,7 +199,7 @@ describe('install.age', () => {
       });
 
       then('the refusal render is pinned', () => {
-        expect(asFarmSafe(asSnapshotSafe(result.stderr))).toMatchSnapshot(
+        expect(asSnapshotSafe(asFarmSafe(result.stderr))).toMatchSnapshot(
           'stderr-age-version-fails',
         );
       });
@@ -478,7 +486,7 @@ describe('install.age', () => {
 
       then('the success render is pinned', () => {
         // the `where:` line carries the farm path, so both of its volatile names are masked
-        expect(asFarmSafe(asSnapshotSafe(result.stdout))).toMatchSnapshot(
+        expect(asSnapshotSafe(asFarmSafe(result.stdout))).toMatchSnapshot(
           'stdout-apply-installed',
         );
       });

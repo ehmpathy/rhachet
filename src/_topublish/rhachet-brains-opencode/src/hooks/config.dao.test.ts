@@ -1,7 +1,6 @@
 import * as fs from 'fs/promises';
-import * as os from 'os';
 import * as path from 'path';
-import { given, then, useBeforeAll, when } from 'test-fns';
+import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
 import {
   deleteOpencodePlugin,
@@ -222,11 +221,7 @@ export const RhachetHook = {};`;
   describe('readOpencodePlugins', () => {
     given('[case1] empty repo', () => {
       const repo = useBeforeAll(async () => {
-        const dir = path.join(
-          os.tmpdir(),
-          `opencode-config-test-${Date.now()}`,
-        );
-        await fs.mkdir(dir, { recursive: true });
+        const dir = genTempDir({ slug: 'opencode-config-test' });
         return { path: dir };
       });
 
@@ -244,10 +239,7 @@ export const RhachetHook = {};`;
 
     given('[case2] repo with plugins', () => {
       const repo = useBeforeAll(async () => {
-        const dir = path.join(
-          os.tmpdir(),
-          `opencode-config-test-${Date.now()}`,
-        );
+        const dir = genTempDir({ slug: 'opencode-config-test' });
         const pluginDir = path.join(dir, '.opencode', 'plugin');
         await fs.mkdir(pluginDir, { recursive: true });
 
@@ -294,11 +286,7 @@ export const RhachetHook = {};`,
   describe('writeOpencodePlugin', () => {
     given('[case1] empty repo', () => {
       const repo = useBeforeAll(async () => {
-        const dir = path.join(
-          os.tmpdir(),
-          `opencode-config-test-${Date.now()}`,
-        );
-        await fs.mkdir(dir, { recursive: true });
+        const dir = genTempDir({ slug: 'opencode-config-test' });
         return { path: dir };
       });
 
@@ -343,10 +331,7 @@ export const RhachetHook = {};`,
   describe('deleteOpencodePlugin', () => {
     given('[case1] plugin file present', () => {
       const repo = useBeforeAll(async () => {
-        const dir = path.join(
-          os.tmpdir(),
-          `opencode-config-test-${Date.now()}`,
-        );
+        const dir = genTempDir({ slug: 'opencode-config-test' });
         const pluginDir = path.join(dir, '.opencode', 'plugin');
         await fs.mkdir(pluginDir, { recursive: true });
         await fs.writeFile(
@@ -380,11 +365,7 @@ export const RhachetHook = {};`,
 
     given('[case2] plugin file absent', () => {
       const repo = useBeforeAll(async () => {
-        const dir = path.join(
-          os.tmpdir(),
-          `opencode-config-test-${Date.now()}`,
-        );
-        await fs.mkdir(dir, { recursive: true });
+        const dir = genTempDir({ slug: 'opencode-config-test' });
         return { path: dir };
       });
 

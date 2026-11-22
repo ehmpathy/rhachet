@@ -1,7 +1,7 @@
 import { getError, given, then, when } from 'test-fns';
 
 import { assertDepAgeIsInstalled } from '@src/.test/infra/assertDepAgeIsInstalled';
-import { withTempHome } from '@src/.test/infra/withTempHome';
+import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
 import { generateAgeKeyPair } from '@src/domain.operations/keyrack/adapters/ageRecipientCrypto';
 import { initKeyrack } from '@src/domain.operations/keyrack/initKeyrack';
 
@@ -19,10 +19,15 @@ const TEST_SSH_PUBKEY_PATH = join(TEST_SSH_KEY_DIR, 'test_key_ed25519.pub');
 const TEST_SSH_PRIKEY_PATH = join(TEST_SSH_KEY_DIR, 'test_key_ed25519');
 
 describe('recipient operations', () => {
-  const tempHome = withTempHome({ name: 'recipient-ops' });
+  const tempHome = { path: genTempDirPhysical({ slug: 'home-recipient-ops' }) };
+  const homeOriginal = process.env.HOME;
 
-  beforeAll(() => tempHome.setup());
-  afterAll(() => tempHome.teardown());
+  beforeAll(() => {
+    process.env.HOME = tempHome.path;
+  });
+  afterAll(() => {
+    process.env.HOME = homeOriginal;
+  });
 
   beforeEach(() => {
     // clear session identity between tests

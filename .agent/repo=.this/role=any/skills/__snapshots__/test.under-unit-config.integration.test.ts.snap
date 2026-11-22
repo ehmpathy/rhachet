@@ -1,0 +1,72 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`test.under-unit-config given: [case1] a caller asks for help when: [t0] --help is passed then: it exits 0 and renders the usage 1`] = `
+"usage:
+  rhx test.under-unit-config --file <path> [--file <path> ...] [--name '<regex>'] [--force-exit]
+
+options:
+  --file <path>     a test file to run, relative to the repo root (repeatable)
+  --name <regex>    run only the tests whose name matches (jest -t)
+  --force-exit      exit once the tests report, even if a handle is still open
+  --help, -h        show this help
+
+example:
+  rhx test.under-unit-config --file src/.test/infra/genTempDirPhysical.integration.test.ts
+"
+`;
+
+exports[`test.under-unit-config given: [case2] a caller makes a fixable mistake when: [t0] no --file is passed then: it refuses with exit 2, the class, and a pointer to help 1`] = `
+"✋ ConstraintError: at least one --file is required
+   ├─ ran: rhx test.under-unit-config 
+   └─ see: rhx test.under-unit-config --help
+"
+`;
+
+exports[`test.under-unit-config given: [case2] a caller makes a fixable mistake when: [t1] an unknown option is passed then: it refuses with exit 2, the class, and a pointer to help 1`] = `
+"✋ ConstraintError: unknown option: --fiel
+   ├─ ran: rhx test.under-unit-config --fiel x.test.ts
+   └─ see: rhx test.under-unit-config --help
+"
+`;
+
+exports[`test.under-unit-config given: [case2] a caller makes a fixable mistake when: [t2] --file is passed with no value then: it refuses with exit 2, the class, and a pointer to help 1`] = `
+"✋ ConstraintError: --file needs a value
+   ├─ ran: rhx test.under-unit-config --file
+   └─ see: rhx test.under-unit-config --help
+"
+`;
+
+exports[`test.under-unit-config given: [case2] a caller makes a fixable mistake when: [t3] a --file that does not exist is passed then: it refuses with exit 2, the class, and a pointer to help 1`] = `
+"✋ ConstraintError: no such file, relative to the repo root: src/absent.integration.test.ts
+   ├─ ran: rhx test.under-unit-config --file src/absent.integration.test.ts
+   └─ see: rhx test.under-unit-config --help
+"
+`;
+
+exports[`test.under-unit-config given: [case2] a caller makes a fixable mistake when: [t4] a flag is handed where --file wants its value then: it refuses as an absent value, never as an unknown option 1`] = `
+"✋ ConstraintError: --file needs a value
+   ├─ ran: rhx test.under-unit-config --file --name foo
+   └─ see: rhx test.under-unit-config --help
+"
+`;
+
+exports[`test.under-unit-config given: [case2] a caller makes a fixable mistake when: [t5] a --file names a dir, not a file then: it refuses as the wrong shape, never as an absent path 1`] = `
+"✋ ConstraintError: not a file (a test file is owed, not a dir): src/.test/infra
+   ├─ ran: rhx test.under-unit-config --file src/.test/infra
+   └─ see: rhx test.under-unit-config --help
+"
+`;
+
+exports[`test.under-unit-config given: [case2] a caller makes a fixable mistake when: [t6] a --file is an absolute path then: it refuses and names the repo-root-relative form it wants 1`] = `
+"✋ ConstraintError: --file takes a path relative to the repo root, not an absolute one: /abs/x.test.ts
+   ├─ ran: rhx test.under-unit-config --file /abs/x.test.ts
+   └─ see: rhx test.under-unit-config --help
+"
+`;
+
+exports[`test.under-unit-config given: [case3] the dispatcher passes its own args through when: [t1] a dispatcher arg arrives with no value then: it refuses with exit 2, the class, and a pointer to help 1`] = `
+"✋ ConstraintError: --repo needs a value
+   ├─ ran: rhx test.under-unit-config --repo
+   └─ see: rhx test.under-unit-config --help
+"
+`;

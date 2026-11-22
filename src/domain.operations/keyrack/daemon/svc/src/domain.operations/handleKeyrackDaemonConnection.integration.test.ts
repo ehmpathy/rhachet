@@ -36,6 +36,7 @@ describe('handleKeyrackDaemonConnection: the session check is lazy', () => {
     jest.setTimeout(20000);
 
     // a short path: a unix socket path is capped near 108 bytes
+    // .tempdir.exempt = unix socket path cap (~108 bytes); removed by this file's afterAll
     const runtimeDir = mkdtempSync('/tmp/hkdc-');
     const socketPath = `${runtimeDir}/d.sock`;
 

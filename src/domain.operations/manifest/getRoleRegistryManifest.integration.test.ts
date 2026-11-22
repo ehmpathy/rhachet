@@ -1,18 +1,17 @@
 import { ConstraintError, getError } from 'helpful-errors';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
+import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
 import { RoleRegistryManifest } from '@src/domain.objects/RoleRegistryManifest';
 
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { getRoleRegistryManifest } from './getRoleRegistryManifest';
 
 describe('getRoleRegistryManifest', () => {
   given('[case1] a package with valid rhachet.repo.yml', () => {
     const scene = useBeforeAll(async () => {
-      const packageRoot = join(tmpdir(), `rhachet-test-manifest-${Date.now()}`);
-      mkdirSync(packageRoot, { recursive: true });
+      const packageRoot = genTempDirPhysical({ slug: 'rhachet-test-manifest' });
 
       const validManifest = `
 slug: test-repo
@@ -66,11 +65,9 @@ roles:
 
   given('[case2] a package without rhachet.repo.yml', () => {
     const scene = useBeforeAll(async () => {
-      const packageRoot = join(
-        tmpdir(),
-        `rhachet-test-no-manifest-${Date.now()}`,
-      );
-      mkdirSync(packageRoot, { recursive: true });
+      const packageRoot = genTempDirPhysical({
+        slug: 'rhachet-test-no-manifest',
+      });
       // no manifest file created
       return { packageRoot };
     });
@@ -101,11 +98,9 @@ roles:
 
   given('[case3] a package with invalid yaml in rhachet.repo.yml', () => {
     const scene = useBeforeAll(async () => {
-      const packageRoot = join(
-        tmpdir(),
-        `rhachet-test-invalid-yaml-${Date.now()}`,
-      );
-      mkdirSync(packageRoot, { recursive: true });
+      const packageRoot = genTempDirPhysical({
+        slug: 'rhachet-test-invalid-yaml',
+      });
 
       const invalidYaml = `
 slug: test-repo
@@ -145,11 +140,9 @@ roles:
 
   given('[case4] a package with invalid schema in rhachet.repo.yml', () => {
     const scene = useBeforeAll(async () => {
-      const packageRoot = join(
-        tmpdir(),
-        `rhachet-test-invalid-schema-${Date.now()}`,
-      );
-      mkdirSync(packageRoot, { recursive: true });
+      const packageRoot = genTempDirPhysical({
+        slug: 'rhachet-test-invalid-schema',
+      });
 
       // valid yaml but invalid schema (lacks required fields)
       const invalidSchema = `
@@ -182,11 +175,9 @@ roles:
 
   given('[case5] a package with multiple roles in rhachet.repo.yml', () => {
     const scene = useBeforeAll(async () => {
-      const packageRoot = join(
-        tmpdir(),
-        `rhachet-test-multi-roles-${Date.now()}`,
-      );
-      mkdirSync(packageRoot, { recursive: true });
+      const packageRoot = genTempDirPhysical({
+        slug: 'rhachet-test-multi-roles',
+      });
 
       const multiRoleManifest = `
 slug: ehmpathy

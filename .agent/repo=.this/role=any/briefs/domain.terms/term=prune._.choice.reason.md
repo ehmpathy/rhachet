@@ -69,6 +69,30 @@ code changes"* (`pruneKeyrackDaemon.ts:7`). the answer sat one file away, unread
 shape as three other misses the same day — a prior record present and not consulted — and it is why
 this reason file leads with the distinction rather than the etymology.
 
+## .the exemption boundary — where a forbidden synonym is still correct
+
+recorded 2026-08-31, from behavior `v2026_08_30.fix-test-tempdir-leak`, because a reviewer who
+greps the forbidden list will find hits that must **not** be repaired.
+
+`rule.forbid.domain-term-synonyms` binds **contracts** — a dobj/dop name, an internal contract, a
+published interface. it explicitly permits a synonym in prose that describes the concept from an
+alternate perspective. two shapes recur, and both are conformant:
+
+| shape | instance | why it holds |
+|-------|----------|--------------|
+| **a verbatim quote** | the vision cites `genTestTempRepo.ts:59` — *"OS handles cleanup (no manual teardown needed)"* | the quote is evidence of a false premise. to canonicalize it would forge the artifact it indicts |
+| **the layfolk register**, in a two-column gloss | the vision's mental-model table maps `prunable by default` → *"cleanup rides along with the thing it cleans"* | the column's whole purpose is the word a human says. to canonicalize it collapses the table into one register and destroys its function |
+
+the second is the subtler one, and it is a **discovery instrument**, not a concession: a canonical
+term that cannot be glossed in layfolk words is a term the domain has not yet earned. so the
+gloss column is where the expert word gets tested — which is precisely the "listen to how folks
+talk" move (`howto.domain-discovery`, move 1), preserved in the artifact rather than discarded
+once the term is settled.
+
+**the checkable line:** a synonym in a **name**, a **flag**, a **field**, or a **type** is a
+blocker. a synonym inside a quotation mark or a declared layfolk column is not. if a reader cannot
+tell which of the two they read, the prose is at fault — mark the register, then keep the word.
+
 ## .disputes
 
 none open.

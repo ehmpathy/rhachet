@@ -1,7 +1,7 @@
 import { copyFileSync, mkdirSync, rmSync } from 'node:fs';
-import os from 'node:os';
 import { join } from 'node:path';
 
+import { genTempDirPhysical } from './genTempDirPhysical';
 import { TEST_SSH_KEY_PATH, TEST_SSH_PUBKEY_PATH } from './withTestSshAgent';
 
 /**
@@ -15,11 +15,10 @@ export const withTestHomeWithSshKey = async <T>(
   input: { name: string },
   fn: (home: string) => Promise<T>,
 ): Promise<T> => {
-  const tempHome = join(os.tmpdir(), 'rhachet-test', input.name);
+  const tempHome = genTempDirPhysical({ slug: `home-${input.name}` });
   const originalHome = process.env.HOME;
 
-  // clean and create temp home with .ssh directory
-  rmSync(tempHome, { recursive: true, force: true });
+  // create .ssh within the fresh temp home
   mkdirSync(join(tempHome, '.ssh'), { recursive: true });
 
   // copy test key to standard locations
@@ -41,7 +40,8 @@ export const withTestHomeWithSshKey = async <T>(
     // restore original HOME
     process.env.HOME = originalHome;
 
-    // cleanup temp home
+    // remove the home at once, as this fixture promises its callers; the run's globalTeardown
+    // reclaims it regardless, so this is an early release, never the only reclaim
     rmSync(tempHome, { recursive: true, force: true });
   }
 };
@@ -55,7 +55,7 @@ export const createTestHomeWithSshKey = (input: { name: string }): {
   setup: () => Promise<void>;
   teardown: () => void;
 } => {
-  const tempHome = join(os.tmpdir(), 'rhachet-test', input.name);
+  const tempHome = genTempDirPhysical({ slug: `home-${input.name}` });
   let originalHome: string | undefined;
 
   return {
@@ -64,8 +64,7 @@ export const createTestHomeWithSshKey = (input: { name: string }): {
     setup: async () => {
       originalHome = process.env.HOME;
 
-      // clean and create temp home with .ssh directory
-      rmSync(tempHome, { recursive: true, force: true });
+      // create .ssh within the fresh temp home
       mkdirSync(join(tempHome, '.ssh'), { recursive: true });
 
       // copy test key to standard locations
@@ -88,7 +87,8 @@ export const createTestHomeWithSshKey = (input: { name: string }): {
       // restore original HOME
       process.env.HOME = originalHome;
 
-      // cleanup temp home
+      // remove the home at once, as this fixture promises its callers; the run's globalTeardown
+      // reclaims it regardless, so this is an early release, never the only reclaim
       rmSync(tempHome, { recursive: true, force: true });
     },
   };
