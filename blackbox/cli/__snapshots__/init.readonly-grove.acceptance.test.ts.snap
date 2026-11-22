@@ -49,5 +49,9 @@ exports[`rhx init — a read-only grove file (vision case 1) given: [case1] a fr
    └─ boot.md
       └─ created — 1 role
 
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
+
 "
 `;

@@ -45,26 +45,52 @@ const invokeSetupOrThrow = (
 };
 
 /**
- * .what = the authors of every hook the repo actor's settings.of.repo.json holds
+ * .what = the author the hook dispatcher carries in the settings, one per event
+ */
+const HOOK_DISPATCHER_AUTHOR = 'rhachet/hooks.dispatch';
+
+/**
+ * .what = the authors of every role hook the repo actor holds
+ * .why = a role hook lives as a row of the hook dispatch manifest, behind one dispatcher per
+ *   event in settings.of.repo.json; a hook a human adds by hand stays in the settings. both
+ *   are read, and the dispatcher itself is no role's hook, so it is left out
  */
 const getHookAuthorsOfRepoSettings = async (input: {
   repoPath: string;
 }): Promise<string[]> => {
-  const content = await fs.readFile(
-    path.join(input.repoPath, REPO_ACTOR_BRAIN_DIR_REL, 'settings.of.repo.json'),
-    'utf-8',
-  );
-  const config = JSON.parse(content) as {
+  const brainDir = path.join(input.repoPath, REPO_ACTOR_BRAIN_DIR_REL);
+
+  // the hooks the settings hold directly, less the dispatcher
+  const config = JSON.parse(
+    await fs.readFile(path.join(brainDir, 'settings.of.repo.json'), 'utf-8'),
+  ) as {
     hooks?: Record<
       string,
       Array<{ matcher?: string; hooks?: Array<{ author?: string }> }>
     >;
   };
-  return Object.values(config.hooks ?? {}).flatMap((entries) =>
-    entries.flatMap((entry) =>
-      (entry.hooks ?? []).map((hook) => hook.author ?? ''),
-    ),
-  );
+  const authorsInSettings = Object.values(config.hooks ?? {})
+    .flatMap((entries) =>
+      entries.flatMap((entry) =>
+        (entry.hooks ?? []).map((hook) => hook.author ?? ''),
+      ),
+    )
+    .filter((author) => author !== HOOK_DISPATCHER_AUTHOR);
+
+  // the hooks behind the dispatcher: one manifest row each, its author the 4th field. an
+  //   absent manifest holds no rows
+  const manifest = await fs
+    .readFile(path.join(brainDir, 'hooks.dispatch.manifest'), 'utf-8')
+    .catch((error: NodeJS.ErrnoException) => {
+      if (error.code === 'ENOENT') return '';
+      throw error;
+    });
+  const authorsInManifest = manifest
+    .split('\n')
+    .filter((line) => line.length > 0 && !line.startsWith('#'))
+    .map((line) => line.split('\x1f')[3] ?? '');
+
+  return [...authorsInSettings, ...authorsInManifest];
 };
 
 describe('rhachet init — refusals before any role links, and a part-way init', () => {
