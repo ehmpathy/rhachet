@@ -62,8 +62,11 @@ const asTempCwdMasked = (input: { output: string; cwd: string }): string =>
     // both names of the dir: a temp root reached through a symlink (macos `/var` →
     //   `/private/var`) renders as either (rule.require.mask-both-names-of-a-temp-dir)
     realpathSync(input.cwd),
-    // and the name `asSnapshotSafe` leaves once its own masks rewrite the dir
-    ...[input.cwd, realpathSync(input.cwd)].map((name) => asSnapshotSafe(name)),
+    // and the name `asSnapshotSafe` leaves once its own masks rewrite the dir — except a repo
+    //   cwd's `/TMP_REPO`, a stable token already, which must stay so (see .note above)
+    ...[input.cwd, realpathSync(input.cwd)]
+      .map((name) => asSnapshotSafe(name))
+      .filter((name) => name !== '/TMP_REPO'),
   ].reduce(
     (output, name) => output.split(name).join('$TESTCWD'),
     asSnapshotSafe(input.output),

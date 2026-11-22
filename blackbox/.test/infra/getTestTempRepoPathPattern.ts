@@ -63,3 +63,15 @@ export const getTestTempRepoPathPattern = (): RegExp =>
     `${asRegexEscaped({ literal: getTempRootOnce() })}/${TEMP_REPO_DIR_SEGMENT}`,
     'g',
   );
+
+/**
+ * .what = the pattern of the derived temp ROOT itself, where a path that walks up out of a temp
+ *         test repo lands (e.g. `../escaped` from the repo → `<root>/escaped`)
+ * .why = a temp test repo's parent is the derived root, never the os temp root; so the root
+ *        must take the `/TMP_ROOT` name a walk-up path has always rendered with — else the
+ *        per-checkout root (`/tmp/test-fns/<repo>/.temp`) leaks into the snapshot
+ * .note = apply it AFTER the repo and stamped-dir masks, which own the paths inside the root
+ * .note = bounded at a path end, so a peer root whose name merely starts the same stays as is
+ */
+export const getTestTempRootPattern = (): RegExp =>
+  new RegExp(`${asRegexEscaped({ literal: getTempRootOnce() })}(?=[/"\\s]|$)`, 'gm');

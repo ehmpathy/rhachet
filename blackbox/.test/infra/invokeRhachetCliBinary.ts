@@ -2,7 +2,10 @@ import { spawn, spawnSync, type SpawnSyncReturns } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 
-import { getTestTempRepoPathPattern } from './getTestTempRepoPathPattern';
+import {
+  getTestTempRepoPathPattern,
+  getTestTempRootPattern,
+} from './getTestTempRepoPathPattern';
 
 /**
  * .what = strip machine-specific content from CLI output for snapshots
@@ -87,6 +90,10 @@ export const asSnapshotSafe = (output: string): string => {
         /\/tmp\/test-fns\/[^/\s]+\/\.temp\/\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.\d{3}Z\.[^/\s]*\.[0-9a-f]{8}/gi,
         '/TMP_TEST_DIR',
       )
+      // strip the derived temp root itself, where a path that walks up out of a temp test repo
+      //   lands. it takes the `/TMP_ROOT` name such a path has always rendered with, since a temp
+      //   test repo's parent is this root. AFTER the repo + stamped-dir masks, which own its insides
+      .replace(getTestTempRootPattern(), '/TMP_ROOT')
       // strip the say debug log's calendar day (`debug.2026-09-16.log`). the ISO mask
       // below cannot reach it — that one demands COLONS, and a filename-safe day carries
       // dashes only. the mask keeps the `debug.` / `.log` literals, so the snapshot still

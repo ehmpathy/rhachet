@@ -341,4 +341,30 @@ describe('asSnapshotSafe path mask', () => {
       });
     });
   });
+
+  /**
+   * .why = a temp test repo's parent is the derived temp root, so a path that walks up out of
+   *   the repo (`../escaped`) lands in that root. it must render as `/TMP_ROOT/escaped`, as it
+   *   did when repos sat in the os temp root — never with the per-checkout root
+   */
+  given('[case8] a path that walks up out of a temp test repo', () => {
+    when('[t0] it lands in the derived temp root', () => {
+      then('the root masks to /TMP_ROOT, and the walk-up name survives', () => {
+        const root = getOneTempDirRoot().pathPhysical;
+        expect(asSnapshotSafe(`"pathTaken": "${root}/escaped/boot.yml",`)).toEqual(
+          '"pathTaken": "/TMP_ROOT/escaped/boot.yml",',
+        );
+      });
+    });
+
+    when('[t1] a temp test repo path inside the same root reaches the mask', () => {
+      then('it keeps its own /TMP_REPO mask, untouched by the root mask', () => {
+        const root = getOneTempDirRoot().pathPhysical;
+        const repo = `${root}/2026-01-19T12-34-56.789Z.r7f3a91c2.rhachet-test.a1b2c3d4`;
+        expect(asSnapshotSafe(`${repo}/.agent/keyrack.yml`)).toEqual(
+          '/TMP_REPO/.agent/keyrack.yml',
+        );
+      });
+    });
+  });
 });
