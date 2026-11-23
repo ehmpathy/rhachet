@@ -50,10 +50,6 @@ SKILL_NAME="perf.test"
 # parse args
 while [[ $# -gt 0 ]]; do
   case $1 in
-    -h|--help|help)
-      head -n 33 "${BASH_SOURCE[0]}" | tail -n +3 | cut -c3-
-      exit 0
-      ;;
     --measure)
       MEASURE=true
       shift

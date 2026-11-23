@@ -3,7 +3,6 @@ import { given, then, when } from 'test-fns';
 
 import { genContextLogTrail } from '@src/.test/genContextLogTrail';
 import { getContextOpenAI } from '@src/.test/getContextOpenAI';
-import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
 import type { Stitch } from '@src/domain.objects/Stitch';
 import type { GStitcher } from '@src/domain.objects/Stitcher';
 import { StitchStepImagine } from '@src/domain.objects/StitchStep';
@@ -19,15 +18,13 @@ import { enstitch } from './enstitch';
 
 jest.setTimeout(toMilliseconds({ minutes: 3 }));
 
-// a live openai call: runs only under `BRAIN_LIVE_SCOPE=all` (`rule.require.live-brain-tests-run-on-a-named-flag`)
-describeBrainLiveOnDemand('invokeImagineStitcher', () => {
-  given('a representative imagine stitcher', () => {
-    // the openai key is read at call time, never at collection, so a gated run reads no credential
-    const getContext = () => ({
+describe('invokeImagineStitcher', () => {
+  given.runIf(!process.env.CI)('a representative imagine stitcher', () => {
+    const context = {
       ...genContextLogTrail(),
       ...genContextStitchTrail(),
       ...getContextOpenAI(),
-    });
+    };
 
     const stitcher = new StitchStepImagine<
       GStitcher<
@@ -82,7 +79,7 @@ export const sdkOpenMeteo = {
       then('it should be able to stitch', async () => {
         const { stitch, threads } = await enstitch(
           { stitcher, threads: { author: thread } },
-          getContext(),
+          context,
         );
         console.log(stitch.input);
         console.log(stitch.output);
@@ -213,7 +210,7 @@ daily_units	Object	For each selected daily weather variable, the unit will be li
       then('it should leverage the knowledge of the context', async () => {
         const { stitch, threads } = await enstitch(
           { stitcher, threads: { author: thread } },
-          getContext(),
+          context,
         );
         console.log(stitch.input);
         console.log(stitch.output);

@@ -9,6 +9,7 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
+  unlinkSync,
 } from 'node:fs';
 import { connect } from 'node:net';
 import {
@@ -36,13 +37,13 @@ describe('keyrack daemon integration', () => {
 
   // cleanup before and after tests
   beforeAll(() => {
-    rmSync(testSocketPath, { force: true });
-    rmSync(testPidPath, { force: true });
+    if (existsSync(testSocketPath)) unlinkSync(testSocketPath);
+    if (existsSync(testPidPath)) unlinkSync(testPidPath);
   });
 
   afterAll(() => {
-    rmSync(testSocketPath, { force: true });
-    rmSync(testPidPath, { force: true });
+    if (existsSync(testSocketPath)) unlinkSync(testSocketPath);
+    if (existsSync(testPidPath)) unlinkSync(testPidPath);
   });
 
   given('[case1] daemon server lifecycle', () => {
@@ -462,8 +463,8 @@ describe('keyrack daemon integration', () => {
       // ensure env is clean before test
       delete process.env['KEYRACK_DAEMON_TERMINATION_CHECK_MS'];
       delete process.env['KEYRACK_DAEMON_IDLE_TIMEOUT_MS'];
-      rmSync(autoTermSocketPath, { force: true });
-      rmSync(autoTermPidPath, { force: true });
+      if (existsSync(autoTermSocketPath)) unlinkSync(autoTermSocketPath);
+      if (existsSync(autoTermPidPath)) unlinkSync(autoTermPidPath);
     });
 
     afterAll(() => {
@@ -480,13 +481,11 @@ describe('keyrack daemon integration', () => {
           // is the very outcome this case asserts, so it is the normal path here
           // .why = EPERM means a live process this uid may not signal — a recycled
           // pid. to swallow that would leave a real daemon alive and unreported
-          // ENOENT = the daemon removed its pid file between the check and the read
-          const code = (error as NodeJS.ErrnoException).code;
-          if (code !== 'ESRCH' && code !== 'ENOENT') throw error;
+          if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
         }
       }
-      rmSync(autoTermSocketPath, { force: true });
-      rmSync(autoTermPidPath, { force: true });
+      if (existsSync(autoTermSocketPath)) unlinkSync(autoTermSocketPath);
+      if (existsSync(autoTermPidPath)) unlinkSync(autoTermPidPath);
     });
 
     when('[t0] daemon subprocess receives keys that expire', () => {
@@ -935,8 +934,8 @@ describe('keyrack daemon integration', () => {
     const chunkedPidPath = chunkedSocketPath.replace(/\.sock$/, '.pid');
 
     beforeAll(() => {
-      rmSync(chunkedSocketPath, { force: true });
-      rmSync(chunkedPidPath, { force: true });
+      if (existsSync(chunkedSocketPath)) unlinkSync(chunkedSocketPath);
+      if (existsSync(chunkedPidPath)) unlinkSync(chunkedPidPath);
     });
 
     afterAll(() => {
@@ -949,14 +948,12 @@ describe('keyrack daemon integration', () => {
             'SIGTERM',
           );
         } catch (error) {
-          // allow expected errors: ESRCH = no such process (already dead); ENOENT = the
-          //   daemon removed its pid file between the check and the read
-          const code = (error as NodeJS.ErrnoException).code;
-          if (code !== 'ESRCH' && code !== 'ENOENT') throw error;
+          // allow expected errors: ESRCH = no such process (already dead)
+          if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
         }
       }
-      rmSync(chunkedSocketPath, { force: true });
-      rmSync(chunkedPidPath, { force: true });
+      if (existsSync(chunkedSocketPath)) unlinkSync(chunkedSocketPath);
+      if (existsSync(chunkedPidPath)) unlinkSync(chunkedPidPath);
     });
 
     when('[t0] the chunks span more than one termination tick', () => {
@@ -1030,8 +1027,8 @@ describe('keyrack daemon integration', () => {
     const pidsSpawned: number[] = [];
 
     beforeAll(() => {
-      rmSync(racedSocketPath, { force: true });
-      rmSync(racedPidPath, { force: true });
+      if (existsSync(racedSocketPath)) unlinkSync(racedSocketPath);
+      if (existsSync(racedPidPath)) unlinkSync(racedPidPath);
     });
 
     afterAll(() => {
@@ -1047,8 +1044,8 @@ describe('keyrack daemon integration', () => {
           if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
         }
       }
-      rmSync(racedSocketPath, { force: true });
-      rmSync(racedPidPath, { force: true });
+      if (existsSync(racedSocketPath)) unlinkSync(racedSocketPath);
+      if (existsSync(racedPidPath)) unlinkSync(racedPidPath);
     });
 
     when('[t0] the earlier one idle-exits while the later serves', () => {

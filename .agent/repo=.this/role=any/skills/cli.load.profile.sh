@@ -18,15 +18,13 @@
 #
 # guarantee:
 #   - runs ./bin/run.jit (this worktree's dist); run `npm run build` first
-#   - the report goes to stdout, since the command's own stdout is dropped;
-#     the command's stderr rides beside it; its exit code is kept
+#   - the report goes to stderr; the command's own exit code is kept
 ######################################################################
 set -euo pipefail
 
 TOP=25
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    -h|--help) sed -n '3,22p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
     --top) TOP="$2"; shift 2 ;;
     # the rhx dispatcher passes its own lookup args through; they are not ours
     --skill|--repo|--role) shift 2 ;;
@@ -43,9 +41,9 @@ START=$(date +%s%N)
 set +e
 node --experimental-strip-types --experimental-transform-types --disable-warning=ExperimentalWarning \
   --require "$SKILL_DIR/cli.load.profile.hook.js" \
-  "$REPO_ROOT/bin/run.jit" "$@" 2>&1 >/dev/null
+  "$REPO_ROOT/bin/run.jit" "$@" >/dev/null
 CODE=$?
 set -e
 END=$(date +%s%N)
-echo "⏱  wall: $(( (END - START) / 1000000 ))ms  (exit $CODE)"
+echo "⏱  wall: $(( (END - START) / 1000000 ))ms  (exit $CODE)" >&2
 exit $CODE

@@ -6,7 +6,6 @@ import { getUuid } from 'uuid-fns';
 
 import { genContextLogTrail } from '@src/.test/genContextLogTrail';
 import { getContextOpenAI } from '@src/.test/getContextOpenAI';
-import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
 import { genStitcherCodeFileRead } from '@src/.test/stitchers/genStitcherCodeFileRead';
 import { genStitcherCodeFileWrite } from '@src/.test/stitchers/genStitcherCodeFileWrite';
 import { genStitcherCodeReview } from '@src/.test/stitchers/genStitcherCodeReviewImagine';
@@ -30,23 +29,21 @@ import { enweaveOneStitcher } from './enweaveOneStitcher';
 
 jest.setTimeout(toMilliseconds({ minutes: 3 }));
 
-// a live openai loop: runs only under `BRAIN_LIVE_SCOPE=all` (`rule.require.live-brain-tests-run-on-a-named-flag`)
-describeBrainLiveOnDemand('enweaveOneStitcher', () => {
-  // the openai key is read at call time, never at collection, so a gated run reads no credential
-  const getContext = () => ({
+describe('enweaveOneStitcher', () => {
+  const baseContext = {
     ...genContextStitchTrail(),
     ...genContextLogTrail(),
-    ...getContextOpenAI(),
-  });
-  type context = ReturnType<typeof getContext>;
+  };
+  const context = { ...baseContext, ...getContextOpenAI() };
 
-  given(
+  // takes a while; skip by default
+  given.runIf(!process.env.CI)(
     'a review loop that proposes, reviews, summarizes, and judges code improvement until blockers are gone or 3 attempts max',
     () => {
       const stitcherCodeReviewConcluder = new StitchStepCompute<
         GStitcher<
           Threads<{ critic: Empty }, 'multiple'>,
-          context,
+          typeof context,
           { blockers: string[]; summary: string[] }
         >
       >({
@@ -82,7 +79,7 @@ describeBrainLiveOnDemand('enweaveOneStitcher', () => {
       const directorSummarize = new StitchStepCompute<
         GStitcher<
           Threads<{ director: Empty; critic: Empty }>,
-          context,
+          typeof context,
           { directive: string; blockers: string[] }
         >
       >({
@@ -165,7 +162,7 @@ describeBrainLiveOnDemand('enweaveOneStitcher', () => {
       const judgeDeciderNextStep = new StitchStepCompute<
         GStitcher<
           Threads<{ critic: Empty; judge: Empty }>,
-          context,
+          typeof context,
           { choice: 'release' | 'repeat' }
         >
       >({
@@ -193,7 +190,11 @@ describeBrainLiveOnDemand('enweaveOneStitcher', () => {
       );
 
       const stitcherRestitchLatestArtistOutput = new StitchStepCompute<
-        GStitcher<Threads<{ artist: Empty }>, context, { restitched: string }>
+        GStitcher<
+          Threads<{ artist: Empty }>,
+          typeof context,
+          { restitched: string }
+        >
       >({
         slug: '[artist]<restitch:latest>',
         readme: 'Restitch artists latest output for final record',
@@ -279,7 +280,7 @@ export const sdkOpenMeteo = {
             async () => {
               const output = await enweaveOneStitcher(
                 { stitcher: rootRouteCodeDiff, threads },
-                getContext(),
+                context,
               );
 
               expect(output.threads.artist.stitches.length).toBeGreaterThan(0);
