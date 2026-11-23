@@ -248,6 +248,10 @@ exports[`rhx enroll --roles (acceptance) given: [case2] the POSITIVE regression 
       }
     ]
   },
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
   "claudeMdExcludes": [
     "/TMP_TEST_DIR/.claude/AGENTS.md",
     "/TMP_TEST_DIR/.claude/CLAUDE.md",
@@ -306,6 +310,10 @@ exports[`rhx enroll --roles (acceptance) given: [case2b] the PRIMARY journey —
         ]
       }
     ]
+  },
+  "attribution": {
+    "commit": "",
+    "pr": ""
   },
   "claudeMdExcludes": [
     "/HOME_DIR/.claude/CLAUDE.md",
@@ -472,6 +480,10 @@ exports[`rhx enroll --roles (acceptance) given: [case3] positive replace — bar
       }
     ]
   },
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
   "claudeMdExcludes": [
     "/TMP_TEST_DIR/.claude/AGENTS.md",
     "/TMP_TEST_DIR/.claude/CLAUDE.md",
@@ -522,6 +534,10 @@ exports[`rhx enroll --roles (acceptance) given: [case4] positive add — \`+arch
       }
     ]
   },
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
   "claudeMdExcludes": [
     "/HOME_DIR/.claude/CLAUDE.md",
     "**/CLAUDE.local.md"
@@ -555,6 +571,10 @@ exports[`rhx enroll --roles (acceptance) given: [case5] positive mixed — \`-dr
         ]
       }
     ]
+  },
+  "attribution": {
+    "commit": "",
+    "pr": ""
   },
   "claudeMdExcludes": [
     "/TMP_TEST_DIR/.claude/AGENTS.md",
@@ -596,6 +616,10 @@ exports[`rhx enroll --roles (acceptance) given: [case6] positive mixed — \`"-d
       }
     ]
   },
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
   "claudeMdExcludes": [
     "/TMP_TEST_DIR/.claude/AGENTS.md",
     "/TMP_TEST_DIR/.claude/CLAUDE.md",
@@ -635,6 +659,10 @@ exports[`rhx enroll --roles (acceptance) given: [case7] the \`-r\` short alias r
         ]
       }
     ]
+  },
+  "attribution": {
+    "commit": "",
+    "pr": ""
   },
   "claudeMdExcludes": [
     "/TMP_TEST_DIR/.claude/AGENTS.md",
@@ -676,6 +704,10 @@ exports[`rhx enroll --roles (acceptance) given: [case7b] a bare role delta after
       }
     ]
   },
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
   "claudeMdExcludes": [
     "/TMP_TEST_DIR/.claude/AGENTS.md",
     "/TMP_TEST_DIR/.claude/CLAUDE.md",
@@ -705,6 +737,10 @@ exports[`rhx enroll --roles (acceptance) given: [case7c] a delta actor re-derive
         ]
       }
     ]
+  },
+  "attribution": {
+    "commit": "",
+    "pr": ""
   },
   "claudeMdExcludes": [
     "/TMP_TEST_DIR/.claude/AGENTS.md",

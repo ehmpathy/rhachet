@@ -538,6 +538,12 @@ describe('rhx enroll --roles (acceptance)', () => {
         expect(config).toContain('role=architect');
       });
 
+      then('the authored config turns claude attribution off', () => {
+        // empty commit + pr: claude injects no co-author trailer or pr footer
+        const config = JSON.parse(readEnrollmentConfig({ dir }));
+        expect(config.attribution).toEqual({ commit: '', pr: '' });
+      });
+
       then('the authored config body is locked to a snapshot', () => {
         // the generated actor settings.of.repo.json IS the wish's real
         // output. snapshot the full filtered-hook set so the retained role set
@@ -611,6 +617,12 @@ describe('rhx enroll --roles (acceptance)', () => {
         expect(config).toContain('role=mechanic');
         expect(config).toContain('role=architect');
         expect(config).toContain('role=driver');
+      });
+
+      then('the authored repo-actor config turns claude attribution off', () => {
+        // the everyday `claude` lands here; empty commit + pr mute the trailer + footer
+        const config = JSON.parse(readEnrollmentConfig({ dir }));
+        expect(config.attribution).toEqual({ commit: '', pr: '' });
       });
 
       then('the authored default-roleset config body is locked to a snapshot', () => {

@@ -17,6 +17,7 @@ import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 import { dirname, join } from 'node:path';
 import { getSupportedBrainCommand } from '../brain/getSupportedBrainCommand';
 import { asClaudeMdExcludesOutsideDirs } from './asClaudeMdExcludesOutsideDirs';
+import { asSettingsWithAttributionOff } from './asSettingsWithAttributionOff';
 import { asSettingsWithoutCloneEnv } from './asSettingsWithoutCloneEnv';
 import { getClaudeMdExcludesList } from './getClaudeMdExcludesList';
 import { getSettingsForRoles } from './getSettingsForRoles';
@@ -34,6 +35,8 @@ import { setActorHookDispatchManifestDerived } from './setActorHookDispatchManif
  *   hooks there too
  * .note = drops every clone identity key from the `env` map — a spawn mints a depth, a config
  *   never does
+ * .note = sets `attribution` to `{ commit: '', pr: '' }`, so claude injects no co-author
+ *   trailer or pr footer into any clone of the actor (asSettingsWithAttributionOff)
  * .note = with no manifest the repo actor is the source itself: its hooks are never narrowed (a
  *   narrow would drop any hook with no author), only its claudeMdExcludes are set. under a
  *   manifest every actor narrows from the linked roles' hooks (`asSettingsNarrowedForActor`)
@@ -157,8 +160,13 @@ const setActorSettingsRepoWithinLock = async (input: {
       : settingsNarrowedByAuthor;
 
   // drop any clone identity key from the env map, so the spawn alone sets the depth
-  const settings = asSettingsWithoutCloneEnv({
+  const settingsWithoutCloneEnv = asSettingsWithoutCloneEnv({
     settings: settingsNarrowed,
+  });
+
+  // empty claude's commit + pr attribution, so no clone is told to add a trailer or footer
+  const settings = asSettingsWithAttributionOff({
+    settings: settingsWithoutCloneEnv,
   });
 
   // exclude every door but the actor's own, so the clone reads its brain dir alone (D5, D12).
