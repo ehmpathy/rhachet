@@ -1,5 +1,7 @@
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { RoleDelta } from '@src/domain.objects/RoleDelta';
+import type { BrainDirOutsideRepoError } from '@src/domain.operations/actor/enrolled/BrainDirOutsideRepoError';
+import { withBrainDirOutsideRepoAsSkip } from '@src/domain.operations/actor/enrolled/withBrainDirOutsideRepoAsSkip';
 import { getAllRolesAtFocusAlwaysShed } from '@src/domain.operations/boot/getAllRolesAtFocusAlwaysShed';
 import { getAllLinkedRoleRefs } from '@src/domain.operations/role/getAllLinkedRoleRefs';
 import { getRoleDeltasOfKind } from '@src/domain.operations/roles/deltas/getRoleDeltasOfKind';
@@ -24,12 +26,20 @@ import { asRoleSlugsOfRefs } from '../boots/asRoleSlugsOfRefs';
 export const setInitRoleFoci = async (
   input: { deltas: RoleDelta[]; rolesLinkedBefore: string[] },
   context: ContextCli,
-): Promise<{ lines: string[] }> => {
-  // record the foci beside the repo actor
-  const recorded = await setRepoAmbientRoleFoci({
-    repoPath: context.gitroot,
-    deltas: input.deltas,
+): Promise<{ lines: string[]; skips: BrainDirOutsideRepoError[] }> => {
+  // record the foci beside the repo actor; a repo actor dir outside the repo settles as a skip
+  const settled = await withBrainDirOutsideRepoAsSkip({
+    logic: () =>
+      setRepoAmbientRoleFoci({
+        repoPath: context.gitroot,
+        deltas: input.deltas,
+      }),
+    skipped: null,
   });
+
+  // a skip recorded no focus, so it names no change; its warn says what was missed
+  const recorded = settled.result;
+  if (!recorded) return { lines: [], skips: settled.skips };
 
   // name each focus change, and each `always` a focus shed
   const refsLinkedAfter = getAllLinkedRoleRefs({}, context);
@@ -49,5 +59,5 @@ export const setInitRoleFoci = async (
       repoPath: context.gitroot,
     }),
   });
-  return { lines };
+  return { lines, skips: settled.skips };
 };

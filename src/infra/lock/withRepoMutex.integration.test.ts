@@ -1,11 +1,18 @@
-import { MalfunctionError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import { genTempDir, given, then, when } from 'test-fns';
 
 import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 
 import { spawn } from 'node:child_process';
 import { EventEmitter, once } from 'node:events';
-import { readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 
 /**
@@ -311,6 +318,63 @@ describe('withRepoMutex', () => {
       });
     },
   );
+
+  given('[case8] a repo whose actors root links to a dir outside it', () => {
+    when('[t0] a section runs under the mutex', () => {
+      then(
+        'the key lands in <repo>/.agent/.locks, and the outside dir stays empty',
+        async () => {
+          const repoPath = genTempDir({ slug: 'withRepoMutex-c8t0' });
+          const outside = genTempDir({ slug: 'withRepoMutex-c8t0-outside' });
+          mkdirSync(join(repoPath, '.agent'), { recursive: true });
+          symlinkSync(outside, join(repoPath, '.agent', '.actors'));
+          const path = join(repoPath, '.agent', 'repo=.mods');
+
+          const result = await withRepoMutex(
+            { repoPath, path },
+            async () => 'done',
+          );
+
+          expect(result).toEqual('done');
+          expect(readdirSync(outside)).toEqual([]);
+          expect(
+            readFileSync(
+              join(repoPath, '.agent', '.locks', '.gitignore'),
+              'utf8',
+            ),
+          ).toEqual('*\n');
+        },
+      );
+    });
+  });
+
+  given('[case9] a repo whose .agent links to a dir outside it', () => {
+    when('[t0] a section runs under the mutex', () => {
+      then(
+        'it refuses loud, runs no section, and writes no key outside',
+        async () => {
+          const repoPath = genTempDir({ slug: 'withRepoMutex-c9t0' });
+          const outside = genTempDir({ slug: 'withRepoMutex-c9t0-outside' });
+          symlinkSync(outside, join(repoPath, '.agent'));
+          const path = join(repoPath, 'settings.of.repo.json');
+
+          // .note = deliberate mutation — the flag records whether the section ever ran
+          let isRan = false;
+          const error = await withRepoMutex({ repoPath, path }, async () => {
+            isRan = true;
+          }).then(
+            () => null,
+            (thrown: Error) => thrown,
+          );
+
+          expect(error).toBeInstanceOf(ConstraintError);
+          expect(error?.message).toContain('refused a write outside the repo');
+          expect(isRan).toBe(false);
+          expect(readdirSync(outside)).toEqual([]);
+        },
+      );
+    });
+  });
 
   given('[case7] the prod source of rhachet', () => {
     when('[t0] its lock primitives are listed', () => {

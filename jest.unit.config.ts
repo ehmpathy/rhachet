@@ -40,6 +40,8 @@ const config: Config = {
     '!**/*.integration.test.ts',
     '!**/.yalc/**',
     '!**/.agent/.cache/**',
+    // brain dirs hold claude runtime state (plugin caches with their own tests), never repo source
+    '!**/.agent/.actors/**',
   ],
   // also keep jest's obsolete-snapshot scan out of the rmsafe trash — a deleted
   // .snap lands there and would otherwise be flagged obsolete (a local-only false

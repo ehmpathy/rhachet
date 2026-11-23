@@ -1,0 +1,20 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`setBrainDirSettingsLayout given: [case10] settings.of.repo.json is a symlink when: [t0] the layout is findserted then: the found text names the link, and the hint names the fix 1`] = `"rhachet derives it from the roles, so remove actor/brain/.claude/settings.of.repo.json, then rerun \`rhx init --hooks\`"`;
+
+exports[`setBrainDirSettingsLayout given: [case11] settings.of.repo.json is a dir when: [t0] the layout is findserted then: the human reads the same header, found text and hint 1`] = `
+{
+  "found": "a dir",
+  "header": "✋ ConstraintError: settings.of.repo.json must be a real file",
+  "hint": "rhachet derives it from the roles, so remove actor/brain/.claude/settings.of.repo.json, then rerun \`rhx init --hooks\`",
+}
+`;
+
+exports[`setBrainDirSettingsLayout given: [case12] a brain dir not yet made, under a parent that links outside the repo when: [t0] the layout is findserted then: the human reads the header, the path, where it lands, and the fix 1`] = `
+"{
+  "header": "✋ ConstraintError: refused a write outside the repo",
+  "path": "actor-out/brain/.claude",
+  "landsAt": "$OUTSIDE/brain/.claude",
+  "hint": "point that dir, or the link above it, back inside the repo, then rerun \`rhx init --hooks\`"
+}"
+`;
