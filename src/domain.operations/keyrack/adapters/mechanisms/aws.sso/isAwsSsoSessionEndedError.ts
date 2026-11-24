@@ -31,14 +31,27 @@ const SESSION_ENDED_TEXTS = {
 } as const;
 
 /**
+ * .what = is this value shaped as an error: an object with a string message?
+ * .why = read by shape, never by `instanceof Error`: an exec error is built in node's own
+ *        realm, so a host with a second realm (a jest sandbox, a vm) holds an `Error` class
+ *        it is no instance of, and a session end would read as a fault
+ */
+const isErrorShaped = (
+  value: unknown,
+): value is { message: string; stderr?: unknown } =>
+  typeof value === 'object' &&
+  value !== null &&
+  typeof (value as { message?: unknown }).message === 'string';
+
+/**
  * .what = the text a gate's error is read by
  * .why = the cli gate's error carries the child's stderr; the sdk gate's, a message
  */
 const asGateErrorText = (input: {
   gate: keyof typeof SESSION_ENDED_TEXTS;
-  error: Error;
+  error: { message: string; stderr?: unknown };
 }): string => {
-  const stderr = 'stderr' in input.error ? input.error.stderr : null;
+  const stderr = input.error.stderr;
   if (input.gate === 'export-credentials' && typeof stderr === 'string')
     return stderr.toLowerCase();
   return input.error.message.toLowerCase();
@@ -53,7 +66,7 @@ export const isAwsSsoSessionEndedError = (input: {
   gate: keyof typeof SESSION_ENDED_TEXTS;
   error: unknown;
 }): boolean => {
-  if (!(input.error instanceof Error)) return false;
+  if (!isErrorShaped(input.error)) return false;
   const text = asGateErrorText({ gate: input.gate, error: input.error });
   return SESSION_ENDED_TEXTS[input.gate].some((ended) => text.includes(ended));
 };

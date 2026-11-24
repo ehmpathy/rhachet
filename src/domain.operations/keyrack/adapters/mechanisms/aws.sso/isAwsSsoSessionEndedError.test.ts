@@ -1,3 +1,4 @@
+import { runInNewContext } from 'node:vm';
 import { isAwsSsoSessionEndedError } from './isAwsSsoSessionEndedError';
 
 /**
@@ -12,6 +13,26 @@ const genNamedError = (input: { name: string; message: string }): Error =>
  */
 const genExecError = (input: { message: string; stderr: string }): Error =>
   Object.assign(new Error(input.message), { stderr: input.stderr });
+
+/**
+ * .what = an exec error built in a second realm, so it is no instance of this realm's Error
+ * .why = node builds an exec error in its own realm; under a jest sandbox that realm differs
+ *        from the test's, which is the shape the real cli gate meets there
+ */
+const genExecErrorForeign = (input: {
+  message: string;
+  stderr: string;
+}): unknown =>
+  runInNewContext(
+    'Object.assign(new Error(message), { stderr: stderr })',
+    input,
+  );
+
+/**
+ * .what = the sentence the real aws cli v2 writes when the portal holds no token
+ */
+const CLI_STDERR_TOKEN_ABSENT =
+  '\naws: [ERROR]: Error loading SSO Token: Token for rhachet-proof-portal does not exist\n';
 
 const TEST_CASES = [
   {
@@ -161,6 +182,40 @@ const TEST_CASES = [
         name: 'CredentialsProviderError',
         message: 'command timed out',
       }),
+    },
+    expect: { output: false },
+  },
+  {
+    description:
+      'cli gate: the real cli v2 sentence for an absent portal token is a session end',
+    given: {
+      gate: 'export-credentials' as const,
+      error: genExecError({
+        message:
+          'Command failed: aws configure export-credentials --profile rhachet-proof-test',
+        stderr: CLI_STDERR_TOKEN_ABSENT,
+      }),
+    },
+    expect: { output: true },
+  },
+  {
+    description:
+      'cli gate: an exec error from a second realm is still read by its stderr',
+    given: {
+      gate: 'export-credentials' as const,
+      error: genExecErrorForeign({
+        message:
+          'Command failed: aws configure export-credentials --profile rhachet-proof-test',
+        stderr: CLI_STDERR_TOKEN_ABSENT,
+      }),
+    },
+    expect: { output: true },
+  },
+  {
+    description: 'any gate: an object whose message is no string is not read',
+    given: {
+      gate: 'export-credentials' as const,
+      error: { message: 42, stderr: CLI_STDERR_TOKEN_ABSENT },
     },
     expect: { output: false },
   },
