@@ -15,7 +15,7 @@ import {
 import configAcceptance from '../../../jest.acceptance.config';
 import configIntegration from '../../../jest.integration.config';
 import configUnit from '../../../jest.unit.config';
-import { genTempDirPhysical, TEST_REPO_ROOT } from './genTempDirPhysical';
+import { genTempDirPhysical, isCwdInsideRepoRoot, TEST_REPO_ROOT } from './genTempDirPhysical';
 
 const PROBES = '<rootDir>/src/.test/assets/tempdir-clamp/probe.*.ts';
 const PROBES_REPO = '<rootDir>/src/.test/assets/tempdir-clamp/repo/probe.*.ts';
@@ -323,7 +323,7 @@ describe('genTempDirPhysical', () => {
       const configs = [
         { name: CONFIG_UNIT, config: configUnit },
         { name: CONFIG_INTEGRATION, config: configIntegration },
-        { name: 'jest.acceptance.config.ts', config: configAcceptance },
+        { name: CONFIG_ACCEPTANCE, config: configAcceptance },
       ];
 
       then('each wires the autoprune teardown', () => {
@@ -590,4 +590,19 @@ describe('genTempDirPhysical', () => {
       });
     });
   });
+});
+
+describe('isCwdInsideRepoRoot', () => {
+  const CASES: { description: string; cwd: string; expected: boolean }[] = [
+    { description: 'the repo root itself', cwd: TEST_REPO_ROOT, expected: true },
+    { description: 'a dir inside the repo', cwd: join(TEST_REPO_ROOT, 'src', '.test'), expected: true },
+    { description: 'a peer dir whose name extends the root', cwd: `${TEST_REPO_ROOT}-peer`, expected: false },
+    { description: 'the parent of the repo', cwd: join(TEST_REPO_ROOT, '..'), expected: false },
+    { description: 'an unrelated root', cwd: '/', expected: false },
+  ];
+  CASES.map((thisCase) =>
+    then(`${thisCase.description} → ${thisCase.expected}`, () => {
+      expect(isCwdInsideRepoRoot({ cwd: thisCase.cwd })).toEqual(thisCase.expected);
+    }),
+  );
 });

@@ -1,9 +1,10 @@
-import { genTempDir, given, then, when } from 'test-fns';
+import { given, then, when } from 'test-fns';
 
 import { getBrainHooks } from './getBrainHooks';
 
 describe('getBrainHooks', () => {
-  const repoPath = genTempDir({ slug: 'brain-hooks-repo' });
+  // a path string only: the factory never touches the disk, so no dir is made (a unit test)
+  const repoPath = '/fake/test-repo';
 
   given('[case1] supported brain specifier', () => {
     when('[t0] brain is "opencode"', () => {

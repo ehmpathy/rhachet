@@ -7,7 +7,13 @@ import { join, resolve } from 'node:path';
 import { genContextKeyrackGrantGet } from './genContextKeyrackGrantGet';
 import { getKeyrackKeyGrant } from './getKeyrackKeyGrant';
 
-// mock daemon interactions to avoid socket access in integration tests
+/**
+ * .mock = the keyrack daemon sdk (`./daemon/sdk`), as a daemon with no key cached
+ * .why = this suite proves the vault read path a grant falls back to; a live daemon would
+ *        answer from its own cache first, and leave that path unexercised
+ * .real = `daemon/daemon.integration.test.ts` drives the daemon sdk against a real daemon,
+ *         over a real socket
+ */
 jest.mock('./daemon/sdk', () => ({
   daemonAccessGet: jest.fn().mockResolvedValue(null),
 }));

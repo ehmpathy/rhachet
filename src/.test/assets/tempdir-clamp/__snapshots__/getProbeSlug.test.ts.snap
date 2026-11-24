@@ -10,6 +10,16 @@ exports[`getProbeHoldMs given: [case2] a malformed hold was handed when: [t0] a 
 }"
 `;
 
+exports[`getProbeHoldMs given: [case3] an empty hold was handed when: [t0] a probe asks for it then: it refuses, rather than degrade silently to no hold 1`] = `
+"✋ ConstraintError: a tempdir-clamp probe was handed a hold that is not a count of ms
+
+{
+  "env": "TEMPDIR_CLAMP_HOLD_MS",
+  "value": "",
+  "hint": "set it to a whole number of ms, e.g. 60000 — or leave it unset for no hold"
+}"
+`;
+
 exports[`getProbeSlug given: [case1] the clamp handed no slug when: [t0] a probe asks for it then: it refuses as a ConstraintError that names the env var and the fix 1`] = `
 "✋ ConstraintError: a tempdir-clamp probe was run with no slug
 

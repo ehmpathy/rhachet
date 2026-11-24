@@ -62,6 +62,7 @@ describe('getProbeHoldMs', () => {
           const error = await getError(() => getProbeHoldMs());
           expect(error).toBeInstanceOf(ConstraintError);
           expect(error.message).toContain('TEMPDIR_CLAMP_HOLD_MS');
+          expect(error.message).toMatchSnapshot();
         } finally {
           if (holdOriginal === undefined) delete process.env.TEMPDIR_CLAMP_HOLD_MS;
           if (holdOriginal !== undefined) process.env.TEMPDIR_CLAMP_HOLD_MS = holdOriginal;

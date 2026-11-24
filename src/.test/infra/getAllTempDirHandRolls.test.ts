@@ -201,10 +201,10 @@ describe('getAllTempDirHandRolls', () => {
 
       then('it names each hit and the fix', () => {
         // the properties in words, then the shape: a re-snap alone cannot make a drift go green
-        expect(report).toContain('✋ ConstraintError: 2 hand-rolled test temp dir(s)');
-        expect(report).toContain('blackbox/cli/x.acceptance.test.ts:1 [mkdtemp]');
-        expect(report).toContain('blackbox/cli/x.acceptance.test.ts:1 [tmpdir()]');
-        expect(report).toContain('fix: allocate via genTempDir');
+        // one offended line matched two forms: it is ONE row, and the headline counts lines
+        expect(report).toContain('✋ ConstraintError: 1 line hand-rolls a test temp dir');
+        expect(report).toContain('blackbox/cli/x.acceptance.test.ts:1 [mkdtemp, tmpdir()]');
+        expect(report).toContain('fix = allocate via genTempDir');
         expect(report).toContain('`// .tempdir.exempt = <reason>`');
         expect(report).toMatchSnapshot();
       });

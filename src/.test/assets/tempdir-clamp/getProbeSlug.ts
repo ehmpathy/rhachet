@@ -26,7 +26,7 @@ export const getProbeHoldMs = (): number => {
   const raw = process.env.TEMPDIR_CLAMP_HOLD_MS;
   if (raw === undefined) return 0;
   const holdMs = raw.trim() === '' ? Number.NaN : Number(raw);
-  if (!Number.isFinite(holdMs) || holdMs < 0)
+  if (!Number.isInteger(holdMs) || holdMs < 0)
     throw new ConstraintError('a tempdir-clamp probe was handed a hold that is not a count of ms', {
       env: 'TEMPDIR_CLAMP_HOLD_MS',
       value: process.env.TEMPDIR_CLAMP_HOLD_MS,

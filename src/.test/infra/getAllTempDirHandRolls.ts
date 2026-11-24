@@ -145,12 +145,17 @@ export const asTempDirHandRollsReport = (input: {
   found: { path: string; line: number; form: string; text: string }[];
 }): string => {
   if (input.found.length === 0) return '';
+
+  // one row per offended LINE, every form it matched beside it — the count a contributor acts on
+  const rows = [...new Set(input.found.map(({ path, line }) => `${path}:${line}`))].map((at) => {
+    const hits = input.found.filter(({ path, line }) => `${path}:${line}` === at);
+    return `   ├─ ${at} [${hits.map(({ form }) => form).join(', ')}] ${hits[0]!.text}`;
+  });
+
   return [
-    `✋ ConstraintError: ${input.found.length} hand-rolled test temp dir(s) — a dir made outside genTempDir is never reclaimed by its run`,
-    ...input.found.map(
-      ({ path, line, form, text }) => `   ├─ ${path}:${line} [${form}] ${text}`,
-    ),
-    '   └─ fix: allocate via genTempDir, or genTempDirPhysical (src/.test/infra/genTempDirPhysical.ts) for a physical path;',
+    `✋ ConstraintError: ${rows.length} ${rows.length === 1 ? 'line hand-rolls' : 'lines hand-roll'} a test temp dir — a dir made outside genTempDir is never reclaimed by its run`,
+    ...rows,
+    '   └─ fix = allocate via genTempDir, or genTempDirPhysical (src/.test/infra/genTempDirPhysical.ts) for a physical path;',
     `      or, for ${TEMP_DIR_EXEMPT_REASONS.join(' / ')} only, mark the line above with`,
     `      \`// ${TEMP_DIR_EXEMPT_MARKER} <reason>\` (see .agent/repo=.this/role=any/briefs/rule.require.test-tempdir-via-gentempdir.md)`,
   ].join('\n');

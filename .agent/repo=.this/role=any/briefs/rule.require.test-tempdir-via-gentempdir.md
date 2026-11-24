@@ -25,13 +25,14 @@ no `withTempHome` (deleted — its deterministic path let one run wipe a peer ru
 
 ## .the exemptions — three, each named at the line
 
-mark the line directly above with `.tempdir.exempt =` and the reason. only three reasons hold:
+mark the line directly above with `.tempdir.exempt =` and the reason. only three reasons hold, and
+the marker must BEGIN with the reason's exact words (the first column), or the scan reads it as a hit:
 
-| reason | example | duty |
-|---|---|---|
-| a **unix socket runtime dir** — a socket path is capped near 108 bytes, which a genTempDir path cannot meet | `mkdtempSync('/tmp/kdp-')` | remove the dir in `afterAll` |
-| a **path read** that makes no dir | a snapshot mask built from `os.tmpdir()` | none — it allocates naught |
-| **host-wide state, shared across runs on purpose** | the real-brain slot semaphore | name why a run-scoped dir would be wrong |
+| marker begins with | when | example | duty |
+|---|---|---|---|
+| `unix socket path cap` | a unix socket runtime dir — a socket path is capped near 108 bytes, which a genTempDir path cannot meet | `mkdtempSync('/tmp/kdp-')` | remove the dir in an `afterAll` or `afterEach`, and name which in the marker |
+| `a path read` | a path read that makes no dir | a snapshot mask built from `os.tmpdir()` | none — it allocates naught |
+| `host-wide state` | state shared across runs on purpose | the real-brain slot semaphore | name why a run-scoped dir would be wrong |
 
 ```ts
 // .tempdir.exempt = unix socket path cap (~108 bytes); removed by this file's afterAll
