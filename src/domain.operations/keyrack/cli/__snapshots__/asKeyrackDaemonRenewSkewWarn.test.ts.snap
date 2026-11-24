@@ -1,0 +1,24 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asKeyrackDaemonRenewSkewWarn given: [case1] one key a prior-build daemon will not renew when: [t0] the rack has an owner then: it renders the warn shape 1`] = `
+[
+  "🟡 the keyrack daemon is from an older build and will not renew this key",
+  "   ├─ ahbode.camp.AWS_PROFILE",
+  "   └─ fix",
+  "      ├─ rhx keyrack daemon prune --owner ehmpath",
+  "      └─ then unlock again — the prune drops every key the daemon holds",
+  "         └─ a key kept only in the daemon will not come back",
+]
+`;
+
+exports[`asKeyrackDaemonRenewSkewWarn given: [case2] two keys, in a rack with no owner when: [t0] it is rendered then: it renders the warn shape 1`] = `
+[
+  "🟡 the keyrack daemon is from an older build and will not renew these 2 keys",
+  "   ├─ ahbode.camp.AWS_PROFILE",
+  "   ├─ ahbode.prep.AWS_PROFILE",
+  "   └─ fix",
+  "      ├─ rhx keyrack daemon prune",
+  "      └─ then unlock again — the prune drops every key the daemon holds",
+  "         └─ a key kept only in the daemon will not come back",
+]
+`;

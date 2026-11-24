@@ -204,9 +204,88 @@ describe('asKeyrackStatusKeyBranch', () => {
         owner: 'ehmpath',
       });
 
-      then('no renew leaf is emitted; the branch reads as today', () => {
-        expect(lines.at(-1)).toEqual('      └─ expires in: 55m');
+      then('the renew reads as on, before its first renew lands', () => {
+        expect(lines.at(-1)).toEqual('      └─ renew = on');
         expect(lines.some((line) => line.includes('renewed'))).toBe(false);
+      });
+
+      then('it renders the renew-on shape', () => {
+        expect(lines).toMatchSnapshot();
+      });
+    });
+
+    when(
+      '[t1] the key carries no renew at all (an older cli filed none)',
+      () => {
+        const lines = asKeyrackStatusKeyBranch({
+          key: { ...SSO_KEY, ttlLeftMs: 55 * 60 * 1000 },
+          isLast: true,
+          owner: 'ehmpath',
+        });
+
+        then('no renew leaf is emitted, so its absence is the cue', () => {
+          expect(lines.at(-1)).toEqual('      └─ expires in: 55m');
+          expect(lines.some((line) => line.includes('renew'))).toBe(false);
+        });
+
+        then('it renders the no-renew shape', () => {
+          expect(lines).toMatchSnapshot();
+        });
+      },
+    );
+
+    when('[t2] the grant already expires at its cap', () => {
+      const lines = asKeyrackStatusKeyBranch({
+        key: {
+          ...SSO_KEY,
+          ttlLeftMs: 5 * 60 * 1000,
+          renew: { renewedCount: 0, mark: null, isAtCap: true },
+        },
+        isLast: true,
+        owner: 'ehmpath',
+      });
+
+      then('the renew reads as off, never on, and names where it ends', () => {
+        expect(lines).toContain('      └─ renew = off');
+        expect(lines).toContain(
+          '         └─ at its cap — ends at expiry, unlock to extend',
+        );
+        expect(lines.at(-1)).toMatch(
+          /^ {12}└─ rhx keyrack unlock --owner ehmpath --env \S+$/,
+        );
+        expect(lines.some((line) => line.includes('renew = on'))).toBe(false);
+      });
+
+      then('it renders the at-cap shape', () => {
+        expect(lines).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case5b] an sso key whose renews reached its cap', () => {
+    when('[t0] it is rendered', () => {
+      const lines = asKeyrackStatusKeyBranch({
+        key: {
+          ...SSO_KEY,
+          ttlLeftMs: 30 * 60 * 1000,
+          renew: { renewedCount: 4, mark: null, isAtCap: true },
+        },
+        isLast: true,
+        owner: 'ehmpath',
+      });
+
+      then('the count says the key ends at its cap', () => {
+        expect(lines).toContain('      └─ renewed = 4x');
+        expect(lines).toContain(
+          '         └─ at its cap — ends at expiry, unlock to extend',
+        );
+        expect(lines.at(-1)).toMatch(
+          /^ {12}└─ rhx keyrack unlock --owner ehmpath --env \S+$/,
+        );
+      });
+
+      then('the render matches its snapshot', () => {
+        expect(lines).toMatchSnapshot();
       });
     });
   });
@@ -225,7 +304,9 @@ describe('asKeyrackStatusKeyBranch', () => {
 
       then('it names the lapse and the fix', () => {
         expect(lines).toContain('      └─ lapsed');
-        expect(lines).toContain('         ├─ sso session ended, renew halted');
+        expect(lines).toContain(
+          '         ├─ sso session ended, no renew until the next unlock',
+        );
         expect(lines).toContain(
           '            └─ rhx keyrack unlock --owner ehmpath --env camp',
         );
@@ -279,7 +360,9 @@ describe('asKeyrackStatusKeyBranch', () => {
 
       then('it names the halt, the last error, and the fix', () => {
         expect(lines).toContain('      └─ halted');
-        expect(lines).toContain('         ├─ renew failed 10 ticks in a row');
+        expect(lines).toContain(
+          '         ├─ renew stopped on a fault it could not clear',
+        );
         expect(lines).toContain(
           '         ├─ aws configure export-credentials failed with unexpected error',
         );
@@ -324,6 +407,42 @@ describe('asKeyrackStatusKeyBranch', () => {
           expect(lines.join('\n')).not.toContain('profileName');
         },
       );
+
+      then('it renders the headline-only shape', () => {
+        expect(lines).toMatchSnapshot();
+      });
+    });
+
+    when('[t2] the halt was a code defect', () => {
+      const lines = asKeyrackStatusKeyBranch({
+        key: {
+          ...SSO_KEY,
+          ttlLeftMs: 0,
+          renew: {
+            renewedCount: 0,
+            mark: {
+              kind: 'halted',
+              error: '💥 defect TypeError: grant.expiresAt is not a function',
+            },
+          },
+        },
+        isLast: true,
+        owner: 'ehmpath',
+      });
+
+      then('it names a defect no retry clears, and offers no prune', () => {
+        expect(lines).toContain(
+          '         ├─ renew stopped on a code defect, which no retry clears',
+        );
+        expect(lines.join('\n')).toContain(
+          'report the defect, with its full error above',
+        );
+        expect(lines.join('\n')).not.toContain('daemon prune');
+      });
+
+      then('it renders the defect-halt shape', () => {
+        expect(lines).toMatchSnapshot();
+      });
     });
   });
 
@@ -341,6 +460,37 @@ describe('asKeyrackStatusKeyBranch', () => {
 
       then('the fix names no owner flag', () => {
         expect(lines).toContain('   │        └─ rhx keyrack unlock --env camp');
+      });
+
+      then('it renders the no-owner shape', () => {
+        expect(lines).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case9] a marked sudo sso key', () => {
+    when('[t0] it is rendered', () => {
+      const lines = asKeyrackStatusKeyBranch({
+        key: {
+          slug: 'ahbode.sudo.AWS_PROFILE',
+          env: 'sudo',
+          org: 'ahbode',
+          expiresAt: EXPIRES_AT,
+          ttlLeftMs: 0,
+          renew: { renewedCount: 1, mark: { kind: 'lapsed', error: null } },
+        },
+        isLast: true,
+        owner: 'ehmpath',
+      });
+
+      then('the fix names the key, since a sudo env sweep is refused', () => {
+        expect(lines).toContain(
+          '            └─ rhx keyrack unlock --owner ehmpath --env sudo --key AWS_PROFILE',
+        );
+      });
+
+      then('it renders the sudo fix shape', () => {
+        expect(lines).toMatchSnapshot();
       });
     });
   });

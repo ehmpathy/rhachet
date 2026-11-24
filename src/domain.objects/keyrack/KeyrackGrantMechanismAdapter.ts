@@ -1,6 +1,7 @@
 import type { IsoTimeStamp } from 'iso-time';
 
 import type { KeyrackGrantMechanism } from './KeyrackGrantMechanism';
+import type { KeyrackKeyGrant } from './KeyrackKeyGrant';
 import type { KeyrackKeyReach } from './KeyrackKeyReach';
 
 /**
@@ -38,6 +39,8 @@ export type KeyrackGrantRenewal =
  * .note = vault adapters call these methods internally:
  *         - vault.set calls mech.acquireForSet to get source credential via guided setup
  *         - vault.get calls mech.deliverForGet to transform source → usable secret
+ * .note = the daemon calls mech.renewForDaemon, where present, to renew a held grant
+ *         before it expires
  */
 export interface KeyrackGrantMechanismAdapter {
   /**
@@ -67,7 +70,7 @@ export interface KeyrackGrantMechanismAdapter {
    *         other than what the human asked for (e13)
    * .note = mech names WHICH mechanism identity invoked this adapter, and it is REQUIRED.
    *         an adapter is NOT 1:1 with a mech — the registry aliases several names onto one
-   *         adapter (EPHEMERAL_VIA_GITHUB_OIDC onto the aws.sso adapter; PERMANENT_VIA_REFERENCE
+   *         adapter (EPHEMERAL_VIA_GITHUB_OIDC onto the aws.sso adapter's set and get; PERMANENT_VIA_REFERENCE
    *         and EPHEMERAL_VIA_SESSION onto the replica adapter). so an adapter that names its
    *         own identity can only guess, and it guesses wrong for every alias. required rather
    *         than optional for the reason e13 teaches: an optional field is a droppable field,
@@ -94,14 +97,18 @@ export interface KeyrackGrantMechanismAdapter {
   }) => Promise<{ secret: string; expiresAt?: IsoTimeStamp }>;
 
   /**
-   * .what = renew a held grant from its stored source, silently, before it expires
+   * .what = renew a held grant, silently, before it expires
    * .why = the mech owns how its credential renews; a host (the daemon) only asks,
    *        on a schedule, and never names a vendor
    *
    * .note = optional: a mech with no silent renew path omits it, and its grants are
    *         never opted into renew
-   * .note = must never prompt (no browser, no tty). a source whose upstream session
+   * .note = takes the whole grant, so the mech alone decides which field it renews
+   *         from; the host asserts naught about how a vault stores a source
+   * .note = must never prompt (no browser, no tty). a grant whose upstream session
    *         has ended answers `lapsed`; any other failure throws
    */
-  renewForDaemon?: (input: { source: string }) => Promise<KeyrackGrantRenewal>;
+  renewForDaemon?: (input: {
+    grant: KeyrackKeyGrant;
+  }) => Promise<KeyrackGrantRenewal>;
 }

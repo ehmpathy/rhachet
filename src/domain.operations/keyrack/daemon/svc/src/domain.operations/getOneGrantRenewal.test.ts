@@ -1,5 +1,5 @@
-import { getError, MalfunctionError } from 'helpful-errors';
-import { given, then, when } from 'test-fns';
+import { MalfunctionError } from 'helpful-errors';
+import { getError, given, then, when } from 'test-fns';
 
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
 import { getOneKeyrackMechAdapter } from '@src/domain.operations/keyrack/adapters/mechanisms/getOneKeyrackMechAdapter';
@@ -46,6 +46,9 @@ describe('getOneGrantRenewal', () => {
         ).toBeUndefined();
         expect(
           getOneKeyrackMechAdapter('PERMANENT_VIA_REPLICA').renewForDaemon,
+        ).toBeUndefined();
+        expect(
+          getOneKeyrackMechAdapter('EPHEMERAL_VIA_GITHUB_OIDC').renewForDaemon,
         ).toBeUndefined();
       });
     });

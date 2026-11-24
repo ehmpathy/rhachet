@@ -82,8 +82,8 @@ chmod 700 "$DIR"
 
 # no repo key: run from this worktree, via the consumer path
 if [[ -z "$REPO_KEY" ]]; then
-  XDG_RUNTIME_DIR="$DIR" npx rhx keyrack "$@"
-  exit $?
+  # exec hands the exit code straight to the caller; no line after it runs
+  XDG_RUNTIME_DIR="$DIR" exec npx rhx keyrack "$@"
 fi
 
 # guard: the repo key is a full slug

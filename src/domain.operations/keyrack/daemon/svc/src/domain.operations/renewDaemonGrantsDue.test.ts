@@ -1,7 +1,8 @@
-import { getError, MalfunctionError } from 'helpful-errors';
+import { MalfunctionError } from 'helpful-errors';
 import { asIsoTimeStamp, type IsoTimeStamp } from 'iso-time';
 import { given, then, when } from 'test-fns';
 
+import { genSampleKeyrackSsoGrant } from '@src/.test/assets/genSampleKeyrackSsoGrant';
 import type { KeyrackGrantRenewal } from '@src/domain.objects/keyrack/KeyrackGrantMechanismAdapter';
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
 
@@ -30,17 +31,7 @@ const at = (offsetMs: number): IsoTimeStamp =>
  * .what = an sso grant for the camp key that expires `expiresInMs` after T0
  */
 const genSsoGrant = (input: { expiresInMs: number }): KeyrackKeyGrant =>
-  new KeyrackKeyGrant({
-    slug: 'ahbode.camp.AWS_PROFILE',
-    key: {
-      secret: 'ahbode.camp',
-      grade: { protection: 'reference', duration: 'ephemeral' },
-    },
-    source: { vault: 'aws.config', mech: 'EPHEMERAL_VIA_AWS_SSO' },
-    env: 'camp',
-    org: 'ahbode',
-    expiresAt: at(input.expiresInMs),
-  });
+  genSampleKeyrackSsoGrant({ expiresAt: at(input.expiresInMs) });
 
 /**
  * .what = a daemon's store and renew record, with one sso grant unlocked
@@ -71,6 +62,7 @@ const genDaemonWithSsoGrant = (input: {
 const genRenewalPlan = (input: {
   answers: Array<KeyrackGrantRenewal | Error>;
 }) => {
+  // .note = deliberate mutation: a call log the stub appends to, read by the asserts
   const calls: KeyrackKeyGrant[] = [];
   const getOneRenewal = async (args: {
     grant: KeyrackKeyGrant;
@@ -220,7 +212,7 @@ describe('renewDaemonGrantsDue', () => {
 
   given('[case4] the cli hands back an unchanged expiry', () => {
     when('[t0] the tick runs', () => {
-      then('naught is written and naught is counted', async () => {
+      then('the grant is untouched and no fault is counted', async () => {
         const daemon = genDaemonWithSsoGrant({
           expiresInMs: 8 * MIN,
           capInMs: 9 * 60 * MIN,
@@ -241,10 +233,120 @@ describe('renewDaemonGrantsDue', () => {
           },
         );
 
+        expect(
+          daemon.keyStore.get({ slug: daemon.grant.slug })?.expiresAt,
+        ).toEqual(at(8 * MIN));
+        // .why = identity, not shape: an unchanged expiry writes naught to the record
         expect(daemon.renewRecord.get({ slug: daemon.grant.slug })).toBe(
           entryBefore,
         );
+        expect(
+          daemon.renewRecord.get({ slug: daemon.grant.slug }),
+        ).toMatchObject({ renewedCount: 0, faultCount: 0, mark: null });
       });
+    });
+
+    when(
+      '[t0.1] the expiry stays unchanged ten ticks in a row, grant live',
+      () => {
+        then('the renew waits each tick, with no halt', async () => {
+          const daemon = genDaemonWithSsoGrant({
+            expiresInMs: 8 * MIN,
+            capInMs: 9 * 60 * MIN,
+          });
+          const plan = genRenewalPlan({
+            answers: [{ status: 'renewed', expiresAt: at(8 * MIN) }],
+          });
+          const context = {
+            ...daemon,
+            inflight: new Set<string>(),
+            windowMs: WINDOW_MS,
+            renewTimeoutMs: RENEW_TIMEOUT_MS,
+            getOneRenewal: plan.getOneRenewal,
+          };
+
+          for (const tick of Array.from({ length: 10 }, (_, i) => i))
+            await renewDaemonGrantsDue({ now: at(tick * 1000) }, context);
+
+          expect(plan.calls).toHaveLength(10);
+          expect(
+            daemon.renewRecord.get({ slug: daemon.grant.slug }),
+          ).toMatchObject({ renewedCount: 0, faultCount: 0, mark: null });
+        });
+      },
+    );
+
+    when(
+      '[t0.3] the expiry stays unchanged ten ticks after the grant died',
+      () => {
+        then('the renew halts, with the stall named (F21)', async () => {
+          const daemon = genDaemonWithSsoGrant({
+            expiresInMs: 8 * MIN,
+            capInMs: 9 * 60 * MIN,
+          });
+          const plan = genRenewalPlan({
+            answers: [{ status: 'renewed', expiresAt: at(8 * MIN) }],
+          });
+          const context = {
+            ...daemon,
+            inflight: new Set<string>(),
+            windowMs: WINDOW_MS,
+            renewTimeoutMs: RENEW_TIMEOUT_MS,
+            getOneRenewal: plan.getOneRenewal,
+          };
+
+          for (const tick of Array.from({ length: 10 }, (_, i) => i))
+            await renewDaemonGrantsDue(
+              { now: at(9 * MIN + tick * 1000) },
+              context,
+            );
+
+          expect(plan.calls).toHaveLength(10);
+          const entry = daemon.renewRecord.get({ slug: daemon.grant.slug });
+          expect(entry?.faultCount).toEqual(10);
+          expect(entry?.mark?.kind).toEqual('halted');
+          expect(entry?.mark?.error).toContain(
+            'renew returned no later expiry',
+          );
+        });
+      },
+    );
+
+    when('[t0.2] a fault, then an unchanged expiry, then a renew', () => {
+      then(
+        'the unchanged expiry neither counts nor resets; only the renew resets',
+        async () => {
+          const daemon = genDaemonWithSsoGrant({
+            expiresInMs: 8 * MIN,
+            capInMs: 9 * 60 * MIN,
+          });
+          const plan = genRenewalPlan({
+            answers: [
+              new MalfunctionError('blip'),
+              { status: 'renewed', expiresAt: at(8 * MIN) },
+              { status: 'renewed', expiresAt: at(68 * MIN) },
+            ],
+          });
+          const context = {
+            ...daemon,
+            inflight: new Set<string>(),
+            windowMs: WINDOW_MS,
+            renewTimeoutMs: RENEW_TIMEOUT_MS,
+            getOneRenewal: plan.getOneRenewal,
+          };
+
+          await renewDaemonGrantsDue({ now: at(0) }, context);
+          await renewDaemonGrantsDue({ now: at(1 * MIN) }, context);
+          expect(
+            daemon.renewRecord.get({ slug: daemon.grant.slug })?.faultCount,
+          ).toEqual(1);
+
+          await renewDaemonGrantsDue({ now: at(2 * MIN) }, context);
+          expect(
+            daemon.renewRecord.get({ slug: daemon.grant.slug }),
+          ).toMatchObject({ renewedCount: 1, faultCount: 0, mark: null });
+        },
+      );
     });
 
     when('[t1] the new expiry is later by a fraction of a second', () => {
@@ -559,6 +661,7 @@ describe('renewDaemonGrantsDue', () => {
           expiresInMs: 8 * MIN,
           capInMs: 9 * 60 * MIN,
         });
+        // .note = deliberate mutation: a call log the stub appends to, read by the asserts
         const calls: number[] = [];
         const getOneRenewal = (): Promise<KeyrackGrantRenewal> => {
           calls.push(calls.length);
@@ -617,7 +720,7 @@ describe('renewDaemonGrantsDue', () => {
     () => {
       when('[t0] the tick runs', () => {
         then(
-          'the defect propagates, and the key is marked halted at once with it',
+          'the tick settles, and the key is marked halted at once with the defect',
           async () => {
             const daemon = genDaemonWithSsoGrant({
               expiresInMs: 8 * MIN,
@@ -633,18 +736,78 @@ describe('renewDaemonGrantsDue', () => {
               },
             };
 
-            const error = await getError(
-              renewDaemonGrantsDue({ now: at(0) }, context),
-            );
+            await renewDaemonGrantsDue({ now: at(0) }, context);
 
-            expect(error).toBeInstanceOf(TypeError);
             expect(
               daemon.renewRecord.get({ slug: daemon.grant.slug }),
             ).toMatchObject({
               faultCount: 0,
-              mark: { kind: 'halted', error: 'defect: grant.key is undefined' },
+              mark: {
+                kind: 'halted',
+                error: '💥 defect TypeError: grant.key is undefined',
+              },
             });
             expect(context.inflight.size).toEqual(0);
+          },
+        );
+      });
+    },
+  );
+
+  given(
+    '[case14] two keys due on one tick, and one of them throws a code defect',
+    () => {
+      when('[t0] the tick runs', () => {
+        then(
+          'only the faulty key is halted; its peer still renews',
+          async () => {
+            const keyStore = createDaemonKeyStore();
+            const renewRecord = createDaemonRenewRecord();
+            const grantFaulty = genSampleKeyrackSsoGrant({
+              slug: 'ahbode.camp.AWS_PROFILE',
+              expiresAt: at(8 * MIN),
+            });
+            const grantPeer = genSampleKeyrackSsoGrant({
+              slug: 'ahbode.camp.OTHER_PROFILE',
+              expiresAt: at(8 * MIN),
+            });
+            handleUnlockCommand(
+              {
+                keys: [grantFaulty, grantPeer],
+                renewals: [
+                  { slug: grantFaulty.slug, capAt: at(9 * 60 * MIN) },
+                  { slug: grantPeer.slug, capAt: at(9 * 60 * MIN) },
+                ],
+              },
+              { keyStore, renewRecord },
+            );
+
+            await renewDaemonGrantsDue(
+              { now: at(0) },
+              {
+                keyStore,
+                renewRecord,
+                inflight: new Set<string>(),
+                windowMs: WINDOW_MS,
+                renewTimeoutMs: RENEW_TIMEOUT_MS,
+                getOneRenewal: async (args: {
+                  grant: KeyrackKeyGrant;
+                }): Promise<KeyrackGrantRenewal> => {
+                  if (args.grant.slug === grantFaulty.slug)
+                    throw new TypeError('grant.key is undefined');
+                  return { status: 'renewed', expiresAt: at(60 * MIN) };
+                },
+              },
+            );
+
+            expect(renewRecord.get({ slug: grantFaulty.slug })?.mark).toEqual({
+              kind: 'halted',
+              error: '💥 defect TypeError: grant.key is undefined',
+            });
+            expect(renewRecord.get({ slug: grantPeer.slug })).toMatchObject({
+              renewedCount: 1,
+              mark: null,
+            });
           },
         );
       });

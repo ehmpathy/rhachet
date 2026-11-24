@@ -27,9 +27,16 @@ describe('getOneKeyrackMechAdapter', () => {
         expect(getOneKeyrackMechAdapter('EPHEMERAL_VIA_AWS_SSO')).toBe(
           mechAdapterAwsSso,
         );
-        expect(getOneKeyrackMechAdapter('EPHEMERAL_VIA_GITHUB_OIDC')).toBe(
-          mechAdapterAwsSso,
+      });
+
+      then('oidc rides the aws sso set and get, with no renew path', () => {
+        const adapterOidc = getOneKeyrackMechAdapter(
+          'EPHEMERAL_VIA_GITHUB_OIDC',
         );
+        expect(adapterOidc.validate).toBe(mechAdapterAwsSso.validate);
+        expect(adapterOidc.acquireForSet).toBe(mechAdapterAwsSso.acquireForSet);
+        expect(adapterOidc.deliverForGet).toBe(mechAdapterAwsSso.deliverForGet);
+        expect(adapterOidc.renewForDaemon).toBeUndefined();
       });
     });
 

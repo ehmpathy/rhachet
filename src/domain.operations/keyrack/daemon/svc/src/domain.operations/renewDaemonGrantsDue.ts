@@ -8,10 +8,14 @@ import type {
   DaemonRenewEntry,
   DaemonRenewRecord,
 } from '../domain.objects/daemonRenewRecord';
+import { asRenewMarkDefectError } from './asRenewMarkDefectError';
 import { getAllRenewEntriesDue } from './getAllRenewEntriesDue';
 import { getAllRenewEntriesPastCap } from './getAllRenewEntriesPastCap';
 import { getOneRenewalSettled } from './getOneRenewalSettled';
 import { isIsoTimeStampAtOrBefore } from './isIsoTimeStampAtOrBefore';
+import { isRenewEntryGrantLive } from './isRenewEntryGrantLive';
+import { isRenewExpiryAdvanced } from './isRenewExpiryAdvanced';
+import { setRenewEntryHaltedByDefect } from './setRenewEntryHaltedByDefect';
 
 /**
  * .what = how many faults in a row mark a renew `halted`
@@ -35,12 +39,13 @@ const asIsoTimeStampEarlier = (input: {
  * .why = the unit of one tick; isolated so every outcome writes through one
  *        conditional swap, and an unlock or relock mid-renew always wins
  *
- * .note = a code defect (any throw that is not an operational fault) marks the entry
- *         `halted` at once, with its message, then rethrows. a defect does not heal on
- *         retry, so it is named in status now rather than after ten quiet ticks
+ * .note = a code defect (any throw that is not an operational fault) rejects this call;
+ *         the per-key catch in `renewDaemonGrantsDue` marks THIS entry `halted` at once,
+ *         with its class and message. a defect does not heal on retry, so it is named in
+ *         status now rather than after ten quiet ticks
  */
 const renewOneEntry = async (
-  input: { address: string; entry: DaemonRenewEntry },
+  input: { address: string; entry: DaemonRenewEntry; now: IsoTimeStamp },
   context: {
     keyStore: DaemonKeyStore;
     renewRecord: DaemonRenewRecord;
@@ -52,37 +57,27 @@ const renewOneEntry = async (
 ): Promise<void> => {
   const { address, entry } = input;
 
-  // ask for a renew, bounded; an operational fault settles, a defect halts and rethrows
+  // ask for a renew, bounded; an operational fault settles, a defect propagates to the
+  //   per-key catch in `renewDaemonGrantsDue`, which halts this key alone
   const outcome = await getOneRenewalSettled(
     { grant: entry.grant },
     {
       getOneRenewal: context.getOneRenewal,
       timeoutMs: context.renewTimeoutMs,
     },
-  ).catch((defect: unknown) => {
-    context.renewRecord.setIfHeld({
-      address,
-      before: entry,
-      after: {
-        ...entry,
-        mark: {
-          kind: 'halted',
-          error: `defect: ${defect instanceof Error ? defect.message : String(defect)}`,
-        },
-      },
-    });
-    throw defect;
-  });
+  );
 
   // a fault counts; ten in a row halt the renew with the last error
-  if (outcome.renewal === null) {
+  // .note = only a renew resets the count; an unchanged expiry on a live grant neither
+  //         counts nor resets, so "ten in a row" counts faults with no renew between
+  const setFaultCounted = (fault: { message: string }): void => {
     const faultCount = entry.faultCount + 1;
     const isHalt = faultCount >= FAULTS_UNTIL_HALT;
     console.log('[keyrack-daemon] renew fault', {
       address,
       faultCount,
       isHalt,
-      error: outcome.fault.message,
+      error: fault.message,
     });
     context.renewRecord.setIfHeld({
       address,
@@ -90,11 +85,11 @@ const renewOneEntry = async (
       after: {
         ...entry,
         faultCount,
-        mark: isHalt ? { kind: 'halted', error: outcome.fault.message } : null,
+        mark: isHalt ? { kind: 'halted', error: fault.message } : null,
       },
     });
-    return;
-  }
+  };
+  if (outcome.renewal === null) return setFaultCounted(outcome.fault);
 
   // a lapse marks the key once; no renew is tried again until a human acts
   if (outcome.renewal.status === 'lapsed') {
@@ -113,13 +108,23 @@ const renewOneEntry = async (
     b: entry.capAt,
   });
 
-  // an unchanged expiry is neither a renew nor a lapse: write naught, try next tick
-  // .why = the cli hands back its cached role creds until they near their end
-  if (
-    entry.grant.expiresAt &&
-    isIsoTimeStampAtOrBefore({ a: expiresAtNew, b: entry.grant.expiresAt })
-  )
-    return;
+  // an expiry that did not advance is no renew. while the held grant lives, the cli may
+  // serve its cached creds outside its own refresh margin: write naught, count naught, and
+  // try again next tick, when the creds sit closer to their end (vision, edgecases)
+  // .note = once the held grant has expired, no later tick sits closer to its end, so the
+  //         stall counts as a fault and halts, named, rather than retried quietly (F21)
+  // .note = an entry already at its cap is never due (getAllRenewEntriesDue), so a clamp
+  //         to the cap alone never lands here
+  const isAdvanced = isRenewExpiryAdvanced({
+    expiresAtBefore: entry.grant.expiresAt ?? null,
+    expiresAtAfter: expiresAtNew,
+  });
+  const isHeldGrantLive = isRenewEntryGrantLive({ entry, now: input.now });
+  if (!isAdvanced && isHeldGrantLive) return;
+  if (!isAdvanced)
+    return setFaultCounted({
+      message: `renew returned no later expiry (${expiresAtNew}, held ${entry.grant.expiresAt ?? 'none'})`,
+    });
 
   // write the renewed grant, only if no unlock or relock replaced the entry meanwhile
   const grantNew = new KeyrackKeyGrant({
@@ -150,6 +155,11 @@ const renewOneEntry = async (
  *        expiry after a sleep, and under its cap, is renewed via its mech adapter,
  *        silently. the consumer never sees the expiry
  *
+ * .note = an imperative command, the daemon's tick, in the `dispatch*` sense: it reads
+ *         and writes the store and the record as one act, so no get/set/gen verb names it
+ * .note = a defect settles per key, here: it halts that entry alone, never its peers,
+ *         and never rejects the tick (the timer boundary cannot tell one key's defect from
+ *         the tick's own)
  * .note = walks the renew record, never the store: the store purges an expired grant
  *         on read, and a grant that expired while the host slept is still renewable
  * .note = a marked entry is skipped: a lapse or halt waits for a human
@@ -159,6 +169,8 @@ const renewOneEntry = async (
  *         next tick's try at the same key — at most one try per key at a time
  * .note = deliberate mutation: `inflight` is the one set shared across ticks; each try
  *         adds its address and its `finally` removes it, so a throw cannot leave it held
+ * .note = `windowMs` and `renewTimeoutMs` ride `context`: the scheduler reads them once
+ *         and hands them to every tick beside the stores
  */
 export const renewDaemonGrantsDue = async (
   input: { now: IsoTimeStamp },
@@ -192,7 +204,20 @@ export const renewDaemonGrantsDue = async (
     entriesDue.map(async ({ address, entry }) => {
       context.inflight.add(address);
       try {
-        await renewOneEntry({ address, entry }, context);
+        // .why = the whole per-key unit settles on its own entry: a defect in the write
+        //        phase (a bad stamp from an adapter, a store throw) halts this key alone,
+        //        never its peers at the tick boundary
+        await renewOneEntry({ address, entry, now: input.now }, context).catch(
+          (defect: unknown) => {
+            const error = asRenewMarkDefectError({ defect });
+            setRenewEntryHaltedByDefect({ address, entry, error }, context);
+            console.error('[keyrack-daemon] renew defect', {
+              address,
+              error,
+              defect,
+            });
+          },
+        );
       } finally {
         context.inflight.delete(address);
       }

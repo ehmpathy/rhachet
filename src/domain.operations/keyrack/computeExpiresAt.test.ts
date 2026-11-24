@@ -130,6 +130,20 @@ describe('computeExpiresAt', () => {
         });
         expect(effectiveDurationMs).toEqual(55 * MIN);
       });
+
+      then(
+        'expiresAtCap holds bounds 1 and 2 alone, past the grant clamp',
+        () => {
+          const { expiresAt, expiresAtCap } = computeExpiresAt({
+            now: NOW,
+            requestedDurationMs: 540 * MIN,
+            maxDurationMs: 120 * MIN,
+            grantExpiresAt: atMinutesFromNow(55),
+          });
+          expect(expiresAt).toEqual(atMinutesFromNow(55));
+          expect(expiresAtCap).toEqual(atMinutesFromNow(120));
+        },
+      );
     });
 
     when('[t3] the grant is already dead', () => {

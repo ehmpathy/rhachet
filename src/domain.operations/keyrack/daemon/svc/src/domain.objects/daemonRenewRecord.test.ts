@@ -1,7 +1,8 @@
 import { asIsoTimeStamp } from 'iso-time';
 import { given, then, when } from 'test-fns';
 
-import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
+import { genSampleKeyrackSsoGrant } from '@src/.test/assets/genSampleKeyrackSsoGrant';
+import type { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
 
 import { createDaemonRenewRecord } from './daemonRenewRecord';
 
@@ -12,17 +13,10 @@ const genSsoGrant = (input: {
   slug: string;
   reach?: KeyrackKeyGrant['reach'];
 }): KeyrackKeyGrant =>
-  new KeyrackKeyGrant({
+  genSampleKeyrackSsoGrant({
     slug: input.slug,
-    key: {
-      secret: 'ahbode.camp',
-      grade: { protection: 'reference', duration: 'ephemeral' },
-    },
-    source: { vault: 'aws.config', mech: 'EPHEMERAL_VIA_AWS_SSO' },
-    env: 'camp',
-    org: 'ahbode',
-    expiresAt: asIsoTimeStamp('2026-11-14T01:00:00Z'),
     ...(input.reach ? { reach: input.reach } : {}),
+    expiresAt: asIsoTimeStamp('2026-11-14T01:00:00Z'),
   });
 
 const CAP_AT = asIsoTimeStamp('2026-11-14T09:00:00Z');

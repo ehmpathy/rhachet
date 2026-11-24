@@ -14,8 +14,10 @@ import { createKeyrackDaemonServer } from '@src/domain.operations/keyrack/daemon
 import { existsSync, unlinkSync } from 'node:fs';
 
 /**
- * .note = mocks promptHiddenInput to simulate user input in tests
- * .why = integration tests need controlled secret input without real stdin
+ * .mock = promptHiddenInput, the hidden tty read of a secret
+ * .why = a hidden read needs a real tty, and a jest worker has none
+ * .real = `blackbox/cli/keyrack.del.acceptance.test.ts`, which sets an os.daemon key
+ *         through the built cli with the secret on a real stdin pipe
  */
 jest.mock('@src/infra/promptHiddenInput', () => genMockPromptHiddenInput());
 

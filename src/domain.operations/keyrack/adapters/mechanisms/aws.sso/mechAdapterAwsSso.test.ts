@@ -10,6 +10,11 @@ jest.mock('node:child_process', () => {
   };
 });
 
+import { asIsoTimeStamp } from 'iso-time';
+
+import { genSampleKeyrackSsoGrant } from '@src/.test/assets/genSampleKeyrackSsoGrant';
+import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
+
 import { execSync } from 'node:child_process';
 import { mechAdapterAwsSso } from './mechAdapterAwsSso';
 
@@ -304,5 +309,30 @@ describe('mechAdapterAwsSso', () => {
         },
       );
     });
+  });
+
+  given('[case9] a renew whose grant holds no profile name', () => {
+    when(
+      '[t0] renewForDaemon is called with a creds json as the secret',
+      () => {
+        then('it refuses at once, named, with no aws call', async () => {
+          const grantBase = genSampleKeyrackSsoGrant({
+            expiresAt: asIsoTimeStamp('2026-11-14T09:00:00Z'),
+          });
+          const error = await getError(
+            mechAdapterAwsSso.renewForDaemon!({
+              grant: new KeyrackKeyGrant({
+                ...grantBase,
+                key: { ...grantBase.key, secret: '{"AccessKeyId":"x"}' },
+              }),
+            }),
+          );
+          expect(error).toBeInstanceOf(ConstraintError);
+          expect(error.message).toContain(
+            'aws sso renew source is not a profile name',
+          );
+        });
+      },
+    );
   });
 });

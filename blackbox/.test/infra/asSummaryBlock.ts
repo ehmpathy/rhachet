@@ -13,10 +13,6 @@
  *   for this concept. it was once `$TESTDIR`, which forked the vocabulary inside this one
  *   instrument, the exact hazard `rule.require.mask-both-names-of-a-temp-dir` names
  *
- * .note = brief/skill/init/hook/rule counts render as `$COUNT`: they grow as the linked
- *   role packages grow, which no suite here has a stake in. `role(s)` stays raw — the
- *   roster is the subject under test. same set `asAbsoluteInitScreen` masks
- *
  * .note = a `boot.md (<label>): <path> — N roles, M chars` census line once rode in this
  *   block and needed a second masker over it. that surface is gone — a brain dir reports
  *   as one `🧠 brain dir` treestruct — so the dir substitution below is the whole job
@@ -28,8 +24,5 @@ export const asSummaryBlock = (input: {
   const marker = '🔧 init roles (incremental)';
   const start = input.stdout.indexOf(marker);
   const block = start === -1 ? input.stdout : input.stdout.slice(start);
-  return block
-    .split(input.dir)
-    .join('/TMP_REPO')
-    .replace(/\b\d+ (brief|skill|init|hook|rule)\(s\)/g, '$COUNT $1(s)');
+  return block.split(input.dir).join('/TMP_REPO');
 };

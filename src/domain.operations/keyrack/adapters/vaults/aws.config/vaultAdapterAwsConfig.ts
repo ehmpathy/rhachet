@@ -7,6 +7,8 @@ import type {
   KeyrackKeyHostMetaAwsConfig,
 } from '@src/domain.objects/keyrack';
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack';
+import { emitSsoGateInvalid } from '@src/domain.operations/keyrack/adapters/mechanisms/aws.sso/emitSsoGateInvalid';
+import { getOneAwsSsoSessionProof } from '@src/domain.operations/keyrack/adapters/mechanisms/aws.sso/getOneAwsSsoSessionProof';
 import { mechAdapterAwsSso } from '@src/domain.operations/keyrack/adapters/mechanisms/aws.sso/mechAdapterAwsSso';
 import {
   getAwsSsoProfileConfig,
@@ -26,8 +28,6 @@ import { existsSync, readdirSync, readFileSync, unlinkSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
-import { emitSsoGateInvalid } from './emitSsoGateInvalid';
-import { getOneAwsSsoSessionProof } from './getOneAwsSsoSessionProof';
 
 /**
  * .what = lookup mech adapter by mechanism name

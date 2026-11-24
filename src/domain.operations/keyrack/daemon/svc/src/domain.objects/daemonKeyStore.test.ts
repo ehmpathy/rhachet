@@ -123,6 +123,48 @@ describe('daemonKeyStore', () => {
     });
   });
 
+  given(
+    '[case3b] key expired at a whole second, read half a second later',
+    () => {
+      // a whole-second stamp `…:00Z` sorts AFTER `…:00.500Z` as text, so a text compare
+      // reads this dead grant as live; an instant compare reads it dead
+      const clockNow = new Date('2026-08-04T12:00:00.500Z');
+      const expiresAt = asIsoTimeStamp(new Date('2026-08-04T12:00:00.000Z'));
+      const genStoreWithGrant = () => {
+        const store = createDaemonKeyStore();
+        store.set({
+          grant: new KeyrackKeyGrant({
+            slug: 'ahbode.camp.AWS_PROFILE',
+            key: {
+              secret: 'profile-name',
+              grade: { protection: 'plaintext', duration: 'ephemeral' },
+            },
+            source: { vault: 'aws.config', mech: 'EPHEMERAL_VIA_AWS_SSO' },
+            env: 'camp',
+            org: 'ahbode',
+            expiresAt,
+          }),
+        });
+        return store;
+      };
+
+      beforeEach(() => {
+        jest.useFakeTimers({ now: clockNow });
+      });
+      afterEach(() => {
+        jest.useRealTimers();
+      });
+
+      when('[t0] entries and get both read it', () => {
+        then('entries omits it, as get refuses it', () => {
+          const store = genStoreWithGrant();
+          expect(store.entries()).toEqual([]);
+          expect(store.get({ slug: 'ahbode.camp.AWS_PROFILE' })).toBeNull();
+        });
+      });
+    },
+  );
+
   given('[case4] key is deleted', () => {
     const store = createDaemonKeyStore();
 

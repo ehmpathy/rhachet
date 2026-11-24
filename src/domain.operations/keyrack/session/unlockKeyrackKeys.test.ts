@@ -11,11 +11,18 @@ import { getOneKeyrackAwsParamIdentity } from '@src/domain.operations/keyrack/ad
 import { isKeyrackFillProbeMiss } from '@src/domain.operations/keyrack/fill/isKeyrackFillProbeMiss';
 import type { ContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
 
+import { daemonAccessUnlock } from '../daemon/sdk';
 import { unlockKeyrackKeys } from './unlockKeyrackKeys';
 
 // mock the daemon interactions to avoid socket access in unit tests
 jest.mock('../daemon/sdk', () => ({
-  daemonAccessUnlock: jest.fn().mockResolvedValue({ unlocked: [] }),
+  // a current daemon files every renewal it is sent
+  daemonAccessUnlock: jest
+    .fn()
+    .mockImplementation(async (input: { renewals: { slug: string }[] }) => ({
+      unlocked: [],
+      renewable: input.renewals.map((renewal) => renewal.slug),
+    })),
   findsertKeyrackDaemon: jest.fn().mockResolvedValue(undefined),
 }));
 
@@ -1266,6 +1273,124 @@ describe('unlockKeyrackKeys', () => {
         );
         expect(result.unlocked.map((k) => k.slug)).toEqual([]);
       });
+    });
+  });
+
+  given('[case15] an sso key unlocked into a daemon of unknown build', () => {
+    const genContext = (): ContextKeyrack => ({
+      owner: 'ehmpath',
+      identity: {
+        getOne: async () => 'test-identity',
+        getAll: { discovered: async () => ['test-identity'], prescribed: [] },
+      },
+      hostManifest: genMockKeyrackHostManifest({
+        hosts: {
+          'ahbode.camp.AWS_PROFILE': {
+            mech: 'EPHEMERAL_VIA_AWS_SSO',
+            vault: 'aws.config',
+            env: 'camp',
+            org: 'ahbode',
+          },
+        },
+      }),
+      repoManifest: genMockKeyrackRepoManifest({
+        org: 'ahbode',
+        envs: ['camp'],
+        keys: {
+          'ahbode.camp.AWS_PROFILE': { mech: 'EPHEMERAL_VIA_AWS_SSO' },
+        },
+      }),
+      vaultAdapters: {
+        'os.envvar': genMockVaultAdapter(),
+        'os.direct': genMockVaultAdapter(),
+        'os.secure': genMockVaultAdapter(),
+        'os.daemon': genMockVaultAdapter(),
+        '1password': genMockVaultAdapter(),
+        'aws.config': genMockVaultAdapter({
+          storage: { 'ahbode.camp.AWS_PROFILE': 'ahbode-camp' },
+          supportedMechs: ['EPHEMERAL_VIA_AWS_SSO'],
+        }),
+        'aws.params': genMockVaultAdapter(),
+        'github.secrets': genMockVaultAdapter(),
+      },
+    });
+
+    when(
+      '[t0] the daemon is from a prior build, and its reply names no renewable',
+      () => {
+        then(
+          'the unlock warns that the key will not renew, with the prune',
+          async () => {
+            // an older daemon replies with `unlocked` alone
+            jest
+              .mocked(daemonAccessUnlock)
+              .mockResolvedValueOnce({ unlocked: [], renewable: null });
+            const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+            await unlockKeyrackKeys(
+              { env: 'camp', key: 'AWS_PROFILE', owner: 'ehmpath' },
+              genContext(),
+            );
+
+            const warned = warnSpy.mock.calls.map((call) => String(call[0]));
+            warnSpy.mockRestore();
+            expect(warned.join('\n')).toContain('will not renew this key');
+            expect(warned.join('\n')).toContain('ahbode.camp.AWS_PROFILE');
+            expect(warned.join('\n')).toContain(
+              'rhx keyrack daemon prune --owner ehmpath',
+            );
+
+            // .why = the warn as emitted, so its shape shows in a pr diff
+            expect(warned.join('\n')).toMatchSnapshot();
+          },
+        );
+      },
+    );
+
+    when('[t1] the daemon files the renewal', () => {
+      then('the unlock emits no skew warn', async () => {
+        const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+        await unlockKeyrackKeys(
+          { env: 'camp', key: 'AWS_PROFILE', owner: 'ehmpath' },
+          genContext(),
+        );
+
+        const warned = warnSpy.mock.calls.map((call) => String(call[0]));
+        warnSpy.mockRestore();
+        expect(warned.join('\n')).not.toContain('will not renew');
+      });
+    });
+
+    when('[t2] the human unlocks with a --duration', () => {
+      then(
+        'the renewal sent carries the cap the duration sets, from one clock read',
+        async () => {
+          const T0 = new Date('2026-11-20T00:00:00.000Z').getTime();
+          jest.useFakeTimers({ advanceTimers: false });
+          jest.setSystemTime(new Date(T0));
+          try {
+            jest.mocked(daemonAccessUnlock).mockClear();
+            await unlockKeyrackKeys(
+              {
+                env: 'camp',
+                key: 'AWS_PROFILE',
+                owner: 'ehmpath',
+                duration: '2h',
+              },
+              genContext(),
+            );
+          } finally {
+            jest.useRealTimers();
+          }
+
+          const sent = jest.mocked(daemonAccessUnlock).mock.calls.at(-1)?.[0];
+          expect(sent?.renewals).toHaveLength(1);
+          expect(new Date(sent!.renewals[0]!.capAt).getTime()).toEqual(
+            T0 + 2 * 60 * 60 * 1000,
+          );
+        },
+      );
     });
   });
 });

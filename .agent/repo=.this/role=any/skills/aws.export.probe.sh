@@ -73,7 +73,6 @@ fi
 SINCE_MS=$(date +%s%3N)
 echo "aws version    = $(aws --version 2>&1)"
 echo "cli startup    = $(( $(date +%s%3N) - SINCE_MS ))ms (aws --version alone)"
-echo "host load      = $(cut -d' ' -f1-3 /proc/loadavg) · $(nproc) cpus"
 echo "profile        = $AWS_PROFILE"
 for RUN in $(seq 1 "$RUNS"); do
   # space the runs, so a watch can catch the moment the cli re-derives

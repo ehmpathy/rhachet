@@ -35,17 +35,16 @@ export const emitSsoGateInvalid = (input: {
   error: unknown;
   level: 'info' | 'debug';
 }): void => {
-  log[input.level](
-    '🐈 keyrack.vaultAdapterAwsConfig.validateSsoSession: gate invalid',
-    {
-      gate: input.gate,
-      valid: false,
-      profileName: input.profileName,
-      ssoCacheFiles: getAwsSsoCacheFileNames(),
-      error:
-        input.error instanceof Error
-          ? { name: input.error.name, message: input.error.message }
-          : input.error,
-    },
-  );
+  // .note = the label names the proof, not one caller: the vault's set, its get, and the
+  //         daemon's renew all reach these gates
+  log[input.level]('🐈 keyrack.awsSso.sessionProof: gate invalid', {
+    gate: input.gate,
+    valid: false,
+    profileName: input.profileName,
+    ssoCacheFiles: getAwsSsoCacheFileNames(),
+    error:
+      input.error instanceof Error
+        ? { name: input.error.name, message: input.error.message }
+        : input.error,
+  });
 };

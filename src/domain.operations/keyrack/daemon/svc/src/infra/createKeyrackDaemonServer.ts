@@ -52,7 +52,7 @@ export const createKeyrackDaemonServer = (input: {
   scheduleAutoTermination({ keyStore, activity, renewRecord });
 
   // renew each opted-in grant before it expires, via its mech adapter
-  scheduleDaemonRenewTick({
+  const renewTick = scheduleDaemonRenewTick({
     keyStore,
     renewRecord,
     getOneRenewal: getOneGrantRenewal,
@@ -89,6 +89,9 @@ export const createKeyrackDaemonServer = (input: {
 
     console.log(`[keyrack-daemon] server started at ${socketPath}`);
   });
+
+  // stop the renew tick once the server closes, so no tick outlives its store
+  server.on('close', () => clearInterval(renewTick));
 
   // handle server errors
   server.on('error', (err) => {

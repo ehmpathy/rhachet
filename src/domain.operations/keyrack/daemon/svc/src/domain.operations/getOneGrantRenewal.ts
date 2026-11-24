@@ -28,8 +28,9 @@ export const getOneGrantRenewal = async (input: {
     throw new MalfunctionError('mech has no renew path', {
       slug: input.grant.slug,
       mech: input.grant.source.mech,
+      hint: 'an unlock filed a renew for a mech that cannot renew; report it as a keyrack defect. a fresh unlock holds the key to its ttl',
     });
 
-  // ask the mech to renew from the grant's stored source
-  return adapter.renewForDaemon({ source: input.grant.key.secret });
+  // ask the mech to renew the grant; the mech alone reads the fields it renews from
+  return adapter.renewForDaemon({ grant: input.grant });
 };

@@ -4,7 +4,8 @@ import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemo
 import type { DaemonStatusRow } from '@src/domain.operations/keyrack/daemon/sdk';
 import { daemonAccessStatus } from '@src/domain.operations/keyrack/daemon/sdk';
 import { genContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
-import { asKeyrackKeyReachField } from '@src/domain.operations/keyrack/reach/asKeyrackKeyReachField';
+
+import { asKeyrackStatusRow } from './asKeyrackStatusRow';
 
 /**
  * .what = get status of unlocked keys in daemon
@@ -43,15 +44,7 @@ export const getKeyrackStatus = async (input?: {
   );
 
   return {
-    keys: result.keys.map((k) => ({
-      slug: k.slug,
-      env: k.env,
-      org: k.org,
-      ...asKeyrackKeyReachField({ reach: k.reach }),
-      expiresAt: k.expiresAt,
-      ttlLeftMs: k.ttlLeftMs,
-      ...(k.renew ? { renew: k.renew } : {}),
-    })),
+    keys: result.keys.map((row) => asKeyrackStatusRow({ row })),
     recipients: hostManifestResult?.manifest.recipients ?? [],
     owner,
     socketPath,

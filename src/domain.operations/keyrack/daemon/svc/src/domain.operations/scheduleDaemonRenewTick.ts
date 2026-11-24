@@ -5,6 +5,7 @@ import type { DaemonRenewRecord } from '../domain.objects/daemonRenewRecord';
 import { getOneDurationMsFromEnv } from './getOneDurationMsFromEnv';
 import type { getOneGrantRenewal } from './getOneGrantRenewal';
 import { renewDaemonGrantsDue } from './renewDaemonGrantsDue';
+import { setAllRenewEntriesHaltedByDefect } from './setAllRenewEntriesHaltedByDefect';
 
 /**
  * .what = run the renew tick on an interval, for the daemon's whole life
@@ -18,9 +19,10 @@ import { renewDaemonGrantsDue } from './renewDaemonGrantsDue';
  *         KEYRACK_DAEMON_RENEW_TIMEOUT_MS allow shorter values for tests
  * .note = each renew try is bounded by the renew timeout, so a hung upstream call counts as
  *         a fault and can never hold its key's in-flight slot forever
- * .note = a tick never throws out of the interval: every per-key outcome is handled
- *         inside renewDaemonGrantsDue, and a defect there is logged, so one bad tick
- *         cannot take down the daemon and the live keys it holds for every caller
+ * .note = a tick never throws out of the interval: every per-key outcome, a defect
+ *         included, settles on its own entry inside renewDaemonGrantsDue; only a defect in
+ *         the tick's own orchestration reaches the boundary. so one bad key cannot halt its
+ *         peers, one bad tick cannot take down the daemon, and no defect goes unnamed
  */
 export const scheduleDaemonRenewTick = (input: {
   keyStore: DaemonKeyStore;
@@ -55,12 +57,17 @@ export const scheduleDaemonRenewTick = (input: {
         renewTimeoutMs,
         getOneRenewal: input.getOneRenewal,
       },
-    ).catch((error: unknown) => {
-      // .why = the process boundary. only a code defect reaches here: operational faults
-      //        settle per key, and a defect has already marked its key `halted`, named in
-      //        `keyrack status`. a rethrow from a timer would crash the daemon and evict
-      //        every caller's keys, so the boundary logs and holds
-      console.error('[keyrack-daemon] renew tick defect', error);
+    ).catch((defect: unknown) => {
+      // .why = the process boundary. only a defect in the tick's own orchestration reaches
+      //        here: operational faults and per-key defects settle on their own entry. a
+      //        rethrow from a timer would crash the daemon and evict every caller's keys,
+      //        so the defect lands as a `halted` mark on each idle unmarked entry, where
+      //        `keyrack status` names it
+      setAllRenewEntriesHaltedByDefect(
+        { defect },
+        { renewRecord: input.renewRecord, inflight },
+      );
+      console.error('[keyrack-daemon] renew tick defect', defect);
     });
   }, tickMs);
 

@@ -25,4 +25,4 @@ a defect outside any entry (in the tick's own selection code) has no entry to ma
 
 ## .verdict
 
-open — to the commander at the pr.
+revised under peer review i001 (r002 blocker.1, r006 nitpick.2): the gap named in .confidence is closed. the tick's `.catch` now calls `setAllRenewEntriesHaltedByDefect`, so a defect outside any one entry marks every unmarked entry `halted` with `defect <class>: <message>`, and `keyrack status` names it. the process still stays alive (b holds); the log line stays as a second trace.

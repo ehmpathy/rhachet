@@ -10,6 +10,13 @@ peer review i001 asked for five local divergences from conventions the keyrack t
 - `renew*` / `schedule*` / `emit*` → a get/set/gen/del prefix, beside extant `scheduleAutoTermination` and `emit*` twins (r005 nitpick.3)
 - the moved session-ended predicates → renamed transformers in the same diff that moves them (r003 nitpick.1)
 
+the review at hash `d8bd8509` raised the same shape again:
+
+- `scheduleDaemonRenewTick` deps → `context`, beside `scheduleAutoTermination`'s deps-in-input (r004 nitpick.2)
+- the renew's `console.log` → an injected logger, while the rest of the daemon logs via `console.log` (r004 nitpick.3)
+- `daemonRenewRecord` off the shared address cast its peer `daemonKeyStore` uses (r005 blocker.1, with F13)
+- the extant `env:` / `org:` / `expires in:` leaves → `=` form beside the new renew leaf (r009 nitpick.1)
+
 - **a** — diverge here, for the files this diff touches
 - **b** — hold the extant convention; repair it for the whole family in a change of its own
 

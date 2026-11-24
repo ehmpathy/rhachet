@@ -26,6 +26,8 @@ export const getOneRenewalSettled = async (
   | { renewal: null; fault: ConstraintError | MalfunctionError }
 > => {
   // bound the try; a hang becomes a MalfunctionError
+  // .note = deliberate mutation: `timer` is a one-slot cell, set once when the bound starts
+  //         and read once in `finally` to clear it, so a settled try leaves no live timer
   const timer: { handle: NodeJS.Timeout | null } = { handle: null };
   const timeout = new Promise<never>((_, reject) => {
     timer.handle = setTimeout(
@@ -34,6 +36,7 @@ export const getOneRenewalSettled = async (
           new MalfunctionError('renew timed out', {
             slug: input.grant.slug,
             timeoutMs: context.timeoutMs,
+            hint: 'the next tick retries; a stall that holds halts the key, and `rhx keyrack status` then names the fix',
           }),
         ),
       context.timeoutMs,

@@ -1,20 +1,18 @@
-import type { IsoTimeStamp } from 'iso-time';
-
-import type { KeyrackKeyReach } from '@src/domain.objects/keyrack/KeyrackKeyReach';
 import type { DaemonKeyStore } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonKeyStore';
-import type {
-  DaemonRenewMark,
-  DaemonRenewRecord,
-} from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonRenewRecord';
-import { asKeyrackKeyReachField } from '@src/domain.operations/keyrack/reach/asKeyrackKeyReachField';
+import type { DaemonRenewRecord } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonRenewRecord';
 
+import { asDaemonStatusRow } from './asDaemonStatusRow';
 import { getAllStatusRowsMarkedExpired } from './getAllStatusRowsMarkedExpired';
+import { getOneTtlLeftMs } from './getOneTtlLeftMs';
 
 /**
  * .what = handle STATUS command to list unlocked keys with TTL left
  * .why = shows what credentials are available and when they expire
  *
  * .note = includes homeHash for daemon identity (usecase.5 observability)
+ * .note = `ttlLeftMs` is `null` when the grant never dies: the socket is JSON, which
+ *         cannot carry `Infinity`. a no-expiry key is a first-class state; `daemonKeyStore`
+ *         reads an absent `expiresAt` as always valid
  */
 export const handleStatusCommand = (
   _input: Record<string, never>,
@@ -25,36 +23,7 @@ export const handleStatusCommand = (
   },
 ): {
   homeHash: string;
-  keys: Array<{
-    slug: string;
-    env: string;
-    org: string;
-    reach?: KeyrackKeyReach;
-    expiresAt: IsoTimeStamp | null;
-
-    /**
-     * .what = milliseconds until this grant dies — `null` when it never does
-     * .note = ⚠️ this yielded `Infinity` until 2026-08-06, and the socket is JSON:
-     *         `JSON.stringify(Infinity)` is the string `"null"`. so the value a client
-     *         received was ALREADY `null` while both sides declared `number`, and
-     *         `Math.round(null / 1000 / 60)` is `0` — a key that never expires rendered as
-     *         `expires in: 0m`, which reads as ALREADY DEAD
-     * .note = a no-expiry key is a first-class state here, not a corner: `daemonKeyStore`
-     *         reads an absent `expiresAt` as "no expiration — always valid" and `entries()`
-     *         hands it straight to this map
-     */
-    ttlLeftMs: number | null;
-
-    /**
-     * .what = the renew state of a key the daemon renews
-     * .note = OPTIONAL, never nullable — absent for a key with no renew record, so
-     *         every extant payload and snapshot stays byte-identical
-     */
-    renew?: {
-      renewedCount: number;
-      mark: DaemonRenewMark | null;
-    };
-  }>;
+  keys: Array<ReturnType<typeof asDaemonStatusRow>>;
 } => {
   const now = Date.now();
 
@@ -65,33 +34,19 @@ export const handleStatusCommand = (
   const allKeys = context.keyStore.entries();
 
   // the live keys, each with its renew state where the daemon renews it
-  const keysLive = allKeys.map((unlockedKey) => {
-    const renewEntry = context.renewRecord.get({
-      slug: unlockedKey.slug,
-      reach: unlockedKey.reach,
-    });
-    return {
-      slug: unlockedKey.slug,
-      env: unlockedKey.env,
-      org: unlockedKey.org,
-      ...asKeyrackKeyReachField({ reach: unlockedKey.reach }),
-      expiresAt: unlockedKey.expiresAt ?? null,
-      // `null`, never `Infinity` — the wire is JSON, which cannot carry `Infinity` and
-      // silently rewrites it to `null`. to send `null` outright makes the declared type
-      // true on BOTH sides of the socket rather than only on this one
-      ttlLeftMs: unlockedKey.expiresAt
-        ? Math.max(0, new Date(unlockedKey.expiresAt).getTime() - now)
-        : null,
-      ...(renewEntry
-        ? {
-            renew: {
-              renewedCount: renewEntry.renewedCount,
-              mark: renewEntry.mark,
-            },
-          }
-        : {}),
-    };
-  });
+  const keysLive = allKeys.map((grant) =>
+    asDaemonStatusRow({
+      grant,
+      renewEntry: context.renewRecord.get({
+        slug: grant.slug,
+        reach: grant.reach,
+      }),
+      ttlLeftMs: getOneTtlLeftMs({
+        expiresAt: grant.expiresAt ?? null,
+        nowMs: now,
+      }),
+    }),
+  );
 
   // the marked keys whose grant has expired, still named until a human acts
   const keysMarkedExpired = getAllStatusRowsMarkedExpired({

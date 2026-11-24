@@ -23,14 +23,26 @@ export const daemonAccessUnlock = async (input: {
   renewals: KeyrackDaemonUnlockRenewal[];
   owner?: string | null;
   socketPath?: string;
-}): Promise<{ unlocked: string[] }> => {
+}): Promise<{
+  unlocked: string[];
+  /**
+   * .what = the slugs the daemon filed for renew, or null from a daemon too old to renew
+   * .why = an older daemon, still alive from a prior build, ignores `renewals` and replies
+   *        with no such field; null lets the caller name that skew rather than let a key
+   *        die at its first expiry with no cause in status
+   */
+  renewable: string[] | null;
+}> => {
   // derive socketPath from owner if not provided
   const socketPath =
     input.socketPath ?? getKeyrackDaemonSocketPath({ owner: input.owner });
 
   const socket = await connectToKeyrackDaemon({ socketPath });
 
-  const response = await sendKeyrackDaemonCommand<{ unlocked: string[] }>({
+  const response = await sendKeyrackDaemonCommand<{
+    unlocked: string[];
+    renewable?: string[];
+  }>({
     socket,
     command: 'UNLOCK',
     payload: { keys: input.keys, renewals: input.renewals },
@@ -42,5 +54,8 @@ export const daemonAccessUnlock = async (input: {
     });
   }
 
-  return response.data!;
+  return {
+    unlocked: response.data!.unlocked,
+    renewable: response.data!.renewable ?? null,
+  };
 };

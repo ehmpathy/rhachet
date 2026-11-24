@@ -10,12 +10,20 @@ jest.mock('node:child_process', () => {
   const originalModule = jest.requireActual('node:child_process');
   const { EventEmitter } = require('node:events');
 
+  const exec = jest.fn((cmd: string, callback: Function) => {
+    // default: commands succeed
+    callback(null, { stdout: '{}', stderr: '' });
+  });
+
   return {
     ...originalModule,
-    exec: jest.fn((cmd: string, callback: Function) => {
-      // default: commands succeed
-      callback(null, { stdout: '{}', stderr: '' });
-    }),
+    exec,
+    // the role-creds read runs `aws` by argv; route it through the `exec` mock as one
+    // command line, so each case's `cmd.includes(...)` stub answers both forms
+    execFile: jest.fn(
+      (file: string, args: string[], _options: unknown, callback: Function) =>
+        exec([file, ...args].join(' '), callback),
+    ),
     spawn: jest.fn(() => {
       // default: spawn succeeds
       const emitter = new EventEmitter();
@@ -171,7 +179,7 @@ describe('vaultAdapterAwsConfig', () => {
       execMock.mockImplementation((cmd: string, callback: any) => {
         callback(null, {
           stdout: [
-            'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE',
+            'AWS_ACCESS_KEY_ID=AKIA_FIXTURE_EXAMPLE',
             'AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
             'AWS_SESSION_TOKEN=FwoGZXIvYXdzEBYaDK...',
             'AWS_CREDENTIAL_EXPIRATION=2026-04-14T12:00:00Z',
@@ -281,7 +289,7 @@ describe('vaultAdapterAwsConfig', () => {
         execMock.mockImplementation((cmd: string, callback: any) => {
           callback(null, {
             stdout: [
-              'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE',
+              'AWS_ACCESS_KEY_ID=AKIA_FIXTURE_EXAMPLE',
               'AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
               'AWS_SESSION_TOKEN=FwoGZXIvYXdzEBYaDK...',
               'AWS_CREDENTIAL_EXPIRATION=2026-04-14T12:00:00Z',
@@ -324,7 +332,7 @@ describe('vaultAdapterAwsConfig', () => {
         execMock.mockImplementation((cmd: string, callback: any) => {
           callback(null, {
             stdout: [
-              'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE',
+              'AWS_ACCESS_KEY_ID=AKIA_FIXTURE_EXAMPLE',
               'AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
               'AWS_SESSION_TOKEN=FwoGZXIvYXdzEBYaDK...',
               'AWS_CREDENTIAL_EXPIRATION=2026-04-14T12:00:00Z',
@@ -360,7 +368,7 @@ describe('vaultAdapterAwsConfig', () => {
           if (cmd.includes('aws configure export-credentials')) {
             callback(null, {
               stdout: [
-                'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE',
+                'AWS_ACCESS_KEY_ID=AKIA_FIXTURE_EXAMPLE',
                 'AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
                 'AWS_SESSION_TOKEN=FwoGZXIvYXdzEBYaDK...',
                 'AWS_CREDENTIAL_EXPIRATION=2026-04-14T12:00:00Z',
@@ -496,7 +504,7 @@ describe('vaultAdapterAwsConfig', () => {
           if (cmd.includes('aws configure export-credentials')) {
             callback(null, {
               stdout: [
-                'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE',
+                'AWS_ACCESS_KEY_ID=AKIA_FIXTURE_EXAMPLE',
                 'AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
                 'AWS_SESSION_TOKEN=FwoGZXIvYXdzEBYaDK...',
                 'AWS_CREDENTIAL_EXPIRATION=2026-04-14T12:00:00Z',
@@ -540,7 +548,7 @@ describe('vaultAdapterAwsConfig', () => {
           if (cmd.includes('aws configure export-credentials')) {
             callback(null, {
               stdout: [
-                'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE',
+                'AWS_ACCESS_KEY_ID=AKIA_FIXTURE_EXAMPLE',
                 'AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
                 'AWS_SESSION_TOKEN=FwoGZXIvYXdzEBYaDK...',
                 'AWS_CREDENTIAL_EXPIRATION=2026-04-14T12:00:00Z',
@@ -894,7 +902,7 @@ AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
             if (cmd.includes('aws configure export-credentials')) {
               callback(null, {
                 stdout: [
-                  'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE',
+                  'AWS_ACCESS_KEY_ID=AKIA_FIXTURE_EXAMPLE',
                   'AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
                   'AWS_SESSION_TOKEN=FwoGZXIvYXdzEBYaDK...',
                   'AWS_CREDENTIAL_EXPIRATION=2026-04-14T12:00:00Z',
@@ -1002,7 +1010,7 @@ AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
         if (cmd.includes('aws configure export-credentials')) {
           callback(null, {
             stdout: [
-              'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE',
+              'AWS_ACCESS_KEY_ID=AKIA_FIXTURE_EXAMPLE',
               'AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
               'AWS_SESSION_TOKEN=FwoGZXIvYXdzEBYaDK...',
               'AWS_CREDENTIAL_EXPIRATION=2026-04-14T12:00:00Z',
@@ -1337,7 +1345,7 @@ AWS_CREDENTIAL_EXPIRATION=${futureExpiration}`,
         if (cmd.includes('aws configure export-credentials')) {
           callback(null, {
             stdout: [
-              'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE',
+              'AWS_ACCESS_KEY_ID=AKIA_FIXTURE_EXAMPLE',
               'AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
               'AWS_SESSION_TOKEN=FwoGZXIvYXdzEBYaDK...',
               'AWS_CREDENTIAL_EXPIRATION=2026-04-14T12:00:00Z',

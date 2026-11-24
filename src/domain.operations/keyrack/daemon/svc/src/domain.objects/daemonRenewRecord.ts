@@ -109,6 +109,8 @@ export const createDaemonRenewRecord = () => {
 
   /**
    * .what = every entry, with its address
+   * .why = the tick writes back through `setIfHeld({ address })`, so each entry it reads
+   *        must carry the address it was keyed under
    */
   const entries = (): Array<{ address: string; entry: DaemonRenewEntry }> =>
     [...record.entries()].map(([address, entry]) => ({ address, entry }));
@@ -124,6 +126,8 @@ export const createDaemonRenewRecord = () => {
 
   /**
    * .what = the entry for one address, if any
+   * .why = status and unlock read one key's renew by the same slug + reach the store
+   *        keys it by, so the two never disagree on which key is meant
    */
   const get = (input: {
     slug: string;
@@ -160,6 +164,8 @@ export const createDaemonRenewRecord = () => {
 
   /**
    * .what = drop every entry
+   * .why = a relock of every key must leave no renew behind, or a later tick would
+   *        revive a relocked key
    */
   const clear = (): void => {
     record.clear();

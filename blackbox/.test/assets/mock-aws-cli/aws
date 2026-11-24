@@ -26,6 +26,10 @@ case "$1 $2" in
     echo "MOCK-CODE"
     echo ""
     echo "Successfully logged into Start URL: https://mock-portal.awsapps.com/start"
+    # MOCK_AWS_PORTAL_STATE_FILE → a login starts a fresh portal session, so it clears the state
+    if [[ -n "${MOCK_AWS_PORTAL_STATE_FILE:-}" ]]; then
+      rm -f "$MOCK_AWS_PORTAL_STATE_FILE"
+    fi
     # MOCK_AWS_IDENTITY_STAGES → count logins so sts can advance through stages
     # .note = one char appended per login; sts reads char count as the login index
     if [[ -n "${MOCK_AWS_IDENTITY_STAGES:-}" && -n "${MOCK_AWS_STATE_FILE:-}" ]]; then
@@ -48,6 +52,13 @@ case "$1 $2" in
     # MOCK_AWS_IDENTITY=bob → return bob's identity
     # MOCK_AWS_IDENTITY_BEFORE=bob + MOCK_AWS_IDENTITY_AFTER=alice → bob before re-auth, alice after
     # default → return generic mock identity
+    # MOCK_AWS_PORTAL_STATE_FILE=lapsed → the portal session ended, so the identity read fails
+
+    if [[ -n "${MOCK_AWS_PORTAL_STATE_FILE:-}" && -f "$MOCK_AWS_PORTAL_STATE_FILE" ]] \
+      && [[ "$(cat "$MOCK_AWS_PORTAL_STATE_FILE")" == "lapsed" ]]; then
+      echo "Error: the SSO token for this profile has expired." >&2
+      exit 1
+    fi
 
     # staged identity transitions (advance one stage per login)
     # MOCK_AWS_IDENTITY_STAGES="bob,bob,alice" → sts@login0=bob, @login1=bob, @login2=alice
@@ -99,6 +110,7 @@ case "$1 $2" in
   "configure export-credentials")
     # MOCK_AWS_PORTAL_STATE_FILE → its content sets the portal session state:
     #   (absent or empty) live · lapsed (session ended, exit 255) · fault (a non-session error)
+    #   · noexpiry (live creds, but no AWS_CREDENTIAL_EXPIRATION line, as an old cli writes)
     session_state=""
     if [[ -n "${MOCK_AWS_PORTAL_STATE_FILE:-}" && -f "$MOCK_AWS_PORTAL_STATE_FILE" ]]; then
       session_state="$(cat "$MOCK_AWS_PORTAL_STATE_FILE")"
@@ -127,7 +139,9 @@ case "$1 $2" in
     echo "AWS_ACCESS_KEY_ID=MOCKACCESSKEYID00000"
     echo "AWS_SECRET_ACCESS_KEY=MockSecretAccessKey123456789"
     echo "AWS_SESSION_TOKEN=MockSessionToken123456789012345678901234567890"
-    echo "AWS_CREDENTIAL_EXPIRATION=${expiration}"
+    if [[ "$session_state" != "noexpiry" ]]; then
+      echo "AWS_CREDENTIAL_EXPIRATION=${expiration}"
+    fi
     ;;
   "sso logout")
     ;;

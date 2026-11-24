@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`unlockKeyrackKeys given: [case15] an sso key unlocked into a daemon of unknown build when: [t0] the daemon is from a prior build, and its reply names no renewable then: the unlock warns that the key will not renew, with the prune 1`] = `
+"🟡 the keyrack daemon is from an older build and will not renew this key
+   ├─ ahbode.camp.AWS_PROFILE
+   └─ fix
+      ├─ rhx keyrack daemon prune --owner ehmpath
+      └─ then unlock again — the prune drops every key the daemon holds
+         └─ a key kept only in the daemon will not come back"
+`;

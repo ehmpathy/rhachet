@@ -10,8 +10,10 @@ import type { KeyrackKeyReach } from './KeyrackKeyReach';
  *
  * .note = a wire contract: the sdk sends it, the daemon reads it. it lives beside
  *         `KeyrackDaemonCommand`, so neither side reaches into the other's internals
- * .note = `reach` is optional on the wire: json drops an absent field, and a key with
- *         no reach is the common case
+ * .note = `reach` is optional, a deliberate waiver of rule.forbid.undefined-inputs: this is
+ *         a socket payload, a wire boundary. json drops an absent field, so a `null` would
+ *         not survive the trip as itself, and a key with no reach is the common case. the
+ *         same waiver `KeyrackKeyGrant.reach` carries, so both key one address alike
  */
 export interface KeyrackDaemonUnlockRenewal {
   slug: string;
