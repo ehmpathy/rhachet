@@ -291,7 +291,7 @@ describe('rhachet init --hooks, boot guard for .agent/repo=.this/role=any', () =
       });
 
       then('the broken carrier keeps the Stop hook its author declared (F17)', async () => {
-        const stops = await getSettingsHooksStop({ repoPath: repo.path });
+        const stops = await getManifestRulesStop({ repoPath: repo.path });
         expect(stops).toContainEqual(
           expect.objectContaining({
             command:
@@ -299,6 +299,13 @@ describe('rhachet init --hooks, boot guard for .agent/repo=.this/role=any', () =
             matcher: 'repo=.this/role=any',
           }),
         );
+      });
+
+      then('settings.of.repo.json starts the one Stop dispatcher', async () => {
+        const stops = await getSettingsHooksStop({ repoPath: repo.path });
+        expect(stops).toEqual([
+          expect.objectContaining({ matcher: HOOK_DISPATCH_AUTHOR }),
+        ]);
       });
     });
 
