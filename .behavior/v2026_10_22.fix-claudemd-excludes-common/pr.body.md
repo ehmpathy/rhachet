@@ -30,13 +30,21 @@ a box on an older `rhx` re-adds its own home path on enroll until it upgrades; t
 |---|---|---|---|
 | `setRepoActorBrainDir`, `upgrade.default-actor-migration.journey` | `!/settings.of.grove.json` in the brain-dir allowlist | absent | the grove link leaves git (F5) |
 | `asEnrolledActorsHookSyncLines`, `syncHooksForLinkedRoles` | `hint: …` | `hint = …` | `rule.forbid.colons-in-stdout` on a rewritten line (F14) |
-| `defaultPeerReviewerBrain` | `DEFAULT_REVIEW_BRAIN` | `BRAIN_DEFAULT_OF_REVIEW` | renamed in `rhachet-roles-bhrain@0.42.1`; same value, same two asserts |
+
+## after the rebase onto main v1.54.1
+
+- #754 (attribution off in every actor config) lands beside this pr: the writer empties
+  attribution, then sets the portable excludes; `genBrainCliConfigArtifact.integration` keeps
+  main's `[case8]`–`[case10]` and carries this pr's as `[case11]`–`[case12]`
+
+- main had re-committed both defects this pr removes: the grove link (now to `/home/camper/…`) and
+  `/home/vlad/.claude/CLAUDE.md` in the repo actor excludes. the rebased diff removes both again
+- the role bump (F4) left this pr: main already carries newer roles (`rhachet-roles-ehmpathy@1.43.0`)
+- the `[t3.0]` home-exclude probe sits behind main's `IS_BRAIN_LIVE` gate, beside the other paid
+  `claude -p` turns
 
 ## calls held for you
 
-- F4 — the `rhachet-roles-ehmpathy@1.39.9` bump rides in this pr, in its own commit (the
-  `defaultPeerReviewerBrain` rename and the architect snapshot rows — 53 briefs, no hooks — follow
-  from it)
 - F5 — the tracked grove link leaves git, which drops `!/settings.of.grove.json` from the locked
   allowlist; the teammate cure above is the cost
 - F6 — a box with no grove: keep an arrow to an absent file, or untrack `settings.json`, or neither
@@ -53,8 +61,7 @@ a box on an older `rhx` re-adds its own home path on enroll until it upgrades; t
   `test(acceptance): sharpen the claudeMdExcludes journeys and snapshots`; caught as
   `.dream/v2026_11_06.fix.acceptance-snapshot-nitpicks-from-claudemd-excludes.md`
 
-- the 6 interactive-clone asserts in `brain-dir-boot.journey` run with no gate on the brain's
-  reach, so an unreachable brain reads as a failed boot assert. owed a fail-fast gate; caught as
+- the live-brain turns in `brain-dir-boot.journey` now run only under `IS_BRAIN_LIVE`, so ci no
+  longer spends a paid key on them. still owed: a fail-fast reach gate, so an unreachable brain
+  under that flag reads as unreachable, not as a failed boot assert; caught as
   `.dream/v2026_11_06.fix.gate-live-brain-asserts-in-brain-dir-boot-journey.md`
-- the ci `ANTHROPIC_API_KEY` returns `Credit balance too low` (11 screens on run 42178071123,
-  across the `brain-dir-boot` shard and the realbrain job); those reds are the key, not this diff
