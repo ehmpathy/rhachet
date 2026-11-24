@@ -611,7 +611,11 @@ exports[`rhx enroll --roles (acceptance) given: [case2f] a committed repo actor 
   "claudeMdExcludes": [
     "**/!(brain)/.claude/CLAUDE.md",
     "**/CLAUDE.local.md"
-  ]
+  ],
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  }
 }"
 `;
 
