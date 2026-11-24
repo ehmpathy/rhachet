@@ -20,12 +20,18 @@ const AWS_EXPORT_TIMEOUT_MS = 60 * 1000;
  * .what = run the aws cli by argv, bounded
  * .why = the one call that crosses the process boundary, injected so the reply's
  *        classification is unit-testable with a fake
+ * .note = env is passed explicitly: with none, node hands the child its own process env,
+ *         which a host such as a jest sandbox may hold apart from the `process.env` this
+ *         module reads
  */
 const execAwsCliDefault = (input: {
   args: string[];
   timeoutMs: number;
 }): Promise<{ stdout: string }> =>
-  execFileAsync('aws', input.args, { timeout: input.timeoutMs });
+  execFileAsync('aws', input.args, {
+    timeout: input.timeoutMs,
+    env: process.env,
+  });
 
 /**
  * .what = read an sso profile's role credentials from the aws cli

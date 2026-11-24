@@ -194,7 +194,9 @@ describe('keyrack daemon sso renew', () => {
       );
 
       then('the key is still granted — the renew kept it alive', () => {
-        expect(result?.keys.map((key) => key.slug)).toEqual([scene.grant.slug]);
+        expect(result?.keys.map((key: { slug: string }) => key.slug)).toEqual([
+          scene.grant.slug,
+        ]);
       });
 
       then('its expiry moved out to the renewed role creds', () => {
