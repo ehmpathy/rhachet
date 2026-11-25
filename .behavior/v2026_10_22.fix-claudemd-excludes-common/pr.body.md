@@ -1,5 +1,15 @@
 # fix(enroll): claudeMdExcludes carries one portable glob, never a machine's home
 
+closes #816 — `rhx init` no longer writes the host's home into the tracked `settings.of.repo.json`
+closes #779 — the repo actor's grove arrow carries no host home in git: untracked, findserted by
+init on each box
+
+one behavior: no tracked file under the repo actor's brain dir names a box. the clamp is
+`init.hooks.acceptance` `[case11]`: box A inits and commits, box B (another HOME) inits the same
+tree, and `git status` stays clean, `settings.of.repo.json` stays byte-equal, and the grove arrow
+on box B points at box B's home. red with `!/settings.of.grove.json` put back in the brain-dir
+allowlist (`setRepoActorBrainDir.ts`, `BRAIN_DIR_GITIGNORE_LINES`).
+
 ## what
 
 - enroll writes `**/!(brain)/.claude/CLAUDE.md` in place of one absolute home path per machine.
