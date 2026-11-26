@@ -5,6 +5,7 @@ import type { KeyrackKeyOmission } from '@src/domain.objects/keyrack/KeyrackKeyO
 import type { KeyrackKeyReach } from '@src/domain.objects/keyrack/KeyrackKeyReach';
 import { asExpiresInMinutes } from '@src/domain.operations/keyrack/asExpiresInMinutes';
 import { asKeyrackKeyReachLeaves } from '@src/domain.operations/keyrack/cli/asKeyrackKeyReachLeaves';
+import { asKeyrackTipLines } from '@src/domain.operations/keyrack/cli/asKeyrackTipLines';
 
 /**
  * .what = the status label each omission reason renders as
@@ -94,7 +95,7 @@ export const formatKeyrackKeyBranch = (input: {
     lines.push(`${prefix} ${entry.slug}`);
     lines.push(`${indent}${entry.tip ? '├' : '└'}─ status: locked 🔒`);
     if (entry.tip) {
-      lines.push(`${indent}└─ \x1b[2mtip: ${entry.tip}\x1b[0m`);
+      lines.push(...asKeyrackTipLines({ indent, tip: entry.tip }));
     }
     return lines;
   }
@@ -110,7 +111,7 @@ export const formatKeyrackKeyBranch = (input: {
       `${indent}${entry.tip ? '├' : '└'}─ status: ${KEYRACK_OMISSION_STATUS_LABEL[entry.type]}`,
     );
     if (entry.tip) {
-      lines.push(`${indent}└─ \x1b[2mtip: ${entry.tip}\x1b[0m`);
+      lines.push(...asKeyrackTipLines({ indent, tip: entry.tip }));
     }
     return lines;
   }

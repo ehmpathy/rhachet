@@ -26,6 +26,7 @@ import { getCloneSayObservation } from '@src/domain.operations/clone/socket/getC
 import { sayClone } from '@src/domain.operations/clone/socket/sayClone';
 import { throwCloneSayFailure } from '@src/domain.operations/clone/socket/throwCloneSayFailure';
 import { writeCloneSayDebugLog } from '@src/domain.operations/clone/socket/writeCloneSayDebugLog';
+import { getStdinContent } from '@src/infra/getStdinContent';
 import { getHomeHash } from '@src/infra/host/getHomeHash';
 import { getOneRepoPath } from '@src/infra/host/getOneRepoPath';
 import { CLONE_ENV_KEYS } from '@src/utils/cloneEnvKeys';
@@ -37,21 +38,12 @@ import { renderCliOutput } from './renderCliOutput';
 import { withCliOutputErrors } from './withCliOutputErrors';
 
 /**
- * .what = read the whole stdin as one utf8 string
+ * .what = read the whole stdin as one utf8 string, verbatim
  * .why = `--what @stdin` lets a payload-heavy or multi-line message arrive on a
  *   pipe, the same clean cli path `git.commit.set -m @stdin` uses
- * .note = WET twin of invokeEnroll's readStdin — that one trims (a motive), this
- *   one preserves the message verbatim (whitespace at the tail can be meaningful).
- *   rule-of-three tripwire: a THIRD invoker that reads @stdin earns a shared
- *   readStdinString({ trim }) transformer; until then the two-site WET is deliberate
+ * .note = verbatim (no trim): whitespace at the tail of a message can be meaningful
  */
-const readStdin = async (): Promise<string> => {
-  // .note = deliberate mutation — a bounded accumulator local to this read; the
-  //   array never escapes readStdin, so no external reader observes the mutation
-  const chunks: Buffer[] = [];
-  for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
-  return Buffer.concat(chunks).toString('utf8');
-};
+const readStdin = (): Promise<string> => getStdinContent({ trim: false });
 
 /**
  * .what = register `rhx clone say @:<slug|serial> --what <message>` on the clone

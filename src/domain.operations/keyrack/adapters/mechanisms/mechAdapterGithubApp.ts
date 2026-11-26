@@ -6,6 +6,8 @@ import { getOneLazyEsmModuleLoader } from '@src/infra/importEsmSafe/getOneLazyEs
 
 import { createInterface } from 'node:readline';
 import { runGh } from '../../infra/gh/runGh';
+import { asGithubAppMintFaultRefusal } from './asGithubAppMintFaultRefusal';
+import { asGithubAppMintFaultTransient } from './asGithubAppMintFaultTransient';
 import { genGithubAppSource } from './genGithubAppSource';
 
 /**
@@ -229,43 +231,21 @@ export const mechAdapterGithubApp: KeyrackGrantMechanismAdapter = {
     });
 
     // generate installation access token
-    // .note = a malformed pem makes node's crypto throw a DOMException deep in
-    //         @octokit/auth-app; uncaught it crashes the process with a raw stack dump.
-    //         a bad pem is caller-fixable (they stored an invalid key file), so convert
-    //         ONLY the key/crypto failure to a ConstraintError with a hint — every other
-    //         fault (network, rate limit, 4xx) is re-thrown untouched (no failhide)
+    // .note = a fault the stored blob caused (a bad pem, a key github refuses) is caller-fixable,
+    //         so it becomes a ConstraintError that names the cure; a fault known to be transient
+    //         (unreached, a throttle, a 5xx) becomes a MalfunctionError the unlock isolates to this
+    //         key's row; any other fault is rethrown untouched, so a defect is never hidden
     const token = await (async () => {
       try {
         const minted = await auth({ type: 'installation' });
         return minted.token;
       } catch (error) {
-        // allowlist: only the private-key parse/crypto failure is caller-fixable here.
-        // the crypto DOMException nests the root reason on its `cause`; read it defensively
-        // without relying on the es2022 Error.cause typing
-        const rootCause =
-          error instanceof Error &&
-          'cause' in error &&
-          (error as { cause?: unknown }).cause instanceof Error
-            ? (error as { cause: Error }).cause.message
-            : '';
-        const text = [
-          error instanceof Error ? error.message : String(error),
-          rootCause,
-        ].join(' ');
-        const isKeyFault =
-          /invalid keydata|failed to read private key|DECODER|unsupported|asn1|pem/i.test(
-            text,
-          );
-        if (!isKeyFault) throw error; // re-throw non-key faults untouched
-
-        throw new ConstraintError(
-          'failed to mint github app token — the stored private key (.pem) is not a valid rsa key',
-          {
-            appId: creds.appId,
-            hint: 're-set the key with a valid github app private key (.pem) file',
-            reason: text.trim(),
-          },
-        );
+        const appId = String(creds.appId);
+        const refusal = asGithubAppMintFaultRefusal({ error, appId });
+        if (refusal) throw refusal;
+        const transient = asGithubAppMintFaultTransient({ error, appId });
+        if (transient) throw transient;
+        throw error;
       }
     })();
 

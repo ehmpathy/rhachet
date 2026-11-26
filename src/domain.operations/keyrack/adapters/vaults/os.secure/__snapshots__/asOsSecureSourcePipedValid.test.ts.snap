@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asOsSecureSourcePipedValid given: [case5] an empty source, as an sdk caller with no cli guard may pass when: [t0] checked then: refuses with the empty-value floor 1`] = `
+"✋ ConstraintError: --source @stdin received an empty value
+
+{
+  "slug": "testorg.test.SOME_TOKEN",
+  "hint": "pipe the source credential into stdin, e.g. \`<upstream read> | rhx keyrack set ... --source @stdin\`"
+}"
+`;

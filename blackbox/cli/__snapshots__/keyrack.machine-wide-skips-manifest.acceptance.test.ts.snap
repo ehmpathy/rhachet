@@ -460,7 +460,8 @@ exports[`keyrack machine-wide skips manifest given: [case4] a repo with NO keyra
 "
 🔐 keyrack source
    └─ ✋ ConstraintError: cannot construct slug for key 'MY_KEY' without keyrack.yml. use full slug format (org.env.KEY) or add keyrack.yml to repo.
-      └─ ran: keyrack source --key MY_KEY --env test
+      ├─ ran: keyrack source --key MY_KEY --env test
+      └─ hint: for a machine-wide key, pass --org @all, or the full slug: --key @all.test.MY_KEY
 
 "
 `;

@@ -105,8 +105,13 @@ export const getOneKeyrackGrantByKey = async (
         'no keyrack.yml found in repo. for sudo credentials without keyrack.yml, use --org @all',
       );
     }
+    // .note = the hint names the machine-wide form, since a box with no repo (a grove's home
+    //         dir) reads its keys from @all, and `set` names the same form
     throw new ConstraintError(
       `cannot construct slug for key '${input.key}' without keyrack.yml. use full slug format (org.env.KEY) or add keyrack.yml to repo.`,
+      {
+        hint: `for a machine-wide key, pass --org @all, or the full slug: --key @all.${input.env ?? 'all'}.${input.key}`,
+      },
     );
   })();
 

@@ -49,6 +49,7 @@ export const vaultAdapterGithubSecrets: KeyrackHostVaultAdapter<'onlywrite'> = {
   mechs: {
     supported: ['EPHEMERAL_VIA_GITHUB_APP', 'PERMANENT_VIA_REPLICA'],
   },
+  isSourcePipedAccepted: false,
 
   /**
    * .what = check if github cli is authenticated

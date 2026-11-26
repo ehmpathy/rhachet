@@ -1,5 +1,7 @@
 import { ConstraintError, HelpfulError } from 'helpful-errors';
 
+import { asErrorBareMessage } from '@src/infra/asErrorBareMessage';
+
 import { asKeyrackSlugParts } from '../asKeyrackSlugParts';
 
 /**
@@ -33,30 +35,8 @@ export const asKeyrackErroredKeyTip = (input: {
    */
   owner: string | null;
 }): string => {
-  // strip the "✋ ClassName: " prefix a HelpfulError bakes into .message, after it redacts its
-  // metadata + cause, so the tip reads as a bare human message (not a raw class dump)
-  const rawMessage =
-    input.cause instanceof HelpfulError
-      ? input.cause.redact(['metadata', 'cause']).message
-      : input.cause instanceof Error
-        ? input.cause.message
-        : String(input.cause);
-
-  // strip the class-name prefix off the ACTUAL class identity (constructor.name — e.g.
-  // "ConstraintError"), not a regex that guesses the class ends in "Error". HelpfulError bakes
-  // "<glyph> <ClassName>: " at the front of .message (e.g. "✋ ConstraintError: "), so key the
-  // strip on the real class token. only strip when the token sits at the very start (after an
-  // optional glyph run like "✋ "), so a mid-message occurrence of the token is never cut;
-  // otherwise keep the message verbatim
-  const className =
-    input.cause instanceof Error ? input.cause.constructor.name : null;
-  const markerAt = className ? rawMessage.indexOf(`${className}: `) : -1;
-  const bareMessage =
-    className !== null &&
-    markerAt >= 0 &&
-    /^[^A-Za-z]*$/.test(rawMessage.slice(0, markerAt))
-      ? rawMessage.slice(markerAt + `${className}: `.length)
-      : rawMessage;
+  // the bare human message: no class prefix, metadata, or cause (not a raw class dump)
+  const bareMessage = asErrorBareMessage({ error: input.cause });
 
   // read the caller-relevant hint the HelpfulError carries; typeof narrows unknown to string
   const hintValue =

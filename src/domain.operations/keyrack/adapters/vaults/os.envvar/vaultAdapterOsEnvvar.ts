@@ -47,6 +47,7 @@ export const vaultAdapterOsEnvvar: KeyrackHostVaultAdapter<'readwrite'> = {
   mechs: {
     supported: ['PERMANENT_VIA_REPLICA', 'EPHEMERAL_VIA_GITHUB_APP'],
   },
+  isSourcePipedAccepted: false,
 
   /**
    * .what = os.envvar vault is always unlocked

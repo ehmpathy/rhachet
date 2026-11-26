@@ -1,0 +1,3 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`mechAdapterGithubApp (real api.github.com) given: [case1] a well-formed blob for an app no github app holds when: [t0] deliverForGet mints against the real github then: the headline matches snapshot 1`] = `"✋ ConstraintError: failed to mint github app token — github refused the stored installation (404)"`;

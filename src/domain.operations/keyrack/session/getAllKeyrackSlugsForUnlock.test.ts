@@ -149,6 +149,41 @@ describe('getAllKeyrackSlugsForUnlock', () => {
         expect(error.message).toContain('machine-wide key not found');
       });
     });
+
+    when('[t3] no env is named, but the key is a full slug', () => {
+      const slugs = getAllKeyrackSlugsForUnlock({
+        env: null,
+        keyAsk: '@all.camp.GITHUB_TOKEN',
+        repoManifest: null,
+        hostManifest,
+        orgFilter: null,
+      });
+
+      // .why = the slug already names its env, as `get`, `set`, and `del` read it; to demand
+      //        `--env camp` beside `@all.camp.…` repeats the ask
+      then('the env comes from the slug, and the key unlocks', () => {
+        expect(slugs).toEqual(['@all.camp.GITHUB_TOKEN']);
+      });
+    });
+
+    when('[t4] a full-slug key is named but absent', () => {
+      const error = getError(() =>
+        getAllKeyrackSlugsForUnlock({
+          env: null,
+          keyAsk: '@all.camp.MISSING',
+          repoManifest: null,
+          hostManifest,
+          orgFilter: null,
+        }),
+      );
+
+      then('the refusal names the slug as asked, never doubled', () => {
+        expect(JSON.stringify(error)).toContain(
+          'no @all.camp.MISSING key in the host manifest',
+        );
+        expect(JSON.stringify(error)).not.toContain('@all.camp.@all.camp');
+      });
+    });
   });
 
   given('[case3] a sudo ask', () => {

@@ -66,6 +66,7 @@ import { getAllKeyrackStatusKeysForFilter } from '@src/domain.operations/keyrack
 import { getOneKeyrackFilterOrg } from '@src/domain.operations/keyrack/cli/getOneKeyrackFilterOrg';
 import { getOneKeyrackGrantByKeyOrEmitBlocked } from '@src/domain.operations/keyrack/cli/getOneKeyrackGrantByKeyOrEmitBlocked';
 import { getOneKeyrackRepoScopeForAsk } from '@src/domain.operations/keyrack/cli/getOneKeyrackRepoScopeForAsk';
+import { getOneKeyrackSetSourcePiped } from '@src/domain.operations/keyrack/cli/getOneKeyrackSetSourcePiped';
 import {
   isValidKeyrackEnv,
   KEYRACK_VALID_ENVS,
@@ -98,6 +99,7 @@ import { setKeyrackRecipient } from '@src/domain.operations/keyrack/recipient/se
 import { getKeyrackStatus } from '@src/domain.operations/keyrack/session/getKeyrackStatus';
 import { relockKeyrack } from '@src/domain.operations/keyrack/session/relockKeyrack';
 import { unlockKeyrackKeys } from '@src/domain.operations/keyrack/session/unlockKeyrackKeys';
+import { getStdinContent } from '@src/infra/getStdinContent';
 import { getGitRepoRootOrNull } from '@src/infra/git/getGitRepoRootOrNull';
 
 import { existsSync } from 'node:fs';
@@ -1300,6 +1302,10 @@ export const invokeKeyrack = ({
     )
     .option('--exid <exid>', 'external id (vault-specific reference)')
     .option('--max-duration <duration>', 'max TTL for this key (e.g., 5m, 1h)')
+    .option(
+      '--source <@stdin>',
+      'read the source credential from a pipe, no guided setup; accepts only the literal @stdin (os.secure only; e.g., a github-app blob)',
+    )
     .option('--at <path>', 'custom keyrack.yml path (for role-level keyracks)')
     .option('--prikey <path>', 'ssh private key for manifest decryption')
     .option('--json', 'output as json (robot mode)')
@@ -1315,6 +1321,7 @@ export const invokeKeyrack = ({
         reach?: string;
         exid?: string;
         maxDuration?: string;
+        source?: string;
         at?: string;
         prikey?: string;
         json?: boolean;
@@ -1424,6 +1431,15 @@ export const invokeKeyrack = ({
           }
           return opts.mech as KeyrackGrantMechanism;
         })();
+
+        // read a piped source credential, refused before any load when the ask is incoherent
+        // .why = a box with no tty and no gh (a grove off ec2) files a github-app blob it got
+        //        from upstream; the guided setup cannot run there, so the blob arrives on a pipe
+        // .note = the value is never echoed: refusals name the flag, never what was typed
+        const source = await getOneKeyrackSetSourcePiped({
+          flag: opts.source ?? null,
+          isStdinTty: process.stdin.isTTY === true,
+        });
 
         // get the repo artifacts this ask needs — a machine-wide set needs neither, and the
         // rule is shared with `del` and `unlock` so the three cannot drift
@@ -1577,6 +1593,7 @@ export const invokeKeyrack = ({
                 vault: opts.vault as KeyrackHostVault,
                 mech,
                 exid: opts.exid ?? null,
+                source,
                 reach,
                 maxDuration: opts.maxDuration ?? null,
                 repoManifest: repoManifest ?? undefined,
@@ -1611,12 +1628,12 @@ export const invokeKeyrack = ({
           return;
         }
 
-        // blank line separates a guided-setup tree from this summary header
-        // .note = only ephemeral mechs print a guided tree (e.g. aws sso);
-        //         static-secret mechs (e.g. sudo) print no tree, so no blank
-        const printedGuidedTree = results.some((result) =>
-          result.mech.startsWith('EPHEMERAL'),
-        );
+        // blank line separates a set tree from this summary header
+        // .note = ephemeral mechs print a guided tree (e.g. aws sso), and a piped source prints
+        //         its tree for any mech; a static secret typed at a prompt prints none, so no blank
+        const printedGuidedTree =
+          source !== null ||
+          results.some((result) => result.mech.startsWith('EPHEMERAL'));
         if (printedGuidedTree) console.log('');
         // ⚠️ echoes what was WRITTEN, never what was asked. a full slug carries its own org and
         //    env, so after the reduction above the two can differ from the flags — and a header
@@ -2884,12 +2901,8 @@ export const invokeKeyrack = ({
             });
           }
         } else if (source.type === 'stdin') {
-          // read all stdin
-          const chunks: Buffer[] = [];
-          for await (const chunk of process.stdin) {
-            chunks.push(chunk);
-          }
-          rawJson = Buffer.concat(chunks).toString('utf8');
+          // read all stdin, verbatim
+          rawJson = await getStdinContent({ trim: false });
         } else {
           throw new ConstraintError('unsupported source type', { source });
         }

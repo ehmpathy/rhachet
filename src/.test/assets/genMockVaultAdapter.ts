@@ -31,6 +31,8 @@ export const genMockVaultAdapter = (input?: {
    *         grant with no self-life and behaves byte-identically
    */
   grantExpiresAt?: IsoTimeStamp;
+  /** whether the vault stores a piped source (default: false) */
+  isSourcePipedAccepted?: boolean;
 }): KeyrackHostVaultAdapter => {
   let unlocked = input?.isUnlocked ?? true;
   const storage: Record<string, string> = input?.storage ?? {};
@@ -42,6 +44,7 @@ export const genMockVaultAdapter = (input?: {
     mechs: {
       supported: supportedMechs,
     },
+    isSourcePipedAccepted: input?.isSourcePipedAccepted ?? false,
     unlock: async () => {
       unlocked = true;
     },

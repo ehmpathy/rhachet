@@ -122,6 +122,7 @@ export const vaultAdapterOsDirect: KeyrackHostVaultAdapter<'readwrite'> = {
   mechs: {
     supported: ['PERMANENT_VIA_REPLICA'],
   },
+  isSourcePipedAccepted: false,
 
   /**
    * .what = unlock the vault for the current session

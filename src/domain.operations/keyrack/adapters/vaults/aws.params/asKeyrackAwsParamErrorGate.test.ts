@@ -51,6 +51,13 @@ describe('asKeyrackAwsParamErrorGate', () => {
         expect(getHint(result)).toContain('why (raw AWS)');
         expect(getHint(result)).toContain('CredentialsProviderError');
       });
+      then('the hint names the off-ec2 cure: a piped os.secure set', () => {
+        const hint = getHint(result);
+        expect(hint).toContain('off ec2');
+        expect(hint).toContain(
+          '--vault os.secure --mech EPHEMERAL_VIA_GITHUB_APP --source @stdin',
+        );
+      });
       then(
         'the no-identity hint matches snapshot (user-faced contract)',
         () => {

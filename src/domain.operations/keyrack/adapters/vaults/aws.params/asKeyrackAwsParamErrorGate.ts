@@ -1,5 +1,7 @@
 import { ConstraintError, MalfunctionError } from 'helpful-errors';
 
+import { asKeyrackGithubAppSetCommand } from '@src/domain.operations/keyrack/adapters/mechanisms/asKeyrackGithubAppSetCommand';
+
 /**
  * .what = the SSM resource path IAM statements scope to — mirrors asKeyrackAwsParamName's prefix
  * .why = the grant list points a policy author at the exact resource arn suffix keyrack's params
@@ -191,9 +193,32 @@ export const asKeyrackAwsParamErrorGate = (
       // the identity is a hardcut on the --org scope, never an ambient SSO grab: a grove-wide
       // key (--org @all) needs the grove's own instance role (IMDS); a tree-scoped key needs
       // that org's AWS_PROFILE declared + unlocked in the keyrack — so name the exact unlock
-      // command the human runs to fill it (rule.require.errors-name-the-fix), plus the raw line
+      // command the human runs to fill it (rule.require.errors-name-the-fix), plus the raw line.
+      // a box off ec2 has no instance role at all, so its cure is a different vault: a github-app
+      // blob filed into os.secure on that box, piped in by the commander from where it is held
+      // .note = the off-ec2 cure is a read's alone: a set or a del with no identity is a box that
+      //         means to write aws.params, and is never told to move its key elsewhere
+      // .note = this seam sees only the param path, so owner and slug stay placeholders; the tip
+      //         header above the hint already names both
       hint: [
         'for --org @all run on a box whose instance role can read this param',
+        ...(op === 'read'
+          ? [
+              `off ec2 (no instance role), for a github-app key, file its blob into os.secure on this box — from a box that can read the param, pipe it in: \`${asKeyrackGithubAppSetCommand(
+                {
+                  vault: 'os.secure',
+                  owner: '<owner>',
+                  slug: '<full slug>',
+                  reach: null,
+                  form: {
+                    kind: 'pipe',
+                    readSide: `aws ssm get-parameter --name ${input.exid} --region ${region} --with-decryption --query Parameter.Value --output text`,
+                    host: '<this box>',
+                  },
+                },
+              )}\``,
+            ]
+          : []),
         "for a specific org, unlock that org's AWS_PROFILE first — run `rhx keyrack unlock --owner <owner> --env <env>` (declare the AWS_PROFILE key first if unset), never a cached SSO session",
         rawLine,
       ].join('; '),
