@@ -10,6 +10,7 @@ exports[`brain config: auth, grove, repo (real claude) given: [case1] a repo who
     "AGENTS.md (file)",
     "CLAUDE.md → AGENTS.md",
     "boot.md (file)",
+    "hooks.dispatch.manifest (file)",
     "settings.json → settings.of.grove.json",
     "settings.local.json → settings.of.repo.json",
     "settings.of.grove.json → .home/.claude/settings.json",
@@ -25,8 +26,11 @@ exports[`brain config: auth, grove, repo (real claude) given: [case1] a repo who
         {
           "hooks": [
             {
-              "author": "repo=test/role=tester",
-              "command": "touch tester-boot.marker",
+              "author": "rhachet/hooks.dispatch",
+              "command": "bash ./node_modules/rhachet/bin/hooks.dispatch.sh .claude/hooks.dispatch.manifest SessionStart",
+              "timeout": {
+                "seconds": 15,
+              },
               "type": "command",
             },
           ],

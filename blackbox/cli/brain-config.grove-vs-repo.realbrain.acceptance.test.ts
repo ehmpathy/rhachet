@@ -178,14 +178,15 @@ const genBrainConfigScene = async (input: {
   const initPath = join(rolesPkg, 'roles', 'tester', 'inits', 'setup.init.sh');
   writeFileSync(initPath, PERMISSION_INIT_SCRIPT);
   chmodSync(initPath, 0o755);
-  // the fixture's test brain writes a hook timeout raw ('10s'); a real claude rejects a string
-  // timeout behind a settings-warn menu, so the hooks here carry no timeout
+  // the boot hook touches the marker; its '10s' timeout stays, since the hook sync parses a role
+  // hook timeout as a duration and writes claude a number of seconds
   const registryPath = join(rolesPkg, 'dist', 'index.js');
   writeFileSync(
     registryPath,
-    readFileSync(registryPath, 'utf8')
-      .replace("'echo tester-boot'", `'touch ${HOOK_MARKER}'`)
-      .replace(/, timeout: '10s'/g, ''),
+    readFileSync(registryPath, 'utf8').replace(
+      "'echo tester-boot'",
+      `'touch ${HOOK_MARKER}'`,
+    ),
   );
 
   // the probes

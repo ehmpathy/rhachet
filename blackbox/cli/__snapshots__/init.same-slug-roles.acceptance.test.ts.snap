@@ -1,7 +1,10 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`rhachet init — two repos that ship one role slug given: [case1] alpha and beta each ship role surfer when: [t0] init links both, each by its repo/role then: init stdout matches its snapshot 1`] = `
-"
+"🧠 brain://repo=ambient
+   └─ linked
+      └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+
 🔧 init 2 role(s)...
 
 📚 link role repo=alpha/role=surfer
@@ -36,8 +39,6 @@ exports[`rhachet init — two repos that ship one role slug given: [case1] alpha
 ✨ 2 role(s) initialized
 
 🧠 brain://repo=ambient
-   ├─ linked
-   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
       └─ created — 2 roles
 

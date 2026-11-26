@@ -917,10 +917,6 @@ exports[`rhx enroll --roles (acceptance) given: [case7c] a delta actor re-derive
       }
     ]
   },
-  "attribution": {
-    "commit": "",
-    "pr": ""
-  },
   "claudeMdExcludes": [
     "/TMP_TEST_DIR/.claude/AGENTS.md",
     "/TMP_TEST_DIR/.claude/CLAUDE.md",
@@ -930,7 +926,11 @@ exports[`rhx enroll --roles (acceptance) given: [case7c] a delta actor re-derive
     "**/CLAUDE.local.md",
     "/TMP_TEST_DIR/.claude/rules/**",
     "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
-  ]
+  ],
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  }
 }
 "
 `;

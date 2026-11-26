@@ -106,7 +106,12 @@ exports[`rhachet init --hooks given: [case9] a repo actor whose committed file n
 exports[`rhachet init --hooks given: [case10] a role hook whose matcher the dispatcher cannot read when: [t0] init --roles tester,reviewer --hooks then: the stdout and stderr are locked: stderr 1`] = `""`;
 
 exports[`rhachet init --hooks given: [case10] a role hook whose matcher the dispatcher cannot read when: [t0] init --roles tester,reviewer --hooks then: the stdout and stderr are locked: stdout 1`] = `
-"
+"🧠 brain://repo=ambient
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+   └─ replaced
+      └─ .claude/settings.json — a real file was here; this box has no ~/.claude/settings.json, so rhachet removed it and its content is gone (keep durable allows in a role or ~/.claude/settings.json)
+
 🔧 init 2 role(s)...
 
 📚 link role repo=test/role=tester
@@ -134,10 +139,6 @@ exports[`rhachet init --hooks given: [case10] a role hook whose matcher the disp
 ✨ 2 role(s) initialized
 
 🧠 brain://repo=ambient
-   ├─ moved
-   │  └─ .claude/settings.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json
-   ├─ linked
-   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
       └─ created — 2 roles
 
