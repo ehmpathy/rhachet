@@ -116,6 +116,28 @@ const runHostBehindStillReader = async (input: {
 };
 
 /**
+ * .what = await a pane's capture sink until no new data arrives for a quiet span, within a bound
+ * .why = node-pty may report a child's exit before it has read the last bytes the child wrote to
+ *   the pty: the exit event and the final data event race. a pane read at the exit can miss its
+ *   tail although the child delivered it; a short quiet span lets the tail land, and the bound
+ *   keeps a pane that never settles from a hang
+ */
+const awaitPaneQuiet = async (input: {
+  pane: string[];
+  quietMs: number;
+  boundMs: number;
+}): Promise<void> => {
+  const boundAt = Date.now() + input.boundMs;
+  const awaitFrom = async (seen: number): Promise<void> => {
+    await new Promise((settle) => setTimeout(settle, input.quietMs));
+    if (input.pane.length === seen) return;
+    if (Date.now() > boundAt) return;
+    return awaitFrom(input.pane.length);
+  };
+  return awaitFrom(input.pane.length);
+};
+
+/**
  * .what = run the prod host behind a still reader, write numbered chunks, flush, then exit, and
  *   collect every byte the pane received
  * .why = an async mirror must keep the human's screen whole: every chunk, in order, with the
@@ -152,6 +174,9 @@ const runHostFlushBehindStillReader = async (input: {
       code,
       hint: 'the child crashed; run its program by hand under a pty to read the crash',
     });
+
+  // the exit can outrun the pane's last read; let the tail land before the pane is judged
+  await awaitPaneQuiet({ pane, quietMs: 200, boundMs: 3000 });
   return { pane: pane.join('') };
 };
 
