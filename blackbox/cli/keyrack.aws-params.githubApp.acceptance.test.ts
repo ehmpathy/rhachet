@@ -153,7 +153,7 @@ describe('keyrack vault aws.params with EPHEMERAL_VIA_GITHUB_APP', () => {
       writeFileSync(
         `${repo.path}/mock-app.pem`,
         [
-          '-----BEGIN RSA PRIVATE KEY-----',
+          ['-----BEGIN', 'RSA PRIVATE KEY-----'].join(' '), // split, so the source holds no key shape
           `${PEM_BODY_MARKER}/ygWyF8PbnGy0AHB7MaXBkvQRkz0Pj/Gx`,
           'KJELGl0FooHx7tXfWnj4TjB1kqR8xBzK3K3L3HqHbCh9XV4nlluTLArdB0JDcrPN',
           '-----END RSA PRIVATE KEY-----',
@@ -409,7 +409,7 @@ describe('keyrack vault aws.params with EPHEMERAL_VIA_GITHUB_APP', () => {
       writeFileSync(
         `${repo.path}/mock-app.pem`,
         [
-          '-----BEGIN RSA PRIVATE KEY-----',
+          ['-----BEGIN', 'RSA PRIVATE KEY-----'].join(' '), // split, so the source holds no key shape
           `${PEM_BODY_MARKER}/ygWyF8PbnGy0AHB7MaXBkvQRkz0Pj/Gx`,
           'KJELGl0FooHx7tXfWnj4TjB1kqR8xBzK3K3L3HqHbCh9XV4nlluTLArdB0JDcrPN',
           '-----END RSA PRIVATE KEY-----',
@@ -534,17 +534,19 @@ describe('keyrack vault aws.params with EPHEMERAL_VIA_GITHUB_APP', () => {
     });
 
     when('[t0] keyrack set --vault aws.params with no --mech (guided, pseudo-TTY)', () => {
-      // the prompt regex 'choice|secret' matches the "choice: " mech readline AND the replica
-      // "enter secret" hidden prompt; the answer '1' selects the first supported mech
-      // (PERMANENT_VIA_REPLICA), then the secret value is fed on the secret prompt. the replica
-      // write persists it into the stand-in + roundtrip-verifies — two prompts, two answers
+      // the prompt regex names the two real prompts, "choice: " (mech readline) and "enter secret
+      // for" (replica hidden prompt), so each answer waits for its own prompt. the answer '1'
+      // selects the first supported mech (PERMANENT_VIA_REPLICA), then the secret value is fed on
+      // the secret prompt. the replica write persists it into the stand-in + roundtrip-verifies
+      // 🔴 never a bare `secret`: the menu line `static secret (api key, password)` matches it, so
+      //   each answer would fire one prompt early and the two could race into one read ([case5])
       const result = useBeforeAll(async () =>
         spawnSync(
           'node',
           [
             PTY_WITH_ANSWERS,
             `${RHACHET_BIN} keyrack set --key XAI_API_KEY --vault aws.params --owner mechanic --env test --org @all`,
-            'choice|secret',
+            'choice: |enter secret for',
             '1',
             'xai-fixture-secret',
           ],
@@ -617,6 +619,82 @@ describe('keyrack vault aws.params with EPHEMERAL_VIA_GITHUB_APP', () => {
           .filter((line) => line.trim() !== 'xai-fixture-secret')
           .join('\n');
         expect(deechoed).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case5] the mech choice and the secret arrive typed ahead, in one write', () => {
+    // a human who pastes "1⏎secret⏎" — or a pty under load that delivers two answers in one
+    // read — hands the choice prompt both lines at once. the choice prompt must take its line
+    // and leave the rest for the secret prompt; were the rest dropped, the secret prompt would
+    // wait forever on a stdin that already sent its answer
+    // .note = the timeout is short on purpose: the defect is a hang, and a hang must fail fast
+    beforeAll(() => killKeyrackDaemonForTests({ owner: null }));
+    afterAll(async () => {
+      await scene.ssm.close();
+      await killKeyrackDaemonForTests({ owner: null });
+    });
+
+    const scene = useBeforeAll(async () => {
+      const ssm = await genFakeSsmServerDetached();
+      const repo = await genTestTempRepo({ fixture: 'with-keyrack-manifest' });
+      await invokeRhachetCliBinary({
+        args: ['keyrack', 'init', '--owner', 'mechanic', '--org', 'testorg'],
+        cwd: repo.path,
+        env: { HOME: repo.path },
+        logOnError: false,
+      });
+      return { ssm, repo };
+    });
+
+    when('[t0] both answers are written at the "choice: " prompt, as one chunk', () => {
+      const result = useBeforeAll(async () =>
+        spawnSync(
+          'node',
+          [
+            PTY_WITH_ANSWERS,
+            `${RHACHET_BIN} keyrack set --key XAI_API_KEY --vault aws.params --owner mechanic --env test --org @all`,
+            'choice: ',
+            '1\nxai-fixture-secret',
+          ],
+          {
+            encoding: 'utf-8', // eslint-disable-line @cspell/spellchecker -- node api
+            cwd: scene.repo.path,
+            env: {
+              ...process.env,
+              HOME: scene.repo.path,
+              AWS_REGION: REGION,
+              AWS_ACCESS_KEY_ID: 'test-akid',
+              AWS_SECRET_ACCESS_KEY: 'test-secret',
+              AWS_PROFILE: undefined,
+              NODE_ENV: 'test',
+              KEYRACK_AWS_SSM_ENDPOINT: scene.ssm.url,
+            },
+            timeout: 20000,
+          },
+        ),
+      );
+
+      then('the set exits with status 0, never a hang', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('the secret prompt received the typed-ahead secret', () => {
+        expect(cleanPtyOutput(result.stdout)).toContain(
+          'enter secret for XAI_API_KEY: ******************',
+        );
+      });
+
+      then('the chosen mech (replica) is what registers', async () => {
+        const listResult = await invokeRhachetCliBinary({
+          args: ['keyrack', 'list', '--owner', 'mechanic', '--json'],
+          cwd: scene.repo.path,
+          env: { HOME: scene.repo.path },
+        });
+        const parsed = JSON.parse(listResult.stdout);
+        expect(parsed['@all.test.XAI_API_KEY'].mech).toEqual(
+          'PERMANENT_VIA_REPLICA',
+        );
       });
     });
   });

@@ -1,4 +1,5 @@
 import { createInterface } from 'node:readline';
+import { asTypedAheadRest } from './asTypedAheadRest';
 
 /**
  * .what = prompts user for single line of visible input
@@ -33,14 +34,17 @@ export const promptLineInput = async (input: {
 
       const onData = (chunk: string): void => {
         // .note = in PTY mode with raw mode, multiple chars can arrive at once
-        for (const char of chunk) {
+        const chars = Array.from(chunk);
+        for (const [index, char] of chars.entries()) {
           const code = char.charCodeAt(0);
 
-          // Enter (CR or LF)
+          // Enter (CR or LF): take this line, and hand the typed-ahead rest to the next reader
           if (code === 13 || code === 10) {
             process.stdin.setRawMode(false);
             process.stdin.pause();
             process.stdin.removeListener('data', onData);
+            const rest = asTypedAheadRest({ chars, index });
+            if (rest) process.stdin.unshift(rest);
             process.stdout.write('\n');
             accept(buffer.trim());
             return;

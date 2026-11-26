@@ -1,3 +1,5 @@
+import { asTypedAheadRest } from './asTypedAheadRest';
+
 /**
  * .what = prompts user for input with hidden echo (for passwords)
  * .why = enables secure passphrase entry without exposure to shell history or process lists
@@ -12,7 +14,7 @@ export const promptHiddenInput = async (input: {
   if (process.stdin.isTTY) {
     process.stdout.write(input.prompt);
 
-    return new Promise((resolve) => {
+    return new Promise((accept) => {
       let buffer = '';
 
       // enable raw mode for char-by-char input
@@ -22,16 +24,19 @@ export const promptHiddenInput = async (input: {
 
       const onData = (chunk: string): void => {
         // .note = in PTY mode with raw mode, multiple chars can arrive at once
-        for (const char of chunk) {
+        const chars = Array.from(chunk);
+        for (const [index, char] of chars.entries()) {
           const code = char.charCodeAt(0);
 
-          // Enter (CR or LF)
+          // Enter (CR or LF): take this line, and hand the typed-ahead rest to the next reader
           if (code === 13 || code === 10) {
             process.stdin.setRawMode(false);
             process.stdin.pause();
             process.stdin.removeListener('data', onData);
+            const rest = asTypedAheadRest({ chars, index });
+            if (rest) process.stdin.unshift(rest);
             process.stdout.write('\n');
-            resolve(buffer);
+            accept(buffer);
             return;
           }
 
