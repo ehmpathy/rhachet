@@ -16,7 +16,7 @@ export const asEnrolledActorsHookSyncLines = (input: {
   actors: {
     actorExid: string;
     outcome: { changes: string } | { error: unknown };
-    excludesDropped: string[];
+    upgrades: { excludes: { dropped: string[] } };
     hint: string | null;
   }[];
 }): string[] => {
@@ -32,7 +32,7 @@ export const asEnrolledActorsHookSyncLines = (input: {
       // each dropped exclude, then the fault's fix, hang beneath the actor row
       // .note = the derivation drops only absolute entries, so one tail fits every drop
       const heads = [
-        ...actor.excludesDropped.map(
+        ...actor.upgrades.excludes.dropped.map(
           (pattern) =>
             `claudeMdExcludes dropped ${pattern} — an absolute path; the excludes keep only portable globs`,
         ),

@@ -24,7 +24,7 @@ describe('asEnrolledActorsHookSyncLines', () => {
           {
             actorExid: 'hash=9c1e0000',
             outcome: { changes: '+2, ~1, -1' },
-            excludesDropped: [],
+            upgrades: { excludes: { dropped: [] } },
             hint: null,
           },
         ],
@@ -48,7 +48,7 @@ describe('asEnrolledActorsHookSyncLines', () => {
           {
             actorExid: 'hash=deadbeef',
             outcome: { error: new ConstraintError('settings unreadable') },
-            excludesDropped: [],
+            upgrades: { excludes: { dropped: [] } },
             hint: 'fix the json in settings.of.repo.json, then rerun `rhx init --hooks`',
           },
         ],
@@ -75,13 +75,13 @@ describe('asEnrolledActorsHookSyncLines', () => {
           {
             actorExid: 'repo=ambient',
             outcome: { changes: '' },
-            excludesDropped: [],
+            upgrades: { excludes: { dropped: [] } },
             hint: null,
           },
           {
             actorExid: 'hash=deadbeef',
             outcome: { changes: '+3' },
-            excludesDropped: [],
+            upgrades: { excludes: { dropped: [] } },
             hint: null,
           },
         ],
@@ -106,13 +106,13 @@ describe('asEnrolledActorsHookSyncLines', () => {
           {
             actorExid: 'hash=aaaa1111',
             outcome: { error: new ConstraintError('settings unreadable') },
-            excludesDropped: [],
+            upgrades: { excludes: { dropped: [] } },
             hint: 'rerun `rhx init --hooks`',
           },
           {
             actorExid: 'hash=bbbb2222',
             outcome: { changes: '~1' },
-            excludesDropped: [],
+            upgrades: { excludes: { dropped: [] } },
             hint: null,
           },
         ],
@@ -138,10 +138,14 @@ describe('asEnrolledActorsHookSyncLines', () => {
             {
               actorExid: 'repo=ambient',
               outcome: { changes: '' },
-              excludesDropped: [
-                '/home/camper/.claude/CLAUDE.md',
-                '/home/fixturehuman/.claude/CLAUDE.md',
-              ],
+              upgrades: {
+                excludes: {
+                  dropped: [
+                    '/home/camper/.claude/CLAUDE.md',
+                    '/home/fixturehuman/.claude/CLAUDE.md',
+                  ],
+                },
+              },
               hint: null,
             },
           ],
@@ -172,16 +176,22 @@ describe('asEnrolledActorsHookSyncLines', () => {
             {
               actorExid: 'repo=ambient',
               outcome: { changes: '' },
-              excludesDropped: ['/home/camper/.claude/CLAUDE.md'],
+              upgrades: {
+                excludes: { dropped: ['/home/camper/.claude/CLAUDE.md'] },
+              },
               hint: null,
             },
             {
               actorExid: 'hash=9c1e0000',
               outcome: { changes: '~1' },
-              excludesDropped: [
-                '/home/camper/.claude/CLAUDE.md',
-                '/home/camper/git/repo-moved/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md',
-              ],
+              upgrades: {
+                excludes: {
+                  dropped: [
+                    '/home/camper/.claude/CLAUDE.md',
+                    '/home/camper/git/repo-moved/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md',
+                  ],
+                },
+              },
               hint: null,
             },
           ],
