@@ -79,7 +79,6 @@ export const syncAndReportBrainDirBoots = async (
     renders,
     failures,
     symlink,
-    untracked,
     modsChanged,
     modsReverted,
     modsUnplaced,
@@ -120,7 +119,6 @@ export const syncAndReportBrainDirBoots = async (
     const lines = asBrainDirSyncReportLines({
       render,
       symlink: render.scope.kind === 'repo' ? symlink : null,
-      untracked: render.scope.kind === 'repo' ? untracked : [],
       repoActorBrainDirRel,
       isManifestRepo,
     });

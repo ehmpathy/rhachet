@@ -18,17 +18,8 @@ export type BrainDirSyncSymlink = {
   carries: string[];
 };
 
-/**
- * .what = one group of the sync tree — a label and the rows beneath it; a row may carry notes,
- *         which nest beneath that row alone
- * .why = a note that cures one row (a teammate's step for one path) must read as that row's
- *        child, never as a peer that a second path would interleave
- */
-type ReportGroup = { label: string; rows: ReportRow[] };
-type ReportRow = { text: string; notes: string[] };
-
-/** .what = a row with no notes */
-const asReportRow = (text: string): ReportRow => ({ text, notes: [] });
+/** .what = one group of the sync tree — a label and the rows beneath it */
+type ReportGroup = { label: string; rows: string[] };
 
 /**
  * .what = the treestruct report for ONE brain dir sync: what moved, what was dropped,
@@ -52,12 +43,10 @@ const asReportRow = (text: string): ReportRow => ({ text, notes: [] });
 export const asBrainDirSyncReportLines = (input: {
   render: BrainDirBootRender;
   symlink: BrainDirSyncSymlink | null;
-  untracked: string[];
   repoActorBrainDirRel: string;
   isManifestRepo: boolean;
 }): string[] => {
-  const { render, symlink, untracked, repoActorBrainDirRel, isManifestRepo } =
-    input;
+  const { render, symlink, repoActorBrainDirRel, isManifestRepo } = input;
 
   const groups: ReportGroup[] = [];
 
@@ -66,25 +55,24 @@ export const asBrainDirSyncReportLines = (input: {
   if (symlink?.moves.length)
     groups.push({
       label: 'moved',
-      rows: symlink.moves.map((name) =>
-        asReportRow(
+      rows: symlink.moves.map(
+        (name) =>
           `.claude/${name} → ${repoActorBrainDirRel}/${name}${symlink.overwrites.includes(name) ? ' (replaced)' : ''}`,
-        ),
       ),
     });
   // what a change of repo actor carried from the former one — its own settings, kept
   if (symlink?.carries.length)
     groups.push({
       label: 'carried',
-      rows: symlink.carries.map((path) =>
-        asReportRow(`${path} → ${repoActorBrainDirRel}/${basename(path)}`),
+      rows: symlink.carries.map(
+        (path) => `${path} → ${repoActorBrainDirRel}/${basename(path)}`,
       ),
     });
   if (symlink?.drops.length)
     groups.push({
       label: 'dropped',
-      rows: symlink.drops.map((name) =>
-        asReportRow(`.claude/${name} — rhachet owns the boot context`),
+      rows: symlink.drops.map(
+        (name) => `.claude/${name} — rhachet owns the boot context`,
       ),
     });
 
@@ -93,21 +81,7 @@ export const asBrainDirSyncReportLines = (input: {
   if (symlink && symlink.effect !== 'FOUND')
     groups.push({
       label: 'linked',
-      rows: [asReportRow(`.claude → ${repoActorBrainDirRel}`)],
-    });
-
-  // each path this sync dropped from git's index. it lands as a staged deletion, so the human
-  //   learns it here rather than in their next commit. the cure note reaches the teammate whose
-  //   pull of that deletion git refuses, since their box relinked the same path
-  if (untracked.length)
-    groups.push({
-      label: 'untracked',
-      rows: untracked.map((path) => ({
-        text: `${path} — names this machine; kept on disk, commit its deletion`,
-        notes: [
-          `cure — a teammate whose pull git refuses runs \`git checkout -- ${path}\`, then pulls`,
-        ],
-      })),
+      rows: [`.claude → ${repoActorBrainDirRel}`],
     });
 
   // the corpus. `created` and `changed` are different facts to a human: one says a
@@ -128,7 +102,7 @@ export const asBrainDirSyncReportLines = (input: {
   })();
   groups.push({
     label: BRAIN_DIR_BOOT_FILENAMES.bootMd,
-    rows: [asReportRow(corpusRow)],
+    rows: [corpusRow],
   });
 
   // a reset is never silent (S11): the human's hand edits were dropped, and they learn
@@ -136,7 +110,7 @@ export const asBrainDirSyncReportLines = (input: {
   if (render.agentsMdReset)
     groups.push({
       label: BRAIN_DIR_BOOT_FILENAMES.agentsMd,
-      rows: [asReportRow('reset — hand edits dropped; rhachet owns this file')],
+      rows: ['reset — hand edits dropped; rhachet owns this file'],
     });
 
   // a corpus that re-rendered identical bytes, with no migration and no link change, is no news.
@@ -157,21 +131,12 @@ export const asBrainDirSyncReportLines = (input: {
       });
       return [
         `   ${groupBranch} ${group.label}`,
-        ...group.rows.flatMap((row, rowIndex) => {
-          const { branch: rowBranch, stem: rowStem } = asTreeBranch({
+        ...group.rows.map((row, rowIndex) => {
+          const { branch: rowBranch } = asTreeBranch({
             index: rowIndex,
             count: group.rows.length,
           });
-          return [
-            `   ${groupStem}${rowBranch} ${row.text}`,
-            ...row.notes.map((note, noteIndex) => {
-              const { branch: noteBranch } = asTreeBranch({
-                index: noteIndex,
-                count: row.notes.length,
-              });
-              return `   ${groupStem}${rowStem}${noteBranch} ${note}`;
-            }),
-          ];
+          return `   ${groupStem}${rowBranch} ${row}`;
         }),
       ];
     }),

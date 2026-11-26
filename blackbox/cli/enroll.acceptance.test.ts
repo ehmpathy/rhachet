@@ -820,19 +820,25 @@ describe('rhx enroll --roles (acceptance)', () => {
         expect(asSnapshotSafeOfCredential(scene.run.stderr)).toMatchSnapshot();
       });
 
-      then('neither grove arrow is written — not even a broken one', () => {
+      then('no home link is written, so the chain never reaches the HOME', () => {
         // lstat, never existsSync: existsSync follows the link, so a broken arrow to the
         //   absent grove would read as absent and the defect would ship green
         expect(
-          lstatSync(join(scene.brainDir, 'settings.of.grove.json'), {
+          lstatSync(join(scene.brainDir, '.home', '.claude', 'settings.json'), {
             throwIfNoEntry: false,
           }),
         ).toBeUndefined();
-        expect(
-          lstatSync(join(scene.brainDir, 'settings.json'), {
-            throwIfNoEntry: false,
-          }),
-        ).toBeUndefined();
+      });
+
+      then('the two arrows git tracks stay, and end inside the brain dir', () => {
+        // a box with no grove must leave the tracked arrows as they are, or its init would
+        //   dirty git (#779, F6)
+        expect(readlinkSync(join(scene.brainDir, 'settings.json'))).toEqual(
+          'settings.of.grove.json',
+        );
+        expect(readlinkSync(join(scene.brainDir, 'settings.of.grove.json'))).toEqual(
+          join('.home', '.claude', 'settings.json'),
+        );
       });
     });
   });

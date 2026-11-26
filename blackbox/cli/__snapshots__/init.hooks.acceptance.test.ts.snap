@@ -94,6 +94,13 @@ exports[`rhachet init --hooks given: [case9] a hook a human added by hand beside
 ]"
 `;
 
+exports[`rhachet init --hooks given: [case9] a repo actor whose committed file names two homes in claudeMdExcludes when: [t0] init --hooks runs then: the tree this case changes matches snapshot, whole 1`] = `
+"🧢 apply hooks to enrolled actors...
+   └─ repo=ambient
+      ├─ claudeMdExcludes dropped /HOME_DIR/.claude/CLAUDE.md — an absolute path; the excludes keep only portable globs
+      └─ claudeMdExcludes dropped /HOME_DIR/.claude/CLAUDE.md — an absolute path; the excludes keep only portable globs"
+`;
+
 exports[`rhachet init --hooks given: [case10] a role hook whose matcher the dispatcher cannot read when: [t0] init --roles tester,reviewer --hooks then: the stdout and stderr are locked: stderr 1`] = `""`;
 
 exports[`rhachet init --hooks given: [case10] a role hook whose matcher the dispatcher cannot read when: [t0] init --roles tester,reviewer --hooks then: the stdout and stderr are locked: stdout 1`] = `
@@ -155,18 +162,4 @@ exports[`rhachet init --hooks given: [case10] a role hook whose matcher the disp
 
 💥 MalfunctionError: 1 hook sync error — role hooks may be uninstalled
 "
-`;
-
-exports[`rhachet init --hooks given: [case9] a repo actor whose committed file names two homes in claudeMdExcludes when: [t0] init --hooks runs then: the two trees this case changes match snapshot, each whole 1`] = `
-"🧠 brain://repo=ambient
-   ├─ untracked
-   │  └─ .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.grove.json — names this machine; kept on disk, commit its deletion
-   │     └─ cure — a teammate whose pull git refuses runs \`git checkout -- .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.grove.json\`, then pulls
-   └─ boot.md
-      └─ upgraded — 1 role
-
-🧢 apply hooks to enrolled actors...
-   └─ repo=ambient
-      ├─ claudeMdExcludes dropped /HOME_DIR/.claude/CLAUDE.md — an absolute path; the excludes keep only portable globs
-      └─ claudeMdExcludes dropped /HOME_DIR/.claude/CLAUDE.md — an absolute path; the excludes keep only portable globs"
 `;

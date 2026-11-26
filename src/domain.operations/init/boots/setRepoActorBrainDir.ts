@@ -10,7 +10,6 @@ import { HOOK_DISPATCH } from '@src/domain.operations/brains/dispatch/constants'
 import { getRepoAmbientRoleFoci } from '@src/domain.operations/roles/focus/ambient/getRepoAmbientRoleFoci';
 import { asRoleRefsAtFocus } from '@src/domain.operations/roles/focus/asRoleRefsAtFocus';
 import { asTextWithLinesConverged } from '@src/infra/asTextWithLinesConverged';
-import { delGitIndexPaths } from '@src/infra/delGitIndexPaths';
 import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 import { setFileAtomic } from '@src/infra/setFileAtomic';
 
@@ -24,15 +23,15 @@ import { setRepoActorDirFromLegacy } from './setRepoActorDirFromLegacy';
 /**
  * .what = the brain dir `.gitignore` lines: ignore all, then re-include the boot doors and
  *         the settings names that name no machine — `settings.json`, `settings.of.repo.json`,
- *         `settings.local.json`
+ *         `settings.of.grove.json`, `settings.local.json`
  * .why = an allowlist, because the dir is also a clone's `CLAUDE_CONFIG_DIR`: claude writes
  *        its own runtime state here (`.claude.json`, `projects/`, the credential link), and
  *        none of it, nor the rendered `boot.md`, belongs in git
  * .note = the repo actor commits its settings names (the wisher's call, 2026-09-29); it is the
  *         one actor dir git sees, since every other sits under the ignored `.agent/.actors/`
- * .note = the grove link (`settings.of.grove.json`) stays out: its target is
- *         `<home>/.claude/settings.json`, an absolute path that names one machine
- *         (rule.forbid.machine-names-in-committed-config). each layout findsert relinks it
+ * .note = the grove arrow is tracked: its target is the relative `.home/.claude/settings.json`.
+ *         `.home/` holds the one link that names this box (`<home>/.claude/settings.json`), and
+ *         `/*` keeps it out (rule.forbid.machine-names-in-committed-config, #779)
  * .note = order matters: `/*` precedes each `!` re-include
  * .note = the dispatch manifest is tracked beside `settings.of.repo.json`: the settings name a
  *         dispatcher, and the rules it runs live in the manifest, so a fresh checkout needs both
@@ -44,6 +43,7 @@ const BRAIN_DIR_GITIGNORE_LINES = [
   `!/${BRAIN_DIR_BOOT_FILENAMES.claudeMd}`,
   `!/${CLAUDE_SETTINGS_FILENAMES.claude}`,
   `!/${CLAUDE_SETTINGS_FILENAMES.repo}`,
+  `!/${CLAUDE_SETTINGS_FILENAMES.grove}`,
   '!/settings.local.json',
   `!/${HOOK_DISPATCH.manifest}`,
 ];
@@ -61,17 +61,7 @@ const BRAIN_DIR_GITIGNORE_LINES_RETIRED = [
   CLAUDE_SETTINGS_FILENAMES.repo,
   CLAUDE_SETTINGS_FILENAMES.grove,
   '*.forked.*.json',
-  `!/${CLAUDE_SETTINGS_FILENAMES.grove}`,
 ];
-
-/**
- * .what = brain dir names a prior release tracked, now kept out of git
- * .why = the allowlist keeps an untracked file out, but a file already in the index stays
- *        tracked until it is removed from it. the grove link names a home
- *        (rule.forbid.machine-names-in-committed-config), so every repo that tracked it drops
- *        it from the index on its next sync — the file stays on disk
- */
-export const BRAIN_DIR_NAMES_UNTRACKED = [CLAUDE_SETTINGS_FILENAMES.grove];
 
 /**
  * .what = render the ambient roles into the repo actor's brain dir, link `<repo>/.claude`
@@ -95,7 +85,6 @@ export const setRepoActorBrainDir = async (input: {
   symlink: Awaited<ReturnType<typeof setRepoActorBrainDirLayout>>['symlink'];
   settings: Awaited<ReturnType<typeof setRepoActorBrainDirLayout>>['settings'];
   enrollConfigs: Awaited<ReturnType<typeof delStaleEnrollConfigs>>;
-  untracked: string[];
 }> => {
   // carry a legacy repo actor dir over to its current name, before any write
   setRepoActorDirFromLegacy({ repoPath: input.repoPath });
@@ -141,21 +130,7 @@ export const setRepoActorBrainDir = async (input: {
   });
   await genRepoActorGitignoreExclusion({ repoPath: input.repoPath });
 
-  // drop from git's index each name the allowlist keeps out; the files stay on disk
-  // .note = a read-only probe runs first, so the steady state (naught tracked) never writes
-  //   the index nor waits on another git process's lock
-  // .note = forced: each box relinks the grove to its own home, so its staged entry differs
-  //   from both the file and HEAD; that entry is a link target that names a machine, so naught
-  //   of value is lost
-  const { removed: untracked } = delGitIndexPaths({
-    dir: repoActorBrainDir,
-    pathspecs: BRAIN_DIR_NAMES_UNTRACKED,
-    recursive: false,
-    force: true,
-    faultMessage: 'could not untrack a brain dir name the allowlist keeps out',
-  });
-
-  return { render, symlink, settings, enrollConfigs, untracked };
+  return { render, symlink, settings, enrollConfigs };
 };
 
 /**

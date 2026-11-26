@@ -31,17 +31,14 @@ export const asRepoActorBrainDirOutcome = (input: {
   render: BrainDirBootRender | null;
   symlink: BrainDirSyncSymlink | null;
   settings: Awaited<ReturnType<typeof setRepoActorBrainDir>>['settings'] | null;
-  untracked: string[];
   failure: BrainDirBootFailure | null;
 } => {
-  // a fulfilled sync yields its render, what the `<repo>/.claude` link did, the layout, and
-  //   the names it dropped from git's index
+  // a fulfilled sync yields its render, what the `<repo>/.claude` link did, and the layout
   if (input.settled.status === 'fulfilled')
     return {
       render: input.settled.value.render,
       symlink: input.settled.value.symlink,
       settings: input.settled.value.settings,
-      untracked: input.settled.value.untracked,
       failure: null,
     };
 
@@ -55,7 +52,6 @@ export const asRepoActorBrainDirOutcome = (input: {
     render: null,
     symlink: null,
     settings: null,
-    untracked: [],
     failure: {
       scope: { kind: 'repo', actorExid: input.actorExid },
       cause:

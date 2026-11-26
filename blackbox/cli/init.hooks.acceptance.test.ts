@@ -951,6 +951,7 @@ module.exports = { getRoleRegistry };
         const groveTracked = execSync(`git ls-files -- ${groveRel}`, {
           cwd: r.path,
         }).toString();
+        const groveTarget = await fs.readlink(path.join(r.path, groveRel));
         return {
           resultFirst,
           resultSecond,
@@ -958,6 +959,7 @@ module.exports = { getRoleRegistry };
           contentSecond,
           groveRel,
           groveTracked,
+          groveTarget,
         };
       });
 
@@ -988,40 +990,26 @@ module.exports = { getRoleRegistry };
         });
 
         then(
-          'stdout names the grove link it untracked, with the teammate cure',
+          'the grove arrow stays tracked, rewritten in place to the relative home link (#779)',
           () => {
-            expect(repo.resultFirst.stdout).toContain(
-              `${repo.groveRel} — names this machine; kept on disk, commit its deletion`,
-            );
-            expect(repo.resultFirst.stdout).toContain(
-              `git checkout -- ${repo.groveRel}`,
-            );
+            expect(repo.groveTracked).toEqual(`${repo.groveRel}\n`);
+            expect(repo.groveTarget).toEqual('.home/.claude/settings.json');
           },
         );
 
-        then('the grove link leaves the index', () => {
-          expect(repo.groveTracked).toEqual('');
-        });
-
-        then('the two trees this case changes match snapshot, each whole', () => {
-          // .note = each tree is cut from its header to the blank line that closes it, so a
-          //   group is never cut mid-branch; the role list above them varies with the fixture
+        then('the tree this case changes matches snapshot, whole', () => {
+          // .note = the tree is cut from its header to the blank line that closes it, so a
+          //   group is never cut mid-branch; the role list above it varies with the fixture
           const lines = repo.resultFirst.stdout.split('\n');
-          const asTreeFrom = (header: string): string[] => {
-            const start = lines.findIndex((line) => line.startsWith(header));
-            if (start === -1) return [];
-            const end = lines.findIndex(
-              (line, index) => index > start && line.trim() === '',
-            );
-            return lines.slice(start, end === -1 ? lines.length : end);
-          };
-          const brainTree = asTreeFrom('🧠 brain://repo=ambient');
-          const actorsTree = asTreeFrom('🧢 apply hooks to enrolled actors');
-          expect(brainTree.length).toBeGreaterThan(0);
-          expect(actorsTree.length).toBeGreaterThan(0);
-          expect(
-            asSnapshotSafe([...brainTree, '', ...actorsTree].join('\n')),
-          ).toMatchSnapshot();
+          const start = lines.findIndex((line) =>
+            line.startsWith('🧢 apply hooks to enrolled actors'),
+          );
+          expect(start).toBeGreaterThan(-1);
+          const end = lines.findIndex(
+            (line, index) => index > start && line.trim() === '',
+          );
+          const actorsTree = lines.slice(start, end === -1 ? lines.length : end);
+          expect(asSnapshotSafe(actorsTree.join('\n'))).toMatchSnapshot();
         });
       });
 
@@ -1031,11 +1019,10 @@ module.exports = { getRoleRegistry };
           expect(repo.contentSecond).toEqual(repo.contentFirst);
         });
 
-        then('stdout names no dropped exclude and no untrack', () => {
+        then('stdout names no dropped exclude', () => {
           expect(repo.resultSecond.stdout).not.toContain(
             'claudeMdExcludes dropped',
           );
-          expect(repo.resultSecond.stdout).not.toContain('git checkout --');
         });
       });
     },
@@ -1045,7 +1032,8 @@ module.exports = { getRoleRegistry };
     '[case11] one repo, init on two boxes whose homes differ (#779, #816)',
     () => {
       // 🔴 each box that runs init must leave the tracked tree as it found it: the grove arrow
-      //   is findserted per box and untracked, and settings.of.repo.json names no home
+      //   is tracked with a relative target, only the untracked `.home` link names the box,
+      //   and settings.of.repo.json names no home
       const repoActorDir = '.agent/.actors/actor.via.repo=ambient';
       const groveRel = `${repoActorDir}/brain/.claude/settings.of.grove.json`;
       const settingsRel = `${repoActorDir}/brain/.claude/settings.of.repo.json`;
@@ -1120,6 +1108,9 @@ module.exports = { getRoleRegistry };
           cwd: r.path,
         }).toString();
         const groveTarget = await fs.readlink(path.join(r.path, groveRel));
+        const homeTarget = await fs.readlink(
+          path.join(r.path, `${repoActorDir}/brain/.claude/.home/.claude/settings.json`),
+        );
         const treeTracked = execSync('git ls-files', {
           cwd: r.path,
         }).toString();
@@ -1134,6 +1125,7 @@ module.exports = { getRoleRegistry };
           statusB,
           groveTracked,
           groveTarget,
+          homeTarget,
           treeTracked,
         };
       });
@@ -1159,13 +1151,21 @@ module.exports = { getRoleRegistry };
           expect(repo.settingsA).not.toContain('/home/');
         });
 
-        then('the grove arrow is never tracked (#779)', () => {
-          expect(repo.groveTracked).toEqual('');
-          expect(repo.treeTracked).not.toContain('settings.of.grove.json');
+        then(
+          'the grove arrow is tracked, by a relative target that names no box (#779)',
+          () => {
+            expect(repo.groveTracked).toEqual(`${groveRel}\n`);
+            expect(repo.groveTarget).toEqual('.home/.claude/settings.json');
+          },
+        );
+
+        then('the home link, the one name that holds a box, is never tracked', () => {
+          expect(repo.treeTracked).not.toContain('.home/');
+          expect(repo.treeTracked).not.toContain(repo.homeA);
         });
 
-        then("the grove arrow on box B points at box B's home", () => {
-          expect(repo.groveTarget).toEqual(
+        then("the home link on box B points at box B's home", () => {
+          expect(repo.homeTarget).toEqual(
             path.join(repo.homeB, '.claude', 'settings.json'),
           );
         });

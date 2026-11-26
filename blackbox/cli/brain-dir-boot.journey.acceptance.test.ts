@@ -1089,7 +1089,7 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
         expect(brainDirLogins).toEqual([]);
       });
 
-      then('stderr names the absent grove, and the brain dir holds no grove arrow (vision case=4)', () => {
+      then('stderr names the absent grove, and the brain dir holds no home link (vision case=4)', () => {
         const line =
           result.stderr
             .split('\n')
@@ -1106,15 +1106,18 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
           .map((name) => join(actorsDir, name, 'brain', '.claude'))
           .filter((path) => existsSync(path));
         expect(brainDirs.length).toBeGreaterThan(0);
+        // the tracked arrows stay so git stays clean; only the home link, the one name that
+        //   reaches the HOME, is absent, so the chain ends inside the brain dir (#779, F6)
         for (const brainDir of brainDirs) {
           expect(
-            lstatSync(join(brainDir, 'settings.json'), { throwIfNoEntry: false }),
-          ).toBeUndefined();
-          expect(
-            lstatSync(join(brainDir, 'settings.of.grove.json'), {
+            lstatSync(join(brainDir, '.home', '.claude', 'settings.json'), {
               throwIfNoEntry: false,
             }),
           ).toBeUndefined();
+          expect(readlinkSync(join(brainDir, 'settings.of.grove.json'))).toEqual(
+            join('.home', '.claude', 'settings.json'),
+          );
+          expect(existsSync(join(brainDir, 'settings.json'))).toBe(false);
           expect(existsSync(join(brainDir, 'settings.of.repo.json'))).toBe(true);
         }
       });

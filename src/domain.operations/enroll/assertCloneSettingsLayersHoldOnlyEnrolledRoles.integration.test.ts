@@ -43,8 +43,13 @@ const genScene = (input: {
     join(home, '.claude/settings.json'),
     genSettingsOfAuthors({ authors: input.groveAuthors }),
   );
+  mkdirSync(join(brainDir, '.home/.claude'), { recursive: true });
   symlinkSync(
     join(home, '.claude/settings.json'),
+    join(brainDir, '.home/.claude/settings.json'),
+  );
+  symlinkSync(
+    '.home/.claude/settings.json',
     join(brainDir, 'settings.of.grove.json'),
   );
   symlinkSync('settings.of.grove.json', join(brainDir, 'settings.json'));

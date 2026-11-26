@@ -13,7 +13,7 @@ import {
   readlinkSync,
   rmSync,
 } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 /**
  * .what = one change the layout findsert made to a brain dir
@@ -26,8 +26,10 @@ type BrainDirSettingsLayoutEffect =
 
 /**
  * .what = findsert the settings layout of one brain dir:
- *         `settings.of.grove.json -> ~/.claude/settings.json`, `settings.json -> settings.of.grove.json`,
+ *         `settings.json -> settings.of.grove.json -> .home/.claude/settings.json -> ~/.claude/settings.json`,
  *         and `settings.of.repo.json` as the one real file
+ * .note = only `.home/.claude/settings.json` names this box; the arrows before it are relative,
+ *   so they hold the same bytes on every box and stay tracked (#779)
  * .why = one layout for every actor (define.brain-dir-layout-is-one-for-every-actor). claude
  *        reads `settings.json` as its user layer, so that name must be the grove; the repo's
  *        settings ride `--settings settings.of.repo.json`, which outranks the grove
@@ -42,8 +44,9 @@ type BrainDirSettingsLayoutEffect =
  *   touched. a role init (e.g. a permission hook) and the hook sync each write into it, so
  *   neither needs to create it. a symlink or a dir at that name is refused, before any change
  *   (`inventory.of=requirements.case=8`)
- * .note = a box with no grove (`~/.claude/settings.json` absent) drops both grove names, so
- *   no arrow to an absent file can let a write create the human's home settings
+ * .note = a box with no grove (`~/.claude/settings.json` absent) drops only the home link. the
+ *   tracked arrows stay, so git stays clean, and the chain ends inside the brain dir, so no
+ *   write through it can create the human's home settings
  * .note = idempotent: a dir already in the layout yields no effect
  * .note = the whole findsert holds the brain dir's `settings.of.repo.json` mutex, so a peer
  *   `rhx` process (an `enroll` beside an `init`, or two `init`s) never interleaves with it.
@@ -85,6 +88,7 @@ export const setBrainDirSettingsLayoutWithinLock = (input: {
   const { brainDir } = input;
   const pathGrove = join(brainDir, CLAUDE_SETTINGS_FILENAMES.grove);
   const pathClaude = join(brainDir, CLAUDE_SETTINGS_FILENAMES.claude);
+  const pathHome = join(brainDir, CLAUDE_SETTINGS_FILENAMES.home);
   const groveSource = join(input.home, '.claude', 'settings.json');
   const isGrovePresent = existsSync(groveSource);
   const grove = { source: groveSource, isPresent: isGrovePresent };
@@ -111,30 +115,31 @@ export const setBrainDirSettingsLayoutWithinLock = (input: {
   // the one real file is always present, so a role init or a hook sync always finds it
   if (!statRepo) setFileAtomic({ path: pathRepo, content: '{}\n' });
 
-  // a box with no grove: drop both grove names, so no arrow points at an absent file
-  if (!isGrovePresent)
-    return {
-      grove,
-      effects: [
-        ...delEntryIfPresent({
-          name: CLAUDE_SETTINGS_FILENAMES.claude,
-          path: pathClaude,
-        }),
-        ...delEntryIfPresent({
-          name: CLAUDE_SETTINGS_FILENAMES.grove,
-          path: pathGrove,
-        }),
-      ],
-    };
+  // the home link: the one name that holds this box's home path, so it stays out of git.
+  //   a box with no grove drops it, so the chain ends inside the brain dir and no write
+  //   through it can create the human's home settings
+  mkdirSync(dirname(pathHome), { recursive: true });
+  const effectsHome = isGrovePresent
+    ? setArrow({
+        name: CLAUDE_SETTINGS_FILENAMES.home,
+        path: pathHome,
+        target: groveSource,
+      })
+    : delEntryIfPresent({
+        name: CLAUDE_SETTINGS_FILENAMES.home,
+        path: pathHome,
+      });
 
-  // the grove arrows: our clear name to the home file, claude's fixed name to ours
+  // the grove arrows: our clear name to the home link (relative, so its bytes match on every
+  //   box, grove or not), claude's fixed name to ours. both are tracked, so both stay put
   return {
     grove,
     effects: [
+      ...effectsHome,
       ...setArrow({
         name: CLAUDE_SETTINGS_FILENAMES.grove,
         path: pathGrove,
-        target: groveSource,
+        target: CLAUDE_SETTINGS_FILENAMES.home,
       }),
       ...setArrow({
         name: CLAUDE_SETTINGS_FILENAMES.claude,
@@ -164,8 +169,8 @@ const delForkedSettingsCopies = (input: { brainDir: string }): void => {
 
 /**
  * .what = remove whatever holds one name — an arrow or a real file
- * .note = an UNLINKED effect only when an arrow was removed: a real file in a grove-less box
- *   is a second answer, dropped without a row
+ * .note = an UNLINKED effect only when an arrow was removed: a real file at the home link in a
+ *   grove-less box is a write that landed there, dropped without a row
  */
 const delEntryIfPresent = (input: {
   name: string;

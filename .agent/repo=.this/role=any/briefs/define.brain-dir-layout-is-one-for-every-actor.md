@@ -12,14 +12,16 @@ AGENTS.md                                          # @boot.md
 boot.md                                            # REAL: this actor's roles, rendered
 settings.of.repo.json                                 # REAL: one dispatcher hook per event + permissions
 hooks.dispatch.manifest                               # REAL: this actor's roles' hook rules
-settings.of.grove.json  -> ~/.claude/settings.json    # the grove (the box); a home path
 settings.json        -> settings.of.grove.json        # claude's fixed name → our clear name
+settings.of.grove.json  -> .home/.claude/settings.json            # the grove (the box); relative
+.home/.claude/settings.json -> <home>/.claude/settings.json      # the ONE name that holds a home path
 ```
 
 three real files carry content; every other name is an arrow. one `bin/hooks.dispatch.sh` per event
-runs every manifest rule of that event. claude's
-fixed name (`settings.json`) points at our clear name (`grove`), which points at the source of truth.
-`settings.of.repo.json` is passed to claude by its clear name.
+runs every manifest rule of that event. `settings.of.repo.json` is passed to claude by its clear name.
+
+🔴 **only `.home/` names a box** (#779). the arrows before it are relative and tracked; `.home/` is
+ignored and findserted per box. a groveless box drops only `.home/`.
 
 🔴 **the repo outranks the grove.** every reader is an enrolled clone (`claude` is aliased to
 `rhx enroll claude`), and a clone has two slots:
@@ -27,7 +29,7 @@ fixed name (`settings.json`) points at our clear name (`grove`), which points at
 | slot | file | rank |
 |---|---|---|
 | `--settings` | `settings.of.repo.json` | high — the repo wins |
-| user (`CLAUDE_CONFIG_DIR`) | `settings.json` → `settings.of.grove.json` → `~/.claude/settings.json` | low — the grove fills every key the repo leaves unset |
+| user (`CLAUDE_CONFIG_DIR`) | `settings.json` → `settings.of.grove.json` → `.home/.claude/settings.json` → `~/.claude/settings.json` | low — the grove fills every key the repo leaves unset |
 
 why the grove must be the file claude calls `settings.json` (docs + probe, 2026-09-27): no layer ranks below
 user, and a second `--settings` replaces the first whole — it does not stack.
@@ -61,7 +63,7 @@ spawns with the `user` config source only, plus `--settings` on its own `setting
   touches an extant one, and refuses a symlink or a dir at that name — in every actor dir. so a role init
   that adds a key (a permission allow) writes `settings.of.repo.json` by name and never creates it
   (`inventory.of=requirements.case=8`)
-- 🔴 `/model` or `/config` in a clone is NOT box-wide, and does not last (measured 2026-09-28). claude resolves `settings.json` one link, then renames a temp over `settings.of.grove.json` — a per-actor fork of the grove; the home file is untouched. it holds for that actor until the next layout findsert (`rhx init`, `rhx enroll`), which replaces the fork with the grove arrow. the choice is dropped, by design (wisher, 2026-09-28). ⇒ for a durable default, set it in `~/.claude/settings.json` (the box) or in a role's settings (the repo)
+- 🔴 `/model` or `/config` in a clone is NOT box-wide, and does not last (measured 2026-09-28). claude resolves `settings.json` one link, then renames a temp over `settings.of.grove.json` — a per-actor fork of the grove; the home file is untouched. it holds for that actor until the next layout findsert (`rhx init`, `rhx enroll`), which replaces the fork with the grove arrow. the choice is dropped, by design (wisher, 2026-09-28). in the repo actor's dir, `git status` shows it until then. ⇒ for a durable default, set it in `~/.claude/settings.json` (the box) or in a role's settings (the repo)
 
 ## .why one layout
 

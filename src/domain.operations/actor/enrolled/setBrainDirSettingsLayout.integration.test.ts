@@ -49,9 +49,18 @@ describe('setBrainDirSettingsLayout', () => {
     });
 
     when('[t0] the layout is findserted', () => {
-      then('settings.of.grove.json points at the home settings', () => {
+      then(
+        'settings.of.grove.json points at the home link, by a relative path that names no box',
+        () => {
+          expect(
+            readlinkSync(join(scene.brainDir, 'settings.of.grove.json')),
+          ).toEqual('.home/.claude/settings.json');
+        },
+      );
+
+      then('the home link points at the home settings', () => {
         expect(
-          readlinkSync(join(scene.brainDir, 'settings.of.grove.json')),
+          readlinkSync(join(scene.brainDir, '.home/.claude/settings.json')),
         ).toEqual(join(scene.home, '.claude', 'settings.json'));
       });
 
@@ -70,8 +79,9 @@ describe('setBrainDirSettingsLayout', () => {
         ).toEqual(GROVE_CONTENT);
       });
 
-      then('two links are reported', () => {
+      then('three links are reported', () => {
         expect(scene.result.effects.map((e) => e.kind)).toEqual([
+          'LINKED',
           'LINKED',
           'LINKED',
         ]);
@@ -154,8 +164,13 @@ describe('setBrainDirSettingsLayout', () => {
         expect(scene.result.effects).toEqual([
           {
             kind: 'LINKED',
-            name: 'settings.of.grove.json',
+            name: '.home/.claude/settings.json',
             target: join(scene.home, '.claude', 'settings.json'),
+          },
+          {
+            kind: 'LINKED',
+            name: 'settings.of.grove.json',
+            target: '.home/.claude/settings.json',
           },
           {
             kind: 'LINKED',
@@ -247,14 +262,26 @@ describe('setBrainDirSettingsLayout', () => {
     });
 
     when('[t0] the layout is findserted', () => {
-      then('both grove names are dropped', () => {
-        expect(existsSync(join(scene.brainDir, 'settings.json'))).toBe(false);
+      then('only the home link is dropped', () => {
         expect(
-          lstatSync(join(scene.brainDir, 'settings.of.grove.json'), {
+          lstatSync(join(scene.brainDir, '.home/.claude/settings.json'), {
             throwIfNoEntry: false,
           }),
         ).toBeUndefined();
       });
+
+      then(
+        'the tracked arrows stay, so git stays clean, and lead to naught',
+        () => {
+          expect(readlinkSync(join(scene.brainDir, 'settings.json'))).toEqual(
+            'settings.of.grove.json',
+          );
+          expect(
+            readlinkSync(join(scene.brainDir, 'settings.of.grove.json')),
+          ).toEqual('.home/.claude/settings.json');
+          expect(existsSync(join(scene.brainDir, 'settings.json'))).toBe(false);
+        },
+      );
 
       then('no home settings file is created', () => {
         expect(existsSync(join(scene.home, '.claude', 'settings.json'))).toBe(
@@ -262,10 +289,13 @@ describe('setBrainDirSettingsLayout', () => {
         );
       });
 
-      then('each drop is reported', () => {
-        expect(scene.result.effects.map((e) => e.kind)).toEqual([
-          'UNLINKED',
-          'UNLINKED',
+      then('the drop is reported', () => {
+        expect(scene.result.effects).toEqual([
+          {
+            kind: 'UNLINKED',
+            name: '.home/.claude/settings.json',
+            reason: 'grove absent',
+          },
         ]);
       });
 
@@ -294,17 +324,32 @@ describe('setBrainDirSettingsLayout', () => {
     });
 
     when('[t0] the layout is findserted', () => {
-      then('the real file is removed, never kept aside', () => {
-        expect(
-          lstatSync(join(scene.brainDir, 'settings.json'), {
-            throwIfNoEntry: false,
-          }),
-        ).toBeUndefined();
+      then('the real file is replaced by the arrow, never kept aside', () => {
+        expect(readlinkSync(join(scene.brainDir, 'settings.json'))).toEqual(
+          'settings.of.grove.json',
+        );
         expect(asForkedNames({ brainDir: scene.brainDir })).toEqual([]);
       });
 
-      then('no row is reported: only an arrow drop is news', () => {
-        expect(scene.result.effects).toEqual([]);
+      then('the two tracked arrows are reported, and no home link', () => {
+        expect(scene.result.effects).toEqual([
+          {
+            kind: 'LINKED',
+            name: 'settings.of.grove.json',
+            target: '.home/.claude/settings.json',
+          },
+          {
+            kind: 'LINKED',
+            name: 'settings.json',
+            target: 'settings.of.grove.json',
+          },
+        ]);
+      });
+
+      then('no home settings file is created', () => {
+        expect(existsSync(join(scene.home, '.claude', 'settings.json'))).toBe(
+          false,
+        );
       });
 
       then(
@@ -335,14 +380,14 @@ describe('setBrainDirSettingsLayout', () => {
 
     when('[t0] the layout is findserted', () => {
       then('the stray file is replaced by the arrow', () => {
-        expect(scene.result.effects[0]).toEqual({
+        expect(scene.result.effects).toContainEqual({
           kind: 'LINKED',
           name: 'settings.of.grove.json',
-          target: join(scene.home, '.claude', 'settings.json'),
+          target: '.home/.claude/settings.json',
         });
         expect(
           readlinkSync(join(scene.brainDir, 'settings.of.grove.json')),
-        ).toEqual(join(scene.home, '.claude', 'settings.json'));
+        ).toEqual('.home/.claude/settings.json');
       });
 
       then('no copy is kept aside', () => {
@@ -350,6 +395,61 @@ describe('setBrainDirSettingsLayout', () => {
       });
     });
   });
+
+  given(
+    '[case5b] a grove arrow a prior release pointed straight at one home',
+    () => {
+      const scene = useBeforeAll(async () => {
+        const { repoPath, home, brainDir } = genScene({
+          slug: 'layout-grove-absolute',
+          grove: true,
+        });
+        symlinkSync(
+          '/home/fixturehuman/.claude/settings.json',
+          join(brainDir, 'settings.of.grove.json'),
+        );
+        symlinkSync('settings.of.grove.json', join(brainDir, 'settings.json'));
+        const result = await setBrainDirSettingsLayout({
+          repoPath,
+          brainDir,
+          home,
+        });
+        return { repoPath, home, brainDir, result };
+      });
+
+      when('[t0] the layout is findserted', () => {
+        then(
+          'the grove arrow is rewritten in place to the relative home link (#779)',
+          () => {
+            expect(
+              readlinkSync(join(scene.brainDir, 'settings.of.grove.json')),
+            ).toEqual('.home/.claude/settings.json');
+          },
+        );
+
+        then("claude's settings.json reads this box's grove", () => {
+          expect(
+            readFileSync(join(scene.brainDir, 'settings.json'), 'utf8'),
+          ).toEqual(GROVE_CONTENT);
+        });
+
+        then('the home link and the rewrite are reported', () => {
+          expect(scene.result.effects).toEqual([
+            {
+              kind: 'LINKED',
+              name: '.home/.claude/settings.json',
+              target: join(scene.home, '.claude', 'settings.json'),
+            },
+            {
+              kind: 'LINKED',
+              name: 'settings.of.grove.json',
+              target: '.home/.claude/settings.json',
+            },
+          ]);
+        });
+      });
+    },
+  );
 
   given('[case6] a real settings.json, and a grove that is broken json', () => {
     const scene = useBeforeAll(async () => {
