@@ -1365,26 +1365,39 @@ describe('boot.cache.skills', () => {
         list: await Promise.all(
           SKILLS.map(
             (skill) =>
-              new Promise<{ skill: string; status: number | null; stdout: string }>(
-                (settle) => {
-                  const child = spawn('npx', ['rhx', skill, 'help'], { cwd: REPO_ROOT });
-                  // .note = deliberate mutation: a stream accumulator, local to this one child
-                  const chunks: Buffer[] = [];
-                  child.stdout.on('data', (chunk: Buffer) => chunks.push(chunk));
-                  child.on('close', (status) =>
-                    settle({ skill, status, stdout: Buffer.concat(chunks).toString() }),
-                  );
-                },
-              ),
+              new Promise<{
+                skill: string;
+                status: number | null;
+                stdout: string;
+                stderr: string;
+              }>((settle) => {
+                const child = spawn('npx', ['rhx', skill, 'help'], { cwd: REPO_ROOT });
+                // .note = deliberate mutation: stream accumulators, local to this one child
+                const chunksOut: Buffer[] = [];
+                const chunksErr: Buffer[] = [];
+                child.stdout.on('data', (chunk: Buffer) => chunksOut.push(chunk));
+                child.stderr.on('data', (chunk: Buffer) => chunksErr.push(chunk));
+                child.on('close', (status) =>
+                  settle({
+                    skill,
+                    status,
+                    stdout: Buffer.concat(chunksOut).toString(),
+                    stderr: Buffer.concat(chunksErr).toString(),
+                  }),
+                );
+              }),
           ),
         ),
       }));
 
       then('each exits 0 and prints the help of the skill it names', () => {
         for (const result of results.list) {
-          expect({ skill: result.skill, status: result.status }).toEqual({
+          // a failed skill shows its stderr in the diff, so a rare exit names its own cause
+          const stderrOnFail = result.status === 0 ? null : result.stderr;
+          expect({ skill: result.skill, status: result.status, stderrOnFail }).toEqual({
             skill: result.skill,
             status: 0,
+            stderrOnFail: null,
           });
           expect(result.stdout).toContain(`🧮 ${result.skill}`);
           expect(result.stdout).toContain('usage');
