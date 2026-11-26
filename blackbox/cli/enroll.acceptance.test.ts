@@ -633,7 +633,7 @@ describe('rhx enroll --roles (acceptance)', () => {
         //
         // .note = its `claudeMdExcludes` are the same four globs every actor holds: they close
         //   every brain dir door, own door included, so the boot loads once, from the system
-        //   prompt; the drift reaches the clone through the `--add-dir` revision (F8)
+        //   prompt; the drift reaches the clone through its `--add-dir` spawn boot dir (F8)
         expect(
           asSnapshotSafe(readEnrollmentConfig({ dir })),
         ).toMatchSnapshot();
@@ -3060,8 +3060,8 @@ describe('rhx enroll --as slug collision (acceptance)', () => {
 /**
  * .what = the argv a real enroll hands the brain cli, read at the far end of the spawn
  * .why = rhachet owns the boot context: every clone spawns with `--system-prompt-file
- *   <its boot revision's boot.md>` (the actor's boot bytes at spawn, kept by hash under
- *   `boots/`), so the vendor default prompt is gone and the corpus is the system
+ *   <its spawn boot's boot.md>` (the actor's boot bytes at spawn, kept per clone under
+ *   `boots/serial=<serial>/`), so the vendor default prompt is gone and the corpus is the system
  *   prompt, where the prompt cache shares it across sessions. this clamps that the pair
  *   survives every layer between the argv builder and the cli, that no other prompt flag
  *   rides beside it, and that a passthrough cannot fork it
@@ -3090,11 +3090,11 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
         return { list: await readRecordedBrainArgv({ recordPath: scene.recordPath }) };
       });
 
-      then('`--system-prompt-file` is followed by the boot revision the clone spawns on', () => {
+      then('`--system-prompt-file` is followed by the spawn boot the clone spawns on', () => {
         const index = argv.list.indexOf('--system-prompt-file');
         expect(index).toBeGreaterThan(-1);
         expect(argv.list[index + 1]).toMatch(
-          /\.agent\/\.actors\/actor\.via\.(repo|hash)=[^/]+\/boots\/sha256=[0-9a-f]{16}\/boot\.md$/,
+          /\.agent\/\.actors\/actor\.via\.(repo|hash)=[^/]+\/boots\/serial=[0-9a-f-]{36}\/boot\.md$/,
         );
       });
 
@@ -3113,7 +3113,7 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
         );
       });
 
-      then('`--add-dir` names that revision dir, where the drift rides', () => {
+      then('`--add-dir` names that spawn boot dir, where the drift rides', () => {
         const index = argv.list.indexOf('--add-dir');
         const bootMdPath = argv.list[argv.list.indexOf('--system-prompt-file') + 1]!;
         expect(argv.list[index + 1]).toEqual(dirname(bootMdPath));
@@ -3145,19 +3145,19 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
         expect(argv.list).toHaveLength(8);
       });
 
-      then('the revision dir is named by a 16-hex content hash', () => {
-        expect(argv.list[5]).toMatch(/\/boots\/sha256=[0-9a-f]{16}$/);
+      then('the spawn boot dir is named by the clone serial', () => {
+        expect(argv.list[5]).toMatch(/\/boots\/serial=[0-9a-f-]{36}$/);
       });
 
       then('the recorded argv is locked to a snapshot', () => {
-        // mask the content hash: it moves with every edit to the fixture's boot, which the hash case above guards
+        // mask the clone serial: it is fresh on every spawn, which the serial case above guards
         expect(
           argv.list.map((arg) =>
             arg === ''
               ? '<empty>'
               : maskTempDirBothNames({ text: arg, dir }).replace(
-                  /sha256=[0-9a-f]{16}/g,
-                  'sha256=$HASH',
+                  /serial=[0-9a-f-]{36}/g,
+                  'serial=$SERIAL',
                 ),
           ),
         ).toMatchSnapshot();
@@ -3189,7 +3189,7 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
         expect(argv.list[4]).toEqual('--add-dir');
         expect(argv.list[6]).toEqual('--system-prompt-file');
         expect(argv.list[7]).toMatch(
-          /\.agent\/\.actors\/actor\.via\.(repo|hash)=[^/]+\/boots\/sha256=[0-9a-f]{16}\/boot\.md$/,
+          /\.agent\/\.actors\/actor\.via\.(repo|hash)=[^/]+\/boots\/serial=[0-9a-f-]{36}\/boot\.md$/,
         );
         expect(argv.list).toHaveLength(12);
         expect(argv.list.slice(8)).toEqual([
@@ -3297,7 +3297,7 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
     });
 
     /**
-     * .why = a resume replays the system prompt its session first recorded, so no revision names
+     * .why = a resume replays the system prompt its session first recorded, so no spawn boot names
      *   the boot it holds: the clone must never be told it holds the current boot
      */
     when('[t5] `enroll claude --resume <session>` (a resume)', () => {
@@ -3322,7 +3322,7 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
         );
       });
 
-      then('no revision is named: no `--add-dir`, the boot file is the actor boot', () => {
+      then('no spawn boot is named: no `--add-dir`, the boot file is the actor boot', () => {
         expect(result.list).not.toContain('--add-dir');
         expect(result.list).toContain('--resume');
         expect(result.list[result.list.indexOf('--system-prompt-file') + 1]).toMatch(
@@ -3330,7 +3330,7 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
         );
       });
 
-      then('exactly one clone carries the resumed marker, and it holds no spawn ref', () => {
+      then('exactly one clone carries the resumed marker, and it holds no spawn boot', () => {
         const actorsDir = join(dir, '.agent', '.actors');
         const cloneDirs = readdirSync(actorsDir)
           .filter((name) => name.startsWith('actor.via.'))
@@ -3345,17 +3345,19 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
           existsSync(join(cloneDir, 'boot.spawned.resumed')),
         );
         expect(resumed).toHaveLength(1);
-        expect(existsSync(join(resumed[0]!, 'boot.spawned.ref'))).toBe(false);
+        const resumedActorDir = dirname(dirname(resumed[0]!));
+        expect(
+          existsSync(join(resumedActorDir, 'boots', basename(resumed[0]!))),
+        ).toBe(false);
       });
 
-      then('a later `rhx init` names the resumed clone as outside the drift, and exits 0', () => {
+      then('a later `rhx init` exits 0: a resume holds no drift to fault', () => {
         const run = invokeRhachetCliBinary({
           args: ['init', '--hooks'],
           cwd: dir,
           logOnError: false,
         });
         expect(run.status).toEqual(0);
-        expect(run.stdout).toMatch(/🟡 \d+ clones? sits? outside the drift/);
       });
     });
 
@@ -3448,8 +3450,8 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
         });
       });
 
-      const readers = useThen('the drift readers name the first spawn, by its own ref', () => {
-        // the chain from a real spawn: its ref, its revision, and the serial its hook inherits
+      const readers = useThen('the drift readers name the first spawn, by its own serial', () => {
+        // the chain from a real spawn: its spawn boot, its meta, and the serial its hook inherits
         const actorDir = dirname(dirname(dirname(before.bootMdPath)));
         const serials = readdirSync(join(actorDir, 'clones'))
           .map(String)
@@ -3468,7 +3470,16 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
           env: { RHACHET_CLONE_SERIAL: serial },
           logOnError: false,
         });
-        return { inspect, hook, revision: basename(dirname(before.bootMdPath)) };
+        const meta = JSON.parse(
+          readFileSync(join(dirname(before.bootMdPath), 'boot.meta.json'), 'utf8'),
+        ) as { spawned: { hash: string } };
+        return {
+          inspect,
+          hook,
+          serial,
+          spawnDir: basename(dirname(before.bootMdPath)),
+          spawnedHash: meta.spawned.hash,
+        };
       });
 
       const after = useThen('the next spawn records its boot file', async () => {
@@ -3496,18 +3507,20 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
         // case=6: the editor asks "do my live clones get this?", and init answers in its drift branch
         const driftLines = edited.stdout
           .split('\n')
-          .filter((line) => /─ drift$|spawn revision|refers? to (it|them)|outside the drift/.test(line));
-        expect(driftLines.join('\n')).toContain('1 spawn revision re-written');
+          .filter((line) => /─ drift$|clone drifts? re-written/.test(line));
         expect(driftLines.join('\n')).toContain(
-          '1 clone refers to it; a live one takes the drift at its next compaction',
+          '1 clone drift re-written; a live clone takes it at its next compaction',
         );
-        expect(driftLines.join('\n')).not.toContain('outside the drift');
         expect(driftLines).toMatchSnapshot();
       });
 
-      then('--of reads the first spawn on the revision its ref names, under the threshold', () => {
+      then('the first spawn boot is the clone own, keyed by its serial', () => {
+        expect(readers.spawnDir).toEqual(`serial=${readers.serial}`);
+      });
+
+      then('--of reads the first spawn on the boot its meta names, under the threshold', () => {
         expect(readers.inspect.status).toEqual(0);
-        expect(readers.inspect.stdout).toContain(`spawn revision = ${readers.revision}`);
+        expect(readers.inspect.stdout).toContain(`spawn boot = ${readers.spawnedHash}`);
         expect(readers.inspect.stdout).toMatch(/drift = [0-9a-f]{16}/);
         expect(readers.inspect.stdout).toContain('under the 200 line threshold');
       });
@@ -3529,7 +3542,7 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
         expect(drift).toMatch(/\ndrift = [0-9a-f]{16}\n/);
       });
 
-      then('the next spawn reads a new revision that holds the edit whole', () => {
+      then('the next spawn reads its own spawn boot, which holds the edit whole', () => {
         expect(after.bootMdPath).not.toEqual(before.bootMdPath);
         const content = readFileSync(after.bootMdPath, 'utf8');
         expect(content).toContain('sentinel=SWELL_AFTER_EDIT');
@@ -3542,15 +3555,15 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
       });
     });
 
-    when('[t1] a live revision cannot take its drift, then the brief is edited and a clone spawns', () => {
-      // the first spawn's revision is locked: its dir and its drift file are read-only, so the
-      //   enroll's drift sweep meets a filesystem fault on it
+    when('[t1] the live spawn boots cannot take their drift, then the brief is edited and a clone spawns', () => {
+      // every spawn boot so far is locked: its dir and its drift file are read-only, so the
+      //   enroll's drift sweep meets a filesystem fault on each
       const locked = useBeforeAll(async () => {
         if (process.getuid?.() === 0)
           throw new ConstraintError('this case needs a non-root runner', {
             hint: 'root ignores the read-only mode the case sets; run the acceptance suite as a regular user',
           });
-        const revisionDirs = readdirSync(join(dir, '.agent', '.actors'))
+        const spawnDirs = readdirSync(join(dir, '.agent', '.actors'))
           .filter((name) => name.startsWith('actor.via.'))
           .flatMap((actor) => {
             const bootsDir = join(dir, '.agent', '.actors', actor, 'boots');
@@ -3558,17 +3571,17 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
               ? readdirSync(bootsDir).map((name) => join(bootsDir, String(name)))
               : [];
           });
-        for (const revisionDir of revisionDirs) {
-          chmodSync(join(revisionDir, 'CLAUDE.md'), 0o400);
-          chmodSync(revisionDir, 0o500);
+        for (const spawnDir of spawnDirs) {
+          chmodSync(join(spawnDir, 'CLAUDE.md'), 0o400);
+          chmodSync(spawnDir, 0o500);
         }
         writeFileSync(briefPath, '# the surf\n\nsentinel=SWELL_AFTER_LOCK\n');
-        return { revisionDirs };
+        return { spawnDirs };
       });
       afterAll(() => {
-        for (const revisionDir of locked.revisionDirs) {
-          chmodSync(revisionDir, 0o700);
-          chmodSync(join(revisionDir, 'CLAUDE.md'), 0o600);
+        for (const spawnDir of locked.spawnDirs) {
+          chmodSync(spawnDir, 0o700);
+          chmodSync(join(spawnDir, 'CLAUDE.md'), 0o600);
         }
       });
 
@@ -3602,16 +3615,22 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
           .split('\n')
           .filter((line) => /boot drift was not written|drift not written|to fix, run `rhx init`/.test(line));
         expect(faultLines.length).toBeGreaterThanOrEqual(3);
-        // each distinct hash masks to its own token, by order of first sight, so two
-        //   revisions never snap as one row twice
-        const hashesSeen = [
-          ...new Set(faultLines.join('\n').match(/sha256=[0-9a-f]{16}/g) ?? []),
+        // each distinct serial masks to its own token, by order of first sight, so two
+        //   clones never snap as one row twice
+        const serialsSeen = [
+          ...new Set(faultLines.join('\n').match(/serial=[0-9a-f-]{36}/g) ?? []),
         ];
-        expect(hashesSeen).toHaveLength(2);
+        expect(serialsSeen).toHaveLength(2);
         expect(
-          maskTempPaths(asSnapshotSafe(faultLines.join('\n'))).replace(
-            /sha256=[0-9a-f]{16}/g,
-            (hash) => `sha256=$HASH${hashesSeen.indexOf(hash) + 1}`,
+          maskTempPaths(
+            asSnapshotSafe(
+              faultLines
+                .join('\n')
+                .replace(
+                  /serial=[0-9a-f-]{36}/g,
+                  (serial) => `serial=$SERIAL${serialsSeen.indexOf(serial) + 1}`,
+                ),
+            ),
           ),
         ).toMatchSnapshot();
       });

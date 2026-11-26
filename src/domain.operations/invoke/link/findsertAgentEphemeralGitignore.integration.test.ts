@@ -34,9 +34,9 @@ const REPO_ACTOR_RUNTIME_FILES = [
   'actor.json',
   'roles/enrollment.jsonl',
   'clones/serial=abc/identity.json',
-  'clones/serial=abc/boot.spawned.ref',
-  'boots/sha256=0123456789abcdef/boot.md',
-  'boots/sha256=0123456789abcdef/CLAUDE.md',
+  'boots/serial=abc/boot.md',
+  'boots/serial=abc/boot.meta.json',
+  'boots/serial=abc/CLAUDE.md',
 ];
 
 describe('findsertAgentEphemeralGitignore', () => {

@@ -6,14 +6,14 @@ import {
   invokeRhachetCliBinary,
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { genSampleCloneOndisk } from '@src/.test/assets/genSampleCloneOndisk';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
-import { genActorBootRevision } from '@src/domain.operations/boot/genActorBootRevision';
+import { genActorBootSpawned } from '@src/domain.operations/boot/genActorBootSpawned';
+import { getActorBootSpawnedPaths } from '@src/domain.operations/boot/getActorBootSpawnedPaths';
 import { setActorBootDrifts } from '@src/domain.operations/boot/setActorBootDrifts';
-import { setCloneBootSpawnedRef } from '@src/domain.operations/clone/setCloneBootSpawnedRef';
 import { setCloneBootSpawnedResumed } from '@src/domain.operations/clone/setCloneBootSpawnedResumed';
 
 /**
@@ -21,7 +21,7 @@ import { setCloneBootSpawnedResumed } from '@src/domain.operations/clone/setClon
  * .why = the drift readout and the onStop hook arm are a contract a human and a role hook
  *        call by name; the wire-up from argv to exit code is proven here, at the level they
  *        invoke it
- * .note = a drifted clone is plain disk state (a spawn ref, a revision, a drift), so case2 seeds
+ * .note = a drifted clone is plain disk state (a spawn boot, its meta, its drift), so case2 seeds
  *         it through the fixture ops, as `clone.get-advisory` does, and drives only the binary
  */
 describe('rhx clone boot drift (acceptance)', () => {
@@ -216,8 +216,7 @@ describe('rhx clone boot drift (acceptance)', () => {
       const brainDir = getBrainOndiskDir({ actorDir: seeded.actorDir });
       mkdirSync(brainDir, { recursive: true });
       writeFileSync(join(brainDir, 'boot.md'), BOOT_V1);
-      const revision = genActorBootRevision({ actorDir: seeded.actorDir })!;
-      setCloneBootSpawnedRef({ cloneDir: seeded.cloneDir, hash: revision.hash });
+      genActorBootSpawned({ actorDir: seeded.actorDir, serial: seeded.serial });
       writeFileSync(join(brainDir, 'boot.md'), BOOT_V2);
       setActorBootDrifts({
         actorDir: seeded.actorDir,
@@ -310,22 +309,33 @@ describe('rhx clone boot drift (acceptance)', () => {
         return { first, second };
       });
 
-      then('the first stop is blocked once, the nudge on stderr', () => {
-        expect(result.first.status).toEqual(2);
-        expect(result.first.stdout).toEqual('');
-        expect(result.first.stderr).toContain('to take it');
-        expect(result.first.stderr).toContain(
-          'rhx clone say @:reviewer --what /compact',
-        );
-      });
+      then(
+        'the first stop is never blocked: exit 0, the notice as a hook systemMessage',
+        () => {
+          expect(result.first.status).toEqual(0);
+          const { systemMessage } = JSON.parse(result.first.stdout) as {
+            systemMessage: string;
+          };
+          expect(systemMessage).toContain('to take it');
+          expect(systemMessage).toContain(
+            'rhx clone say @:reviewer --what /compact',
+          );
+        },
+      );
 
       then('the second stop is silent: the drift is told once', () => {
         expect(result.second.status).toEqual(0);
+        expect(result.second.stdout).toEqual('');
         expect(result.second.stderr).toEqual('');
       });
 
-      then('the nudge matches snapshot', () => {
-        expect(asSnapshotSafe(result.first.stderr)).toMatchSnapshot();
+      then('the notice matches snapshot', () => {
+        expect(
+          asSnapshotSafe(
+            (JSON.parse(result.first.stdout) as { systemMessage: string })
+              .systemMessage,
+          ),
+        ).toMatchSnapshot();
       });
     });
   });
@@ -342,8 +352,7 @@ describe('rhx clone boot drift (acceptance)', () => {
       const brainDir = getBrainOndiskDir({ actorDir: seeded.actorDir });
       mkdirSync(brainDir, { recursive: true });
       writeFileSync(join(brainDir, 'boot.md'), BOOT_V1);
-      const revision = genActorBootRevision({ actorDir: seeded.actorDir })!;
-      setCloneBootSpawnedRef({ cloneDir: seeded.cloneDir, hash: revision.hash });
+      genActorBootSpawned({ actorDir: seeded.actorDir, serial: seeded.serial });
       writeFileSync(join(brainDir, 'boot.md'), BOOT_V2_OVER_CAP);
       setActorBootDrifts({
         actorDir: seeded.actorDir,
@@ -404,15 +413,20 @@ describe('rhx clone boot drift (acceptance)', () => {
         }),
       );
 
-      then('the nudge names respawn and offers no /compact', () => {
-        expect(result.status).toEqual(2);
-        expect(result.stderr).toContain('past the 2000 line cap');
-        expect(result.stderr).toContain('to take it, respawn');
-        expect(result.stderr).not.toContain('/compact');
+      then('the notice names respawn and offers no /compact', () => {
+        expect(result.status).toEqual(0);
+        expect(result.stdout).toContain('past the 2000 line cap');
+        expect(result.stdout).toContain('to take it, respawn');
+        expect(result.stdout).not.toContain('/compact');
       });
 
-      then('the nudge matches snapshot', () => {
-        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
+      then('the notice matches snapshot', () => {
+        expect(
+          asSnapshotSafe(
+            (JSON.parse(result.stdout) as { systemMessage: string })
+              .systemMessage,
+          ),
+        ).toMatchSnapshot();
       });
     });
   });
@@ -450,21 +464,12 @@ describe('rhx clone boot drift (acceptance)', () => {
       const brainDir = getBrainOndiskDir({ actorDir: bare.actorDir });
       mkdirSync(brainDir, { recursive: true });
       writeFileSync(join(brainDir, 'boot.md'), BOOT_V1);
-      const revisionV1 = genActorBootRevision({ actorDir: bare.actorDir })!;
-      setCloneBootSpawnedRef({ cloneDir: bare.cloneDir, hash: revisionV1.hash });
-      setCloneBootSpawnedRef({
-        cloneDir: resumed.cloneDir,
-        hash: revisionV1.hash,
-      });
+      genActorBootSpawned({ actorDir: bare.actorDir, serial: bare.serial });
       setCloneBootSpawnedResumed({ cloneDir: resumed.cloneDir });
 
       // the current boot, a small edit under the threshold; the fresh clone spawned on it
       writeFileSync(join(brainDir, 'boot.md'), BOOT_V2_SMALL);
-      const revisionNow = genActorBootRevision({ actorDir: bare.actorDir })!;
-      setCloneBootSpawnedRef({
-        cloneDir: fresh.cloneDir,
-        hash: revisionNow.hash,
-      });
+      genActorBootSpawned({ actorDir: fresh.actorDir, serial: fresh.serial });
       setActorBootDrifts({
         actorDir: bare.actorDir,
         bootMdPathCurrent: join(brainDir, 'boot.md'),
@@ -616,8 +621,8 @@ describe('rhx clone boot drift (acceptance)', () => {
   });
 
   given('[case5] three clones whose drift cannot be read cleanly', () => {
-    // `@:lost` names a revision a prune removed; `@:latched` has a dir where its told latch
-    // belongs; `@:stale` holds a drift the actor boot moved past with no sweep since
+    // `@:lost` holds a spawn boot whose boot.md is gone; `@:latched` has a dir where its told
+    // latch belongs; `@:stale` holds a drift the actor boot moved past with no sweep since
     const scene = useBeforeAll(async () => {
       const repoPath = genTempDir({ slug: 'clone-boot-drift-faults', git: true });
       const lost = await genSampleCloneOndisk({
@@ -632,16 +637,12 @@ describe('rhx clone boot drift (acceptance)', () => {
         slug: 'latched',
         socketEligible: false,
       });
-      // a ref to a revision no dir holds
-      setCloneBootSpawnedRef({ cloneDir: lost.cloneDir, hash: '0123456789abcdef' });
-
       // a clone spawned on v1; the boot moves to v2 and the sweep writes the drift
-      const genDrifted = (input: { actorDir: string; cloneDir: string }) => {
+      const genDrifted = (input: { actorDir: string; serial: string }) => {
         const brainDir = getBrainOndiskDir({ actorDir: input.actorDir });
         mkdirSync(brainDir, { recursive: true });
         writeFileSync(join(brainDir, 'boot.md'), BOOT_V1);
-        const revision = genActorBootRevision({ actorDir: input.actorDir })!;
-        setCloneBootSpawnedRef({ cloneDir: input.cloneDir, hash: revision.hash });
+        genActorBootSpawned({ actorDir: input.actorDir, serial: input.serial });
         writeFileSync(join(brainDir, 'boot.md'), BOOT_V2);
         setActorBootDrifts({
           actorDir: input.actorDir,
@@ -651,6 +652,13 @@ describe('rhx clone boot drift (acceptance)', () => {
       };
       genDrifted(latched);
       mkdirSync(join(latched.cloneDir, 'boot.drift.told'));
+
+      // a spawn boot whose boot.md is gone
+      genActorBootSpawned({ actorDir: lost.actorDir, serial: lost.serial });
+      rmSync(
+        getActorBootSpawnedPaths({ actorDir: lost.actorDir, serial: lost.serial })
+          .bootMd,
+      );
 
       // stale sits in a repo of its own: its boot moves again, with no sweep, so the drift lags it
       const repoPathStale = genTempDir({ slug: 'clone-boot-drift-stale', git: true });
@@ -674,10 +682,12 @@ describe('rhx clone boot drift (acceptance)', () => {
         }),
       );
 
-      then('it exits 1 and names the gone revision and the cure', () => {
+      then('it exits 1 and names the absent boot and the cure', () => {
         expect(result.status).toEqual(1);
         expect(result.stderr).toContain('💥 MalfunctionError');
-        expect(result.stderr).toContain('sha256=0123456789abcdef');
+        expect(result.stderr).toContain(
+          'boots/serial=6a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d/boot.md',
+        );
         expect(result.stderr).toContain('respawn the clone');
       });
 

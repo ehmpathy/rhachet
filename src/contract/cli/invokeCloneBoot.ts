@@ -28,13 +28,14 @@ const WHEN_HOOK_ON_STOP = 'hook.onStop';
 /**
  * .what = register `rhx clone boot drift` on the clone group
  * .why = a live clone takes its boot drift at its next compaction; this verb says how much drift
- *        a clone carries, to an editor or an enroller (`--of @:<x>`), and nudges the clone itself
- *        once its drift outgrows the threshold (`--when hook.onStop`)
+ *        a clone carries, to an editor or an enroller (`--of @:<x>`), and notices the human who
+ *        watches the clone once its drift outgrows the threshold (`--when hook.onStop`)
  *
  * .note = the hook arm is declared by a role, never by rhachet (`rule.forbid.framework-owned-hooks`)
- * .note = the hook arm never blocks a stop by fault: a process that is no clone, or a clone from
- *         before boot drift, exits 0 silent; a fault exits 1 (a Stop hook's exit 1 never blocks);
- *         only a nudge exits 2, once per drift
+ * .note = the hook arm never blocks a stop: a clone cannot reliably compact itself, so a block
+ *         would only stall it. a process that is no clone, or a clone from before boot drift,
+ *         exits 0 silent; a notice exits 0 with a `systemMessage` on stdout, once per drift; a
+ *         fault exits 1 (a Stop hook's exit 1 never blocks)
  */
 export const invokeCloneBoot = (input: { clone: Command }): void => {
   const boot = input.clone
@@ -44,7 +45,7 @@ export const invokeCloneBoot = (input: { clone: Command }): void => {
   boot
     .command('drift')
     .description(
-      'show the boot drift a clone carries since it spawned; with --when hook.onStop, nudge it once past the threshold',
+      'show the boot drift a clone carries since it spawned; with --when hook.onStop, notice it once past the threshold',
     )
     .option('--of <address>', 'the clone to inspect, as @:<slug|serial>')
     .option(
@@ -76,12 +77,12 @@ export const invokeCloneBoot = (input: { clone: Command }): void => {
               },
             );
 
-          // the hook speaks to the clone through its exit code and stderr, so --output beside it is refused
+          // the hook answers in the hook protocol (a systemMessage json), so --output beside it is refused
           if (opts.when === WHEN_HOOK_ON_STOP && opts.output !== undefined)
             throw new ConstraintError(
               `--output cannot ride --when ${WHEN_HOOK_ON_STOP}`,
               {
-                hint: 'the hook answers by exit code and a stderr nudge; for json, inspect: rhx clone boot drift --of @:<slug|serial> --output json',
+                hint: 'the hook answers with a hook systemMessage; for json, inspect: rhx clone boot drift --of @:<slug|serial> --output json',
               },
             );
 
@@ -136,8 +137,9 @@ const runInspect = (input: {
 };
 
 /**
- * .what = the hook arm: nudge this clone once its drift outgrows the threshold
- * .why = a long-lived clone carries a large drift in memory; told once, it can compact or respawn (case=2)
+ * .what = the hook arm: notice the human who watches this clone, once its drift outgrows the threshold
+ * .why = a long-lived clone carries a large drift in memory; its human, told once, can compact or
+ *        respawn it (case=2). the clone is never blocked: it cannot reliably compact itself
  * .note = a constraint here would exit 2 and block the stop, so every fault is a malfunction
  */
 const runHookOnStop = (): void => {
@@ -158,16 +160,15 @@ const runHookOnStop = (): void => {
         },
       );
 
-    // silent unless a nudge is owed; the op latches it as told before it returns
+    // silent unless a notice is owed; the op latches it as told before it returns
     const nudge = setCloneBootDriftNudgeTold({
       ...asCloneDirs({ clone: self }),
       address: asCloneAddressHuman(self),
     });
     if (nudge === null) return;
 
-    // block this one stop, the nudge on stderr
-    console.error(nudge.lines.join('\n'));
-    process.exitCode = 2;
+    // the notice, as a hook systemMessage; the stop proceeds
+    console.log(JSON.stringify({ systemMessage: nudge.lines.join('\n') }));
   } catch (error) {
     // a constraint would exit 2 and block the stop, so it is recast to exit 1
     throw asBootDriftHookFault({ error, serial });
@@ -192,11 +193,11 @@ const asCloneRefOfInspect = (input: {
 };
 
 /**
- * .what = the actor dir and clone dir of a clone
+ * .what = the actor dir, clone dir and serial of a clone
  */
 const asCloneDirs = (input: {
   clone: CloneOndisk;
-}): { actorDir: string; cloneDir: string } => {
+}): { actorDir: string; cloneDir: string; serial: string } => {
   const actorDir = getActorOndiskDir({
     repoPath: input.clone.actor.repoPath,
     exid: input.clone.actor.exid,
@@ -204,5 +205,6 @@ const asCloneDirs = (input: {
   return {
     actorDir,
     cloneDir: getCloneDir({ actorDir, serial: input.clone.serial }),
+    serial: input.clone.serial,
   };
 };

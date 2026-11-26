@@ -941,9 +941,9 @@ exports[`rhx enroll owns the system prompt (acceptance) given: [case1] a linked 
   "--settings",
   "$TESTDIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json",
   "--add-dir",
-  "$TESTDIR/.agent/.actors/actor.via.repo=ambient/boots/sha256=$HASH",
+  "$TESTDIR/.agent/.actors/actor.via.repo=ambient/boots/serial=$SERIAL",
   "--system-prompt-file",
-  "$TESTDIR/.agent/.actors/actor.via.repo=ambient/boots/sha256=$HASH/boot.md",
+  "$TESTDIR/.agent/.actors/actor.via.repo=ambient/boots/serial=$SERIAL/boot.md",
 ]
 `;
 
@@ -1001,15 +1001,14 @@ exports[`rhx enroll owns the system prompt (acceptance) given: [case1] a linked 
 exports[`rhx enroll owns the system prompt (acceptance) given: [case2] a repo brief that boots whole, edited between two spawns when: [t0] a clone spawns, then the brief is edited and \`rhx init --hooks\` runs then: init tells the editor the live clone gets the edit, at its next compaction 1`] = `
 [
   "   └─ drift",
-  "      ├─ 1 spawn revision re-written",
-  "      └─ 1 clone refers to it; a live one takes the drift at its next compaction",
+  "      └─ 1 clone drift re-written; a live clone takes it at its next compaction",
 ]
 `;
 
-exports[`rhx enroll owns the system prompt (acceptance) given: [case2] a repo brief that boots whole, edited between two spawns when: [t1] a live revision cannot take its drift, then the brief is edited and a clone spawns then: the fault block matches snapshot 1`] = `
+exports[`rhx enroll owns the system prompt (acceptance) given: [case2] a repo brief that boots whole, edited between two spawns when: [t1] the live spawn boots cannot take their drift, then the brief is edited and a clone spawns then: the fault block matches snapshot 1`] = `
 "🟡 a boot drift was not written; this clone still spawns, but live clones keep a stale drift
-   ├─ ✗ in sha256=$HASH1/, drift not written (EACCES: permission denied, open '/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/boots/sha256=$HASH1/.CLAUDE.md.__PID__.__HEX__.tmp') — its clones keep their prior drift
-   ├─ ✗ in sha256=$HASH2/, drift not written (EACCES: permission denied, open '/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/boots/sha256=$HASH2/.CLAUDE.md.__PID__.__HEX__.tmp') — its clones keep their prior drift
+   ├─ ✗ in serial=$SERIAL1/, drift not written (EACCES: permission denied, open '/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/boots/serial=$SERIAL1/.CLAUDE.md.__PID__.__HEX__.tmp') — the clone keeps its prior drift
+   ├─ ✗ in serial=$SERIAL2/, drift not written (EACCES: permission denied, open '/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/boots/serial=$SERIAL2/.CLAUDE.md.__PID__.__HEX__.tmp') — the clone keeps its prior drift
    └─ to fix, run \`rhx init\`, which re-writes every drift"
 `;
 

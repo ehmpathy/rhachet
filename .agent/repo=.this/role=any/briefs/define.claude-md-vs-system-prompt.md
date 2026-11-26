@@ -105,17 +105,17 @@ measured 2026-11-02, haiku, a 121k-token boot, two `-p` sessions with different 
 | `CLAUDE.md` memory | 125,844 | 11,237 |
 | `--system-prompt-file <boot.md>` | 4,811 | 132,111 |
 
-⇒ rhachet spawns every clone with its boot revision's `boot.md` as the system prompt
-(`asBrainCliSpawnArgs`, `asBrainCliSpawnArgsWithBootRevision`), and shuts every brain dir `CLAUDE.md`
+⇒ rhachet spawns every clone with its spawn boot's `boot.md` as the system prompt
+(`asBrainCliSpawnArgs`, `asBrainCliSpawnArgsWithBootSpawned`), and shuts every brain dir `CLAUDE.md`
 door via `claudeMdExcludes`, so the boot loads once. the price: the system prompt is fixed at the
 session's first request — a `/compact` keeps it (measured 2026-11-02, `rhx boot.compact.probe`: the
 request after a compaction held the spawn boot), and a `--resume` sends the prompt its session first
 recorded (measured 2026-11-03, `rhx boot.resume.probe`: the resumed request lacked an edit that the
 boot.md of that spawn held).
 
-⇒ so a boot edit reaches a live clone through the one memory door left open: each revision dir holds a
-`CLAUDE.md` with only the delta from that revision to the current boot (the boot drift), loaded via
-`--add-dir <revision>` and `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1`, and re-read at `/compact`
+⇒ so a boot edit reaches a live clone through the one memory door left open: each clone's spawn boot
+dir (`<actor>/boots/serial=<serial>/`) holds a `CLAUDE.md` with only the delta from its spawn boot to
+the current boot (the boot drift), loaded via `--add-dir <dir>` and `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1`, and re-read at `/compact`
 (measured 2026-11-17, `rhx boot.compact.probe --door add-dir`). the cached system prompt stays whole;
 only the delta rides in memory. a respawn takes the edit whole (`inventory.of=requirements.case=11`).
 the gain is ~26× less cache write per session start, on every start of a role set within its TTL.

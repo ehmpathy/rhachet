@@ -22,4 +22,7 @@ alternative is a `systemMessage` to the human alone.
 
 ## .verdict
 
-owed, from the wisher at vision review.
+reversed by the commander, review on ehmpathy/rhachet#770, 2026-11-23: a clone cannot compact itself,
+so a block spends a turn for naught. the hook never blocks: it prints `{"systemMessage": …}` on
+stdout, exits 0, once per drift hash (the latch stays), and names `/compact`, the
+`rhx clone say … --what /compact` send, and respawn.

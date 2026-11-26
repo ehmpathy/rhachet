@@ -1,5 +1,5 @@
 /**
- * .what = the most lines of drift body a boot revision's `CLAUDE.md` carries; past it, the file
+ * .what = the most lines of drift body a spawn boot's `CLAUDE.md` carries; past it, the file
  *         holds a stub that names the drift and says to respawn
  * .why = `/compact` re-injects the whole drift into the conversation, at the moment a clone
  *        compacts for headroom. a drift near the size of the boot itself (a roleset bump, a new

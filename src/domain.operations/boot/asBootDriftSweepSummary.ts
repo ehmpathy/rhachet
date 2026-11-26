@@ -3,24 +3,24 @@ import { isPresent } from 'type-fns';
 import type { BootDriftFault, BootDriftSweep } from './BrainDirBootRender';
 
 /**
- * .what = the summary of a drift sweep: every revision, the ones re-written, and the faults met
- * .why = the sweep reports by hash, so the init layer can join each revision to its clones
+ * .what = the summary of a drift sweep: every clone it held, the ones re-written, and the faults met
+ * .why = the sweep reports by clone serial, so the readout counts the clones each render reached
  */
 export const asBootDriftSweepSummary = (input: {
-  revisions: string[];
+  clones: string[];
   results: {
-    hash: string;
+    serial: string;
     outcome: 'rewritten' | 'unchanged' | 'fault';
     fault: BootDriftFault | null;
   }[];
 }): BootDriftSweep => {
-  // the hashes whose drift changed on this sweep
+  // the serials whose drift changed on this sweep
   const rewritten = input.results
     .filter((result) => result.outcome === 'rewritten')
-    .map((result) => result.hash);
+    .map((result) => result.serial);
 
-  // the faults met, one per revision that could not be written
+  // the faults met, one per clone whose drift could not be written
   const faults = input.results.map((result) => result.fault).filter(isPresent);
 
-  return { revisions: input.revisions, rewritten, faults };
+  return { clones: input.clones, rewritten, faults };
 };

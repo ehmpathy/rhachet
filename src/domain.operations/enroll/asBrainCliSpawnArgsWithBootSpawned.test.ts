@@ -1,13 +1,14 @@
 import { given, then, when } from 'test-fns';
 
 import { asBrainCliSpawnArgs } from './asBrainCliSpawnArgs';
-import { asBrainCliSpawnArgsWithBootRevision } from './asBrainCliSpawnArgsWithBootRevision';
+import { asBrainCliSpawnArgsWithBootSpawned } from './asBrainCliSpawnArgsWithBootSpawned';
 
-const REVISION_DIR = '/repo/.agent/.actors/a/boots/sha256=0123456789abcdef';
+const BOOT_SPAWNED_DIR =
+  '/repo/.agent/.actors/a/boots/serial=7c1e0b8a-3f2d-4a51-9e6b-2d8f0c4a1b3e';
 const CONFIG_PATH =
   '/repo/.agent/.actors/a/brain/.claude/settings.of.repo.json';
 
-describe('asBrainCliSpawnArgsWithBootRevision', () => {
+describe('asBrainCliSpawnArgsWithBootSpawned', () => {
   given('[case1] an enroll argv with a passthrough prompt', () => {
     const args = asBrainCliSpawnArgs({
       configPath: CONFIG_PATH,
@@ -15,22 +16,22 @@ describe('asBrainCliSpawnArgsWithBootRevision', () => {
       passthrough: ['--model', 'haiku', 'hello'],
     });
 
-    when('[t0] it is pointed at a boot revision', () => {
+    when('[t0] it is pointed at the clone spawn boot', () => {
       then(
-        'the add-dir sits before the boot flag, and the boot flag reads the revision boot',
+        'the add-dir sits before the boot flag, and the boot flag reads the spawn boot',
         () => {
           expect(
-            asBrainCliSpawnArgsWithBootRevision({
+            asBrainCliSpawnArgsWithBootSpawned({
               args,
-              revisionDir: REVISION_DIR,
-              revisionBootMdPath: `${REVISION_DIR}/boot.md`,
+              bootSpawnedDir: BOOT_SPAWNED_DIR,
+              bootSpawnedMdPath: `${BOOT_SPAWNED_DIR}/boot.md`,
             }),
           ).toEqual([
             ...args.slice(0, 4),
             '--add-dir',
-            REVISION_DIR,
+            BOOT_SPAWNED_DIR,
             '--system-prompt-file',
-            `${REVISION_DIR}/boot.md`,
+            `${BOOT_SPAWNED_DIR}/boot.md`,
             '--model',
             'haiku',
             'hello',
@@ -42,14 +43,14 @@ describe('asBrainCliSpawnArgsWithBootRevision', () => {
   });
 
   given('[case2] an argv with no boot flag', () => {
-    when('[t0] it is pointed at a boot revision', () => {
+    when('[t0] it is pointed at the clone spawn boot', () => {
       then('it is returned as is', () => {
         const args = ['--model', 'haiku'];
         expect(
-          asBrainCliSpawnArgsWithBootRevision({
+          asBrainCliSpawnArgsWithBootSpawned({
             args,
-            revisionDir: REVISION_DIR,
-            revisionBootMdPath: `${REVISION_DIR}/boot.md`,
+            bootSpawnedDir: BOOT_SPAWNED_DIR,
+            bootSpawnedMdPath: `${BOOT_SPAWNED_DIR}/boot.md`,
           }),
         ).toEqual(args);
       });

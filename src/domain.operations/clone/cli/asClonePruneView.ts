@@ -34,75 +34,43 @@ const asRowAddress = (row: ClonePruneRow): string => asCloneAddressHuman(row);
  */
 export const asClonePruneView = (input: {
   rows: ClonePruneRow[];
-  revisions: ClonePruneRevisionRow[];
   mode: 'plan' | 'apply';
 }): {
   tree: string;
-  data: {
-    mode: 'plan' | 'apply';
-    count: number;
-    clones: ClonePruneRow[];
-    revisions: ClonePruneRevisionRow[];
-  };
+  data: { mode: 'plan' | 'apply'; count: number; clones: ClonePruneRow[] };
 } => {
-  const { rows, revisions, mode } = input;
-  const data = { mode, count: rows.length, clones: rows, revisions };
+  const { rows, mode } = input;
 
   // .note = deliberate mutation — `lines` is a local tree accumulator, built up
   //         then joined; it never escapes this function
   const lines: string[] = [`🧹 clone prune (${mode})`];
 
-  if (rows.length === 0 && revisions.length === 0) {
+  if (rows.length === 0) {
     lines.push('   └─ (no dead clones to prune)');
-    return { tree: lines.join('\n'), data };
+    return { tree: lines.join('\n'), data: { mode, count: 0, clones: [] } };
   }
 
-  // the clone rows, then one branch that holds the revisions no clone refers to
-  // .note = the `serial=` field is the human short form, like the address and like
-  //   `clone list`'s own row. the FULL serial stays in `data.clones`
-  const branches = [
-    ...rows.map(
-      (row) =>
-        `${asRowAddress(row)}  serial=${asCloneSerialHuman({
-          serial: row.serial,
-        })}  since=${row.spawnedAt}`,
-    ),
-    ...(revisions.length > 0 ? [asRevisionsBranchLabel({ revisions })] : []),
-  ];
-  branches.forEach((branch, idx) => {
-    const last = idx === branches.length - 1;
-    lines.push(`${last ? '   └─' : '   ├─'} ${branch}`);
-  });
-  revisions.forEach((revision, idx) => {
-    const last = idx === revisions.length - 1;
+  rows.forEach((row, idx) => {
+    const last = idx === rows.length - 1;
+    const prefix = last ? '   └─' : '   ├─';
+    // the `serial=` field is the human short form, like the address and like
+    // `clone list`'s own row. the FULL serial stays in `data.clones` below
     lines.push(
-      `      ${last ? '└─' : '├─'} @${revision.actor}  sha256=${revision.hash}`,
+      `${prefix} ${asRowAddress(row)}  serial=${asCloneSerialHuman({
+        serial: row.serial,
+      })}  since=${row.spawnedAt}`,
     );
   });
 
-  // the footer names the outcome in one line: a plan says HOW to commit, an apply confirms
-  const revisionsPart =
-    revisions.length > 0 ? ` and ${revisions.length} boot revision(s)` : '';
+  // the footer names the outcome: a plan says HOW to commit, an apply confirms
   lines.push(
     mode === 'plan'
-      ? `   plan = ${rows.length} dead clone(s)${revisionsPart} would be pruned — re-run with --mode apply to remove`
-      : `   pruned = ${rows.length} dead clone(s)${revisionsPart}`,
+      ? `   plan: ${rows.length} dead clone(s) would be pruned — re-run with --mode apply to remove`
+      : `   pruned: ${rows.length} dead clone(s)`,
   );
 
-  return { tree: lines.join('\n'), data };
+  return {
+    tree: lines.join('\n'),
+    data: { mode, count: rows.length, clones: rows },
+  };
 };
-
-/**
- * .what = one boot revision in the prune view: the actor that holds it, and its hash
- */
-export interface ClonePruneRevisionRow {
-  actor: string;
-  hash: string;
-}
-
-/**
- * .what = the label of the branch that holds the revisions no clone refers to
- */
-const asRevisionsBranchLabel = (input: {
-  revisions: ClonePruneRevisionRow[];
-}): string => `boot revisions no clone refers to (${input.revisions.length})`;

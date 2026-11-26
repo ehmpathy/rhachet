@@ -6,8 +6,7 @@ import { genSampleRepoWithSubjects } from '@src/.test/assets/genSampleRepoWithSu
 
 import { mkdirSync, readFileSync, readlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { setCloneBootSpawnedRef } from '../clone/setCloneBootSpawnedRef';
-import { genActorBootRevision } from './genActorBootRevision';
+import { genActorBootSpawned } from './genActorBootSpawned';
 import { BOOT_CACHE_BOUNDARY_LINE } from './getOneBootCacheBoundary';
 import { getOneRhachetBootIntro } from './getOneRhachetBootIntro';
 import { setBrainDirBoot } from './setBrainDirBoot';
@@ -454,10 +453,10 @@ describe('setBrainDirBoot', () => {
     );
   });
 
-  given('[case6] an actor whose clone spawned on a boot revision', () => {
+  given('[case6] an actor whose clone holds a spawn boot', () => {
     when('[t0] a role changes and the brain dir re-renders', () => {
       then(
-        'the revision drift carries the change, and the render reports it',
+        'the clone drift carries the change, and the render reports it',
         async () => {
           // an actor dir laid out as `<actor>/brain/.claude`, rendered once
           const repoPath = genRepoWithRoles({ slug: 'setBrainDirBoot-c6t0' });
@@ -476,17 +475,13 @@ describe('setBrainDirBoot', () => {
           });
           expect(renderFirst.drift).toEqual({
             actorDir,
-            revisions: [],
+            clones: [],
             rewritten: [],
             faults: [],
           });
 
-          // a clone spawns on that boot, and refers to its revision
-          const revision = genActorBootRevision({ actorDir })!;
-          setCloneBootSpawnedRef({
-            cloneDir: join(actorDir, 'clones', 'serial=abc'),
-            hash: revision.hash,
-          });
+          // a clone spawns on that boot, and holds it as its spawn boot
+          const spawned = genActorBootSpawned({ actorDir, serial: 'abc' })!;
 
           // the role brief changes; the brain dir re-renders
           const briefPath = join(
@@ -502,12 +497,12 @@ describe('setBrainDirBoot', () => {
           });
           expect(renderSecond.drift).toEqual({
             actorDir,
-            revisions: [revision.hash],
-            rewritten: [revision.hash],
+            clones: ['abc'],
+            rewritten: ['abc'],
             faults: [],
           });
           expect(
-            readFileSync(join(revision.revisionDir, 'CLAUDE.md'), 'utf8'),
+            readFileSync(join(spawned.dir, 'CLAUDE.md'), 'utf8'),
           ).toContain('any brief body, now revised');
         },
       );

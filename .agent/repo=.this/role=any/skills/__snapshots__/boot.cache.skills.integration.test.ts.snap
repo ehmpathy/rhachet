@@ -353,7 +353,7 @@ exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t0] help is 
    │  ├─ --model    the brain model; haiku when absent
    │  └─ --door     where the sentinel lands; system when absent
    │     ├─ system   the actor's boot.md, read as the system prompt
-   │     └─ add-dir  the clone's boot revision CLAUDE.md, read as memory
+   │     └─ add-dir  the clone's spawn boot CLAUDE.md, read as memory
    ├─ exits
    │  ├─ 0 = measured, and the verdict is ✓ or ✗
    │  ├─ 1 = the measure failed — no clone, no request bodies, or a wait ran out
@@ -465,7 +465,7 @@ exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t9] the requ
 exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t10] --door add-dir, and the request after /compact holds the drift edit then: it exits 0 with the ✓ add-dir verdict, read from the messages 1`] = `
 "🧮 boot.compact.probe --roles '-driver' --model haiku --door add-dir
    ├─ brain cli = claude 2.1.327
-   ├─ the sentinel line lands in .agent/.actors/actor.via.hash=stub/boots/sha256=0123456789abcdef/CLAUDE.md after spawn, before /compact
+   ├─ the sentinel line lands in .agent/.actors/actor.via.hash=stub/boots/serial=compactprobe-<pid>/CLAUDE.md after spawn, before /compact
    ├─ requests, in send order
    │  ├─ [1] turn 1 · sentinel in system = no · sentinel in messages = no · boot copies = 1 · last text "Do not use any tools. Reply with exactly: OK"
    │  ├─ [2] /compact · sentinel in system = no · sentinel in messages = yes · boot copies = 1 · last text "/compact"
@@ -480,7 +480,7 @@ exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t10] --door 
 exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t11] --door add-dir, and the request after /compact holds the spawn drift then: it exits 0 with the ✗ add-dir verdict: a kept drift is a measure, not a fault 1`] = `
 "🧮 boot.compact.probe --roles '-driver' --model haiku --door add-dir
    ├─ brain cli = claude 2.1.327
-   ├─ the sentinel line lands in .agent/.actors/actor.via.hash=stub/boots/sha256=0123456789abcdef/CLAUDE.md after spawn, before /compact
+   ├─ the sentinel line lands in .agent/.actors/actor.via.hash=stub/boots/serial=compactprobe-<pid>/CLAUDE.md after spawn, before /compact
    ├─ requests, in send order
    │  ├─ [1] turn 1 · sentinel in system = no · sentinel in messages = no · boot copies = 1 · last text "Do not use any tools. Reply with exactly: OK"
    │  ├─ [2] /compact · sentinel in system = no · sentinel in messages = no · boot copies = 1 · last text "/compact"
@@ -492,11 +492,13 @@ exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t11] --door 
 "
 `;
 
-exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t12] --door add-dir, and the clone holds no spawn ref then: it fails as a named malfunction that names the rebuild 1`] = `
+exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t12] --door add-dir, and the clone holds no spawn boot then: it fails as a named malfunction that names the rebuild 1`] = `
 "🧮 boot.compact.probe
    ├─ ran = rhx boot.compact.probe --door add-dir
-   ├─ 💥 MalfunctionError: the probe clone holds no boot.spawned.ref
-   └─ hint = rebuild (npm run build); the clone must spawn on a boot revision
+   ├─ 💥 MalfunctionError: the clone's spawn boot holds no CLAUDE.md
+   ├─ detail
+   │  │ .agent/.actors/actor.via.hash=stub/boots/serial=compactprobe-<pid>/CLAUDE.md
+   └─ hint = rebuild (npm run build); the clone must spawn with a spawn boot
 "
 `;
 

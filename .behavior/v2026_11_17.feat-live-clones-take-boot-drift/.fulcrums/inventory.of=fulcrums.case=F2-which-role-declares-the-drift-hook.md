@@ -37,4 +37,14 @@ the rule settles (b) over (a) and (c); it does not name the role.
 
 ## .verdict
 
-owed, from the wisher.
+ruled by the driver, 2026-11-25, once the declaration site was handed back as the driver's call,
+from the rhachet pattern of ehmpathy/rhachet#830: (b), and the role is a `repo=.this` role, which
+declares the hook in its own `hooks.yml` (here `role=any`). `getAllRepoThisRolesWithHooks` reads it
+and enroll keeps it for each seat that holds the role.
+
+- a human declares it in the repo, so it is no third arm under `rule.forbid.framework-owned-hooks`
+- case=9 holds unchanged: the author is `repo=.this/role=any`
+- the repo that runs long-lived clones opts in; a package role would arm every consumer at once
+
+the enroller route (`rhachet-roles-rhachet`) is withdrawn, with its seed. the declaration fires once
+#830's reader lands; until then a drift reads via `rhx clone boot drift --of`.

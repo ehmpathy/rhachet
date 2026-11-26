@@ -1,14 +1,13 @@
 import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
-import { genActorBootRevision } from '@src/domain.operations/boot/genActorBootRevision';
+import { genActorBootSpawned } from '@src/domain.operations/boot/genActorBootSpawned';
 import { setActorBootDrifts } from '@src/domain.operations/boot/setActorBootDrifts';
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { getOneCloneBootDriftTold } from './getOneCloneBootDriftTold';
 import { setCloneBootDriftNudgeTold } from './setCloneBootDriftNudgeTold';
-import { setCloneBootSpawnedRef } from './setCloneBootSpawnedRef';
 
 const BOOT_V1 = [
   '<brief.say path=".agent/repo=.this/role=any/briefs/surf.md">',
@@ -40,17 +39,13 @@ const genActorWithCloneDrifted = (input: { bootNext: string }) => {
   mkdirSync(brainDir, { recursive: true });
   const bootMdPath = join(brainDir, 'boot.md');
   writeFileSync(bootMdPath, BOOT_V1);
-  const revision = genActorBootRevision({ actorDir })!;
-  const cloneDir = join(
-    actorDir,
-    'clones',
-    'serial=0000aaaa-1111-2222-3333-444455556666',
-  );
+  const serial = '0000aaaa-1111-2222-3333-444455556666';
+  genActorBootSpawned({ actorDir, serial });
+  const cloneDir = join(actorDir, 'clones', `serial=${serial}`);
   mkdirSync(cloneDir, { recursive: true });
-  setCloneBootSpawnedRef({ cloneDir, hash: revision.hash });
   writeFileSync(bootMdPath, input.bootNext);
   setActorBootDrifts({ actorDir, bootMdPathCurrent: bootMdPath });
-  return { actorDir, cloneDir };
+  return { actorDir, cloneDir, serial };
 };
 
 describe('setCloneBootDriftNudgeTold', () => {
@@ -67,9 +62,9 @@ describe('setCloneBootDriftNudgeTold', () => {
         return { first, toldAfterFirst, second };
       });
 
-      then('the first returns the nudge lines, addressed to the clone', () => {
+      then('the first returns the notice lines, which name the clone', () => {
         expect(result.first).not.toBeNull();
-        expect(result.first!.lines[0]).toEqual('😶 boot drift');
+        expect(result.first!.lines[0]).toEqual('😶 boot drift of @:driver');
         expect(result.first!.lines.join('\n')).toContain(
           'rhx clone say @:driver --what /compact',
         );

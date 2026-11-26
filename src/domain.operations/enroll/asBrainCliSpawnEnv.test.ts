@@ -59,7 +59,7 @@ describe('asBrainCliSpawnEnv', () => {
   });
 
   given('[case7] a caller env that holds the CLAUDE.md switch', () => {
-    // 🔴 the boot drift rides the boot revision dir's CLAUDE.md, loaded via `--add-dir`.
+    // 🔴 the boot drift rides the spawn boot dir's CLAUDE.md, loaded via `--add-dir`.
     //   an inherited switch would shut that load too, so a live clone could never take a
     //   boot edit. the brain dir doors stay shut by the actor's claudeMdExcludes instead
     when('[t0] the spawn env is built', () => {
@@ -82,7 +82,7 @@ describe('asBrainCliSpawnEnv', () => {
   });
 
   given('[case8] an argv that does not carry the boot flag', () => {
-    // 🔴 derived: with no boot in the argv there is no revision dir, so no add-dir load
+    // 🔴 derived: with no boot in the argv there is no spawn boot dir, so no add-dir load
     when('[t0] the spawn env is built', () => {
       const env = asBrainCliSpawnEnv({
         env: { PATH: '/usr/bin' },

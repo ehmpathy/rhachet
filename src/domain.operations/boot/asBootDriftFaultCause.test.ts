@@ -29,10 +29,15 @@ describe('asBootDriftFaultCause', () => {
     then(
       'it is collected as the cause, where its cause is an errno fault',
       () => {
-        const error = new MalfunctionError('a ref could not be read', {
-          path: '/a/boot.spawned.ref',
-          cause: Object.assign(new Error('ENOENT: absent'), { code: 'ENOENT' }),
-        });
+        const error = new MalfunctionError(
+          'a boot drift file could not be read',
+          {
+            path: '/a/boots/serial=abc/boot.md',
+            cause: Object.assign(new Error('ENOENT: absent'), {
+              code: 'ENOENT',
+            }),
+          },
+        );
         expect(asBootDriftFaultCause({ error })).toBe(error);
       },
     );
@@ -40,8 +45,8 @@ describe('asBootDriftFaultCause', () => {
 
   given('[case2b] a malfunction thrown for a broken invariant', () => {
     then('it is null, so the caller rethrows: no errno cause', () => {
-      const error = new MalfunctionError('a revision hash was malformed', {
-        hash: 'xyz',
+      const error = new MalfunctionError('a spawn boot meta was malformed', {
+        path: '/a/boots/serial=abc/boot.meta.json',
       });
       expect(asBootDriftFaultCause({ error })).toBeNull();
     });

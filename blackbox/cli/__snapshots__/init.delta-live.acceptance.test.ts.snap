@@ -10,8 +10,7 @@ exports[`init role delta → a delta actor with a live clone (acceptance) given:
    ├─ boot.md
    │  └─ upgraded — 1 role
    └─ drift
-      ├─ 1 spawn revision re-written
-      └─ 1 clone refers to it; a live one takes the drift at its next compaction
+      └─ 1 clone drift re-written; a live clone takes it at its next compaction
 
 💡 tip
    ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them

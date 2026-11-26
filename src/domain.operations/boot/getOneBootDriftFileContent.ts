@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { isNativeError } from 'node:util/types';
 
 /**
- * .what = read a boot drift file whole — a spawn ref, a latch, a revision's boot or drift
+ * .what = read a boot drift file whole — a latch, a clone's spawn boot or its drift
  * .why = every reader of the boot drift fails loud the same way, with the path (vision case=21),
  *        never as a raw fs error
  * .note = an explicit catch, not `MalfunctionError.wrap`: wrap (helpful-errors 1.7.5) rethrows a
@@ -19,7 +19,7 @@ export const getOneBootDriftFileContent = (input: { path: string }): string => {
   } catch (error) {
     throw new MalfunctionError('a boot drift file could not be read', {
       path: input.path,
-      hint: 'respawn the clone (`rhx enroll`): it boots on the current revision and reads no file of the old one',
+      hint: 'respawn the clone (`rhx enroll`): it boots on the current boot and reads no file of the old one',
       cause: isNativeError(error) ? error : new Error(String(error)),
     });
   }

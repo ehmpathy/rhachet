@@ -735,8 +735,8 @@ const performEnroll = async (input: {
     scope: { kind: 'actor', actorExid: exid },
   });
 
-  // a drift the render could not write is said aloud: live clones on that revision keep a stale
-  //   drift. the spawn still proceeds, since this clone boots its own fresh revision
+  // a drift the render could not write is said aloud: that live clone keeps a stale drift. the
+  //   spawn still proceeds, since this clone boots its own fresh spawn boot
   for (const line of asBootDriftFaultLines({ faults: drift?.faults ?? [] }))
     console.error(line);
 

@@ -1,16 +1,17 @@
 import { BOOT_DRIFT_CARRY_LINES_MAX } from '@src/domain.operations/boot/BOOT_DRIFT_CARRY_LINES_MAX';
-import { BOOT_REVISION_DIR_PREFIX } from '@src/domain.operations/boot/constants';
 
 import { BOOT_DRIFT_NUDGE_LINES } from './BOOT_DRIFT_NUDGE_LINES';
 import type { CloneBootDrift } from './CloneBootDrift';
 import { isBootDriftOverThreshold } from './isBootDriftOverThreshold';
 
 /**
- * .what = the tree a human or a clone reads for one clone's boot drift
- * .why = one shape for the inspector (`--of`) and the onStop nudge, so the two read alike
+ * .what = the tree a human reads for one clone's boot drift
+ * .why = one shape for the inspector (`--of`) and the onStop notice, so the two read alike
  *
- * .note = `for = nudge` speaks to the clone itself and names the two ways out; `for = inspect`
- *         speaks to an editor or an enroller and names the check a compacted clone must pass
+ * .note = `for = nudge` is the onStop notice: it reaches the human who watches the clone's
+ *         session (a hook `systemMessage`), never the clone itself, which cannot reliably compact
+ *         itself. it names the two ways out. `for = inspect` speaks to an editor or an enroller
+ *         and names the check a compacted clone must pass
  * .note = the copy never says the drift loaded: it reads disk, and cannot see the clone's memory
  */
 export const asCloneBootDriftLines = (input: {
@@ -18,26 +19,29 @@ export const asCloneBootDriftLines = (input: {
   address: string;
   drift: CloneBootDrift;
 }): string[] => {
+  const header = `😶 boot drift of ${input.address}`;
+
   // a clone from before boot drift: say so, plainly
   if (input.drift.kind === 'legacy')
     return [
-      `😶 boot drift of ${input.address}`,
+      header,
       '   └─ spawned before boot drift, so it holds its spawn boot until a respawn',
     ];
 
   // a resume: its boot is its session's, which no record names; never read as current
   if (input.drift.kind === 'resumed')
     return [
-      `😶 boot drift of ${input.address}`,
+      header,
       '   ├─ a resume holds the boot its session first recorded, which no record here names',
       '   └─ it takes no drift at any compaction; respawn it to take the current boot',
     ];
 
   // no drift: the clone holds the current boot
+  const spawnLine = `   ├─ spawn boot = ${input.drift.spawned}`;
   if (input.drift.kind === 'current')
     return [
-      `😶 boot drift of ${input.address}`,
-      `   ├─ spawn revision = ${BOOT_REVISION_DIR_PREFIX}${input.drift.revision}`,
+      header,
+      spawnLine,
       '   └─ no drift; the clone holds the current boot',
     ];
 
@@ -66,21 +70,23 @@ export const asCloneBootDriftLines = (input: {
           '   ├─ the boot also changed outside the briefs, which only a respawn takes',
         ]
       : [];
+  const respawnOnlyLine =
+    '   └─ to take it, respawn the clone — the new boot loads whole, from the shared cache';
 
   // past the cap, the drift file carries no block: a compaction takes naught, so respawn is the one cure
   const capLine = `past the ${BOOT_DRIFT_CARRY_LINES_MAX} line cap, the drift carries no block, so a compaction takes naught`;
   if (input.drift.capped && input.for === 'nudge')
     return [
-      '😶 boot drift',
+      header,
       `   ├─ ${blocksLine}`,
       `   ├─ ${sizeLine}`,
       `   ├─ ${capLine}`,
-      '   └─ to take it, respawn — the new boot loads whole, from the shared cache',
+      respawnOnlyLine,
     ];
   if (input.drift.capped)
     return [
-      `😶 boot drift of ${input.address}`,
-      `   ├─ spawn revision = ${BOOT_REVISION_DIR_PREFIX}${input.drift.revision}`,
+      header,
+      spawnLine,
       `   ├─ drift = ${input.drift.drift}`,
       `   ├─ ${blocksLine}`,
       `   ├─ ${sizeLine}`,
@@ -91,32 +97,31 @@ export const asCloneBootDriftLines = (input: {
   const isOutsideOnly = input.drift.outside && blocks === 0;
   if (isOutsideOnly && input.for === 'nudge')
     return [
-      '😶 boot drift',
+      header,
       `   ├─ ${blocksLine}`,
       `   ├─ ${sizeLine}`,
-      '   └─ to take it, respawn — the new boot loads whole, from the shared cache',
+      respawnOnlyLine,
     ];
   if (isOutsideOnly)
     return [
-      `😶 boot drift of ${input.address}`,
-      `   ├─ spawn revision = ${BOOT_REVISION_DIR_PREFIX}${input.drift.revision}`,
+      header,
+      spawnLine,
       `   ├─ drift = ${input.drift.drift}`,
       `   ├─ ${blocksLine}`,
       `   └─ ${sizeLine}; a compaction takes naught of it, so respawn the clone`,
     ];
 
-  // the nudge: to the clone, with the two ways out
+  // the notice: to the human who watches the clone, with the two ways out
   if (input.for === 'nudge')
     return [
-      '😶 boot drift',
+      header,
       `   ├─ ${blocksLine}`,
       `   ├─ ${sizeLine}`,
       ...outsideLines,
-      `   ├─ if you already hold drift = ${input.drift.drift}, a compaction took it; naught is owed`,
       '   └─ to take it',
-      '      ├─ /compact — reads the drift in, the conversation kept; a clone cannot run it, so ask your enroller to send it',
-      `      │  ├─ rhx clone say ${input.address} --what /compact`,
-      `      │  └─ after it, you should hold drift = ${input.drift.drift}`,
+      '      ├─ /compact — the clone reads the drift in, its conversation kept',
+      `      │  ├─ type it in this session, or send it: rhx clone say ${input.address} --what /compact`,
+      `      │  └─ after it, the clone holds drift = ${input.drift.drift}`,
       '      └─ respawn — the new boot loads whole, from the shared cache; the sure cure',
     ];
 
@@ -128,8 +133,8 @@ export const asCloneBootDriftLines = (input: {
       ]
     : [];
   return [
-    `😶 boot drift of ${input.address}`,
-    `   ├─ spawn revision = ${BOOT_REVISION_DIR_PREFIX}${input.drift.revision}`,
+    header,
+    spawnLine,
     `   ├─ drift = ${input.drift.drift}`,
     `   ├─ ${blocksLine}`,
     `   ├─ ${sizeLine}`,

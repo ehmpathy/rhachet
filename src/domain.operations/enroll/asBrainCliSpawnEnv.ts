@@ -69,16 +69,16 @@ export const BRAIN_CLI_SPINUP_ENV_DEFAULTS: Readonly<Record<string, string>> = {
  *         it is set after the caller env, so a caller value never overrides it
  * .note = a clone reads its boot from the system prompt (`asBrainCliSpawnArgs`), where the
  *         prompt cache can share it across sessions, and its boot drift from the `CLAUDE.md`
- *         of its boot revision dir (`asBrainCliSpawnArgsWithBootRevision`), which the brain
+ *         of its own spawn boot dir (`asBrainCliSpawnArgsWithBootSpawned`), which the brain
  *         cli re-reads at compaction. `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD='1'` opens
  *         that load. every brain dir door stays shut by the actor's `claudeMdExcludes`
  *         (`getClaudeMdExcludesList`), so the boot never loads twice
  * .note = `CLAUDE_CODE_DISABLE_CLAUDE_MDS` is dropped from the caller env, always: it would
  *         shut the drift's load too, so a clone could never take a boot edit
  * .note = the add-dir key is derived, never kept by convention: it is set only when `args`
- *         carry `BRAIN_CLI_BOOT_FLAG`. that flag rides every boot spawn, while the revision dir
- *         rides only a spawn on a revision; a resume or an actor with no boot opens the load
- *         with no revision to read. a typed boot value out of the spawn op would key it exactly
+ *         carry `BRAIN_CLI_BOOT_FLAG`. that flag rides every boot spawn, while the spawn boot dir
+ *         rides only a spawn that wrote one; a resume or an actor with no boot opens the load
+ *         with no spawn boot to read. a typed boot value out of the spawn op would key it exactly
  *         (fulcrum F23)
  * .note = the key is global to the brain cli: a passthrough `--add-dir <dir>` the human passes
  *         also loads `<dir>/CLAUDE.md` as clone memory. the human named that dir, so its memory
@@ -89,7 +89,7 @@ export const asBrainCliSpawnEnv = (input: {
   brainDir: string;
   args: string[];
 }): NodeJS.ProcessEnv => {
-  // open the add-dir memory load only where the argv carries the boot (and its revision dir)
+  // open the add-dir memory load only where the argv carries the boot (and its spawn boot dir)
   const isBootViaSystemPrompt = input.args.includes(BRAIN_CLI_BOOT_FLAG);
 
   // drop the parent-session markers, the host handoff keys, and any door switch from the

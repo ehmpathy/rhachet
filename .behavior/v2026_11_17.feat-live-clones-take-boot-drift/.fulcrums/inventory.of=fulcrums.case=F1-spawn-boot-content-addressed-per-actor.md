@@ -36,4 +36,8 @@ the bytes. the wisher may prefer the literal form.
 
 ## .verdict
 
-owed, from the wisher at vision review.
+reversed by the commander, review on ehmpathy/rhachet#770, 2026-11-23: scope the spawn boot per clone.
+each clone holds `<actor>/boots/serial=<serial>/` with its spawn `boot.md`, a `boot.meta.json` that
+names the spawn hash and the boot hash its drift was computed against, and the drift `CLAUDE.md`. the
+drift is cached per current boot hash, and `delClone` reaps the spawn boot, so no separate revision
+reap remains. F18, F20, F26 and F29 lapse with the revision model.

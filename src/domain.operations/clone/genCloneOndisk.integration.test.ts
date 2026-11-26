@@ -541,31 +541,30 @@ describe('genCloneOndisk.integration', () => {
     });
 
     when('[t0] genCloneOndisk runs', () => {
-      then('the actor holds the boot revision the clone spawned on', () => {
-        const hash = asBootContentHash({ bytes: BOOT });
-        const revisionDir = join(scene.actorDir, 'boots', `sha256=${hash}`);
-        expect(readFileSync(join(revisionDir, 'boot.md'), 'utf8')).toEqual(
-          BOOT,
+      then('the clone holds its own spawn boot, keyed by its serial', () => {
+        const spawnDir = join(
+          scene.actorDir,
+          'boots',
+          `serial=${scene.result.clone.serial}`,
         );
-        expect(readFileSync(join(revisionDir, 'CLAUDE.md'), 'utf8')).toEqual(
-          '',
-        );
+        expect(readFileSync(join(spawnDir, 'boot.md'), 'utf8')).toEqual(BOOT);
+        expect(readFileSync(join(spawnDir, 'CLAUDE.md'), 'utf8')).toEqual('');
+        expect(
+          JSON.parse(readFileSync(join(spawnDir, 'boot.meta.json'), 'utf8')),
+        ).toEqual({
+          spawned: { hash: asBootContentHash({ bytes: BOOT }) },
+          drift: { against: asBootContentHash({ bytes: BOOT }) },
+        });
       });
 
-      then(
-        'the clone dir refers to that revision by hash, and holds no copy of it',
-        () => {
-          const cloneDir = join(
-            scene.actorDir,
-            'clones',
-            `serial=${scene.result.clone.serial}`,
-          );
-          expect(
-            readFileSync(join(cloneDir, 'boot.spawned.ref'), 'utf8'),
-          ).toEqual(`${asBootContentHash({ bytes: BOOT })}\n`);
-          expect(existsSync(join(cloneDir, 'boot.md'))).toBe(false);
-        },
-      );
+      then('the clone dir holds no copy of the boot', () => {
+        const cloneDir = join(
+          scene.actorDir,
+          'clones',
+          `serial=${scene.result.clone.serial}`,
+        );
+        expect(existsSync(join(cloneDir, 'boot.md'))).toBe(false);
+      });
     });
   });
 
@@ -594,14 +593,8 @@ describe('genCloneOndisk.integration', () => {
 
       when('[t0] genCloneOndisk runs', () => {
         then(
-          'no revision is made and no ref is kept: the clone spawned on no boot to drift from',
+          'no spawn boot is made: the clone spawned on no boot to drift from',
           () => {
-            const cloneDir = join(
-              scene.actorDir,
-              'clones',
-              `serial=${scene.result.clone.serial}`,
-            );
-            expect(existsSync(join(cloneDir, 'boot.spawned.ref'))).toBe(false);
             expect(existsSync(join(scene.actorDir, 'boots'))).toBe(false);
           },
         );

@@ -98,7 +98,7 @@ exports[`rhx clone boot drift (acceptance) given: [case1] a repo with no clone e
 
 exports[`rhx clone boot drift (acceptance) given: [case2] a clone whose boot drifted past the threshold when: [t0] \`clone boot drift --of @:reviewer\` runs then: the tree matches snapshot 1`] = `
 "😶 boot drift of @:reviewer
-   ├─ spawn revision = sha256=2daaf0558332428b
+   ├─ spawn boot = 2daaf0558332428b
    ├─ drift = 713459dc785f201a
    ├─ 1 block drifted since this clone spawned (1 added)
    ├─ 252 lines of drift, over the 200 line threshold
@@ -117,7 +117,7 @@ exports[`rhx clone boot drift (acceptance) given: [case2] a clone whose boot dri
     "kind": "drifted",
     "drift": "713459dc785f201a",
     "capped": false,
-    "revision": "2daaf0558332428b",
+    "spawned": "2daaf0558332428b",
     "lines": 252,
     "counts": {
       "changed": 0,
@@ -134,32 +134,30 @@ exports[`rhx clone boot drift (acceptance) given: [case2] a clone whose boot dri
 "{
   "class": "ConstraintError",
   "message": "--output cannot ride --when hook.onStop",
-  "hint": "the hook answers by exit code and a stderr nudge; for json, inspect: rhx clone boot drift --of @:<slug|serial> --output json",
+  "hint": "the hook answers with a hook systemMessage; for json, inspect: rhx clone boot drift --of @:<slug|serial> --output json",
   "reachState": null,
   "reachCause": null,
   "metadata": {
-    "hint": "the hook answers by exit code and a stderr nudge; for json, inspect: rhx clone boot drift --of @:<slug|serial> --output json"
+    "hint": "the hook answers with a hook systemMessage; for json, inspect: rhx clone boot drift --of @:<slug|serial> --output json"
   }
 }
 "
 `;
 
-exports[`rhx clone boot drift (acceptance) given: [case2] a clone whose boot drifted past the threshold when: [t1] the onStop hook runs inside the clone, twice then: the nudge matches snapshot 1`] = `
-"😶 boot drift
+exports[`rhx clone boot drift (acceptance) given: [case2] a clone whose boot drifted past the threshold when: [t1] the onStop hook runs inside the clone, twice then: the notice matches snapshot 1`] = `
+"😶 boot drift of @:reviewer
    ├─ 1 block drifted since this clone spawned (1 added)
    ├─ 252 lines of drift, over the 200 line threshold
-   ├─ if you already hold drift = 713459dc785f201a, a compaction took it; naught is owed
    └─ to take it
-      ├─ /compact — reads the drift in, the conversation kept; a clone cannot run it, so ask your enroller to send it
-      │  ├─ rhx clone say @:reviewer --what /compact
-      │  └─ after it, you should hold drift = 713459dc785f201a
-      └─ respawn — the new boot loads whole, from the shared cache; the sure cure
-"
+      ├─ /compact — the clone reads the drift in, its conversation kept
+      │  ├─ type it in this session, or send it: rhx clone say @:reviewer --what /compact
+      │  └─ after it, the clone holds drift = 713459dc785f201a
+      └─ respawn — the new boot loads whole, from the shared cache; the sure cure"
 `;
 
 exports[`rhx clone boot drift (acceptance) given: [case3] a clone whose boot drifted past the 2000 line carry cap when: [t0] \`clone boot drift --of @:capped\` runs then: the tree matches snapshot 1`] = `
 "😶 boot drift of @:capped
-   ├─ spawn revision = sha256=2daaf0558332428b
+   ├─ spawn boot = 2daaf0558332428b
    ├─ drift = e34cf10635b25858
    ├─ 1 block drifted since this clone spawned (1 added)
    ├─ 2512 lines of drift, over the 200 line threshold
@@ -175,7 +173,7 @@ exports[`rhx clone boot drift (acceptance) given: [case3] a clone whose boot dri
     "kind": "drifted",
     "drift": "e34cf10635b25858",
     "capped": true,
-    "revision": "2daaf0558332428b",
+    "spawned": "2daaf0558332428b",
     "lines": 2512,
     "counts": {
       "changed": 0,
@@ -188,18 +186,17 @@ exports[`rhx clone boot drift (acceptance) given: [case3] a clone whose boot dri
 "
 `;
 
-exports[`rhx clone boot drift (acceptance) given: [case3] a clone whose boot drifted past the 2000 line carry cap when: [t1] the onStop hook runs inside the clone then: the nudge matches snapshot 1`] = `
-"😶 boot drift
+exports[`rhx clone boot drift (acceptance) given: [case3] a clone whose boot drifted past the 2000 line carry cap when: [t1] the onStop hook runs inside the clone then: the notice matches snapshot 1`] = `
+"😶 boot drift of @:capped
    ├─ 1 block drifted since this clone spawned (1 added)
    ├─ 2512 lines of drift, over the 200 line threshold
    ├─ past the 2000 line cap, the drift carries no block, so a compaction takes naught
-   └─ to take it, respawn — the new boot loads whole, from the shared cache
-"
+   └─ to take it, respawn the clone — the new boot loads whole, from the shared cache"
 `;
 
 exports[`rhx clone boot drift (acceptance) given: [case4] four clones of one actor the onStop hook must leave silent when: [t0] \`clone boot drift --of @:<serial>\` reads the slugless clone then: the tree matches snapshot 1`] = `
 "😶 boot drift of @:__SERIAL8__
-   ├─ spawn revision = sha256=2daaf0558332428b
+   ├─ spawn boot = 2daaf0558332428b
    ├─ drift = 47ecf0e142ec8df3
    ├─ 1 block drifted since this clone spawned (1 added)
    ├─ 17 lines of drift, under the 200 line threshold
@@ -210,7 +207,7 @@ exports[`rhx clone boot drift (acceptance) given: [case4] four clones of one act
 
 exports[`rhx clone boot drift (acceptance) given: [case4] four clones of one actor the onStop hook must leave silent when: [t2] \`clone boot drift --of\` reads each drift kind, as tree and json then: the current tree and json match snapshot 1`] = `
 "😶 boot drift of @:fresh
-   ├─ spawn revision = sha256=02c3c7f1730dd0e5
+   ├─ spawn boot = 02c3c7f1730dd0e5
    └─ no drift; the clone holds the current boot
 "
 `;
@@ -223,7 +220,7 @@ exports[`rhx clone boot drift (acceptance) given: [case4] four clones of one act
     "kind": "current",
     "drift": null,
     "capped": false,
-    "revision": "02c3c7f1730dd0e5",
+    "spawned": "02c3c7f1730dd0e5",
     "lines": 0,
     "counts": {
       "changed": 0,
@@ -279,7 +276,7 @@ exports[`rhx clone boot drift (acceptance) given: [case4] four clones of one act
     "kind": "drifted",
     "drift": "47ecf0e142ec8df3",
     "capped": false,
-    "revision": "2daaf0558332428b",
+    "spawned": "2daaf0558332428b",
     "lines": 17,
     "counts": {
       "changed": 0,
@@ -297,11 +294,11 @@ exports[`rhx clone boot drift (acceptance) given: [case5] three clones whose dri
 💥 MalfunctionError: a boot drift file could not be read
 
 {
-  "hint": "respawn the clone (\`rhx enroll\`): it boots on the current revision and reads no file of the old one",
-  "path": "/TMP_TEST_DIR/.agent/.actors/actor.via.hash=8967acd9/boots/sha256=0123456789abcdef/boot.md",
+  "hint": "respawn the clone (\`rhx enroll\`): it boots on the current boot and reads no file of the old one",
+  "path": "/TMP_TEST_DIR/.agent/.actors/actor.via.hash=8967acd9/boots/serial=__SERIAL__/boot.md",
   "cause": {
     "class": "Error",
-    "message": "ENOENT: no such file or directory, open '/TMP_TEST_DIR/.agent/.actors/actor.via.hash=8967acd9/boots/sha256=0123456789abcdef/boot.md'"
+    "message": "ENOENT: no such file or directory, open '/TMP_TEST_DIR/.agent/.actors/actor.via.hash=8967acd9/boots/serial=__SERIAL__/boot.md'"
   }
 }
 
@@ -315,7 +312,7 @@ exports[`rhx clone boot drift (acceptance) given: [case5] three clones whose dri
 💥 MalfunctionError: a boot drift file could not be read
 
 {
-  "hint": "respawn the clone (\`rhx enroll\`): it boots on the current revision and reads no file of the old one",
+  "hint": "respawn the clone (\`rhx enroll\`): it boots on the current boot and reads no file of the old one",
   "path": "/TMP_TEST_DIR/.agent/.actors/actor.via.hash=8967acd9/clones/serial=__SERIAL__/boot.drift.told",
   "cause": {
     "class": "Error",
@@ -334,7 +331,7 @@ exports[`rhx clone boot drift (acceptance) given: [case5] three clones whose dri
 
 {
   "hint": "run \`rhx init\` to re-write every drift; if a render is in flight, re-run this once it ends",
-  "path": "/TMP_TEST_DIR/.agent/.actors/actor.via.hash=8967acd9/boots/sha256=2daaf0558332428b/CLAUDE.md"
+  "path": "/TMP_TEST_DIR/.agent/.actors/actor.via.hash=8967acd9/boots/serial=__SERIAL__/CLAUDE.md"
 }
 
 [args] clone,boot,drift,--of,@:stale

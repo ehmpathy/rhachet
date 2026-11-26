@@ -12,7 +12,7 @@ describe('asCloneBootDriftLines', () => {
         address: '@:reviewer',
         drift: {
           kind: 'current',
-          revision: '0123456789abcdef',
+          spawned: '0123456789abcdef',
           drift: null,
           lines: 0,
           counts: COUNTS_NONE,
@@ -21,10 +21,10 @@ describe('asCloneBootDriftLines', () => {
         },
       });
 
-      then('it says there is no drift, and names its revision', () => {
+      then('it says there is no drift, and names its spawn boot', () => {
         expect(lines).toEqual([
           '😶 boot drift of @:reviewer',
-          '   ├─ spawn revision = sha256=0123456789abcdef',
+          '   ├─ spawn boot = 0123456789abcdef',
           '   └─ no drift; the clone holds the current boot',
         ]);
       });
@@ -80,7 +80,7 @@ describe('asCloneBootDriftLines', () => {
         address: '@:reviewer',
         drift: {
           kind: 'drifted',
-          revision: '0123456789abcdef',
+          spawned: '0123456789abcdef',
           drift: 'fedcba9876543210',
           lines: 212,
           counts: COUNTS_NONE,
@@ -111,7 +111,7 @@ describe('asCloneBootDriftLines', () => {
         () => {
           expect(lines.join('\n')).not.toContain('/compact');
           expect(lines.at(-1)).toEqual(
-            '   └─ to take it, respawn — the new boot loads whole, from the shared cache',
+            '   └─ to take it, respawn the clone — the new boot loads whole, from the shared cache',
           );
         },
       );
@@ -123,7 +123,7 @@ describe('asCloneBootDriftLines', () => {
         address: '@:reviewer',
         drift: {
           kind: 'drifted',
-          revision: '0123456789abcdef',
+          spawned: '0123456789abcdef',
           drift: 'fedcba9876543210',
           lines: 212,
           counts: COUNTS_NONE,
@@ -156,7 +156,7 @@ describe('asCloneBootDriftLines', () => {
         address: '@:reviewer',
         drift: {
           kind: 'drifted',
-          revision: '0123456789abcdef',
+          spawned: '0123456789abcdef',
           drift: 'fedcba9876543210',
           lines: 4,
           counts: COUNTS_NONE,
@@ -179,7 +179,7 @@ describe('asCloneBootDriftLines', () => {
     () => {
       const drift = {
         kind: 'drifted' as const,
-        revision: '0123456789abcdef',
+        spawned: '0123456789abcdef',
         drift: 'fedcba9876543210',
         lines: 230,
         counts: { changed: 1, added: 1, removed: 0 },
@@ -222,6 +222,16 @@ describe('asCloneBootDriftLines', () => {
           expect(lines).toContain('   └─ to take it');
           expect(lines).toMatchSnapshot();
         });
+
+        then(
+          'it speaks to the human who watches the clone: it names the say that compacts it',
+          () => {
+            expect(lines).toContain(
+              '      │  ├─ type it in this session, or send it: rhx clone say @:reviewer --what /compact',
+            );
+            expect(lines.join('\n')).not.toContain('you ');
+          },
+        );
       });
     },
   );
@@ -229,7 +239,7 @@ describe('asCloneBootDriftLines', () => {
   given('[case3b] a drift past the carry cap', () => {
     const drift = {
       kind: 'drifted' as const,
-      revision: '0123456789abcdef',
+      spawned: '0123456789abcdef',
       drift: 'fedcba9876543210',
       lines: 12034,
       counts: { changed: 1000, added: 0, removed: 0 },
@@ -279,7 +289,7 @@ describe('asCloneBootDriftLines', () => {
         address: '@:reviewer',
         drift: {
           kind: 'drifted',
-          revision: '0123456789abcdef',
+          spawned: '0123456789abcdef',
           drift: 'fedcba9876543210',
           lines: 200,
           counts: { changed: 1, added: 0, removed: 0 },

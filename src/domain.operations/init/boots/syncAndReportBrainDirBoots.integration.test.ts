@@ -3,15 +3,13 @@ import { getError, given, then, when } from 'test-fns';
 
 import { genSampleRepoWithRoles } from '@src/.test/assets/genSampleRepoWithRoles';
 import { ContextCli } from '@src/domain.objects/ContextCli';
-import { genActorBootRevision } from '@src/domain.operations/boot/genActorBootRevision';
-import { setCloneBootSpawnedRef } from '@src/domain.operations/clone/setCloneBootSpawnedRef';
+import { genActorBootSpawned } from '@src/domain.operations/boot/genActorBootSpawned';
 
 import {
   chmodSync,
   existsSync,
   mkdirSync,
   readFileSync,
-  rmSync,
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
@@ -137,11 +135,11 @@ describe('syncAndReportBrainDirBoots', () => {
   });
 
   given(
-    '[case4] two clones on two boot revisions, one of which cannot be written',
+    '[case4] two clones with spawn boots, one of which cannot be written',
     () => {
       when('[t0] a brief changes and the sweep runs', () => {
         then(
-          'the other revision takes the drift, and the exit code names the fault',
+          'the other clone takes the drift, and the exit code names the fault',
           async () => {
             // render once; a clone spawns on that boot; the brief changes; a second clone spawns
             const { repoPath, context } = genRepoWithRole({
@@ -159,13 +157,19 @@ describe('syncAndReportBrainDirBoots', () => {
               '.agent/repo=.this/role=any/briefs/core.md',
             );
             await syncAndReportBrainDirBoots({ repoPath, env }, context);
-            const revisionFaulted = genActorBootRevision({ actorDir })!;
+            const spawnedFaulted = genActorBootSpawned({
+              actorDir,
+              serial: 'aaaa',
+            })!;
             writeFileSync(briefPath, 'any brief body, second\n');
             await syncAndReportBrainDirBoots({ repoPath, env }, context);
-            const revisionOk = genActorBootRevision({ actorDir })!;
+            const spawnedOk = genActorBootSpawned({
+              actorDir,
+              serial: 'bbbb',
+            })!;
 
-            // the first revision cannot take a write; the brief changes again
-            chmodSync(revisionFaulted.revisionDir, 0o500);
+            // the first spawn boot cannot take a write; the brief changes again
+            chmodSync(spawnedFaulted.dir, 0o500);
             writeFileSync(briefPath, 'any brief body, third\n');
             try {
               const result = await syncAndReportBrainDirBoots(
@@ -174,54 +178,11 @@ describe('syncAndReportBrainDirBoots', () => {
               );
               expect(result.exitCode).toEqual(1);
               expect(
-                readFileSync(join(revisionOk.revisionDir, 'CLAUDE.md'), 'utf8'),
+                readFileSync(join(spawnedOk.dir, 'CLAUDE.md'), 'utf8'),
               ).toContain('any brief body, third');
             } finally {
-              chmodSync(revisionFaulted.revisionDir, 0o700);
+              chmodSync(spawnedFaulted.dir, 0o700);
             }
-          },
-        );
-      });
-    },
-  );
-
-  given(
-    '[case5] a clone whose spawn revision is gone from the actor dir',
-    () => {
-      when('[t0] a brief changes and the sweep runs', () => {
-        then(
-          'the exit code is clean: a gone revision is a caution, never a drift fault',
-          async () => {
-            // render once; a clone spawns on that boot; its revision is then removed
-            const { repoPath, context } = genRepoWithRole({
-              slug: 'sweep-drift-gone',
-            });
-            const env = genShimEnv({ dir: repoPath, version: '2.1.280' });
-            const actorDir = join(
-              repoPath,
-              REPO_ACTOR_BRAIN_DIR_REL,
-              '..',
-              '..',
-            );
-            await syncAndReportBrainDirBoots({ repoPath, env }, context);
-            const revisionGone = genActorBootRevision({ actorDir })!;
-            setCloneBootSpawnedRef({
-              cloneDir: join(actorDir, 'clones', 'serial=abc'),
-              hash: revisionGone.hash,
-            });
-            rmSync(revisionGone.revisionDir, { recursive: true });
-
-            // the brief changes; the sweep finds a ref with no revision to write
-            writeFileSync(
-              join(repoPath, '.agent/repo=.this/role=any/briefs/core.md'),
-              'any brief body, second\n',
-            );
-            const result = await syncAndReportBrainDirBoots(
-              { repoPath, env },
-              context,
-            );
-            expect(result.exitCode).toEqual(0);
-            expect(existsSync(revisionGone.revisionDir)).toEqual(false);
           },
         );
       });

@@ -1,4 +1,3 @@
-import { ConstraintError } from 'helpful-errors';
 import { asIsoTimeStamp, now } from 'iso-time';
 import { given, then, useBeforeAll, useThen, when, genTempDir } from 'test-fns';
 import { getUuid } from 'uuid-fns';
@@ -14,14 +13,12 @@ import {
   invokeRhachetCliBinary,
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 
-import { chmodSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { basename, dirname, join } from 'node:path';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 
-import { asBootContentHash } from '@src/domain.operations/boot/asBootContentHash';
-import { getActorBootCurrentPath } from '@src/domain.operations/boot/getActorBootCurrentPath';
-import { getActorBootRevisionPaths } from '@src/domain.operations/boot/getActorBootRevisionPaths';
+import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
+import { genActorBootSpawned } from '@src/domain.operations/boot/genActorBootSpawned';
 import { getCloneHistoryDir } from '@src/domain.operations/clone/getCloneHistoryDir';
-import { CLONE_BOOT_SPAWNED_REF_FILENAME } from '@src/domain.operations/clone/setCloneBootSpawnedRef';
 import { genSampleCloneOndisk } from '@src/.test/assets/genSampleCloneOndisk';
 
 /**
@@ -367,7 +364,7 @@ describe('rhx clone prune (acceptance)', () => {
 
       then('the apply confirms two clones reaped', () => {
         expect(applied.pruned.status).toEqual(0);
-        expect(applied.pruned.stdout).toContain('pruned = 2 dead clone(s)');
+        expect(applied.pruned.stdout).toContain('pruned: 2 dead clone(s)');
       });
 
       then('the DEAF watcher survives the reap, the DEAD clones are gone', () => {
@@ -425,6 +422,67 @@ describe('rhx clone prune (acceptance)', () => {
         // serial/since in each row are masked by asSnapshotSafe; the mode + count +
         // row shape lock against drift, the machine twin of the apply TREE at case2 t0
         expect(asSnapshotSafe(json.stdout)).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case2c] each clone holds its own spawn boot', () => {
+    // a DEAD clone and a DEAF clone, each with a spawn boot at `<actor>/boots/serial=<s>/`.
+    // the spawn boot lives and dies with its clone, so prune needs no reap of its own for it
+    const scene = useBeforeAll(async () => {
+      const dir = genTempDir({ slug: 'clone-prune-spawn-boot' });
+      setupEnrollFixture({ dir });
+      const doomed = await genSampleCloneOndisk({
+        repoPath: dir,
+        serial: getUuid(),
+        slug: 'doomed',
+        socketEligible: true,
+        spawnedAt: asIsoTimeStamp('2026-08-11T00:00:00Z'),
+      });
+      const watcher = await genSampleCloneOndisk({
+        repoPath: dir,
+        serial: getUuid(),
+        slug: 'watcher',
+        socketEligible: false,
+        spawnedAt: asIsoTimeStamp('2026-08-11T02:00:00Z'),
+      });
+      const brainDir = getBrainOndiskDir({ actorDir: doomed.actorDir });
+      mkdirSync(brainDir, { recursive: true });
+      writeFileSync(join(brainDir, 'boot.md'), 'paddle out at dawn\n');
+      const spawnedDoomed = genActorBootSpawned({
+        actorDir: doomed.actorDir,
+        serial: doomed.serial,
+      })!;
+      const spawnedWatcher = genActorBootSpawned({
+        actorDir: watcher.actorDir,
+        serial: watcher.serial,
+      })!;
+      return {
+        dir,
+        env: { PATH: process.env.PATH ?? '' },
+        spawnedDoomed,
+        spawnedWatcher,
+      };
+    });
+
+    when('[t0] `clone prune --mode apply` reaps the dead clone', () => {
+      const pruned = useThen('the apply reaps the dead clone', () =>
+        invokeRhachetCliBinary({
+          args: ['clone', 'prune', '--mode', 'apply'],
+          cwd: scene.dir,
+          env: scene.env,
+          logOnError: false,
+        }),
+      );
+
+      then('the dead clone spawn boot leaves disk with it', () => {
+        expect(pruned.status).toEqual(0);
+        expect(pruned.stdout).toContain('pruned: 1 dead clone(s)');
+        expect(existsSync(scene.spawnedDoomed.dir)).toBe(false);
+      });
+
+      then('the DEAF clone keeps its spawn boot', () => {
+        expect(existsSync(scene.spawnedWatcher.dir)).toBe(true);
       });
     });
   });
@@ -754,257 +812,6 @@ describe('rhx clone prune (acceptance)', () => {
         // the message is count-based + token-free, so a widened/renamed structured-
         // error field surfaces as a snapshot diff for a supervisor consumer
         expect(asSnapshotSafe(pruned.stderr)).toMatchSnapshot();
-      });
-    });
-  });
-
-  given('[case5] boot revisions outlive the clones that spawned on them', () => {
-    // three revisions under one actor: v1 held by a DEAF clone that stays, v2 held only
-    // by a DEAD clone this prune reaps, and the current boot that no clone holds yet
-    const v1 = 'boot v1\n';
-    const v2 = 'boot v2\n';
-    const vNow = 'boot now\n';
-    const scene = useBeforeAll(async () => {
-      const dir = genTempDir({ slug: 'clone-prune-revisions' });
-      setupEnrollFixture({ dir });
-      const stays = await genSampleCloneOndisk({
-        repoPath: dir,
-        serial: getUuid(),
-        slug: 'watcher',
-        socketEligible: false, // DEAF: a live jest pid, never reaped
-      });
-      const goner = await genSampleCloneOndisk({
-        repoPath: dir,
-        serial: getUuid(),
-        slug: 'doomed',
-        socketEligible: true, // DEAD: no server
-      });
-      const actorDir = stays.actorDir;
-
-      // the current boot, then a revision dir per boot
-      const bootCurrentPath = getActorBootCurrentPath({ actorDir });
-      mkdirSync(dirname(bootCurrentPath), { recursive: true });
-      writeFileSync(bootCurrentPath, vNow);
-      const dirOf = (bytes: string) =>
-        getActorBootRevisionPaths({
-          actorDir,
-          hash: asBootContentHash({ bytes }),
-        }).dir;
-      [v1, v2, vNow].forEach((bytes) => {
-        mkdirSync(dirOf(bytes), { recursive: true });
-        writeFileSync(join(dirOf(bytes), 'boot.md'), bytes);
-      });
-
-      // each clone names the revision it spawned on
-      writeFileSync(
-        join(stays.cloneDir, CLONE_BOOT_SPAWNED_REF_FILENAME),
-        `${asBootContentHash({ bytes: v1 })}\n`,
-      );
-      writeFileSync(
-        join(goner.cloneDir, CLONE_BOOT_SPAWNED_REF_FILENAME),
-        `${asBootContentHash({ bytes: v2 })}\n`,
-      );
-      return { dir, dirOf, env: { PATH: process.env.PATH ?? '' } };
-    });
-
-    when('[t0] `clone prune` plans the reap', () => {
-      const planned = useThen('the plan names the revision the goner held', () =>
-        invokeRhachetCliBinary({
-          args: ['clone', 'prune'],
-          cwd: scene.dir,
-          env: scene.env,
-          logOnError: false,
-        }),
-      );
-
-      then('v2 is planned; v1 and the current boot are not', () => {
-        expect(planned.status).toEqual(0);
-        expect(planned.stdout).toContain('boot revisions no clone refers to (1)');
-        expect(planned.stdout).toContain(
-          `sha256=${asBootContentHash({ bytes: v2 })}`,
-        );
-        expect(planned.stdout).not.toContain(
-          `sha256=${asBootContentHash({ bytes: v1 })}`,
-        );
-        expect(planned.stdout).not.toContain(
-          `sha256=${asBootContentHash({ bytes: vNow })}`,
-        );
-      });
-
-      then('the plan leaves every revision on disk', () => {
-        expect(existsSync(scene.dirOf(v2))).toBe(true);
-      });
-
-      then('the plan tree matches the snapshot', () => {
-        expect(asSnapshotSafe(planned.stdout)).toMatchSnapshot();
-      });
-    });
-
-    when('[t1] `clone prune --mode apply` reaps it', () => {
-      const applied = useThen('the apply reaps the goner and its revision', () =>
-        invokeRhachetCliBinary({
-          args: ['clone', 'prune', '--mode', 'apply', '--output', 'json'],
-          cwd: scene.dir,
-          env: scene.env,
-          logOnError: false,
-        }),
-      );
-
-      then('v2 is gone; v1 and the current boot remain', () => {
-        expect(applied.status).toEqual(0);
-        expect(existsSync(scene.dirOf(v2))).toBe(false);
-        expect(existsSync(scene.dirOf(v1))).toBe(true);
-        expect(existsSync(scene.dirOf(vNow))).toBe(true);
-      });
-
-      then('the machine twin names the reaped revision', () => {
-        const parsed = JSON.parse(applied.stdout) as {
-          count: number;
-          revisions: { actor: string; hash: string }[];
-        };
-        expect(parsed.count).toEqual(1);
-        expect(parsed.revisions.map((r) => r.hash)).toEqual([
-          asBootContentHash({ bytes: v2 }),
-        ]);
-      });
-
-      then('the apply json matches the snapshot', () => {
-        expect(asSnapshotSafe(applied.stdout)).toMatchSnapshot();
-      });
-    });
-  });
-
-  given('[case6] a boot revision that cannot be reaped', () => {
-    // one DEAD clone held the one unreferenced revision; the boots dir refuses a write, so
-    // the clone reaps and the revision does not. the failure names the revision by its hash
-    const v1 = 'boot v1\n';
-    const scene = useBeforeAll(async () => {
-      const dir = genTempDir({ slug: 'clone-prune-revision-stuck' });
-      setupEnrollFixture({ dir });
-      const goner = await genSampleCloneOndisk({
-        repoPath: dir,
-        serial: getUuid(),
-        slug: 'doomed',
-        socketEligible: true, // DEAD: no server
-      });
-      const revisionDir = getActorBootRevisionPaths({
-        actorDir: goner.actorDir,
-        hash: asBootContentHash({ bytes: v1 }),
-      }).dir;
-      mkdirSync(revisionDir, { recursive: true });
-      writeFileSync(join(revisionDir, 'boot.md'), v1);
-      writeFileSync(
-        join(goner.cloneDir, CLONE_BOOT_SPAWNED_REF_FILENAME),
-        `${asBootContentHash({ bytes: v1 })}\n`,
-      );
-
-      // the boots dir refuses a write, so its revision cannot be removed
-      // .note = a chmod is no bar to root; a root runner is refused loud, never passed
-      if (process.getuid?.() === 0)
-        throw new ConstraintError('this case needs a non-root runner', {
-          hint: 'run the acceptance suite as a non-root user',
-        });
-      const bootsDir = dirname(revisionDir);
-      chmodSync(bootsDir, 0o500);
-      return {
-        dir,
-        actorDir: goner.actorDir,
-        bootsDir,
-        revisionDir,
-        env: { PATH: process.env.PATH ?? '' },
-      };
-    });
-    afterAll(() => {
-      if (existsSync(scene.bootsDir)) chmodSync(scene.bootsDir, 0o700);
-    });
-
-    when('[t0] `clone prune --mode apply --output json` runs', () => {
-      const pruned = useThen('the apply fails loud as a machine error', () =>
-        invokeRhachetCliBinary({
-          args: ['clone', 'prune', '--mode', 'apply', '--output', 'json'],
-          cwd: scene.dir,
-          env: scene.env,
-          logOnError: false,
-        }),
-      );
-
-      then('it exits 1 and names the revision it could not reap, by its hash', () => {
-        expect(pruned.status).toEqual(1);
-        const parsed = JSON.parse(pruned.stderr) as {
-          class: string;
-          message: string;
-          metadata: { revisionsFailed: { hash: string }[] };
-        };
-        expect(parsed.class).toEqual('MalfunctionError');
-        expect(parsed.message).toContain('1 boot revision(s) could not be reaped');
-        expect(
-          parsed.metadata.revisionsFailed.map((revision) => revision.hash),
-        ).toEqual([asBootContentHash({ bytes: v1 })]);
-      });
-
-      then('the revision survives on disk', () => {
-        expect(existsSync(scene.revisionDir)).toBe(true);
-      });
-
-      then('the json error matches the snapshot', () => {
-        expect(asSnapshotSafe(pruned.stderr)).toMatchSnapshot();
-      });
-    });
-
-    when('[t1] the bar lifts, and the re-run the hint names is scoped to the actor', () => {
-      // the clone is gone now, so the actor holds zero clones and one orphan revision; the
-      //   sweep walks actors, never only the actors with clones, so the re-run still reaps it
-      const rerun = useThen('a plan, then an apply, each by @<actor>', () => {
-        chmodSync(scene.bootsDir, 0o700);
-        const actorAddress = `@${basename(scene.actorDir).slice('actor.via.'.length)}`;
-        const listed = invokeRhachetCliBinary({
-          args: ['clone', 'list'],
-          cwd: scene.dir,
-          env: scene.env,
-          logOnError: false,
-        });
-        const planned = invokeRhachetCliBinary({
-          args: ['clone', 'prune', actorAddress],
-          cwd: scene.dir,
-          env: scene.env,
-          logOnError: false,
-        });
-        const applied = invokeRhachetCliBinary({
-          args: ['clone', 'prune', actorAddress, '--mode', 'apply'],
-          cwd: scene.dir,
-          env: scene.env,
-          logOnError: false,
-        });
-        return { listed, planned, applied };
-      });
-
-      then('the actor holds no clone', () => {
-        expect(rerun.listed.status).toEqual(0);
-        expect(rerun.listed.stdout).not.toContain('@:doomed');
-      });
-
-      then('the plan names the orphan revision, with zero clones', () => {
-        expect(rerun.planned.status).toEqual(0);
-        expect(rerun.planned.stdout).toContain('boot revisions no clone refers to (1)');
-        expect(rerun.planned.stdout).toContain(
-          `sha256=${asBootContentHash({ bytes: v1 })}`,
-        );
-        expect(rerun.planned.stdout).toContain(
-          'plan = 0 dead clone(s) and 1 boot revision(s) would be pruned',
-        );
-      });
-
-      then('the apply reaps it, and the revision leaves disk', () => {
-        expect(rerun.applied.status).toEqual(0);
-        expect(rerun.applied.stdout).toContain(
-          'pruned = 0 dead clone(s) and 1 boot revision(s)',
-        );
-        expect(existsSync(scene.revisionDir)).toBe(false);
-      });
-
-      then('the plan and apply trees match the snapshot', () => {
-        expect(asSnapshotSafe(rerun.planned.stdout)).toMatchSnapshot();
-        expect(asSnapshotSafe(rerun.applied.stdout)).toMatchSnapshot();
       });
     });
   });

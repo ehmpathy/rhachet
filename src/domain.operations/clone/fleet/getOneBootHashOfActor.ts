@@ -20,6 +20,6 @@ export const getOneBootHashOfActor = (input: {
   const bootMdPath = getActorBootCurrentPath({ actorDir: input.actorDir });
   if (!existsSync(bootMdPath)) return null;
 
-  // the same identity a boot revision dir is named by
+  // the same identity a spawn boot meta names its boot by
   return asBootContentHash({ bytes: readFileSync(bootMdPath) });
 };

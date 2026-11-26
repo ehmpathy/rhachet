@@ -26,9 +26,9 @@ export const BRAIN_CLI_BOOT_FLAG = '--system-prompt-file';
  *     session could read it only if its whole first message matched an earlier one.
  *     the vendor default prompt is replaced, so rhachet owns the boot context whole
  *
- * .note = the spawn then points this argv at the actor's boot revision
- *   (`asBrainCliSpawnArgsWithBootRevision`, via `genCloneOndisk`): `--add-dir <revision>` before
- *   the boot flag, and the boot file swapped to the revision's own. `asBrainCliSpawnEnv` opens the
+ * .note = the spawn then points this argv at the clone's own spawn boot
+ *   (`asBrainCliSpawnArgsWithBootSpawned`, via `genCloneOndisk`): `--add-dir <bootSpawnedDir>`
+ *   before the boot flag, and the boot file swapped to that dir's own. `asBrainCliSpawnEnv` opens the
  *   add-dir `CLAUDE.md` door whenever this argv carries `BRAIN_CLI_BOOT_FLAG`, so the drift loads
  *   as memory while the boot loads once, as the system prompt; the `claudeMdExcludes` keep every
  *   other `CLAUDE.md` out. the argv carries the path; only the file's bytes reach the api

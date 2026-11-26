@@ -13,8 +13,8 @@
 #         raw request is the record; a brain's self-report is no measure
 #
 # .note = --door add-dir measures the drift door instead: the sentinel lands
-#         in the CLAUDE.md of the boot revision the clone spawned on (its
-#         `boot.spawned.ref`), and the verdict reads the messages, where
+#         in the CLAUDE.md of the clone's own spawn boot
+#         (`boots/serial=<serial>/`), and the verdict reads the messages, where
 #         memory rides. the same run counts how often the boot's intro marker
 #         reaches turn 1, so a boot that loads twice fails loud
 #
@@ -42,7 +42,7 @@ show_help() {
   echo "   │  ├─ --model    the brain model; haiku when absent"
   echo "   │  └─ --door     where the sentinel lands; system when absent"
   echo "   │     ├─ system   the actor's boot.md, read as the system prompt"
-  echo "   │     └─ add-dir  the clone's boot revision CLAUDE.md, read as memory"
+  echo "   │     └─ add-dir  the clone's spawn boot CLAUDE.md, read as memory"
   echo "   ├─ exits"
   echo "   │  ├─ 0 = measured, and the verdict is ✓ or ✗"
   echo "   │  ├─ 1 = the measure failed — no clone, no request bodies, or a wait ran out"
@@ -284,13 +284,11 @@ fi
 # the file the sentinel lands in: the actor's boot, or the clone's boot revision drift
 TARGET="$BOOT"
 if [[ "$DOOR" == "add-dir" ]]; then
-  if [[ ! -f "$CLONE_DIR/boot.spawned.ref" ]]; then
-    fail kind=malfunction what="the probe clone holds no boot.spawned.ref" hint="rebuild (npm run build); the clone must spawn on a boot revision"
-  fi
-  REVISION_HASH="$(tr -d '[:space:]' < "$CLONE_DIR/boot.spawned.ref")"
-  TARGET="$ACTOR_DIR/boots/sha256=$REVISION_HASH/CLAUDE.md"
+  # the clone's own spawn boot dir, named by its serial
+  CLONE_SERIAL="${CLONE_DIR##*/serial=}"
+  TARGET="$ACTOR_DIR/boots/serial=$CLONE_SERIAL/CLAUDE.md"
   if [[ ! -f "$TARGET" ]]; then
-    fail kind=malfunction what="the clone's boot revision holds no CLAUDE.md" detail="$TARGET"
+    fail kind=malfunction what="the clone's spawn boot holds no CLAUDE.md" detail="$TARGET" hint="rebuild (npm run build); the clone must spawn with a spawn boot"
   fi
 fi
 cp "$TARGET" "$LOGDIR/target.before"

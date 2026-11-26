@@ -1,13 +1,14 @@
 import type { BootDeltaCounts } from '@src/domain.operations/boot/BootDeltaCounts';
 
 /**
- * .what = the boot drift of one clone, as its record and the boots on disk say
+ * .what = the boot drift of one clone, as its spawn boot and its actor's current boot say
  * .why = the reader (`getOneCloneBootDrift`), the nudge decision, and the readout each speak this
  *        one shape, so the three cannot drift apart
  *
  * .note = `legacy` spawned before boot drift; `resumed` holds the boot its resumed session first
  *         recorded, which no record names; `current` holds the current boot; `drifted` holds an
- *         older one, and its drift rides the revision's `CLAUDE.md`
+ *         older one, and its drift rides the `CLAUDE.md` of its spawn boot dir
+ * .note = `spawned` is the hash of the boot the clone spawned on
  * .note = `capped` says the drift ran past `BOOT_DRIFT_CARRY_LINES_MAX`, so its `CLAUDE.md`
  *         carries a stub and no block: a compaction takes naught, and only a respawn takes the boot
  */
@@ -16,7 +17,7 @@ export type CloneBootDrift =
   | { kind: 'resumed' }
   | {
       kind: 'current';
-      revision: string;
+      spawned: string;
       drift: null;
       lines: number;
       counts: BootDeltaCounts;
@@ -25,7 +26,7 @@ export type CloneBootDrift =
     }
   | {
       kind: 'drifted';
-      revision: string;
+      spawned: string;
       drift: string;
       lines: number;
       counts: BootDeltaCounts;

@@ -169,7 +169,7 @@ const setActorSettingsRepoWithinLock = async (input: {
   });
 
   // exclude every brain dir door, the actor's own too: a clone boots from its system prompt
-  //   and reads its drift from its boot revision dir, so a door would load the boot twice
+  //   and reads its drift from its spawn boot dir, so a door would load the boot twice
   //   or load another actor's corpus beside it (D5, D12)
   const claudeMdExcludes = getClaudeMdExcludesList();
 

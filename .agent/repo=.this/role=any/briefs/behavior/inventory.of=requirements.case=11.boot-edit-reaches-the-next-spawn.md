@@ -22,25 +22,27 @@ spawn half is unchanged.
 
 the boot reaches a clone as `--system-prompt-file`, read once at spawn, and claude does not re-read it
 at a compaction (measured with `rhx boot.compact.probe`, 2026-11-02, haiku). so the edit takes another
-door: each clone spawns on a boot revision, `<actor>/boots/sha256=<hash>/`, which holds the spawn bytes
-and a drift `CLAUDE.md` loaded via `--add-dir`. every render re-writes the drift of each revision, and
-a compaction re-reads it: measured with `rhx boot.compact.probe --door add-dir`, 2026-11-17, haiku — the
-request after `/compact` held a line added to the drift after spawn, in its messages, with the system
-block unchanged and the boot present once.
+door: each clone spawns with its own spawn boot, `<actor>/boots/serial=<serial>/`, which holds the
+spawn bytes (`boot.md`), a `boot.meta.json` that names their hash, and a drift `CLAUDE.md` loaded via
+`--add-dir`. every render re-writes the drift of each spawn boot whose cached drift was computed against
+another boot hash, and a compaction re-reads it: measured with `rhx boot.compact.probe --door add-dir`,
+2026-11-17, haiku — the request after `/compact` held a line added to the drift after spawn, in its
+messages, with the system block unchanged and the boot present once. a prune of the clone reaps its
+spawn boot.
 
 a `--resume` reuses the system prompt its session first recorded (measured with
-`rhx boot.resume.probe`, 2026-11-03), so a resume is no new spawn for this requirement. today a resume
-spawns on the current revision, so its drift reads empty while the session holds its first boot: the
-carry-over to the session's own revision is owed
+`rhx boot.resume.probe`, 2026-11-03), so a resume is no new spawn for this requirement. a resume writes
+no spawn boot, only a marker that its baseline is unknown, so it is never told it is current: the
+carry-over of the session's own spawn boot is owed
 (`.dream/v2026_11_17.feat.resume-carries-its-session-boot-revision.md`).
 
 ## .clamp
 
-- `src/domain.operations/clone/genCloneOndisk.ts` — a clone spawns on a boot revision, and keeps a ref
-- `src/domain.operations/enroll/asBrainCliSpawnArgsWithBootRevision.ts` — `--add-dir <revision>` and
-  the revision's `boot.md` as `--system-prompt-file`
+- `src/domain.operations/clone/genCloneOndisk.ts` — a clone spawns with its own spawn boot
+- `src/domain.operations/enroll/asBrainCliSpawnArgsWithBootSpawned.ts` — `--add-dir <spawn boot dir>`
+  and its `boot.md` as `--system-prompt-file`
 - `src/domain.operations/boot/setBrainDirBoot.ts` — `rhx init` re-renders `boot.md` in place, then
-  re-writes the drift of every revision of the actor (`setActorBootDrifts`)
+  re-writes the drift of every spawn boot of the actor (`setActorBootDrifts`)
 - `src/domain.operations/enroll/getClaudeMdExcludesList.ts` — every brain dir door shut, so the boot
   loads once
 
@@ -48,7 +50,7 @@ carry-over to the session's own revision is owed
 
 | tier | test | status |
 |---|---|---|
-| acceptance, key-free | `blackbox/cli/enroll.acceptance.test.ts` "owns the system prompt" [case2] — the WRITE half: after a brief edit and `rhx init --hooks`, the first spawn's revision boot is unchanged, its drift carries the edit, and the next spawn boots a new revision that holds the edit whole; no new actor dir | proven |
+| acceptance, key-free | `blackbox/cli/enroll.acceptance.test.ts` "owns the system prompt" [case2] — the WRITE half: after a brief edit and `rhx init --hooks`, the first clone's spawn boot is unchanged, its drift carries the edit, and the next spawn boots with the edit whole; no new actor dir | proven |
 | acceptance | `blackbox/cli/brain-dir-boot.journey.acceptance.test.ts` [t4] — the RE-READ half: the live `[t3]` clone, after `/compact`, quotes both its spawn sentinel and the new one | owed in ci: runs on `BRAIN_LIVE_SCOPE=all` only, since a live clone reply spends the paid key |
 | skill | `rhx boot.compact.probe --door add-dir` — the re-read half, measured by hand on a real clone, logs under `.log/role=any/` | ✓ 2026-11-17 |
 | — | the resume carry-over | owed, per the dream above |
@@ -57,4 +59,5 @@ carry-over to the session's own revision is owed
 
 the approved vision of `.behavior/v2026_11_02.fix-boot-briefs-cacheable`, 2026-11-02, which rules the
 boot's door may move while the corpus stays whole; amended by the wish and approved vision of
-`.behavior/v2026_11_17.feat-live-clones-take-boot-drift`, 2026-11-17.
+`.behavior/v2026_11_17.feat-live-clones-take-boot-drift`, 2026-11-17, and by the review on
+ehmpathy/rhachet#770, 2026-11-23, which scoped the spawn boot per clone.

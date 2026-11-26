@@ -11,6 +11,7 @@ import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActo
 import { getActorsRootDir } from '@src/domain.operations/actor/enrolled/getActorsRootDir';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
 import { getOneActorOndiskExid } from '@src/domain.operations/actor/enrolled/getOneActorOndiskExid';
+import { delActorBootSpawned } from '@src/domain.operations/boot/delActorBootSpawned';
 import { getHomeHash } from '@src/infra/host/getHomeHash';
 import { getOneRepoPath } from '@src/infra/host/getOneRepoPath';
 
@@ -25,7 +26,7 @@ import {
 import { computeCloneSocketOmissionReason } from './computeCloneSocketOmissionReason';
 import { delCloneSpawn } from './delCloneSpawn';
 import { delCloneStagedDir } from './delCloneStagedDir';
-import { genCloneBootRevisionForSpawn } from './genCloneBootRevisionForSpawn';
+import { genCloneBootSpawnedForSpawn } from './genCloneBootSpawnedForSpawn';
 import { genCloneHistoryLink } from './genCloneHistoryLink';
 import { genCloneSerial } from './genCloneSerial';
 import { type CloneSpawnHandle, genCloneSpawn } from './genCloneSpawn';
@@ -247,9 +248,10 @@ export const genCloneOndisk = async (
   // and the history link routes this clone to it (D8)
   mkdirSync(brainDir, { recursive: true });
 
-  // spawn on the actor's boot revision, recorded by hash in the staged dir
-  const { args } = genCloneBootRevisionForSpawn({
+  // spawn on the clone's own copy of the actor's boot, keyed by its serial
+  const { args } = genCloneBootSpawnedForSpawn({
     actorDir,
+    serial,
     stagedCloneDir: tempDir,
     args: input.args,
   });
@@ -308,6 +310,7 @@ export const genCloneOndisk = async (
           : genPtyCloneHostFromProcess()),
     },
   ).catch((error: unknown) => {
+    delActorBootSpawned({ actorDir, serial });
     delCloneStagedDir({ cloneDir: tempDir });
     throw error;
   });
@@ -339,12 +342,13 @@ export const genCloneOndisk = async (
         serial,
       });
     } catch (error) {
-      // a concurrent racer won the slug — reap this loser's whole spawn + dir
+      // a concurrent racer won the slug — reap this loser's whole spawn + dir + spawn boot
       await delCloneSpawn({
         spawn,
         socketPath,
         dir: tempDir,
       });
+      delActorBootSpawned({ actorDir, serial });
       throw error;
     }
   }

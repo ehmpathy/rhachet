@@ -20,7 +20,6 @@ import { asBootGuardReportLines } from './asBootGuardReportLines';
 import { asExitCodeForBrainDirSyncFailures } from './asExitCodeForBrainDirSyncFailures';
 import { asExitCodeWithDriftFaults } from './asExitCodeWithDriftFaults';
 import { findsertRepoThisRoleAnyBootGuard } from './findsertRepoThisRoleAnyBootGuard';
-import { getAllBrainDirSyncReports } from './getAllBrainDirSyncReports';
 import { syncBootsForBrainDirs } from './syncBootsForBrainDirs';
 
 /**
@@ -118,15 +117,12 @@ export const syncAndReportBrainDirBoots = async (
   const isManifestRepo = existsSync(
     getActorsManifestPath({ repoPath: input.repoPath }),
   );
-  // each render joined to the clones that refer to its revisions
-  const reports = await getAllBrainDirSyncReports({ renders });
-  for (const { render, driftReach } of reports) {
+  for (const render of renders) {
     const lines = asBrainDirSyncReportLines({
       render,
       symlink: render.scope.kind === 'repo' ? symlink : null,
       repoActorBrainDirRel,
       isManifestRepo,
-      driftReach,
     });
     if (lines.length === 0) continue;
     for (const line of lines) console.log(line);
@@ -140,8 +136,8 @@ export const syncAndReportBrainDirBoots = async (
 
   // a drift not written is a fault the human must see in the exit too: its clones keep a stale drift
   const exitCodeOfFailures = asExitCodeForBrainDirSyncFailures({ failures });
-  const isDriftFaulted = reports.some(
-    (report) => asBootDriftFaultsOfSync(report).length > 0,
+  const isDriftFaulted = renders.some(
+    (render) => asBootDriftFaultsOfSync({ render }).length > 0,
   );
   return {
     exitCode: asExitCodeWithDriftFaults({ exitCodeOfFailures, isDriftFaulted }),

@@ -19,11 +19,11 @@ import { setBrainDirPointerFiles } from './setBrainDirPointerFiles';
 
 /**
  * .what = render roles into one brain dir's `boot.md`, then its pointer files, then re-write the
- *         drift of every boot revision its actor holds
+ *         drift of every clone of its actor that holds a spawn boot
  * .why = a clone boots from its brain dir; the corpus is written at render time, never
  *        per session, so every clone of one brain dir reads the same bytes
  *
- * .note = the drift write reaches past the brain dir, into the actor's `boots/sha256=*` dirs
+ * .note = the drift write reaches past the brain dir, into each clone's `boots/serial=*` dir
  *         (`setActorBootDrifts`): a live clone of the actor takes the new boot at its next
  *         compaction. the outcome rides back as `drift`, null for a brain dir with no actor
  *
@@ -92,7 +92,7 @@ export const setBrainDirBoot = async (input: {
     brainDir: input.brainDir,
   });
 
-  // carry the new boot to every live clone of the actor, as the drift beside its revision.
+  // carry the new boot to every live clone of the actor, as the drift beside its spawn boot.
   //   the sweep and its delta load here, on demand: a `--help` or a render-free call never
   //   reaches them (`rule.require.thinnest-import-path`)
   const actorDir = getActorOndiskDirOfBrainDir({ brainDir: input.brainDir });

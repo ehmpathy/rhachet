@@ -18,7 +18,7 @@ const rowBare: ClonePruneRow = {
 describe('asClonePruneView', () => {
   given('[case1] no prunable clones', () => {
     when('[t0] a plan view is built', () => {
-      const view = asClonePruneView({ rows: [], revisions: [], mode: 'plan' });
+      const view = asClonePruneView({ rows: [], mode: 'plan' });
 
       then('the empty-state line names there is naught to prune', () => {
         expect(view.tree).toContain('(no dead clones to prune)');
@@ -36,7 +36,6 @@ describe('asClonePruneView', () => {
     when('[t0] a PLAN view is built', () => {
       const view = asClonePruneView({
         rows: [rowNamed, rowBare],
-        revisions: [],
         mode: 'plan',
       });
 
@@ -88,13 +87,12 @@ describe('asClonePruneView', () => {
     when('[t1] an APPLY view is built', () => {
       const view = asClonePruneView({
         rows: [rowNamed, rowBare],
-        revisions: [],
         mode: 'apply',
       });
 
       then('the apply confirms what was pruned', () => {
         expect(view.data.mode).toEqual('apply');
-        expect(view.tree).toContain('pruned = 2 dead clone(s)');
+        expect(view.tree).toContain('pruned: 2 dead clone(s)');
         expect(view.tree).not.toContain('--mode apply');
       });
 
@@ -103,71 +101,4 @@ describe('asClonePruneView', () => {
       });
     });
   });
-
-  given(
-    '[case3] a prunable clone and two boot revisions no clone refers to',
-    () => {
-      const revisions = [
-        { actor: 'hash=2e77f741', hash: '0123456789abcdef' },
-        { actor: 'repo=ambient', hash: 'fedcba9876543210' },
-      ];
-
-      when('[t0] a PLAN view is built', () => {
-        const view = asClonePruneView({
-          rows: [rowNamed],
-          revisions,
-          mode: 'plan',
-        });
-
-        then(
-          'each revision is a row under its own branch, by actor and hash',
-          () => {
-            expect(view.tree).toContain(
-              'boot revisions no clone refers to (2)',
-            );
-            expect(view.tree).toContain(
-              '@hash=2e77f741  sha256=0123456789abcdef',
-            );
-            expect(view.tree).toContain(
-              '@repo=ambient  sha256=fedcba9876543210',
-            );
-            expect(view.tree).toContain(
-              'plan = 1 dead clone(s) and 2 boot revision(s) would be pruned — re-run with --mode apply to remove',
-            );
-          },
-        );
-
-        then('the machine twin carries the revisions', () => {
-          expect(view.data.revisions).toEqual(revisions);
-          expect(view.data.count).toEqual(1);
-        });
-
-        then('the plan tree matches the snapshot', () => {
-          expect(view.tree).toMatchSnapshot();
-        });
-      });
-
-      when('[t1] no clone is prunable, but a revision is', () => {
-        const view = asClonePruneView({
-          rows: [],
-          revisions: [revisions[0]!],
-          mode: 'apply',
-        });
-
-        then('the revision shows, never the empty-state line', () => {
-          expect(view.tree).not.toContain('(no dead clones to prune)');
-          expect(view.tree).toContain(
-            '@hash=2e77f741  sha256=0123456789abcdef',
-          );
-          expect(view.tree).toContain(
-            'pruned = 0 dead clone(s) and 1 boot revision(s)',
-          );
-        });
-
-        then('the apply tree matches the snapshot', () => {
-          expect(view.tree).toMatchSnapshot();
-        });
-      });
-    },
-  );
 });

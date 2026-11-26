@@ -34,7 +34,7 @@ describe('getClaudeMdExcludesList', () => {
       );
 
       then(
-        'no entry, matched as a glob, hides a boot revision drift — while each brain dir door is hidden',
+        'no entry, matched as a glob, hides a spawn boot drift — while each brain dir door is hidden',
         () => {
           const isExcluded = picomatch(getClaudeMdExcludesList(), {
             dot: true,
@@ -44,12 +44,12 @@ describe('getClaudeMdExcludesList', () => {
           // the drift a clone must read, by its absolute path and by its repo-relative one
           expect(
             isExcluded(
-              `${repo}/.agent/.actors/actor.via.hash=abc/boots/sha256=0123456789abcdef/CLAUDE.md`,
+              `${repo}/.agent/.actors/actor.via.hash=abc/boots/serial=0000aaaa-1111-2222-3333-444455556666/CLAUDE.md`,
             ),
           ).toBe(false);
           expect(
             isExcluded(
-              '.agent/.actors/actor.via.hash=abc/boots/sha256=0123456789abcdef/CLAUDE.md',
+              '.agent/.actors/actor.via.hash=abc/boots/serial=0000aaaa-1111-2222-3333-444455556666/CLAUDE.md',
             ),
           ).toBe(false);
 

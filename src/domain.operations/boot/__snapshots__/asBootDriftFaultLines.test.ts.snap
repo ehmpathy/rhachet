@@ -3,8 +3,8 @@
 exports[`asBootDriftFaultLines given: [case2] two faults then: one caution header, a row per fault, and the fix 1`] = `
 [
   "🟡 a boot drift was not written; this clone still spawns, but live clones keep a stale drift",
-  "   ├─ ✗ in sha256=0123456789abcdef/, drift not written (EACCES) — its clones keep their prior drift",
-  "   ├─ ✗ in clones/, a spawn ref could not be read (EISDIR)",
+  "   ├─ ✗ in serial=aaaa/, drift not written (EACCES) — the clone keeps its prior drift",
+  "   ├─ ✗ in serial=bbbb/, drift not written, the current boot could not be read (EISDIR) — the clone keeps its prior drift",
   "   └─ to fix, run \`rhx init\`, which re-writes every drift",
 ]
 `;

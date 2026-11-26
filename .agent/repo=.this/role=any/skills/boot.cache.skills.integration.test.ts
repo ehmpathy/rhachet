@@ -59,13 +59,15 @@ const runSkill = (input: {
       },
     },
   );
-  // mask the repo root, each run's timestamped log dir, and each run's pid-keyed sentinel
+  // mask the repo root, each run's timestamped log dir, each run's pid-keyed sentinel, and the
+  //   pid-keyed probe slug a spawn boot dir is named by
   const mask = (text: string): string =>
     text
       .split(REPO_ROOT)
       .join('<repo>')
       .replace(/\/\d{8}T\d{6}Z\.\d+/g, '/<run>')
-      .replace(/\b(KELP|REEF)-\d+-(TIDE|SWELL)\b/g, '$1-<pid>-$2');
+      .replace(/\b(KELP|REEF)-\d+-(TIDE|SWELL)\b/g, '$1-<pid>-$2')
+      .replace(/\bcompactprobe-\d+\b/g, 'compactprobe-<pid>');
   return {
     status: result.status,
     stdout: mask(result.stdout),
@@ -142,7 +144,7 @@ const asStubCompactBody = (input: { sayExit: number }): string =>
  * .why = `reread` sends the file of the moment (so the request after /compact holds the edit),
  *   `kept` sends the file of spawn; the two verdicts of the probe follow
  * .note = `door = system` puts the boot.md in the system block; `door = add-dir` also writes a
- *   spawn ref and a revision drift CLAUDE.md, and sends that CLAUDE.md as the first message, apart
+ *   spawn boot drift CLAUDE.md, and sends that CLAUDE.md as the first message, apart
  *   from the ask, as claude loads an add-dir CLAUDE.md
  */
 const asStubCompactRunBody = (input: {
@@ -150,7 +152,7 @@ const asStubCompactRunBody = (input: {
   door: 'system' | 'add-dir';
 }): string => {
   const spawn = input.boot === 'kept' ? '.spawn' : '';
-  const drift = '"$actor/boots/sha256=0123456789abcdef/CLAUDE.md"';
+  const drift = '"$actor/boots/serial=$slug/CLAUDE.md"';
   return [
     'actor=".agent/.actors/actor.via.hash=stub"',
     'if [[ "$1 $2" == "rhx enroll" ]]; then',
@@ -161,11 +163,10 @@ const asStubCompactRunBody = (input: {
     // the boot holds the intro marker once, as a rendered boot does
     `  printf 'a boot from rhachet/intro\\n' > "$actor/brain/.claude/boot.md"`,
     '  cp "$actor/brain/.claude/boot.md" "$actor/brain/.claude/boot.md.spawn"',
-    // the add-dir door: a spawn ref, and the drift CLAUDE.md of that revision
+    // the add-dir door: the drift CLAUDE.md of the clone's own spawn boot
     ...(input.door === 'add-dir'
       ? [
-          `  printf '0123456789abcdef\\n' > "$actor/clones/serial=$slug/boot.spawned.ref"`,
-          '  mkdir -p "$actor/boots/sha256=0123456789abcdef"',
+          '  mkdir -p "$actor/boots/serial=$slug"',
           `  printf 'a drift\\n' > ${drift}`,
           `  cp ${drift} ${drift.replace(/"$/, '.spawn"')}`,
         ]
@@ -928,7 +929,9 @@ describe('boot.cache.skills', () => {
       then('it exits 0 with the ✓ add-dir verdict, read from the messages', () => {
         expect(result.status).toEqual(0);
         expect(result.stdout).toContain('--door add-dir');
-        expect(result.stdout).toContain('boots/sha256=0123456789abcdef/CLAUDE.md');
+        expect(result.stdout).toContain(
+          'boots/serial=compactprobe-<pid>/CLAUDE.md',
+        );
         expect(result.stdout).toContain(
           '[3] turn 2 · sentinel in system = no · sentinel in messages = yes',
         );
@@ -981,7 +984,7 @@ describe('boot.cache.skills', () => {
       });
     });
 
-    when('[t12] --door add-dir, and the clone holds no spawn ref', () => {
+    when('[t12] --door add-dir, and the clone holds no spawn boot', () => {
       const result = useThen('it runs', () =>
         runSkill({
           skill: 'boot.compact.probe',
@@ -994,7 +997,7 @@ describe('boot.cache.skills', () => {
       then('it fails as a named malfunction that names the rebuild', () => {
         expect(result.status).toEqual(1);
         expect(result.stderr).toContain(
-          '💥 MalfunctionError: the probe clone holds no boot.spawned.ref',
+          "💥 MalfunctionError: the clone's spawn boot holds no CLAUDE.md",
         );
         expect(result.stderr).toMatchSnapshot();
       });

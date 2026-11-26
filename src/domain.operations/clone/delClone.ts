@@ -5,13 +5,15 @@ import { readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { getActorOndiskDir } from '../actor/enrolled/getActorOndiskDir';
 import { getActorsIndexDir } from '../actor/enrolled/getActorsIndexDir';
+import { delActorBootSpawned } from '../boot/delActorBootSpawned';
 import { getCloneDir } from './getCloneDir';
 import { getCloneHistoryDir } from './getCloneHistoryDir';
 import { getCloneSocketPath } from './getCloneSocketPath';
 
 /**
- * .what = reap one DEAD clone's whole on-disk footprint — its dir, its socket
- *   file, and its global index entries (`.serials/`, `.slugs/`, `.exids/`)
+ * .what = reap one DEAD clone's whole on-disk footprint — its dir, its spawn boot
+ *   (`<actor>/boots/serial=<s>/`), its socket file, and its global index entries
+ *   (`.serials/`, `.slugs/`, `.exids/`)
  * .why =
  *   - `rhx clone prune` removes the clones a human no longer needs. unlike
  *     delCloneSpawn (which reaps a LIVE loser via a spawn handle it holds), a pruned
@@ -35,13 +37,11 @@ export const delClone = (input: {
   clone: CloneOndisk;
   actorsRoot: string;
 }): void => {
-  const cloneDir = getCloneDir({
-    actorDir: getActorOndiskDir({
-      repoPath: input.clone.actor.repoPath,
-      exid: input.clone.actor.exid,
-    }),
-    serial: input.clone.serial,
+  const actorDir = getActorOndiskDir({
+    repoPath: input.clone.actor.repoPath,
+    exid: input.clone.actor.exid,
   });
+  const cloneDir = getCloneDir({ actorDir, serial: input.clone.serial });
 
   // remove the socket file (null on a non-POSIX host — no socket ever bound)
   const socketPath = getCloneSocketPath({ serial: input.clone.serial });
@@ -73,6 +73,9 @@ export const delClone = (input: {
     delFileSync({ path: join(exidsDir, exid) });
     delFileSync({ path: join(exidsDir, `${exid}.ambiguous`) });
   }
+
+  // remove the spawn boot (its boot, meta and drift): it lives and dies with the clone
+  delActorBootSpawned({ actorDir, serial: input.clone.serial });
 
   // remove the clone dir last (identity + history links)
   rmSync(cloneDir, { recursive: true, force: true });

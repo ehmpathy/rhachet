@@ -1301,8 +1301,8 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
       );
 
       // the boot reaches a clone as --system-prompt-file, read once at spawn, so its system
-      //   prompt stays the cached spawn boot. the edit rides the drift CLAUDE.md of the boot
-      //   revision the clone spawned on (--add-dir), which a compaction re-reads: measured by
+      //   prompt stays the cached spawn boot. the edit rides the drift CLAUDE.md beside the
+      //   clone's own spawn boot (--add-dir), which a compaction re-reads: measured by
       //   `rhx boot.compact.probe --door add-dir`, 2026-11-17 — the request after /compact holds
       //   the drift in its messages, the system block unchanged (inventory.of=requirements.case=11)
       then.runIf(IS_BRAIN_LIVE)('after /compact the live clone holds its spawn boot and the edit', () => {

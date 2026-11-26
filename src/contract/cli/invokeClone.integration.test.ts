@@ -9,15 +9,15 @@ import { withCapturedStreams } from '@src/.test/assets/withCapturedStreams';
 import { asSnapshotSafe } from '@src/.test/infra/asSnapshotSafe';
 import { findsertActorOndisk } from '@src/domain.operations/actor/enrolled/findsertActorOndisk';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
-import { genActorBootRevision } from '@src/domain.operations/boot/genActorBootRevision';
+import { genActorBootSpawned } from '@src/domain.operations/boot/genActorBootSpawned';
+import { getActorBootSpawnedPaths } from '@src/domain.operations/boot/getActorBootSpawnedPaths';
 import { setActorBootDrifts } from '@src/domain.operations/boot/setActorBootDrifts';
 import { asClaudeProjectSlug } from '@src/domain.operations/clone/asClaudeProjectSlug';
-import { setCloneBootSpawnedRef } from '@src/domain.operations/clone/setCloneBootSpawnedRef';
 import { setCloneBootSpawnedResumed } from '@src/domain.operations/clone/setCloneBootSpawnedResumed';
 import { getOneRepoPath } from '@src/infra/host/getOneRepoPath';
 import { CLONE_ENV_KEYS } from '@src/utils/cloneEnvKeys';
 
-import { mkdirSync, utimesSync, writeFileSync } from 'node:fs';
+import { mkdirSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { invokeClone } from './invokeClone';
 
@@ -590,10 +590,9 @@ describe('invokeClone (integration)', () => {
         const brainDir = getBrainOndiskDir({ actorDir: seeded.actorDir });
         mkdirSync(brainDir, { recursive: true });
         writeFileSync(join(brainDir, 'boot.md'), BOOT_V1);
-        const revision = genActorBootRevision({ actorDir: seeded.actorDir })!;
-        setCloneBootSpawnedRef({
-          cloneDir: seeded.cloneDir,
-          hash: revision.hash,
+        genActorBootSpawned({
+          actorDir: seeded.actorDir,
+          serial: seeded.serial,
         });
         writeFileSync(join(brainDir, 'boot.md'), BOOT_V2);
         setActorBootDrifts({
@@ -643,30 +642,34 @@ describe('invokeClone (integration)', () => {
         });
 
         then(
-          'the first stop is blocked once, with the two ways out on stderr',
+          'the first stop is never blocked: it exits 0, with the notice as a hook systemMessage',
           () => {
-            expect(result.first.exitCode).toEqual(2);
-            expect(result.first.out).toEqual('');
-            expect(result.first.err).toContain('to take it');
-            expect(result.first.err).toContain('/compact');
-            expect(result.first.err).toContain('respawn');
+            expect(result.first.exitCode).toEqual(0);
+            expect(result.first.err).toEqual('');
+            const { systemMessage } = JSON.parse(result.first.out);
+            expect(systemMessage).toContain('to take it');
+            expect(systemMessage).toContain(
+              'rhx clone say @:reviewer --what /compact',
+            );
+            expect(systemMessage).toContain('respawn');
           },
         );
 
         then('the copy never says the drift loaded', () => {
-          expect(result.first.err).not.toContain('loaded');
+          expect(result.first.out).not.toContain('loaded');
         });
 
         then(
           'the second stop is silent: the latch holds this drift as told',
           () => {
             expect(result.second.exitCode).toEqual(0);
+            expect(result.second.out).toEqual('');
             expect(result.second.err).toEqual('');
           },
         );
 
-        then('the nudge matches snapshot', () => {
-          expect(result.first.err).toMatchSnapshot();
+        then('the notice matches snapshot', () => {
+          expect(JSON.parse(result.first.out).systemMessage).toMatchSnapshot();
         });
       });
 
@@ -686,12 +689,9 @@ describe('invokeClone (integration)', () => {
             const brainDir = getBrainOndiskDir({ actorDir: seeded.actorDir });
             mkdirSync(brainDir, { recursive: true });
             writeFileSync(join(brainDir, 'boot.md'), BOOT_V1);
-            const revision = genActorBootRevision({
+            genActorBootSpawned({
               actorDir: seeded.actorDir,
-            })!;
-            setCloneBootSpawnedRef({
-              cloneDir: seeded.cloneDir,
-              hash: revision.hash,
+              serial: seeded.serial,
             });
             const sweep = (boot: string) => {
               writeFileSync(join(brainDir, 'boot.md'), boot);
@@ -720,30 +720,31 @@ describe('invokeClone (integration)', () => {
           });
 
           then('the first drift is told once, then silent', () => {
-            expect(result.toldFirst.exitCode).toEqual(2);
+            expect(result.toldFirst.exitCode).toEqual(0);
+            expect(result.toldFirst.out).toContain('systemMessage');
             expect(result.silentFirst.exitCode).toEqual(0);
-            expect(result.silentFirst.err).toEqual('');
+            expect(result.silentFirst.out).toEqual('');
           });
 
           then(
             'the new drift speaks again, with its own counts and hash',
             () => {
-              expect(result.toldSecond.exitCode).toEqual(2);
-              expect(result.toldSecond.err).toContain(
+              expect(result.toldSecond.exitCode).toEqual(0);
+              expect(result.toldSecond.out).toContain(
                 '2 blocks drifted since this clone spawned (2 added)',
               );
               const hashOf = (text: string) =>
                 /drift = ([0-9a-f]{16})/.exec(text)?.[1] ?? null;
-              expect(hashOf(result.toldSecond.err)).not.toBeNull();
-              expect(hashOf(result.toldSecond.err)).not.toEqual(
-                hashOf(result.toldFirst.err),
+              expect(hashOf(result.toldSecond.out)).not.toBeNull();
+              expect(hashOf(result.toldSecond.out)).not.toEqual(
+                hashOf(result.toldFirst.out),
               );
             },
           );
 
           then('the new drift is told once too, then silent', () => {
             expect(result.silentSecond.exitCode).toEqual(0);
-            expect(result.silentSecond.err).toEqual('');
+            expect(result.silentSecond.out).toEqual('');
           });
         },
       );
@@ -896,58 +897,55 @@ describe('invokeClone (integration)', () => {
     },
   );
 
-  given(
-    '[case13] a clone spawned before boot drift (no boot.spawned.ref)',
-    () => {
-      const scene = useBeforeAll(async () => {
-        const seeded = await genSampleCloneOndisk({
-          repoPath: genTempDir({ slug: 'invokeClone-drift-legacy', git: true }),
-          serial: getUuid(),
-          slug: 'old',
-        });
-        return { ...seeded, cwd: getOneRepoPath({ from: seeded.repoPath }) };
+  given('[case13] a clone spawned before boot drift (no spawn boot)', () => {
+    const scene = useBeforeAll(async () => {
+      const seeded = await genSampleCloneOndisk({
+        repoPath: genTempDir({ slug: 'invokeClone-drift-legacy', git: true }),
+        serial: getUuid(),
+        slug: 'old',
       });
+      return { ...seeded, cwd: getOneRepoPath({ from: seeded.repoPath }) };
+    });
 
-      when('[t0] `clone boot drift --of @:old` runs', () => {
-        const result = useBeforeAll(async () =>
-          driveClone({
-            cwd: scene.cwd,
-            argv: ['clone', 'boot', 'drift', '--of', '@:old'],
-            env: CLONE_ENV_UNSET,
-          }),
-        );
+    when('[t0] `clone boot drift --of @:old` runs', () => {
+      const result = useBeforeAll(async () =>
+        driveClone({
+          cwd: scene.cwd,
+          argv: ['clone', 'boot', 'drift', '--of', '@:old'],
+          env: CLONE_ENV_UNSET,
+        }),
+      );
 
-        then(
-          'it exits 0 and says the clone holds its spawn boot until a respawn',
-          () => {
-            expect(result.exitCode).toEqual(0);
-            expect(result.out).toContain(
-              'spawned before boot drift, so it holds its spawn boot until a respawn',
-            );
-          },
-        );
-
-        then('the tree matches snapshot', () => {
-          expect(result.out).toMatchSnapshot();
-        });
-      });
-
-      when('[t1] the onStop hook runs inside it', () => {
-        const result = useBeforeAll(async () =>
-          driveClone({
-            cwd: scene.cwd,
-            argv: ['clone', 'boot', 'drift', '--when', 'hook.onStop'],
-            env: { ...CLONE_ENV_UNSET, [CLONE_ENV_KEYS.serial]: scene.serial },
-          }),
-        );
-
-        then('it exits 0, silent', () => {
+      then(
+        'it exits 0 and says the clone holds its spawn boot until a respawn',
+        () => {
           expect(result.exitCode).toEqual(0);
-          expect(result.err).toEqual('');
-        });
+          expect(result.out).toContain(
+            'spawned before boot drift, so it holds its spawn boot until a respawn',
+          );
+        },
+      );
+
+      then('the tree matches snapshot', () => {
+        expect(result.out).toMatchSnapshot();
       });
-    },
-  );
+    });
+
+    when('[t1] the onStop hook runs inside it', () => {
+      const result = useBeforeAll(async () =>
+        driveClone({
+          cwd: scene.cwd,
+          argv: ['clone', 'boot', 'drift', '--when', 'hook.onStop'],
+          env: { ...CLONE_ENV_UNSET, [CLONE_ENV_KEYS.serial]: scene.serial },
+        }),
+      );
+
+      then('it exits 0, silent', () => {
+        expect(result.exitCode).toEqual(0);
+        expect(result.err).toEqual('');
+      });
+    });
+  });
 
   given('[case13b] a clone spawned by a resume (boot.spawned.resumed)', () => {
     const scene = useBeforeAll(async () => {
@@ -998,17 +996,23 @@ describe('invokeClone (integration)', () => {
     });
   });
 
-  given('[case14] a clone whose ref names a boot revision that is gone', () => {
+  given('[case14] a clone whose spawn boot lost its boot.md', () => {
     const scene = useBeforeAll(async () => {
       const seeded = await genSampleCloneOndisk({
         repoPath: genTempDir({ slug: 'invokeClone-drift-gone', git: true }),
         serial: getUuid(),
         slug: 'lost',
       });
-      setCloneBootSpawnedRef({
-        cloneDir: seeded.cloneDir,
-        hash: '0123456789abcdef',
-      });
+      const brainDir = getBrainOndiskDir({ actorDir: seeded.actorDir });
+      mkdirSync(brainDir, { recursive: true });
+      writeFileSync(join(brainDir, 'boot.md'), BOOT_V1);
+      genActorBootSpawned({ actorDir: seeded.actorDir, serial: seeded.serial });
+      rmSync(
+        getActorBootSpawnedPaths({
+          actorDir: seeded.actorDir,
+          serial: seeded.serial,
+        }).bootMd,
+      );
       return { ...seeded, cwd: getOneRepoPath({ from: seeded.repoPath }) };
     });
 
@@ -1025,8 +1029,9 @@ describe('invokeClone (integration)', () => {
         'it fails loud with the path, and exits 1, which never blocks a stop',
         () => {
           expect(result.exitCode).toEqual(1);
+          expect(result.out).toEqual('');
           expect(result.err).toContain('MalfunctionError');
-          expect(result.err).toContain('sha256=0123456789abcdef');
+          expect(result.err).toContain(`serial=${scene.serial}/boot.md`);
         },
       );
 
@@ -1049,7 +1054,7 @@ describe('invokeClone (integration)', () => {
       then('it fails loud with the path, and exits 1', () => {
         expect(result.exitCode).toEqual(1);
         expect(result.err).toContain('MalfunctionError');
-        expect(result.err).toContain('sha256=0123456789abcdef');
+        expect(result.err).toContain(`serial=${scene.serial}/boot.md`);
       });
 
       then('the error matches snapshot, its repo path masked', () => {
@@ -1071,11 +1076,7 @@ describe('invokeClone (integration)', () => {
       const brainDir = getBrainOndiskDir({ actorDir: seeded.actorDir });
       mkdirSync(brainDir, { recursive: true });
       writeFileSync(join(brainDir, 'boot.md'), BOOT_V1);
-      const revision = genActorBootRevision({ actorDir: seeded.actorDir })!;
-      setCloneBootSpawnedRef({
-        cloneDir: seeded.cloneDir,
-        hash: revision.hash,
-      });
+      genActorBootSpawned({ actorDir: seeded.actorDir, serial: seeded.serial });
       writeFileSync(join(brainDir, 'boot.md'), BOOT_V2);
       setActorBootDrifts({
         actorDir: seeded.actorDir,
@@ -1125,10 +1126,9 @@ describe('invokeClone (integration)', () => {
         const brainDir = getBrainOndiskDir({ actorDir: seeded.actorDir });
         mkdirSync(brainDir, { recursive: true });
         writeFileSync(join(brainDir, 'boot.md'), BOOT_V1);
-        const revision = genActorBootRevision({ actorDir: seeded.actorDir })!;
-        setCloneBootSpawnedRef({
-          cloneDir: seeded.cloneDir,
-          hash: revision.hash,
+        genActorBootSpawned({
+          actorDir: seeded.actorDir,
+          serial: seeded.serial,
         });
         writeFileSync(join(brainDir, 'boot.md'), BOOT_V2);
         setActorBootDrifts({
@@ -1180,11 +1180,7 @@ describe('invokeClone (integration)', () => {
       const brainDir = getBrainOndiskDir({ actorDir: seeded.actorDir });
       mkdirSync(brainDir, { recursive: true });
       writeFileSync(join(brainDir, 'boot.md'), BOOT_V1);
-      const revision = genActorBootRevision({ actorDir: seeded.actorDir })!;
-      setCloneBootSpawnedRef({
-        cloneDir: seeded.cloneDir,
-        hash: revision.hash,
-      });
+      genActorBootSpawned({ actorDir: seeded.actorDir, serial: seeded.serial });
       setActorBootDrifts({
         actorDir: seeded.actorDir,
         bootMdPathCurrent: join(brainDir, 'boot.md'),
@@ -1238,11 +1234,7 @@ describe('invokeClone (integration)', () => {
       const brainDir = getBrainOndiskDir({ actorDir: seeded.actorDir });
       mkdirSync(brainDir, { recursive: true });
       writeFileSync(join(brainDir, 'boot.md'), BOOT_V1);
-      const revision = genActorBootRevision({ actorDir: seeded.actorDir })!;
-      setCloneBootSpawnedRef({
-        cloneDir: seeded.cloneDir,
-        hash: revision.hash,
-      });
+      genActorBootSpawned({ actorDir: seeded.actorDir, serial: seeded.serial });
       writeFileSync(join(brainDir, 'boot.md'), BOOT_V1.replace('dawn', 'dusk'));
       setActorBootDrifts({
         actorDir: seeded.actorDir,

@@ -9,7 +9,7 @@ const RESUME_FLAGS_INLINE = ['--resume=', '--from-pr='];
  *         `-c`, `--from-pr`)
  * .why = a resumed session replays the system prompt it first recorded (`rhx boot.resume.probe`),
  *        so its boot is that session's, never the boot of this spawn; the spawn must not record
- *        a revision it does not hold
+ *        a spawn boot it does not hold
  * .note = the inline `--resume=<id>` and `--from-pr=<pr>` forms count too
  * .note = `--session-id <uuid>` names a NEW session, so it is no resume
  */

@@ -14,15 +14,15 @@ describe('asBootDriftFaultLines', () => {
       const lines = asBootDriftFaultLines({
         faults: [
           {
-            path: '/repo/.agent/.actors/a/boots/sha256=0123456789abcdef',
+            path: '/repo/.agent/.actors/a/boots/serial=aaaa',
             reason:
-              'drift not written (EACCES) — its clones keep their prior drift',
+              'drift not written (EACCES) — the clone keeps its prior drift',
             cause: new Error('EACCES'),
           },
           {
-            // a gone revision is a row of the sync report, never a fault; an unreadable ref is
-            path: '/repo/.agent/.actors/a/clones',
-            reason: 'a spawn ref could not be read (EISDIR)',
+            path: '/repo/.agent/.actors/a/boots/serial=bbbb',
+            reason:
+              'drift not written, the current boot could not be read (EISDIR) — the clone keeps its prior drift',
             cause: new Error('EISDIR'),
           },
         ],
