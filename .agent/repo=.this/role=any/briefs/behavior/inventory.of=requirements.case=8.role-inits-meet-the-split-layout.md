@@ -11,7 +11,7 @@ stays.
   touched, a symlink or a dir at that name refused before any change. the same for every actor
 - amended 2026-10-16, by the wisher's ask to always exclude the home `CLAUDE.md` (seed S5): the repo
   actor's `settings.of.repo.json` gains one key, `claudeMdExcludes`, upserted at each layout step.
-  every other key it holds stays as written (`inventory.of=requirements.case=11`). the wisher
+  every other key it holds stays as written (`inventory.of=requirements.case=28`). the wisher
   confirmed this amendment, 2026-10-16
 - `rhx init --roles …` and `rhx upgrade` put the repo actor's brain dir in the layout BEFORE the
   role inits run: the legacy repo actor dir moves, `<repo>/.claude` links to the brain dir, and the

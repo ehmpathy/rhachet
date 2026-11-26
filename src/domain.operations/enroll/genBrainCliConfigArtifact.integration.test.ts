@@ -235,11 +235,11 @@ describe('genBrainCliConfigArtifact', () => {
         },
       );
 
-      // .note = deliberately reads the runner's real home: case=11 requires the home CLAUDE.md
+      // .note = deliberately reads the runner's real home: case=28 requires the home CLAUDE.md
       //   never load on THIS box. a red here on a home outside the covered roots is the true
       //   signal of the F11 gap, never a flake
       then(
-        'its portable globs match this box`s real home CLAUDE.md (case=11)',
+        'its portable globs match this box`s real home CLAUDE.md (case=28)',
         async () => {
           const content = await fs.readFile(result.configPath, 'utf-8');
           const settings: { claudeMdExcludes: string[] } = JSON.parse(content);

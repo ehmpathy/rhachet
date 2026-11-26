@@ -10,7 +10,7 @@ each flip is a requirement the wisher stated and the inventory records, never a 
 
 | test | old intent | new intent | the requirement |
 |---|---|---|---|
-| `brain-dir-boot.journey` [t1.1] | the root `CLAUDE.local.md` loads | it stays out | `inventory.of=requirements.case=11`, the `CLAUDE.local.md` bullet (wisher, 2026-10-16, seed S5) |
+| `brain-dir-boot.journey` [t1.1] | the root `CLAUDE.local.md` loads | it stays out | `inventory.of=requirements.case=28`, the `CLAUDE.local.md` bullet (wisher, 2026-10-16, seed S5) |
 | `brain-dir-boot.journey` [t8] | no `.local.json` is addable | exactly one is: the repo actor's local arrow, relative, to `settings.of.repo.json` | `case=10` (the arrow) + seed S2 (tracked settings name no machine path) |
 | `invokeInit.integration` [t0] | a role init's permissions miss `settings.of.repo.json` | they land there by name | `case=8` (the layout lands before the role inits; mechanic writes the file by name, `#895`) |
 | `setBrainDirSettingsLayout.integration` [case7] | a real `settings.local.json` stays | it is replaced by the arrow, and the replace is reported | `case=7` + `case=10` (one answer at every arrow name; seed S1) |

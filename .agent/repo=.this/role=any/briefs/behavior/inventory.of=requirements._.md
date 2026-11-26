@@ -53,8 +53,8 @@ reviewer checks a change against it.
 | 24 | [a deleted mod returns the role to its published layout](./inventory.of=requirements.case=24.deleted-mod-returns-the-published-role.md) | proven |
 | 25 | [`roles cost` marks a modded role, and a mod arms the one stop sweep](./inventory.of=requirements.case=25.modded-role-marked-arms-the-stop-sweep.md) | proven 2026-11-17, as amended (F23 reversed to (a)) |
 | 26 | [a shadow skill runs beside its published peers](./inventory.of=requirements.case=26.shadow-skill-finds-its-published-peer.md) | proven |
-| 10 | [a plain `claude` at the repo root loads the repo actor's settings](./inventory.of=requirements.case=10.plain-claude-loads-repo-settings.md) | proven 2026-10-16 · real-claude rerun owed |
-| 11 | [the home `CLAUDE.md` never loads in a repo session, plain or enrolled](./inventory.of=requirements.case=11.home-claude-md-never-loads-in-a-repo.md) | proven 2026-10-16 · real-claude rerun owed |
+| 27 | [a plain `claude` at the repo root loads the repo actor's settings](./inventory.of=requirements.case=27.plain-claude-loads-repo-settings.md) | proven 2026-10-16 · real-claude rerun owed |
+| 28 | [the home `CLAUDE.md` never loads in a repo session, plain or enrolled](./inventory.of=requirements.case=28.home-claude-md-never-loads-in-a-repo.md) | proven 2026-10-16 · real-claude rerun owed |
 
 ## .how to add an entry
 

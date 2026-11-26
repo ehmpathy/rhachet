@@ -52,7 +52,7 @@ user, and a second `--settings` replaces the first whole — it does not stack.
 🔴 a clone reads its OWN actor dir only. claude looks up the `project` and `local` layers relative to the
 cwd, and a clone's cwd is the repo — so either source would reach the repo actor's dir. a clone therefore
 spawns with the `user` config source only, plus `--settings` on its own `settings.of.repo.json`.
-no clone reads `settings.local.json`; only a plain `claude` does (`inventory.of=requirements.case=10`).
+no clone reads `settings.local.json`; only a plain `claude` does (`inventory.of=requirements.case=27`).
 
 - an everyday `claude` (a bare enroll) is a clone of the repo actor — the ambient roles live there and only
   there (`term=ambient`)

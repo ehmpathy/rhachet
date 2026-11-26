@@ -370,7 +370,7 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
       });
 
       then(
-        'the CLAUDE.local.md and the home CLAUDE.md stay out: a plain claude is an ambient clone (case=11)',
+        'the CLAUDE.local.md and the home CLAUDE.md stay out: a plain claude is an ambient clone (case=28)',
         () => {
           expect(ask.sentinels).not.toContain(sentinelOf('local'));
           expect(ask.sentinels).not.toContain(sentinelOf('user'));
@@ -1569,7 +1569,7 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
       then('no boot.md and no per-host settings are addable', () => {
         expect(git.rows.join('\n')).not.toMatch(/boot\.md|\/\.home\//);
         // the one addable `.local.json` is the repo actor's local arrow: a relative pointer to
-        //   settings.of.repo.json, the same on every box (inventory.of=requirements.case=10)
+        //   settings.of.repo.json, the same on every box (inventory.of=requirements.case=27)
         const locals = git.rows.filter((row: string) => /\.local\.json/.test(row));
         expect(locals).toEqual([`${DEFAULT_BRAIN_DIR}/settings.local.json`]);
         expect(readlinkSync(join(scene.dir, locals[0]!))).toEqual('settings.of.repo.json');

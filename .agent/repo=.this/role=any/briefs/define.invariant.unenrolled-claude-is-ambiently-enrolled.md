@@ -58,7 +58,7 @@ and needs no name.
 
 what settles it: the alias is a fact about one box's shell, never about the repo. an ide, a ci job, a
 fresh box, or a human with no alias launches a plain `claude`, and on a layout with no local arrow that
-session loads none of the ambient roles (measured downstream; `inventory.of=requirements.case=10`). so
+session loads none of the ambient roles (measured downstream; `inventory.of=requirements.case=27`). so
 the repo enrolls whoever arrives, and explicit enrollment only refines that
 (`rule.forbid.local-facts-as-design-premises`).
 
@@ -83,7 +83,7 @@ redundant.
 
 ## .clamp
 
-proven — `inventory.of=requirements.case=10.plain-claude-loads-repo-settings.md`.
+proven — `inventory.of=requirements.case=27.plain-claude-loads-repo-settings.md`.
 
 ## .see also
 

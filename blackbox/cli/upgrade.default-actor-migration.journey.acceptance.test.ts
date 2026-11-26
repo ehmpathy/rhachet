@@ -108,7 +108,7 @@ describe('upgrade — the default actor brain dir migration, under a BARE rhx up
 
     // a real settings.local.json, untracked — claude's per-box log of "don't ask again"
     //   grants. it MOVES with the rest, then the layout replaces it with the local arrow
-    //   (vision case=1 and case=5, inventory.of=requirements.case=10)
+    //   (vision case=1 and case=5, inventory.of=requirements.case=27)
     writeFileSync(
       join(repoClaudeDir, 'settings.local.json'),
       `${JSON.stringify({ permissions: { allow: [LOCAL_GRANT] } }, null, 2)}\n`,

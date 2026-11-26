@@ -276,7 +276,7 @@ describe('role inits meet the split brain dir layout', () => {
       });
 
       then(
-        'settings.of.repo.json is a real file, findserted with only the claudeMdExcludes (case=11)',
+        'settings.of.repo.json is a real file, findserted with only the claudeMdExcludes (case=28)',
         () => {
           const path = join(scene.repo.path, REPO_ACTOR_BRAIN_DIR, 'settings.of.repo.json');
           expect(lstatSync(path).isFile()).toBe(true);

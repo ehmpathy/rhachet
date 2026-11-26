@@ -106,7 +106,7 @@ unreviewed repo allowlist.
   real claude in a temp repo under an isolated `HOME`: the layout `rhx init` builds, a plain claude, the
   `CLAUDE_CONFIG_DIR` opt-in, and an enrolled clone (its "don't ask again" and its `/model`); and (6),
   a home `CLAUDE.md` codeword that a claude outside the repo names and a plain claude and a clone in
-  the repo do not (`inventory.of=requirements.case=11`)
+  the repo do not (`inventory.of=requirements.case=28`)
 - `src/domain.operations/actor/enrolled/setBrainDirSettingsLayout.integration.test.ts` — the arrows
 - `src/domain.operations/init/boots/setRepoActorBrainDirLayout.integration.test.ts` — (6), the excludes
   in `settings.of.repo.json` after the layout step, with no machine-local path
@@ -118,4 +118,4 @@ unreviewed repo allowlist.
 - `define.brain-dir-layout-is-one-for-every-actor` — the layout this constrains
 - `define.invariant.unenrolled-claude-is-ambiently-enrolled` — why the local arrow exists
 - `inventory.of=requirements.case=9.clone-loads-only-its-roles-hooks.md`
-- `inventory.of=requirements.case=10.plain-claude-loads-repo-settings.md`
+- `inventory.of=requirements.case=27.plain-claude-loads-repo-settings.md`
