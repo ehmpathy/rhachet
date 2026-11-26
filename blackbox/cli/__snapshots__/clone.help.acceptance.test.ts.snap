@@ -151,7 +151,7 @@ Options:
 
 Commands:
   drift [options]  show the boot drift a clone carries since it spawned; with
-                   --when hook.onStop, nudge it once past the threshold
+                   --when hook.onStop, notice it once past the threshold
   help [command]   display help for command
 "
 `;
@@ -198,7 +198,7 @@ exports[`rhx actor/clone --help (acceptance) given: [case1] a repo where the com
 "Usage: rhachet clone boot drift [options]
 
 show the boot drift a clone carries since it spawned; with --when hook.onStop,
-nudge it once past the threshold
+notice it once past the threshold
 
 Options:
   --of <address>   the clone to inspect, as @:<slug|serial>
