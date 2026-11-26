@@ -1,3 +1,4 @@
+import { execSync } from 'child_process';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -873,4 +874,302 @@ module.exports = { getRoleRegistry };
       });
     });
   });
+
+  given(
+    '[case9] a repo actor whose committed file names two homes in claudeMdExcludes',
+    () => {
+      // the repo actor's settings.of.repo.json is committed; a prior release wrote one absolute
+      //   home path per machine that enrolled. `init --hooks` re-derives the repo actor's file
+      //   wherever its actor.json sits on disk, so that pass must clean the per-machine entries
+      const repoActorDir = '.agent/.actors/actor.via.repo=ambient';
+      const repo = useBeforeAll(async () => {
+        const r = await genTestTempRepo({ fixture: 'with-role-hooks' });
+        invokeWithoutGrove({
+          args: ['init', '--roles', 'tester', '--hooks'],
+          cwd: r.path,
+        });
+
+        // the manifest a bare enroll leaves for the repo actor
+        await fs.writeFile(
+          path.join(r.path, repoActorDir, 'actor.json'),
+          JSON.stringify({
+            schemaVersion: 1,
+            brain: 'claude',
+            roles: ['tester'],
+            rolesDelta: null,
+          }) + '\n',
+          'utf-8',
+        );
+
+        // the committed file, as two machines left it
+        const configPath = path.join(
+          r.path,
+          repoActorDir,
+          'brain/.claude/settings.of.repo.json',
+        );
+        const configPrior = JSON.parse(await fs.readFile(configPath, 'utf-8'));
+        await fs.writeFile(
+          configPath,
+          JSON.stringify(
+            {
+              ...configPrior,
+              claudeMdExcludes: [
+                '/home/camper/.claude/CLAUDE.md',
+                '/home/fixturehuman/.claude/CLAUDE.md',
+                '**/CLAUDE.local.md',
+              ],
+            },
+            null,
+            2,
+          ) + '\n',
+          'utf-8',
+        );
+
+        // the grove link, as a prior release left it: tracked at HEAD, aimed at one machine
+        const groveRel = `${repoActorDir}/brain/.claude/settings.of.grove.json`;
+        await fs.rm(path.join(r.path, groveRel), { force: true });
+        await fs.symlink(
+          '/home/otherhuman/.claude/settings.json',
+          path.join(r.path, groveRel),
+        );
+        execSync(`git add -f ${groveRel}`, { cwd: r.path, stdio: 'ignore' });
+        execSync('git commit -m "seed" --quiet', {
+          cwd: r.path,
+          stdio: 'ignore',
+        });
+
+        const resultFirst = invokeWithoutGrove({
+          args: ['init', '--hooks'],
+          cwd: r.path,
+        });
+        const contentFirst = await fs.readFile(configPath, 'utf-8');
+        const resultSecond = invokeWithoutGrove({
+          args: ['init', '--hooks'],
+          cwd: r.path,
+        });
+        const contentSecond = await fs.readFile(configPath, 'utf-8');
+        const groveTracked = execSync(`git ls-files -- ${groveRel}`, {
+          cwd: r.path,
+        }).toString();
+        const groveTarget = await fs.readlink(path.join(r.path, groveRel));
+        return {
+          resultFirst,
+          resultSecond,
+          contentFirst,
+          contentSecond,
+          groveRel,
+          groveTracked,
+          groveTarget,
+        };
+      });
+
+      when('[t0] init --hooks runs', () => {
+        then('exits with status 0', () => {
+          expect(repo.resultFirst.status).toEqual(0);
+        });
+
+        then(
+          'claudeMdExcludes holds the portable globs alone — no home path',
+          () => {
+            const config = JSON.parse(repo.contentFirst);
+            expect(config.claudeMdExcludes).toEqual([
+              '**/!(brain)/.claude/CLAUDE.md',
+              '**/CLAUDE.local.md',
+            ]);
+            expect(repo.contentFirst).not.toContain('/home/');
+          },
+        );
+
+        then('stdout names each exclude it dropped, beneath the actor', () => {
+          expect(repo.resultFirst.stdout).toContain(
+            'claudeMdExcludes dropped /home/camper/.claude/CLAUDE.md',
+          );
+          expect(repo.resultFirst.stdout).toContain(
+            'claudeMdExcludes dropped /home/fixturehuman/.claude/CLAUDE.md',
+          );
+        });
+
+        then(
+          'the grove arrow stays tracked, rewritten in place to the relative home link (#779)',
+          () => {
+            expect(repo.groveTracked).toEqual(`${repo.groveRel}\n`);
+            expect(repo.groveTarget).toEqual('.home/.claude/settings.json');
+          },
+        );
+
+        then('the tree this case changes matches snapshot, whole', () => {
+          // .note = the tree is cut from its header to the blank line that closes it, so a
+          //   group is never cut mid-branch; the role list above it varies with the fixture
+          const lines = repo.resultFirst.stdout.split('\n');
+          const start = lines.findIndex((line) =>
+            line.startsWith('🧢 apply hooks to enrolled actors'),
+          );
+          expect(start).toBeGreaterThan(-1);
+          const end = lines.findIndex(
+            (line, index) => index > start && line.trim() === '',
+          );
+          const actorsTree = lines.slice(start, end === -1 ? lines.length : end);
+          expect(asSnapshotSafe(actorsTree.join('\n'))).toMatchSnapshot();
+        });
+      });
+
+      when('[t1] init --hooks runs again', () => {
+        then('the committed file is byte-identical — idempotent', () => {
+          expect(repo.resultSecond.status).toEqual(0);
+          expect(repo.contentSecond).toEqual(repo.contentFirst);
+        });
+
+        then('stdout names no dropped exclude', () => {
+          expect(repo.resultSecond.stdout).not.toContain(
+            'claudeMdExcludes dropped',
+          );
+        });
+      });
+    },
+  );
+
+  given(
+    '[case11] one repo, init on two boxes whose homes differ (#779, #816)',
+    () => {
+      // 🔴 each box that runs init must leave the tracked tree as it found it: the grove arrow
+      //   is tracked with a relative target, only the untracked `.home` link names the box,
+      //   and settings.of.repo.json names no home
+      const repoActorDir = '.agent/.actors/actor.via.repo=ambient';
+      const groveRel = `${repoActorDir}/brain/.claude/settings.of.grove.json`;
+      const settingsRel = `${repoActorDir}/brain/.claude/settings.of.repo.json`;
+
+      /**
+       * .what = a home that holds a grove, as a real box does
+       * .why = only a home with `~/.claude/settings.json` gets the grove arrow written
+       */
+      const genHomeWithGrove = async (input: { slug: string }) => {
+        const home = await fs.realpath(genTempDir({ slug: input.slug }));
+        await fs.mkdir(path.join(home, '.claude'), { recursive: true });
+        await fs.writeFile(
+          path.join(home, '.claude', 'settings.json'),
+          '{}\n',
+          'utf-8',
+        );
+        return home;
+      };
+
+      const repo = useBeforeAll(async () => {
+        const r = await genTestTempRepo({ fixture: 'with-role-hooks' });
+        const homeA = await genHomeWithGrove({ slug: 'init-box-a-home' });
+        const homeB = await genHomeWithGrove({ slug: 'init-box-b-home' });
+
+        // box A: link the role and apply hooks, then enroll the repo actor's manifest
+        const resultA = invokeRhachetCliBinary({
+          args: ['init', '--roles', 'tester', '--hooks'],
+          cwd: r.path,
+          env: { HOME: homeA },
+        });
+        await fs.writeFile(
+          path.join(r.path, repoActorDir, 'actor.json'),
+          JSON.stringify({
+            schemaVersion: 1,
+            brain: 'claude',
+            roles: ['tester'],
+            rolesDelta: null,
+          }) + '\n',
+          'utf-8',
+        );
+        const resultA2 = invokeRhachetCliBinary({
+          args: ['init', '--hooks'],
+          cwd: r.path,
+          env: { HOME: homeA },
+        });
+
+        // box A commits what init left, as a crew would
+        execSync('git add -A', { cwd: r.path, stdio: 'ignore' });
+        execSync('git commit -m "box a init" --quiet', {
+          cwd: r.path,
+          stdio: 'ignore',
+        });
+        const settingsA = await fs.readFile(
+          path.join(r.path, settingsRel),
+          'utf-8',
+        );
+
+        // box B runs init on the same tree
+        const resultB = invokeRhachetCliBinary({
+          args: ['init', '--hooks'],
+          cwd: r.path,
+          env: { HOME: homeB },
+        });
+        const settingsB = await fs.readFile(
+          path.join(r.path, settingsRel),
+          'utf-8',
+        );
+        const statusB = execSync('git status --porcelain', {
+          cwd: r.path,
+        }).toString();
+        const groveTracked = execSync(`git ls-files -- ${groveRel}`, {
+          cwd: r.path,
+        }).toString();
+        const groveTarget = await fs.readlink(path.join(r.path, groveRel));
+        const homeTarget = await fs.readlink(
+          path.join(r.path, `${repoActorDir}/brain/.claude/.home/.claude/settings.json`),
+        );
+        const treeTracked = execSync('git ls-files', {
+          cwd: r.path,
+        }).toString();
+        return {
+          homeA,
+          homeB,
+          resultA,
+          resultA2,
+          resultB,
+          settingsA,
+          settingsB,
+          statusB,
+          groveTracked,
+          groveTarget,
+          homeTarget,
+          treeTracked,
+        };
+      });
+
+      when('[t0] box A inits, then box B inits the committed tree', () => {
+        then('every init exits with status 0', () => {
+          expect(repo.resultA.status).toEqual(0);
+          expect(repo.resultA2.status).toEqual(0);
+          expect(repo.resultB.status).toEqual(0);
+        });
+
+        then('git status is clean after box B', () => {
+          expect(repo.statusB).toEqual('');
+        });
+
+        then('the tracked settings.of.repo.json is byte-equal on both boxes', () => {
+          expect(repo.settingsB).toEqual(repo.settingsA);
+        });
+
+        then('the tracked settings name neither home (#816)', () => {
+          expect(repo.settingsA).not.toContain(repo.homeA);
+          expect(repo.settingsA).not.toContain(repo.homeB);
+          expect(repo.settingsA).not.toContain('/home/');
+        });
+
+        then(
+          'the grove arrow is tracked, by a relative target that names no box (#779)',
+          () => {
+            expect(repo.groveTracked).toEqual(`${groveRel}\n`);
+            expect(repo.groveTarget).toEqual('.home/.claude/settings.json');
+          },
+        );
+
+        then('the home link, the one name that holds a box, is never tracked', () => {
+          expect(repo.treeTracked).not.toContain('.home/');
+          expect(repo.treeTracked).not.toContain(repo.homeA);
+        });
+
+        then("the home link on box B points at box B's home", () => {
+          expect(repo.homeTarget).toEqual(
+            path.join(repo.homeB, '.claude', 'settings.json'),
+          );
+        });
+      });
+    },
+  );
 });

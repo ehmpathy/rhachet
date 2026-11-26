@@ -22,13 +22,16 @@ import { setRepoActorDirFromLegacy } from './setRepoActorDirFromLegacy';
 
 /**
  * .what = the brain dir `.gitignore` lines: ignore all, then re-include the boot doors and
- *         the four settings names — `settings.json`, `settings.of.repo.json`,
+ *         the settings names that name no machine — `settings.json`, `settings.of.repo.json`,
  *         `settings.of.grove.json`, `settings.local.json`
  * .why = an allowlist, because the dir is also a clone's `CLAUDE_CONFIG_DIR`: claude writes
  *        its own runtime state here (`.claude.json`, `projects/`, the credential link), and
  *        none of it, nor the rendered `boot.md`, belongs in git
- * .note = the repo actor commits the settings names (the wisher's call, 2026-09-29); it is the
+ * .note = the repo actor commits its settings names (the wisher's call, 2026-09-29); it is the
  *         one actor dir git sees, since every other sits under the ignored `.agent/.actors/`
+ * .note = the grove arrow is tracked: its target is the relative `.home/.claude/settings.json`.
+ *         `.home/` holds the one link that names this box (`<home>/.claude/settings.json`), and
+ *         `/*` keeps it out (rule.forbid.machine-names-in-committed-config, #779)
  * .note = order matters: `/*` precedes each `!` re-include
  * .note = the dispatch manifest is tracked beside `settings.of.repo.json`: the settings name a
  *         dispatcher, and the rules it runs live in the manifest, so a fresh checkout needs both

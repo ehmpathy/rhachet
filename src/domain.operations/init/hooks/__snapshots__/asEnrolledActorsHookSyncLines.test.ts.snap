@@ -8,7 +8,7 @@ exports[`asEnrolledActorsHookSyncLines given: [case2] one actor whose derivation
 exports[`asEnrolledActorsHookSyncLines given: [case3] one actor whose derivation faulted, with a hint when: [t0] the block is rendered then: the block matches snapshot 1`] = `
 "🧢 apply hooks to enrolled actors...
    └─ ✗ hash=deadbeef: ✋ ConstraintError: settings unreadable
-      └─ hint: fix the json in settings.of.repo.json, then rerun \`rhx init --hooks\`"
+      └─ hint = fix the json in settings.of.repo.json, then rerun \`rhx init --hooks\`"
 `;
 
 exports[`asEnrolledActorsHookSyncLines given: [case4] two actors, one with naught to change when: [t0] the block is rendered then: the block matches snapshot 1`] = `
@@ -20,6 +20,22 @@ exports[`asEnrolledActorsHookSyncLines given: [case4] two actors, one with naugh
 exports[`asEnrolledActorsHookSyncLines given: [case5] a faulted actor above another, the fault with a hint when: [t0] the block is rendered then: the block matches snapshot 1`] = `
 "🧢 apply hooks to enrolled actors...
    ├─ ✗ hash=aaaa1111: ✋ ConstraintError: settings unreadable
-   │  └─ hint: rerun \`rhx init --hooks\`
+   │  └─ hint = rerun \`rhx init --hooks\`
    └─ hash=bbbb2222: ~1"
+`;
+
+exports[`asEnrolledActorsHookSyncLines given: [case6] the repo actor, whose derivation dropped two per-machine excludes when: [t0] the block is rendered then: the block matches snapshot 1`] = `
+"🧢 apply hooks to enrolled actors...
+   └─ repo=ambient
+      ├─ claudeMdExcludes dropped /home/camper/.claude/CLAUDE.md — an absolute path; the excludes keep only portable globs
+      └─ claudeMdExcludes dropped /home/fixturehuman/.claude/CLAUDE.md — an absolute path; the excludes keep only portable globs"
+`;
+
+exports[`asEnrolledActorsHookSyncLines given: [case7] a hash actor beside the repo actor, each with a dropped exclude when: [t0] the block is rendered then: the block matches snapshot 1`] = `
+"🧢 apply hooks to enrolled actors...
+   ├─ repo=ambient
+   │  └─ claudeMdExcludes dropped /home/camper/.claude/CLAUDE.md — an absolute path; the excludes keep only portable globs
+   └─ hash=9c1e0000: ~1
+      ├─ claudeMdExcludes dropped /home/camper/.claude/CLAUDE.md — an absolute path; the excludes keep only portable globs
+      └─ claudeMdExcludes dropped /home/camper/git/repo-moved/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md — an absolute path; the excludes keep only portable globs"
 `;

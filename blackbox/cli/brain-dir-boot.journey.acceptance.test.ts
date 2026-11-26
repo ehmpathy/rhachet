@@ -12,7 +12,7 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
-import { delimiter, join } from 'node:path';
+import { basename, delimiter, join } from 'node:path';
 import {
   genTempDir,
   given,
@@ -827,6 +827,87 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
       return enrolled;
     }});
 
+    // .what = the home `CLAUDE.md` exclude, proven against the real cli (1.vision case=4)
+    // .why = the written exclude is a glob, never a home literal; claude never expands `~`,
+    //   so a pattern that matched naught would pass every unit and leak the human's notes.
+    //   the baseline launch strips the excludes, which proves the probe can see the file
+    // .note = enroll writes the excludes, so the probe reads the [t3] actor's file. no
+    //   CLAUDE_CONFIG_DIR is set, so the user memory source is the home `.claude/CLAUDE.md`
+    // .note = two live `claude -p` launches on a paid key: run only on the named flag (IS_BRAIN_LIVE)
+    when.runIf(IS_BRAIN_LIVE)('[t3.0] claude -p under the enrolled actor settings, the human home holds a CLAUDE.md', () => {
+      const probe = useThen('both launches answer', async () => {
+        const settingsPath = join(t3.brainDir, 'settings.of.repo.json');
+        const settings = JSON.parse(readFileSync(settingsPath, 'utf-8')) as {
+          claudeMdExcludes?: string[];
+        };
+        const baselinePath = join(
+          genTempDir({ slug: 'claudemd-excludes-baseline' }),
+          'settings.json',
+        );
+        writeFileSync(
+          baselinePath,
+          JSON.stringify({ ...settings, claudeMdExcludes: [] }, null, 2),
+        );
+        const launch = (path: string) =>
+          askClaudePrintForSentinels({
+            dir: scene.dir,
+            env: scene.env,
+            binPath: scene.binPath,
+            args: ['--setting-sources', 'user', '--settings', path],
+          });
+        return {
+          settings,
+          baseline: await launch(baselinePath),
+          actual: await launch(settingsPath),
+        };
+      });
+
+      then('the temp home is not named brain*, the one gap the glob spares (F1)', () => {
+        expect(basename(scene.home)).not.toMatch(/^brain/);
+      });
+
+      then('the written excludes name the common glob and no home', () => {
+        expect(probe.settings.claudeMdExcludes).toContain(
+          '**/!(brain)/.claude/CLAUDE.md',
+        );
+        expect(JSON.stringify(probe.settings)).not.toContain(scene.home);
+      });
+
+      then('with no excludes, the brain quotes the home sentinel — the probe sees it', () => {
+        expect(probe.baseline.status).toEqual(0);
+        expect(probe.baseline.sentinels).toContain(sentinelOf('user'));
+      });
+
+      then('with the written excludes, the brain does not quote the home sentinel', () => {
+        expect(probe.actual.status).toEqual(0);
+        expect(probe.actual.sentinels).not.toContain(sentinelOf('user'));
+      });
+
+      then('the written excludes and the home-sentinel verdicts match snapshot', () => {
+        // .note = only the stable facts are pinned; the brain's prose and its full sentinel
+        //   list vary per launch, so each launch reduces to whether it saw the home file
+        expect(
+          asSnapshotSafe(
+            JSON.stringify(
+              {
+                claudeMdExcludes: probe.settings.claudeMdExcludes,
+                baseline: {
+                  status: probe.baseline.status,
+                  sawHome: probe.baseline.sentinels.includes(sentinelOf('user')),
+                },
+                actual: {
+                  status: probe.actual.status,
+                  sawHome: probe.actual.sentinels.includes(sentinelOf('user')),
+                },
+              },
+              null,
+              2,
+            ),
+          ),
+        ).toMatchSnapshot();
+      });
+    });
+
     // a live clone turn on a paid key: run only on the named flag (IS_BRAIN_LIVE)
     when.runIf(IS_BRAIN_LIVE)('[t3.1] the repo brain dir opens every door, then a new shaper clone', () => {
       const doors = useThen('the doors open and a new clone answers', async () => {
@@ -1008,7 +1089,7 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
         expect(brainDirLogins).toEqual([]);
       });
 
-      then('stderr names the absent grove, and the brain dir holds no grove arrow (vision case=4)', () => {
+      then('stderr names the absent grove, and the brain dir holds no home link (vision case=4)', () => {
         const line =
           result.stderr
             .split('\n')
@@ -1025,15 +1106,18 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
           .map((name) => join(actorsDir, name, 'brain', '.claude'))
           .filter((path) => existsSync(path));
         expect(brainDirs.length).toBeGreaterThan(0);
+        // the tracked arrows stay so git stays clean; only the home link, the one name that
+        //   reaches the HOME, is absent, so the chain ends inside the brain dir (#779, F6)
         for (const brainDir of brainDirs) {
           expect(
-            lstatSync(join(brainDir, 'settings.json'), { throwIfNoEntry: false }),
-          ).toBeUndefined();
-          expect(
-            lstatSync(join(brainDir, 'settings.of.grove.json'), {
+            lstatSync(join(brainDir, '.home', '.claude', 'settings.json'), {
               throwIfNoEntry: false,
             }),
           ).toBeUndefined();
+          expect(readlinkSync(join(brainDir, 'settings.of.grove.json'))).toEqual(
+            join('.home', '.claude', 'settings.json'),
+          );
+          expect(existsSync(join(brainDir, 'settings.json'))).toBe(false);
           expect(existsSync(join(brainDir, 'settings.of.repo.json'))).toBe(true);
         }
       });

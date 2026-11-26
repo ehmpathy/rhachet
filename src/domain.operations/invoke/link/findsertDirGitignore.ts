@@ -1,6 +1,5 @@
-import { MalfunctionError } from 'helpful-errors';
+import { delGitIndexPaths } from '@src/infra/delGitIndexPaths';
 
-import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import type { LinkResult } from './findsertFile';
@@ -42,43 +41,13 @@ export const findsertDirGitignore = (input: {
   }
 
   // gitignore absent — untrack any previously tracked content, save the spared
-  // .note = run from the dir itself, so the pathspecs never depend on process.cwd()
-  const pathspecsSpared = input.spare.map((name) => `:(exclude)${name}`);
-  try {
-    execFileSync(
-      'git',
-      [
-        '-C',
-        input.dir,
-        'rm',
-        '--cached',
-        '-r',
-        '--quiet',
-        '--ignore-unmatch',
-        '--',
-        '.',
-        ...pathspecsSpared,
-      ],
-      { stdio: ['ignore', 'ignore', 'pipe'] },
-    );
-  } catch (error) {
-    // a dir outside any git repo has no index to untrack from; --ignore-unmatch
-    // already covers an untracked dir. any other fault leaves content tracked, so it fails loud
-    // .note = the message carries git's stderr; the stderr field alone can arrive empty
-    const cause = error instanceof Error ? error : new Error(String(error));
-    const stderr = 'stderr' in cause ? String(cause.stderr ?? '') : '';
-    const isOutsideRepo = `${cause.message}\n${stderr}`
-      .toLowerCase()
-      .includes('not a git repository');
-    if (!isOutsideRepo)
-      throw new MalfunctionError(
-        'could not untrack the dir before its .gitignore',
-        {
-          dir: input.dir,
-          cause,
-        },
-      );
-  }
+  delGitIndexPaths({
+    dir: input.dir,
+    pathspecs: ['.', ...input.spare.map((name) => `:(exclude)${name}`)],
+    recursive: true,
+    force: false,
+    faultMessage: 'could not untrack the dir before its .gitignore',
+  });
 
   // create the gitignore
   writeFileSync(gitignorePath, input.content, 'utf8');

@@ -2,12 +2,15 @@ import { getError, given, then, useBeforeAll, when } from 'test-fns';
 
 import { genSampleRepoWithRoles } from '@src/.test/assets/genSampleRepoWithRoles';
 import { getOneIsPathIgnoredByGit } from '@src/.test/infra/getOneIsPathIgnoredByGit';
+import { withTempHome } from '@src/.test/infra/withTempHome';
 
 import {
   existsSync,
   lstatSync,
+  mkdirSync,
   readFileSync,
   readlinkSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
@@ -237,4 +240,66 @@ describe('setRepoActorBrainDir', () => {
       });
     });
   });
+
+  given(
+    '[case3] a box with a grove, and a grove arrow a prior release pointed at one home',
+    () => {
+      // a temp home with a grove, so the layout links the grove on any host
+      const home = withTempHome({ name: 'setRepoActorBrainDir-case3' });
+      beforeAll(() => {
+        home.setup();
+        mkdirSync(join(home.path, '.claude'), { recursive: true });
+        writeFileSync(join(home.path, '.claude', 'settings.json'), '{}\n');
+      });
+      afterAll(() => home.teardown());
+
+      const scene = useBeforeAll(async () => {
+        const repoPath = genRepoWithRoles({
+          slug: 'sync-repo-actor-brain-dir-home',
+        });
+        const brainDir = join(repoPath, REPO_ACTOR_BRAIN_DIR_REL);
+        mkdirSync(brainDir, { recursive: true });
+        symlinkSync(
+          '/home/fixturehuman/.claude/settings.json',
+          join(brainDir, 'settings.of.grove.json'),
+        );
+        await setRepoActorBrainDir({ repoPath, refsLinked: ROLES });
+        return { repoPath, brainDir };
+      });
+
+      when('[t0] the repo actor brain dir is synced', () => {
+        then(
+          'the grove arrow is rewritten to the relative home link, the same bytes on every box',
+          () => {
+            expect(
+              readlinkSync(join(scene.brainDir, 'settings.of.grove.json')),
+            ).toEqual('.home/.claude/settings.json');
+          },
+        );
+
+        then("the home link points at this box's home settings", () => {
+          expect(
+            readlinkSync(join(scene.brainDir, '.home/.claude/settings.json')),
+          ).toEqual(join(home.path, '.claude', 'settings.json'));
+        });
+
+        then('git tracks the grove arrow and ignores the home link', () => {
+          // the home link is the one name that holds this box's home path
+          //   (rule.forbid.machine-names-in-committed-config, #779)
+          expect(
+            getOneIsPathIgnoredByGit({
+              repo: scene.repoPath,
+              path: `${REPO_ACTOR_BRAIN_DIR_REL}/settings.of.grove.json`,
+            }),
+          ).toBe(false);
+          expect(
+            getOneIsPathIgnoredByGit({
+              repo: scene.repoPath,
+              path: `${REPO_ACTOR_BRAIN_DIR_REL}/.home/.claude/settings.json`,
+            }),
+          ).toBe(true);
+        });
+      });
+    },
+  );
 });

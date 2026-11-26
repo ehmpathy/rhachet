@@ -820,19 +820,25 @@ describe('rhx enroll --roles (acceptance)', () => {
         expect(asSnapshotSafeOfCredential(scene.run.stderr)).toMatchSnapshot();
       });
 
-      then('neither grove arrow is written — not even a broken one', () => {
+      then('no home link is written, so the chain never reaches the HOME', () => {
         // lstat, never existsSync: existsSync follows the link, so a broken arrow to the
         //   absent grove would read as absent and the defect would ship green
         expect(
-          lstatSync(join(scene.brainDir, 'settings.of.grove.json'), {
+          lstatSync(join(scene.brainDir, '.home', '.claude', 'settings.json'), {
             throwIfNoEntry: false,
           }),
         ).toBeUndefined();
-        expect(
-          lstatSync(join(scene.brainDir, 'settings.json'), {
-            throwIfNoEntry: false,
-          }),
-        ).toBeUndefined();
+      });
+
+      then('the two arrows git tracks stay, and end inside the brain dir', () => {
+        // a box with no grove must leave the tracked arrows as they are, or its init would
+        //   dirty git (#779, F6)
+        expect(readlinkSync(join(scene.brainDir, 'settings.json'))).toEqual(
+          'settings.of.grove.json',
+        );
+        expect(readlinkSync(join(scene.brainDir, 'settings.of.grove.json'))).toEqual(
+          join('.home', '.claude', 'settings.json'),
+        );
       });
     });
   });
@@ -1208,6 +1214,115 @@ describe('rhx enroll --roles (acceptance)', () => {
 
       then('the refusal matches the snapshot', () => {
         expect(asSnapshotSafeOfCredential(scene.run.stderr)).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case2f] a committed repo actor file that names two homes in claudeMdExcludes', () => {
+    // a prior release wrote one absolute home path per machine that enrolled into the repo
+    //   actor's committed settings.of.repo.json. the next bare enroll must clean them, and a
+    //   second enroll must change naught
+    const scene = useBeforeAll(async () => {
+      const dir = genTempDir({ slug: 'enroll-excludes-cleanup' });
+      setupEnrollFixture(dir);
+      const stubPath = setupStubBrainPath({ dir });
+      const home = join(dir, '.home');
+      mkdirSync(join(home, '.claude'), { recursive: true });
+
+      // the committed file, as two machines left it
+      const configPath = join(
+        dir,
+        '.agent',
+        '.actors',
+        'actor.via.repo=ambient',
+        'brain',
+        '.claude',
+        'settings.of.repo.json',
+      );
+      const configPrior = JSON.parse(readFileSync(configPath, 'utf-8'));
+      writeFileSync(
+        configPath,
+        JSON.stringify(
+          {
+            ...configPrior,
+            claudeMdExcludes: [
+              '/home/camper/.claude/CLAUDE.md',
+              '/home/fixturehuman/.claude/CLAUDE.md',
+              '**/CLAUDE.local.md',
+            ],
+          },
+          null,
+          2,
+        ) + '\n',
+        'utf-8',
+      );
+
+      const runFirst = invokeRhachetCliBinary({
+        args: ['enroll', 'claude'],
+        cwd: dir,
+        env: { PATH: stubPath, HOME: home },
+        logOnError: false,
+      });
+      const contentFirst = readFileSync(configPath, 'utf-8');
+      const runSecond = invokeRhachetCliBinary({
+        args: ['enroll', 'claude'],
+        cwd: dir,
+        env: { PATH: stubPath, HOME: home },
+        logOnError: false,
+      });
+      const contentSecond = readFileSync(configPath, 'utf-8');
+      return { runFirst, runSecond, contentFirst, contentSecond };
+    });
+
+    when('[t0] a bare enroll runs', () => {
+      then('enroll exits 0', () => {
+        expect({ status: scene.runFirst.status, stderr: scene.runFirst.stderr }).toMatchObject({
+          status: 0,
+        });
+      });
+
+      then('claudeMdExcludes holds the portable globs alone — no home path', () => {
+        expect(JSON.parse(scene.contentFirst).claudeMdExcludes).toEqual([
+          '**/!(brain)/.claude/CLAUDE.md',
+          '**/CLAUDE.local.md',
+        ]);
+        expect(scene.contentFirst).not.toContain('/home/');
+      });
+
+      then('the cleaned repo actor file matches snapshot', () => {
+        // .note = the role's allowlist reduces to its count: it is the mechanic role's to own,
+        //   and moves with each role bump. the keys, their order and the excludes stay whole
+        const content = JSON.parse(scene.contentFirst) as {
+          permissions?: { allow?: string[] };
+        };
+        const allowCount = content.permissions?.allow?.length ?? 0;
+        expect(allowCount).toBeGreaterThan(0);
+        expect(
+          asSnapshotSafe(
+            JSON.stringify(
+              {
+                ...content,
+                permissions: {
+                  ...content.permissions,
+                  allow: `<${allowCount > 0 ? 'some' : 'no'} allow entries>`,
+                },
+              },
+              null,
+              2,
+            ),
+          ),
+        ).toMatchSnapshot();
+      });
+
+      then('stderr matches snapshot', () => {
+        expect(asSnapshotSafeOfHostLogin(scene.runFirst.stderr)).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] a second bare enroll runs', () => {
+      then('the committed file is byte-identical — idempotent', () => {
+        expect(scene.runSecond.status).toEqual(0);
+        expect(scene.contentSecond).toEqual(scene.contentFirst);
       });
     });
   });

@@ -1,5 +1,8 @@
 import { asActorOndiskDirName } from '@src/domain.operations/actor/enrolled/asActorOndiskDirName';
-import { REPO_ACTOR_DIR_NAME } from '@src/domain.operations/actor/enrolled/constants';
+import {
+  ACTOR_BRAIN_DIR_NAME,
+  REPO_ACTOR_DIR_NAME,
+} from '@src/domain.operations/actor/enrolled/constants';
 import { getOneRepoActorExid } from '@src/domain.operations/actor/enrolled/getOneRepoActorExid';
 
 import { findsertDirGitignore } from './findsertDirGitignore';
@@ -38,9 +41,9 @@ const asActorsGitignoreContentSelf = (input: {
 !/.gitignore
 !/${dir}/
 /${dir}/*
-!/${dir}/brain/
-/${dir}/brain/*
-!/${dir}/brain/.claude/
+!/${dir}/${ACTOR_BRAIN_DIR_NAME}/
+/${dir}/${ACTOR_BRAIN_DIR_NAME}/*
+!/${dir}/${ACTOR_BRAIN_DIR_NAME}/.claude/
 `;
 };
 
