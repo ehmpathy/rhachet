@@ -1943,6 +1943,10 @@ module.exports = { getRoleRegistry };
         const initLater = syncHooks({ hooks: HOOKS_LATER, args: ['init', '--hooks'] });
         const settingsTextLater = readFileSync(settingsPath, 'utf-8');
 
+        // a re-init over an unchanged manifest
+        const initAgain = syncHooks({ hooks: HOOKS_LATER, args: ['init', '--hooks'] });
+        const settingsTextAgain = readFileSync(settingsPath, 'utf-8');
+
         // after: the wires the first sync wrote run the later rows
         const after = {
           agent: dispatch('PreToolUse', asPayloadOfTool('Agent')),
@@ -1965,7 +1969,19 @@ module.exports = { getRoleRegistry };
         writeFileSync(join(cwd, manifestRel), 'not a manifest\n');
         const corrupt = { agent: dispatch('PreToolUse', asPayloadOfTool('Agent')) };
 
-        return { cwd, initFirst, initLater, settings, settingsTextFirst, settingsTextLater, before, after, corrupt };
+        return {
+          cwd,
+          initFirst,
+          initLater,
+          initAgain,
+          settings,
+          settingsTextFirst,
+          settingsTextLater,
+          settingsTextAgain,
+          before,
+          after,
+          corrupt,
+        };
       });
 
       then('the calls a human reads match the snapshot', () => {
@@ -2039,6 +2055,7 @@ module.exports = { getRoleRegistry };
           expect(scene.initLater.stdout).toContain('test/tester → anthropic/claude/code: +4');
           expect(scene.initLater.stdout).toContain('4 created');
           expect(scene.initLater.stdout).not.toContain('🪝 hook dispatchers set');
+          expect(scene.initLater.stdout).toMatchSnapshot();
         });
 
         then('the wire the first sync wrote runs the new talk row', () => {
@@ -2053,6 +2070,15 @@ module.exports = { getRoleRegistry };
         then('each row still runs only on the tools its own matcher names (vision case=3 [t1])', () => {
           expect(scene.after.bash).toEqual({ code: 0, stdout: 'bash guard ran\n', stderr: '' });
           expect(scene.after.read).toEqual({ code: 0, stdout: '', stderr: '' });
+        });
+      });
+
+      when('[t1b] the hooks sync again over an unchanged manifest (vision case=4)', () => {
+        then('the sync succeeds, the settings stay byte-equal, and it reports no change', () => {
+          expect(scene.initAgain.status).toEqual(0);
+          expect(scene.settingsTextAgain).toEqual(scene.settingsTextLater);
+          expect(scene.initAgain.stdout).not.toContain('🪝 hook dispatchers set');
+          expect(scene.initAgain.stdout).toMatchSnapshot();
         });
       });
 
@@ -2303,6 +2329,154 @@ module.exports = { getRoleRegistry };
 
       then('the settings a human reads match the snapshot', () => {
         expect(JSON.stringify(scene.settings.hooks, null, 2)).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case5] a seat an older rhachet wired by the union of its row matchers, beside a hand hook', () => {
+    // an older rhachet wrote the PreToolUse wire under `Bash`, the one row's matcher; a later
+    //   Agent row was dark under it. the upgrade sync must re-wire it whole and keep the hand hook
+    const asRoleRegistry = (input: { onTool: string }): string => `
+const getRoleRegistry = () => ({
+  slug: 'test',
+  readme: { uri: 'readme.md' },
+  roles: [
+    {
+      slug: 'tester',
+      name: 'Tester',
+      purpose: 'test role on a seat wired by the union shape',
+      readme: { uri: 'roles/tester/readme.md' },
+      traits: [],
+      skills: { dirs: { uri: 'roles/tester/skills' }, refs: [] },
+      briefs: { dirs: { uri: 'roles/tester/briefs' } },
+      inits: { dirs: { uri: 'roles/tester/inits' } },
+      hooks: { onBrain: { onTool: ${input.onTool} } },
+    },
+  ],
+});
+module.exports = { getRoleRegistry };
+`;
+    const ROWS_FIRST = `[{ command: 'echo "bash guard ran"', timeout: 'PT10S', filter: { what: 'Bash' } }]`;
+    const ROWS_LATER = `[
+      { command: 'echo "bash guard ran"', timeout: 'PT10S', filter: { what: 'Bash' } },
+      { command: 'echo "agent guard ran"', timeout: 'PT10S', filter: { what: 'Agent' } },
+    ]`;
+    const HAND_HOOK = { matcher: 'Write', hooks: [{ type: 'command', command: 'echo "hand hook ran"' }] };
+
+    const scene = useBeforeAll(async () => {
+      const cwd = (await genTestTempRepo({ fixture: 'with-hook-dispatch' })).path;
+      setRhachetLinkedInto({ cwd });
+      const registryPath = join(cwd, 'node_modules/rhachet-roles-test/dist/index.js');
+      const settingsPath = join(cwd, '.claude/settings.of.repo.json');
+      const env = { HOME: genTempDir({ slug: 'hooks-dispatch-union-home' }) };
+
+      // the first sync, then roll the PreToolUse wire back to the union shape and add a hand hook
+      writeFileSync(registryPath, asRoleRegistry({ onTool: ROWS_FIRST }));
+      const initFirst = invokeRhachetCliBinary({ args: ['init', '--roles', 'tester', '--hooks'], cwd, env });
+      const settingsFirst = JSON.parse(readFileSync(settingsPath, 'utf-8'));
+      const [wire] = settingsFirst.hooks.PreToolUse as Array<{ matcher: string; hooks: unknown[] }>;
+      const settingsUnion = {
+        ...settingsFirst,
+        hooks: { ...settingsFirst.hooks, PreToolUse: [{ ...wire, matcher: 'Bash' }, HAND_HOOK] },
+      };
+      writeFileSync(settingsPath, `${JSON.stringify(settingsUnion, null, 2)}\n`);
+
+      // the upgrade: the role adds an Agent row, and the hooks sync again
+      writeFileSync(registryPath, asRoleRegistry({ onTool: ROWS_LATER }));
+      const initUpgrade = invokeRhachetCliBinary({ args: ['init', '--hooks'], cwd, env });
+      const settings = JSON.parse(readFileSync(settingsPath, 'utf-8'));
+      const command = asHooksOfEvent({ settings, event: 'PreToolUse' }).find(
+        (hook) => hook.author === 'rhachet/hooks.dispatch',
+      )!.command;
+      const agent = runAsClaude({ cwd, command, payload: asPayloadOfTool('Agent') });
+
+      return { initFirst, initUpgrade, settings, agent };
+    });
+
+    when('[t0] the hooks sync over the union shape (vision case=6)', () => {
+      then('both syncs succeed', () => {
+        expect(scene.initFirst.status).toEqual(0);
+        expect(scene.initUpgrade.status).toEqual(0);
+      });
+
+      then('the PreToolUse wire sits whole under `*`, once, and the hand hook keeps its own matcher', () => {
+        const entries = scene.settings.hooks.PreToolUse as Array<{
+          matcher: string;
+          hooks: Array<{ command: string; author?: string }>;
+        }>;
+        expect(
+          entries.map((entry) => ({
+            matcher: entry.matcher,
+            authors: entry.hooks.map((hook) => hook.author ?? '(hand)'),
+          })),
+        ).toEqual([
+          { matcher: '*', authors: ['rhachet/hooks.dispatch'] },
+          { matcher: 'Write', authors: ['(hand)'] },
+        ]);
+      });
+
+      then('the Agent row the union hid now runs under the whole wire', () => {
+        expect(scene.agent).toEqual({ code: 0, stdout: 'agent guard ran\n', stderr: '' });
+      });
+
+      then('the swap report a human reads matches the snapshot', () => {
+        expect(scene.initUpgrade.stdout).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case6] a repo whose roles declare no hook, so no manifest is written', () => {
+    const REGISTRY_HOOKLESS = `
+const getRoleRegistry = () => ({
+  slug: 'test',
+  readme: { uri: 'readme.md' },
+  roles: [
+    {
+      slug: 'tester',
+      name: 'Tester',
+      purpose: 'test role with no hook',
+      readme: { uri: 'roles/tester/readme.md' },
+      traits: [],
+      skills: { dirs: { uri: 'roles/tester/skills' }, refs: [] },
+      briefs: { dirs: { uri: 'roles/tester/briefs' } },
+      inits: { dirs: { uri: 'roles/tester/inits' } },
+    },
+  ],
+});
+module.exports = { getRoleRegistry };
+`;
+
+    const scene = useBeforeAll(async () => {
+      const cwd = (await genTestTempRepo({ fixture: 'with-hook-dispatch' })).path;
+      setRhachetLinkedInto({ cwd });
+      writeFileSync(join(cwd, 'node_modules/rhachet-roles-test/dist/index.js'), REGISTRY_HOOKLESS);
+      const init = invokeRhachetCliBinary({
+        args: ['init', '--roles', 'tester', '--hooks'],
+        cwd,
+        env: { HOME: genTempDir({ slug: 'hooks-dispatch-hookless-home' }) },
+      });
+      const brainDir = join(cwd, '.claude');
+      const settings = JSON.parse(readFileSync(join(brainDir, 'settings.of.repo.json'), 'utf-8'));
+      const isManifestPresent = readdirSync(brainDir).includes('hooks.dispatch.manifest');
+      return { init, settings, isManifestPresent };
+    });
+
+    when('[t0] rhx init --hooks runs (vision case=9)', () => {
+      then('the sync succeeds', () => {
+        expect(scene.init.status).toEqual(0);
+      });
+
+      then('no manifest is written', () => {
+        expect(scene.isManifestPresent).toEqual(false);
+      });
+
+      then('the settings hold no dispatcher wire: a wire at an absent manifest would refuse every call', () => {
+        const dispatchers = ['SessionStart', 'PreToolUse', 'UserPromptSubmit', 'Stop'].flatMap((event) =>
+          asHooksOfEvent({ settings: scene.settings, event }).filter(
+            (hook) => hook.author === 'rhachet/hooks.dispatch',
+          ),
+        );
+        expect(dispatchers).toEqual([]);
       });
     });
   });

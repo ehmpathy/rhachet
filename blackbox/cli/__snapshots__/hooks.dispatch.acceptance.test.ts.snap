@@ -344,6 +344,31 @@ exit = 2
 "
 `;
 
+exports[`hook dispatcher (one process per claude event) given: [case2] a repo synced once, whose role then adds a row on a tool and an event no prior row named when: [t1] the role adds an Agent row, a talk row, a stop row and a boot row, and the hooks sync again (vision case=1, case=2) then: the later sync names the rows it added, with no swap report (vision case=4 [t2], F9) 1`] = `
+"🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: +4
+
+✨ hooks
+   └─ 4 created
+
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case2] a repo synced once, whose role then adds a row on a tool and an event no prior row named when: [t1b] the hooks sync again over an unchanged manifest (vision case=4) then: the sync succeeds, the settings stay byte-equal, and it reports no change 1`] = `
+"🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+
+✨ hooks
+   └─ no changes needed
+
+"
+`;
+
 exports[`hook dispatcher (one process per claude event) given: [case3] an enrolled clone actor, whose role then adds a row on a tool no prior row named then: the clone calls a human reads match the snapshot 1`] = `
 "=== a later Agent row, under the clone wire ===
 exit = 0
@@ -430,4 +455,26 @@ exports[`hook dispatcher (one process per claude event) given: [case4] a role wh
     }
   ]
 }"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case5] a seat an older rhachet wired by the union of its row matchers, beside a hand hook when: [t0] the hooks sync over the union shape (vision case=6) then: the swap report a human reads matches the snapshot 1`] = `
+"🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: +1
+
+🪝 hook dispatchers set
+   └─ anthropic/claude/code
+      ├─ 2 rules → 4 dispatchers, one per event
+      │  ├─ SessionStart = 0 rules
+      │  ├─ PreToolUse = 2 rules
+      │  ├─ UserPromptSubmit = 0 rules
+      │  └─ Stop = 0 rules
+      └─ manifest = .claude/hooks.dispatch.manifest
+
+✨ hooks
+   └─ 1 created
+
+"
 `;
