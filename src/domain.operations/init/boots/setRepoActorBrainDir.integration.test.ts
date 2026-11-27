@@ -1,8 +1,8 @@
 import { getError, given, then, useBeforeAll, when } from 'test-fns';
 
 import { genSampleRepoWithRoles } from '@src/.test/assets/genSampleRepoWithRoles';
-import { getOneIsPathIgnoredByGit } from '@src/.test/infra/getOneIsPathIgnoredByGit';
 import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
+import { getOneIsPathIgnoredByGit } from '@src/.test/infra/getOneIsPathIgnoredByGit';
 import { setProcessEnvVar } from '@src/.test/infra/setProcessEnvVar';
 
 import {
