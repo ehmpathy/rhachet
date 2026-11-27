@@ -392,6 +392,61 @@ exit = 0
 (empty)"
 `;
 
+exports[`hook dispatcher (one process per claude event) given: [case4] a role whose PreToolUse row runs slower than the wire floor when: [t0] the hooks sync then: the init a human reads matches the snapshot 1`] = `
+"
+🔧 init 1 role(s)...
+
+📚 link role repo=test/role=tester
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=test/readme.md
+   │  ├─ + .agent/repo=test/.gitignore
+   │  ├─ + .agent/repo=test/role=tester/readme.md
+   │  ├─ + .agent/repo=test/role=tester/briefs
+   │  ├─ + .agent/repo=test/role=tester/skills
+   │  └─ + .agent/repo=test/role=tester/inits
+   └─ stats
+      ├─ 1 brief(s)
+      ├─ 2 skill(s)
+      └─ 5 init(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+🧠 brain://repo=ambient
+   ├─ moved
+   │  └─ .claude/settings.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+   └─ boot.md
+      └─ created — 1 role
+
+🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: +1
+
+🪝 hook dispatchers set
+   └─ anthropic/claude/code
+      ├─ 1 rule → 4 dispatchers, one per event
+      │  ├─ SessionStart = 0 rules
+      │  ├─ PreToolUse = 1 rule
+      │  ├─ UserPromptSubmit = 0 rules
+      │  └─ Stop = 0 rules
+      └─ manifest = .claude/hooks.dispatch.manifest
+
+✨ hooks
+   └─ 1 created
+
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
+
+"
+`;
+
 exports[`hook dispatcher (one process per claude event) given: [case4] a role whose PreToolUse row runs slower than the wire floor when: [t0] the hooks sync then: the settings a human reads match the snapshot 1`] = `
 "{
   "SessionStart": [
@@ -472,6 +527,72 @@ exports[`hook dispatcher (one process per claude event) given: [case5] a seat an
       │  ├─ UserPromptSubmit = 0 rules
       │  └─ Stop = 0 rules
       └─ manifest = .claude/hooks.dispatch.manifest
+
+✨ hooks
+   └─ 1 created
+
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case6] a repo whose roles declare no hook, so no manifest is written when: [t0] rhx init --hooks runs (vision case=9) then: the init a human reads matches the snapshot 1`] = `
+"
+🔧 init 1 role(s)...
+
+📚 link role repo=test/role=tester
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=test/readme.md
+   │  ├─ + .agent/repo=test/.gitignore
+   │  ├─ + .agent/repo=test/role=tester/readme.md
+   │  ├─ + .agent/repo=test/role=tester/briefs
+   │  ├─ + .agent/repo=test/role=tester/skills
+   │  └─ + .agent/repo=test/role=tester/inits
+   └─ stats
+      ├─ 1 brief(s)
+      ├─ 2 skill(s)
+      └─ 5 init(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+🧠 brain://repo=ambient
+   ├─ moved
+   │  └─ .claude/settings.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+   └─ boot.md
+      └─ created — 1 role
+
+🔭 search for linked roles with hooks...
+
+🫧 no roles with hooks found
+
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
+
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case7] a repo synced once, whose role then drops its last row, and later adds one back when: [t1] the role adds a row back, one that refuses its tool (vision case=7 [t3]) then: the syncs a human reads match the snapshot 1`] = `
+"=== the role drops its last row ===
+🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: -1
+
+✨ hooks
+   └─ 1 deleted
+
+
+=== the role adds a row back ===
+🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: +1
 
 ✨ hooks
    └─ 1 created

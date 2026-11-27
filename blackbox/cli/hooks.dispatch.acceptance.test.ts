@@ -1081,6 +1081,34 @@ describe('hook dispatcher (one process per claude event)', () => {
       });
     });
 
+    when('[t34] rows whose matchers are a comma list, a bar list, and empty, under one `*` wire (vision case=3)', () => {
+      // the wire no longer narrows by matcher, so each row's own matcher is the one bound on its tools
+      const manifest = asManifestOfCommands({
+        rows: [
+          { event: 'PreToolUse', matcher: 'Write,Edit', timeout: 5, command: 'echo comma rule ran' },
+          { event: 'PreToolUse', matcher: 'Read|Grep', timeout: 5, command: 'echo bar rule ran' },
+          { event: 'PreToolUse', matcher: '', timeout: 5, command: 'echo empty rule ran' },
+        ],
+      });
+      const result = useBeforeAll(async () => {
+        const dispatchTool = (tool: string) =>
+          scene.dispatchManifest({ name: `lists-${tool}`, manifest, event: 'PreToolUse', payload: asPayloadOfTool(tool) });
+        return { edit: dispatchTool('Edit'), grep: dispatchTool('Grep'), bash: dispatchTool('Bash') };
+      });
+
+      then('a tool in the comma list runs that row, and the empty row', () => {
+        expect(result.edit).toEqual({ code: 0, stdout: 'comma rule ran\nempty rule ran\n', stderr: '' });
+      });
+
+      then('a tool in the bar list runs that row, and the empty row', () => {
+        expect(result.grep).toEqual({ code: 0, stdout: 'bar rule ran\nempty rule ran\n', stderr: '' });
+      });
+
+      then('a tool in no list runs only the empty row', () => {
+        expect(result.bash).toEqual({ code: 0, stdout: 'empty rule ran\n', stderr: '' });
+      });
+    });
+
     when('[t33] one Stop through the repo actor manifest and through a `-driver` clone manifest (vision case=10)', () => {
       // a peer clone's dispatcher names its own manifest, which holds no driver rule; so its Stop
       //   runs no driver rule, while the repo actor's Stop still holds on the driver's rule
@@ -2330,6 +2358,10 @@ module.exports = { getRoleRegistry };
       then('the settings a human reads match the snapshot', () => {
         expect(JSON.stringify(scene.settings.hooks, null, 2)).toMatchSnapshot();
       });
+
+      then('the init a human reads matches the snapshot', () => {
+        expect(scene.init.stdout).toMatchSnapshot();
+      });
     });
   });
 
@@ -2477,6 +2509,121 @@ module.exports = { getRoleRegistry };
           ),
         );
         expect(dispatchers).toEqual([]);
+      });
+
+      then('the init a human reads matches the snapshot', () => {
+        expect(scene.init.stdout).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case7] a repo synced once, whose role then drops its last row, and later adds one back', () => {
+    // the manifest stays, with zero rows: the four wires wait, each a no-op, and a row added back
+    //   lands under them with no settings write
+    const asRoleRegistry = (input: { onTool: string }): string => `
+const getRoleRegistry = () => ({
+  slug: 'test',
+  readme: { uri: 'readme.md' },
+  roles: [
+    {
+      slug: 'tester',
+      name: 'Tester',
+      purpose: 'test role whose rows empty, then return',
+      readme: { uri: 'roles/tester/readme.md' },
+      traits: [],
+      skills: { dirs: { uri: 'roles/tester/skills' }, refs: [] },
+      briefs: { dirs: { uri: 'roles/tester/briefs' } },
+      inits: { dirs: { uri: 'roles/tester/inits' } },
+      hooks: { onBrain: { onTool: ${input.onTool} } },
+    },
+  ],
+});
+module.exports = { getRoleRegistry };
+`;
+    const ROWS_FIRST = `[{ command: 'echo "bash guard ran"', timeout: 'PT10S', filter: { what: 'Bash' } }]`;
+    const ROWS_BACK = `[{ command: 'echo "agent says no" >&2; exit 2', timeout: 'PT10S', filter: { what: 'Agent' } }]`;
+
+    const scene = useBeforeAll(async () => {
+      const cwd = (await genTestTempRepo({ fixture: 'with-hook-dispatch' })).path;
+      setRhachetLinkedInto({ cwd });
+      const registryPath = join(cwd, 'node_modules/rhachet-roles-test/dist/index.js');
+      const brainDir = join(cwd, '.claude');
+      const settingsPath = join(brainDir, 'settings.of.repo.json');
+      const env = { HOME: genTempDir({ slug: 'hooks-dispatch-emptied-home' }) };
+      const syncHooks = (input: { onTool: string; args: string[] }) => {
+        writeFileSync(registryPath, asRoleRegistry({ onTool: input.onTool }));
+        return invokeRhachetCliBinary({ args: input.args, cwd, env });
+      };
+
+      // the first sync, then the role drops its last row
+      const initFirst = syncHooks({ onTool: ROWS_FIRST, args: ['init', '--roles', 'tester', '--hooks'] });
+      const settingsTextFirst = readFileSync(settingsPath, 'utf-8');
+      const initEmptied = syncHooks({ onTool: '[]', args: ['init', '--hooks'] });
+      const settingsTextEmptied = readFileSync(settingsPath, 'utf-8');
+      const manifestTextEmptied = readFileSync(join(brainDir, 'hooks.dispatch.manifest'), 'utf-8');
+      const settings = JSON.parse(settingsTextEmptied);
+      const commandOf = (event: string): string => asHooksOfEvent({ settings, event })[0]!.command;
+      const dispatch = (event: string, payload: string) => runAsClaude({ cwd, command: commandOf(event), payload });
+      const emptied = { bash: dispatch('PreToolUse', asPayloadOfTool('Bash')) };
+
+      // later: the role adds a row back, one that refuses its tool
+      const initBack = syncHooks({ onTool: ROWS_BACK, args: ['init', '--hooks'] });
+      const settingsTextBack = readFileSync(settingsPath, 'utf-8');
+      const back = {
+        agent: dispatch('PreToolUse', asPayloadOfTool('Agent')),
+        bash: dispatch('PreToolUse', asPayloadOfTool('Bash')),
+      };
+
+      return {
+        initFirst,
+        initEmptied,
+        initBack,
+        settingsTextFirst,
+        settingsTextEmptied,
+        settingsTextBack,
+        manifestTextEmptied,
+        emptied,
+        back,
+      };
+    });
+
+    when('[t0] the role drops its last row, and the hooks sync (vision case=9 [t1])', () => {
+      then('the sync succeeds, and the manifest stays, with no rule row', () => {
+        expect(scene.initEmptied.status).toEqual(0);
+        expect(scene.manifestTextEmptied).not.toContain('bash guard ran');
+      });
+
+      then('the settings are byte-equal: the four wires wait on an empty manifest', () => {
+        expect(scene.settingsTextEmptied).toEqual(scene.settingsTextFirst);
+      });
+
+      then('a tool call through the empty manifest exits 0 with no bytes', () => {
+        expect(scene.emptied.bash).toEqual({ code: 0, stdout: '', stderr: '' });
+      });
+    });
+
+    when('[t1] the role adds a row back, one that refuses its tool (vision case=7 [t3])', () => {
+      then('the settings are byte-equal: the row needs no settings write', () => {
+        expect(scene.initBack.status).toEqual(0);
+        expect(scene.settingsTextBack).toEqual(scene.settingsTextFirst);
+      });
+
+      then('the row refuses its tool with exit 2, under the wire the first sync wrote', () => {
+        expect(scene.back.agent).toEqual({
+          code: 2,
+          stdout: '',
+          stderr: 'agent says no\n🪝 hooks.dispatch PreToolUse blocked by echo "agent says no" >&2; exit 2\n',
+        });
+      });
+
+      then('a tool the row does not name still passes', () => {
+        expect(scene.back.bash).toEqual({ code: 0, stdout: '', stderr: '' });
+      });
+
+      then('the syncs a human reads match the snapshot', () => {
+        expect(
+          ['=== the role drops its last row ===', scene.initEmptied.stdout, '=== the role adds a row back ===', scene.initBack.stdout].join('\n'),
+        ).toMatchSnapshot();
       });
     });
   });
