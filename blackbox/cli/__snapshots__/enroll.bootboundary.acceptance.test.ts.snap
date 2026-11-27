@@ -36,7 +36,7 @@ exports[`rhx enroll, boot boundary refusal (acceptance) given: [case1] a repo br
 `;
 
 exports[`rhx enroll, boot boundary refusal (acceptance) given: [case1] a repo brief that quotes the boundary literal inside a code fence when: [t2] rhx init --hooks renders the repo brain dir then: the init refusal a human reads is locked 1`] = `
-"✗ brain://repo=ambient/boot.md not written
+"✗ brain://repo=ambient not synced
    ├─ ✋ ConstraintError: a role boot holds the cache boundary literal
    ├─ offenders
    │  └─ repo=.this/role=any

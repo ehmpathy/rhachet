@@ -10,6 +10,7 @@ import {
   lstatSync,
   mkdirSync,
   readdirSync,
+  readFileSync,
   readlinkSync,
   rmSync,
 } from 'node:fs';
@@ -17,23 +18,29 @@ import { dirname, join } from 'node:path';
 
 /**
  * .what = one change the layout findsert made to a brain dir
- * .note = callers name it via `Awaited<ReturnType<typeof setBrainDirSettingsLayout>>`, so
- *   the type stays private to this file
+ * .note = callers name it via `BrainDirSettingsLayout['effects']`
  */
 type BrainDirSettingsLayoutEffect =
   | { kind: 'LINKED'; name: string; target: string }
+  | { kind: 'REPLACED'; name: string; target: string }
+  | { kind: 'REMOVED'; name: string; reason: 'grove absent' }
   | { kind: 'UNLINKED'; name: string; reason: 'grove absent' };
 
 /**
  * .what = findsert the settings layout of one brain dir:
  *         `settings.json -> settings.of.grove.json -> .home/.claude/settings.json -> ~/.claude/settings.json`,
- *         and `settings.of.repo.json` as the one real file
+ *         `settings.local.json -> settings.of.repo.json`, and `settings.of.repo.json` as the one real file
  * .note = only `.home/.claude/settings.json` names this box; the arrows before it are relative,
  *   so they hold the same bytes on every box and stay tracked (#779)
  * .why = one layout for every actor (define.brain-dir-layout-is-one-for-every-actor). claude
- *        reads `settings.json` as its user layer, so that name must be the grove; the repo's
- *        settings ride `--settings settings.of.repo.json`, which outranks the grove
+ *        reads `settings.json` as its user layer, so that name must be the grove; an enrolled
+ *        clone reads the repo's settings via `--settings settings.of.repo.json`, and a plain
+ *        `claude` at the repo root reads them via its local layer, `settings.local.json`
+ *        (define.invariant.brain-config-grove-vs-repo)
  *
+ * .note = the local arrow does not depend on the grove: its target is always present
+ * .note = a real file replaced by an arrow is reported REPLACED, and a real file dropped in a
+ *   grove-less box is reported REMOVED, so its loss is never silent on any box
  * .note = one answer, and it is rhachet's (wisher, 2026-10-07): a real file where an arrow
  *   belongs — a role init's temp + rename over `settings.json`, a `/model` or `/config` in a
  *   clone over `settings.of.grove.json` — is replaced by the arrow. it is neither merged into
@@ -73,7 +80,7 @@ export const setBrainDirSettingsLayout = async (input: {
  * .note = `grove` rides out so a caller can say a box has no grove (vision case=4) without
  *   a second probe of the home dir
  */
-type BrainDirSettingsLayout = {
+export type BrainDirSettingsLayout = {
   effects: BrainDirSettingsLayoutEffect[];
   grove: { source: string; isPresent: boolean };
 };
@@ -109,6 +116,21 @@ export const setBrainDirSettingsLayoutWithinLock = (input: {
       },
     );
 
+  // the `.home` mirror's dirs must be real dirs: through a link (say `.home -> ~`) the mirror
+  //   leaf IS the human's home settings, and an arrow swapped in over it would destroy them.
+  //   refuse before any mutation, as above
+  for (const pathMirrorDir of [dirname(dirname(pathHome)), dirname(pathHome)]) {
+    const statMirrorDir = lstatSync(pathMirrorDir, { throwIfNoEntry: false });
+    if (statMirrorDir && !statMirrorDir.isDirectory())
+      throw new ConstraintError('the .home mirror must hold real dirs', {
+        path: pathMirrorDir,
+        found: statMirrorDir.isSymbolicLink()
+          ? `a symlink to ${readlinkSync(pathMirrorDir)}`
+          : 'not a dir',
+        hint: `remove ${pathMirrorDir} (never its target), then rerun \`rhx init\`; rhachet makes the mirror itself`,
+      });
+  }
+
   // no second answer lingers: drop each fork copy an earlier layout left behind
   delForkedSettingsCopies({ brainDir });
 
@@ -118,7 +140,10 @@ export const setBrainDirSettingsLayoutWithinLock = (input: {
   // the home link: the one name that holds this box's home path, so it stays out of git.
   //   a box with no grove drops it, so the chain ends inside the brain dir and no write
   //   through it can create the human's home settings
+  //   the mirror ignores itself before its leaf exists, so the absolute home path is never
+  //   tracked — on every entry command, and even when a later step of the run faults
   mkdirSync(dirname(pathHome), { recursive: true });
+  setMirrorGitignore({ pathMirrorRoot: dirname(dirname(pathHome)) });
   const effectsHome = isGrovePresent
     ? setArrow({
         name: CLAUDE_SETTINGS_FILENAMES.home,
@@ -129,6 +154,14 @@ export const setBrainDirSettingsLayoutWithinLock = (input: {
         name: CLAUDE_SETTINGS_FILENAMES.home,
         path: pathHome,
       });
+
+  // the local arrow: a plain `claude` at the repo root reads the repo's settings through it.
+  //   its target is always present, so it does not depend on the grove
+  const effectsLocal = setArrow({
+    name: CLAUDE_SETTINGS_FILENAMES.local,
+    path: join(brainDir, CLAUDE_SETTINGS_FILENAMES.local),
+    target: CLAUDE_SETTINGS_FILENAMES.repo,
+  });
 
   // the grove arrows: our clear name to the home link (relative, so its bytes match on every
   //   box, grove or not), claude's fixed name to ours. both are tracked, so both stay put
@@ -146,8 +179,29 @@ export const setBrainDirSettingsLayoutWithinLock = (input: {
         path: pathClaude,
         target: CLAUDE_SETTINGS_FILENAMES.grove,
       }),
+      ...effectsLocal,
     ],
   };
+};
+
+/**
+ * .what = the `.gitignore` the `.home` mirror holds: it ignores the whole mirror, itself included
+ */
+const MIRROR_GITIGNORE_CONTENT = '*\n';
+
+/**
+ * .what = findsert the `.home` mirror's own `.gitignore`
+ * .why = the mirror's leaf is an absolute home path. the brain dir's `.gitignore` also ignores
+ *   it, but that file is written by a later step (`setRepoActorBrainDir`), which `rhx roles init`
+ *   never runs and a fault can skip. the mirror ignores itself, so no entry command can stage it
+ */
+const setMirrorGitignore = (input: { pathMirrorRoot: string }): void => {
+  const path = join(input.pathMirrorRoot, '.gitignore');
+  const stat = lstatSync(path, { throwIfNoEntry: false });
+  if (stat?.isFile() && readFileSync(path, 'utf8') === MIRROR_GITIGNORE_CONTENT)
+    return;
+  if (stat && !stat.isFile()) rmSync(path, { recursive: true, force: true });
+  setFileAtomic({ path, content: MIRROR_GITIGNORE_CONTENT });
 };
 
 /**
@@ -169,8 +223,8 @@ const delForkedSettingsCopies = (input: { brainDir: string }): void => {
 
 /**
  * .what = remove whatever holds one name — an arrow or a real file
- * .note = an UNLINKED effect only when an arrow was removed: a real file at the home link in a
- *   grove-less box is a write that landed there, dropped without a row
+ * .note = UNLINKED when an arrow was removed; REMOVED when a real file was — its content is
+ *   gone, so it is reported just as a REPLACED file is on a box with a grove
  */
 const delEntryIfPresent = (input: {
   name: string;
@@ -179,8 +233,8 @@ const delEntryIfPresent = (input: {
   const stat = lstatSync(input.path, { throwIfNoEntry: false });
   if (!stat) return [];
   rmSync(input.path, { recursive: true, force: true });
-  if (!stat.isSymbolicLink()) return [];
-  return [{ kind: 'UNLINKED', name: input.name, reason: 'grove absent' }];
+  const kind = stat.isSymbolicLink() ? 'UNLINKED' : 'REMOVED';
+  return [{ kind, name: input.name, reason: 'grove absent' }];
 };
 
 /**
@@ -188,6 +242,8 @@ const delEntryIfPresent = (input: {
  * .note = a file or another arrow is swapped in one `rename(2)` (`setSymlinkSwapped`), so a
  *   concurrent reader meets either the old entry or the new arrow, never ENOENT. a dir cannot
  *   be renamed over, so it is removed first
+ * .note = REPLACED when a real file or dir held the name, LINKED when the name was absent or
+ *   held another arrow
  */
 const setArrow = (input: {
   name: string;
@@ -199,5 +255,6 @@ const setArrow = (input: {
     return [];
   if (stat?.isDirectory()) rmSync(input.path, { recursive: true, force: true });
   setSymlinkSwapped({ path: input.path, target: input.target });
-  return [{ kind: 'LINKED', name: input.name, target: input.target }];
+  const kind = stat && !stat.isSymbolicLink() ? 'REPLACED' : 'LINKED';
+  return [{ kind, name: input.name, target: input.target }];
 };

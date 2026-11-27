@@ -1,7 +1,10 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`rhx init — a repo with .agent/repo=.mods given: [case1] a sound mod of a linked role when: [t0] init links the roles then: init stdout matches its snapshot 1`] = `
-"
+"🧠 brain://repo=ambient
+   └─ linked
+      └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+
 🔧 init 2 role(s)...
 
 📚 link role repo=test/role=surfer
@@ -41,8 +44,6 @@ exports[`rhx init — a repo with .agent/repo=.mods given: [case1] a sound mod o
    └─ a live clone keeps the boot it read at session start; re-enroll it to pick up the change
 
 🧠 brain://repo=ambient
-   ├─ linked
-   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
       └─ created — 2 roles
 
@@ -196,14 +197,17 @@ exports[`rhx init — a repo with .agent/repo=.mods given: [case1] a sound mod o
 
 exports[`rhx init — a repo with .agent/repo=.mods given: [case2] a refused mod beside a role no mod names (usecase 12) when: [t0] init links the roles then: init stdout and stderr match their snapshot 1`] = `
 {
-  "stderr": "✗ brain://repo=ambient/boot.md not written
+  "stderr": "✗ brain://repo=ambient not synced
    ├─ ✋ ConstraintError: the mod of role=surfer is refused: its not \`briefs/rule.forbid.wipeoutz.md\` matches no briefs file the role holds
    ├─ mod = .agent/repo=.mods/role=surfer/
    ├─ subject = briefs/rule.forbid.wipeoutz.md
    ├─ did you mean = briefs/rule.forbid.wipeouts.md
    └─ fix = point the not at a held path, or delete the line
 ",
-  "stdout": "
+  "stdout": "🧠 brain://repo=ambient
+   └─ linked
+      └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+
 🔧 init 2 role(s)...
 
 📚 link role repo=test/role=surfer

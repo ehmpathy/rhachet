@@ -1,7 +1,10 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`rhachet init given: [case4] repo with rhachet-roles packages installed when: [t0] init --roles tester then: full stdout matches snapshot 1`] = `
-"
+"🧠 brain://repo=ambient
+   └─ linked
+      └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+
 🔧 init 1 role(s)...
 
 📚 link role repo=test/role=tester
@@ -23,8 +26,6 @@ exports[`rhachet init given: [case4] repo with rhachet-roles packages installed 
 ✨ 1 role(s) initialized
 
 🧠 brain://repo=ambient
-   ├─ linked
-   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
       └─ created — 1 role
 

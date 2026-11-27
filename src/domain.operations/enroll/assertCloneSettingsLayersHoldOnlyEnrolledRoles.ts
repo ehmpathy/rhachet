@@ -59,6 +59,18 @@ export const assertCloneSettingsLayersHoldOnlyEnrolledRoles = (input: {
     rolesEnrolled: input.roles,
     leaks: leaks.map(({ isOfManifest: _, ...leak }) => leak),
   };
+
+  // rhachet spawns with the `user` source alone, so a project or local layer is read only
+  //   because the human's passthrough named it — the cause is their flag, never rhachet
+  const isFromPassthroughSource = leaks.some(
+    (leak) => leak.source === 'project' || leak.source === 'local',
+  );
+  if (isFromPassthroughSource)
+    throw new ConstraintError(message, {
+      ...metadata,
+      hint: 'a passthrough `--setting-sources` named `project` or `local`, which reach the repo actor settings with every linked role; drop that flag, or enroll with the roles those hooks name',
+    });
+
   if (isFromHome)
     throw new ConstraintError(message, {
       ...metadata,

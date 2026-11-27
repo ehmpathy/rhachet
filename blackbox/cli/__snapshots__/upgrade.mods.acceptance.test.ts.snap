@@ -166,7 +166,7 @@ exports[`rhx upgrade — a repo with .agent/repo=.mods given: [case2] a release 
 `;
 
 exports[`rhx upgrade — a repo with .agent/repo=.mods given: [case2] a release that drops the path a mod nots when: [t0] \`rhx upgrade --roles test/surfer --which local\` then: the refusal stderr matches its snapshot 1`] = `
-"✗ brain://repo=ambient/boot.md not written
+"✗ brain://repo=ambient not synced
    ├─ ✋ ConstraintError: the mod of role=surfer is refused: its not \`briefs/rule.forbid.wipeouts.md\` matches no briefs file the role holds
    ├─ mod = .agent/repo=.mods/role=surfer/
    ├─ subject = briefs/rule.forbid.wipeouts.md
@@ -176,7 +176,7 @@ exports[`rhx upgrade — a repo with .agent/repo=.mods given: [case2] a release 
 
 exports[`rhx upgrade — a repo with .agent/repo=.mods given: [case2] a release that drops the path a mod nots when: [t0] \`rhx upgrade --roles test/surfer --which local\` then: the whole upgrade output matches its snapshot 1`] = `
 {
-  "stderr": "✗ brain://repo=ambient/boot.md not written
+  "stderr": "✗ brain://repo=ambient not synced
    ├─ ✋ ConstraintError: the mod of role=surfer is refused: its not \`briefs/rule.forbid.wipeouts.md\` matches no briefs file the role holds
    ├─ mod = .agent/repo=.mods/role=surfer/
    ├─ subject = briefs/rule.forbid.wipeouts.md

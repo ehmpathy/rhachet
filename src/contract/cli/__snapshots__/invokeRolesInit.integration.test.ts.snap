@@ -1,0 +1,9 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`invokeRolesInit (integration) given: [case4] a repo whose <repo>/.claude is a file, so the layout refuses when: [t0] "roles init --role mechanic" runs then: the inits still run, and a warn line names that the layout did not land 1`] = `
+[
+  "🧠 brain://repo=ambient",
+  "   └─ 🟡 the layout did not land; run \`rhx init\` to see why",
+  "",
+]
+`;

@@ -153,6 +153,32 @@ describe('setBrainDirBoot', () => {
           expect(narrowed.bootMdChanged).toEqual(true);
         },
       );
+
+      then(
+        'a boot.md whose bytes drifted is rewritten, and that is a change',
+        async () => {
+          // the report reads this flag: a byte-identical re-render must never say `upgraded`,
+          //   but a hand-drifted boot.md is rewritten, and that IS news
+          const repoPath = genRepoWithRoles({ slug: 'setBrainDirBoot-c1t2c' });
+          const brainDir = join(repoPath, 'brain');
+          const first = await setBrainDirBoot({
+            brainDir,
+            roles: ROLES,
+            repoPath,
+            scope: { kind: 'repo', actorExid: 'repo=ambient' },
+          });
+
+          writeFileSync(first.bootMdPath, 'stale corpus');
+          const second = await setBrainDirBoot({
+            brainDir,
+            roles: ROLES,
+            repoPath,
+            scope: { kind: 'repo', actorExid: 'repo=ambient' },
+          });
+          expect(second.bootMdCreated).toEqual(false);
+          expect(second.bootMdChanged).toEqual(true);
+        },
+      );
     });
 
     when('[t3] the same roles are rendered in two repos at two paths', () => {

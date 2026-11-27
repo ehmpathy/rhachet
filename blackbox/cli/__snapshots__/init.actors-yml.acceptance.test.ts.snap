@@ -2,10 +2,8 @@
 
 exports[`rhx init under .agent/actors.yml (acceptance) given: [case1] a manifest with a repo actor and a peer extension when: [t0] \`init\` with no --roles then: the brain dir header names the repo actor, \`brain://slug=crew\` 1`] = `
 "🧠 brain://slug=crew
-   ├─ linked
-   │  └─ .claude → .agent/.actors/actor.via.slug=crew/brain/.claude
-   └─ boot.md
-      └─ created — 2 roles"
+   └─ linked
+      └─ .claude → .agent/.actors/actor.via.slug=crew/brain/.claude"
 `;
 
 exports[`rhx init under .agent/actors.yml (acceptance) given: [case1] a manifest with a repo actor and a peer extension when: [t0] \`init\` with no --roles then: the report block holds its shape 1`] = `
@@ -16,7 +14,10 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case1] a manifest
 `;
 
 exports[`rhx init under .agent/actors.yml (acceptance) given: [case1] a manifest with a repo actor and a peer extension when: [t0] \`init\` with no --roles then: the whole init frame holds its shape — block order and blank lines included 1`] = `
-"
+"🧠 brain://slug=crew
+   └─ linked
+      └─ .claude → .agent/.actors/actor.via.slug=crew/brain/.claude
+
 🔧 init 3 role(s)...
 
 📚 link role repo=ehmpathy/role=mechanic
@@ -94,8 +95,6 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case1] a manifest
    └─ in sync
 
 🧠 brain://slug=crew
-   ├─ linked
-   │  └─ .claude → .agent/.actors/actor.via.slug=crew/brain/.claude
    └─ boot.md
       └─ created — 2 roles
 
@@ -181,10 +180,8 @@ exports[`rhx init under .agent/actors.yml (acceptance) given: [case2] a role lin
 "🧠 brain://slug=solo
    ├─ carried
    │  └─ .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json → .agent/.actors/actor.via.slug=solo/brain/.claude/settings.of.repo.json
-   ├─ linked
-   │  └─ .claude → .agent/.actors/actor.via.slug=solo/brain/.claude
-   └─ boot.md
-      └─ created — 1 role"
+   └─ linked
+      └─ .claude → .agent/.actors/actor.via.slug=solo/brain/.claude"
 `;
 
 exports[`rhx init under .agent/actors.yml (acceptance) given: [case2] a role linked by hand, then a manifest that omits it when: [t0] \`init\` with no --roles then: the report block holds its shape 1`] = `

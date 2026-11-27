@@ -1,0 +1,17 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`setRepoActorBrainDirLayout given: [case6] a real settings.local.json, and a role init that aborts after the layout step when: [t0] the layout step returns, before any role init then: the report is the repo actor tree, locked to a snapshot 1`] = `
+"🧠 brain://repo=ambient
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+   └─ replaced
+      └─ .claude/settings.local.json → settings.of.repo.json — a real file was here; its content is gone, rhachet owns this name (keep durable allows in a role or ~/.claude/settings.json)"
+`;
+
+exports[`setRepoActorBrainDirLayout given: [case7] a hand-added claudeMdExcludes entry, before the role inits when: [t0] the layout step runs then: stdout names the dropped entry — never a silent loss (F14) 1`] = `
+"🧠 brain://repo=ambient
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+   └─ unexcluded
+      └─ docs/legacy/CLAUDE.md — a claudeMdExcludes entry rhachet does not derive; rhachet owns this key, so it was dropped"
+`;

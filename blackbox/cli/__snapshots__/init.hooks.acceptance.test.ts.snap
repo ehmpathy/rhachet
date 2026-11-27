@@ -16,7 +16,14 @@ exports[`rhachet init --hooks given: [case7] a repo with an enrolled actor on di
 `;
 
 exports[`rhachet init --hooks given: [case8] a role that declares a role boot hook (D3) when: [t0] init --roles tester --hooks then: the init stdout is locked 1`] = `
-"
+"🧠 brain://repo=ambient
+   ├─ moved
+   │  └─ .claude/settings.of.repo.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+   └─ replaced
+      └─ .claude/settings.json → settings.of.grove.json — a real file was here; its content is gone, rhachet owns this name (keep durable allows in a role or ~/.claude/settings.json)
+
 🔧 init 1 role(s)...
 
 📚 link role repo=test/role=tester
@@ -36,11 +43,6 @@ exports[`rhachet init --hooks given: [case8] a role that declares a role boot ho
 ✨ 1 role(s) initialized
 
 🧠 brain://repo=ambient
-   ├─ moved
-   │  ├─ .claude/settings.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json
-   │  └─ .claude/settings.of.repo.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json
-   ├─ linked
-   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
       └─ created — 1 role
 
@@ -95,16 +97,21 @@ exports[`rhachet init --hooks given: [case9] a hook a human added by hand beside
 `;
 
 exports[`rhachet init --hooks given: [case9] a repo actor whose committed file names two homes in claudeMdExcludes when: [t0] init --hooks runs then: the tree this case changes matches snapshot, whole 1`] = `
-"🧢 apply hooks to enrolled actors...
-   └─ repo=ambient
-      ├─ claudeMdExcludes dropped /HOME_DIR/.claude/CLAUDE.md — an absolute path; the excludes keep only portable globs
-      └─ claudeMdExcludes dropped /HOME_DIR/.claude/CLAUDE.md — an absolute path; the excludes keep only portable globs"
+"🧠 brain://repo=ambient
+   └─ unexcluded
+      ├─ /HOME_DIR/.claude/CLAUDE.md — a claudeMdExcludes entry rhachet does not derive; rhachet owns this key, so it was dropped
+      └─ /HOME_DIR/.claude/CLAUDE.md — a claudeMdExcludes entry rhachet does not derive; rhachet owns this key, so it was dropped"
 `;
 
 exports[`rhachet init --hooks given: [case10] a role hook whose matcher the dispatcher cannot read when: [t0] init --roles tester,reviewer --hooks then: the stdout and stderr are locked: stderr 1`] = `""`;
 
 exports[`rhachet init --hooks given: [case10] a role hook whose matcher the dispatcher cannot read when: [t0] init --roles tester,reviewer --hooks then: the stdout and stderr are locked: stdout 1`] = `
-"
+"🧠 brain://repo=ambient
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+   └─ replaced
+      └─ .claude/settings.json → settings.of.grove.json — a real file was here; its content is gone, rhachet owns this name (keep durable allows in a role or ~/.claude/settings.json)
+
 🔧 init 2 role(s)...
 
 📚 link role repo=test/role=tester
@@ -132,10 +139,6 @@ exports[`rhachet init --hooks given: [case10] a role hook whose matcher the disp
 ✨ 2 role(s) initialized
 
 🧠 brain://repo=ambient
-   ├─ moved
-   │  └─ .claude/settings.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json
-   ├─ linked
-   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
       └─ created — 2 roles
 

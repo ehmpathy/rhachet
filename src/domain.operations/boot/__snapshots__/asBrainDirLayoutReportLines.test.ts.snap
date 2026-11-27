@@ -1,0 +1,32 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asBrainDirLayoutReportLines given: [case2] a layout step that replaced a real settings.local.json when: [t0] the lines are rendered then: the repo actor tree names the file and says its content is gone 1`] = `
+[
+  "🧠 brain://repo=ambient",
+  "   └─ replaced",
+  "      └─ .claude/settings.local.json → settings.of.repo.json — a real file was here; its content is gone, rhachet owns this name (keep durable allows in a role or ~/.claude/settings.json)",
+]
+`;
+
+exports[`asBrainDirLayoutReportLines given: [case3] a layout step that replaced two names, one on a box with no grove when: [t0] the lines are rendered then: each name has its own branch, the last closes the tree 1`] = `
+[
+  "🧠 brain://repo=ambient",
+  "   └─ replaced",
+  "      ├─ .claude/settings.local.json → settings.of.repo.json — a real file was here; its content is gone, rhachet owns this name (keep durable allows in a role or ~/.claude/settings.json)",
+  "      └─ .claude/settings.json — a real file was here; this box has no ~/.claude/settings.json, so rhachet removed it and its content is gone (keep durable allows in a role or ~/.claude/settings.json)",
+]
+`;
+
+exports[`asBrainDirLayoutReportLines given: [case4] a layout step that migrated a real <repo>/.claude dir and replaced its settings.json when: [t0] the lines are rendered then: the move, the drop, the link and the replace each have a group, in that order 1`] = `
+[
+  "🧠 brain://repo=ambient",
+  "   ├─ moved",
+  "   │  └─ .claude/keybindings.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/keybindings.json",
+  "   ├─ dropped",
+  "   │  └─ .claude/AGENTS.md — rhachet owns the boot context",
+  "   ├─ linked",
+  "   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude",
+  "   └─ replaced",
+  "      └─ .claude/settings.json → settings.of.grove.json — a real file was here; its content is gone, rhachet owns this name (keep durable allows in a role or ~/.claude/settings.json)",
+]
+`;

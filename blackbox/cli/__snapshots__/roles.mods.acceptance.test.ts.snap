@@ -13,7 +13,10 @@ exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case1] a 
 `;
 
 exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case1] a repo that mods a linked package role when: [t0] init links the role, then renders the modded view then: init stdout matches its snapshot 1`] = `
-"
+"🧠 brain://repo=ambient
+   └─ linked
+      └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+
 🔧 init 1 role(s)...
 
 📚 link role repo=test/role=surfer
@@ -39,8 +42,6 @@ exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case1] a 
    └─ a live clone keeps the boot it read at session start; re-enroll it to pick up the change
 
 🧠 brain://repo=ambient
-   ├─ linked
-   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ boot.md
       └─ created — 1 role
 
@@ -561,14 +562,17 @@ waxed, modded
 
 exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case5] a mod file at a typo of a held path, beside a role no mod names when: [t0] init renders every actor then: init stdout and stderr match their snapshot 1`] = `
 {
-  "stderr": "✗ brain://repo=ambient/boot.md not written
+  "stderr": "✗ brain://repo=ambient not synced
    ├─ ✋ ConstraintError: the mod of role=surfer is refused: it holds briefs/rule.require.surf-wux.md, a path the role does not hold, and no say or ref names it
    ├─ mod = .agent/repo=.mods/role=surfer/
    ├─ subject = briefs/rule.require.surf-wux.md
    ├─ did you mean = briefs/rule.require.surf-wax.md
    └─ fix = to shadow, move it to the held path; to add, say it in the mod boot.yml (briefs.say: [briefs/rule.require.surf-wux.md])
 ",
-  "stdout": "
+  "stdout": "🧠 brain://repo=ambient
+   └─ linked
+      └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+
 🔧 init 2 role(s)...
 
 📚 link role repo=test/role=surfer
@@ -793,14 +797,17 @@ quant
 
 exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case8] a not whose path is a typo when: [t0] init renders the view then: init stdout and stderr match their snapshot 1`] = `
 {
-  "stderr": "✗ brain://repo=ambient/boot.md not written
+  "stderr": "✗ brain://repo=ambient not synced
    ├─ ✋ ConstraintError: the mod of role=surfer is refused: its not \`briefs/rule.forbid.wipeoutz.md\` matches no briefs file the role holds
    ├─ mod = .agent/repo=.mods/role=surfer/
    ├─ subject = briefs/rule.forbid.wipeoutz.md
    ├─ did you mean = briefs/rule.forbid.wipeouts.md
    └─ fix = point the not at a held path, or delete the line
 ",
-  "stdout": "
+  "stdout": "🧠 brain://repo=ambient
+   └─ linked
+      └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+
 🔧 init 1 role(s)...
 
 📚 link role repo=test/role=surfer
@@ -1103,13 +1110,16 @@ exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case10] a
 
 exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.1] a mod that declares a budget when: [t0] init renders the view, then the role is booted then: init stdout and stderr match their snapshot 1`] = `
 {
-  "stderr": "✗ brain://repo=ambient/boot.md not written
+  "stderr": "✗ brain://repo=ambient not synced
    ├─ ✋ ConstraintError: the mod of role=surfer is refused: its boot.yml declares a \`budget:\`
    ├─ mod = .agent/repo=.mods/role=surfer/
    ├─ subject = boot.yml
    └─ fix = delete the \`budget:\` key — the role's own budget caps the modded payload
 ",
-  "stdout": "
+  "stdout": "🧠 brain://repo=ambient
+   └─ linked
+      └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+
 🔧 init 1 role(s)...
 
 📚 link role repo=test/role=surfer
@@ -1169,13 +1179,16 @@ exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.1]
 
 exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.2] a mod whose of names no role spec when: [t0] init renders the view, then the role is booted then: init stdout and stderr match their snapshot 1`] = `
 {
-  "stderr": "✗ brain://repo=ambient/boot.md not written
+  "stderr": "✗ brain://repo=ambient not synced
    ├─ ✋ ConstraintError: the mod of role=surfer is refused: its \`of: test/surfer/extra\` is not a role spec
    ├─ mod = .agent/repo=.mods/role=surfer/
    ├─ subject = boot.yml
    └─ fix = write \`of: <repo>/<role>\` or \`of: <repo>/<role>@<version>\`
 ",
-  "stdout": "
+  "stdout": "🧠 brain://repo=ambient
+   └─ linked
+      └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+
 🔧 init 1 role(s)...
 
 📚 link role repo=test/role=surfer
@@ -1235,13 +1248,16 @@ exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.2]
 
 exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.3] a mod in subject mode, of a role in simple mode when: [t0] init renders the view, then the role is booted then: init stdout and stderr match their snapshot 1`] = `
 {
-  "stderr": "✗ brain://repo=ambient/boot.md not written
+  "stderr": "✗ brain://repo=ambient not synced
    ├─ ✋ ConstraintError: the mod of role=surfer is refused: its boot.yml is in subject mode, but the role's is in simple mode
    ├─ mod = .agent/repo=.mods/role=surfer/
    ├─ subject = boot.yml
    └─ fix = write the mod with top-level \`briefs:\` / \`skills:\`, as the role does
 ",
-  "stdout": "
+  "stdout": "🧠 brain://repo=ambient
+   └─ linked
+      └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+
 🔧 init 1 role(s)...
 
 📚 link role repo=test/role=surfer
@@ -1301,13 +1317,16 @@ exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.3]
 
 exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.4] a mod that holds a readme when: [t0] init renders the view, then the sweep runs and the role is booted then: init stdout and stderr match their snapshot 1`] = `
 {
-  "stderr": "✗ brain://repo=ambient/boot.md not written
+  "stderr": "✗ brain://repo=ambient not synced
    ├─ ✋ ConstraintError: the mod of role=surfer is refused: it holds readme.md, a kind a mod cannot change
    ├─ mod = .agent/repo=.mods/role=surfer/
    ├─ subject = readme.md
    └─ fix = a mod holds only briefs/ and skills/ files; for a readme, an init, or a keyrack.yml, use a .this role or an upstream pr
 ",
-  "stdout": "
+  "stdout": "🧠 brain://repo=ambient
+   └─ linked
+      └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+
 🔧 init 1 role(s)...
 
 📚 link role repo=test/role=surfer
@@ -1379,13 +1398,16 @@ exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.4]
 
 exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.5] a mod that holds an init when: [t0] init renders the view, then the sweep runs and the role is booted then: init stdout and stderr match their snapshot 1`] = `
 {
-  "stderr": "✗ brain://repo=ambient/boot.md not written
+  "stderr": "✗ brain://repo=ambient not synced
    ├─ ✋ ConstraintError: the mod of role=surfer is refused: it holds inits/claude.hooks.sh, a kind a mod cannot change
    ├─ mod = .agent/repo=.mods/role=surfer/
    ├─ subject = inits/claude.hooks.sh
    └─ fix = a mod holds only briefs/ and skills/ files; for a readme, an init, or a keyrack.yml, use a .this role or an upstream pr
 ",
-  "stdout": "
+  "stdout": "🧠 brain://repo=ambient
+   └─ linked
+      └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+
 🔧 init 1 role(s)...
 
 📚 link role repo=test/role=surfer
@@ -1457,13 +1479,16 @@ exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.5]
 
 exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case11.6] a mod that holds a keyrack manifest when: [t0] init renders the view, then the sweep runs and the role is booted then: init stdout and stderr match their snapshot 1`] = `
 {
-  "stderr": "✗ brain://repo=ambient/boot.md not written
+  "stderr": "✗ brain://repo=ambient not synced
    ├─ ✋ ConstraintError: the mod of role=surfer is refused: it holds keyrack.yml, a kind a mod cannot change
    ├─ mod = .agent/repo=.mods/role=surfer/
    ├─ subject = keyrack.yml
    └─ fix = a mod holds only briefs/ and skills/ files; for a readme, an init, or a keyrack.yml, use a .this role or an upstream pr
 ",
-  "stdout": "
+  "stdout": "🧠 brain://repo=ambient
+   └─ linked
+      └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+
 🔧 init 1 role(s)...
 
 📚 link role repo=test/role=surfer
@@ -1618,14 +1643,17 @@ fix: drop the path from the mod's \`not:\` to run the published skill, or ship a
 
 exports[`rhachet roles — a role modded via .agent/repo=.mods given: [case14] a mod that nots a skill its role hook invokes (usecase 9) when: [t0] init renders the view then: init stdout and stderr match their snapshot 1`] = `
 {
-  "stderr": "✗ brain://repo=ambient/boot.md not written
+  "stderr": "✗ brain://repo=ambient not synced
    ├─ ✋ ConstraintError: the mod of role=lifeguard is refused: its not of skills/flags.raise.sh removes a skill one of the role's hooks invokes
    ├─ mod = .agent/repo=.mods/role=lifeguard/
    ├─ subject = rhx flags.raise
    ├─ fix = shadow skills/flags.raise.sh rather than not it, so the hook still finds it
    └─ then = run rhx init --hooks once the cause is fixed; it re-renders the view
 ",
-  "stdout": "
+  "stdout": "🧠 brain://repo=ambient
+   └─ linked
+      └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+
 🔧 init 2 role(s)...
 
 📚 link role repo=test/role=surfer
