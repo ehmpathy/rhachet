@@ -19,6 +19,12 @@ import { asEnvWithoutCloneIdentity } from './invokeRhachetCliBinary';
 const EXIT_TIMEOUT_MARK = 'rhachetBackgroundExitTimeout' as const;
 
 /**
+ * .what = whether an error is the bound `waitForExit` raises, read by its mark
+ */
+const isExitTimeout = (input: { error: unknown }): boolean =>
+  (input.error as { [EXIT_TIMEOUT_MARK]?: unknown } | null)?.[EXIT_TIMEOUT_MARK] === true;
+
+/**
  * .what = spawn the compiled rhachet cli through a real pty, in the background
  * .why =
  *   - the clone socket ONLY stands up when enroll runs on an interactive tty
@@ -64,6 +70,20 @@ export interface RhachetBackgroundHandle {
   kill: () => Promise<{ exited: boolean }>;
 }
 
+/**
+ * .what = sends a signal to a process group
+ * .why = a teardown must reach every process the child forked, not the one pid
+ * .note = a group already gone answers ESRCH, which is the goal reached; every other error throws
+ */
+const sendToGroup = (input: { pid: number; signal: NodeJS.Signals }): void => {
+  try {
+    process.kill(-input.pid, input.signal);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException | null)?.code === 'ESRCH') return;
+    throw error;
+  }
+};
+
 // the compiled binary this worktree's bin/run points at (self-linked)
 const RHACHET_BIN = join(__dirname, '../../../bin/run');
 
@@ -78,6 +98,12 @@ export const spawnRhachetCliBackground = (input: {
   cwd: string;
   /** env vars merged over process.env; undefined values unset an inherited var */
   env?: Record<string, string | undefined>;
+  /**
+   * run the cli two shells deep — pty → leader shell → parent shell → cli — so a test can
+   * kill the cli's parent while the session leader and the terminal live on. the handle's pid
+   * is the leader's
+   */
+  viaParent?: boolean;
 }): RhachetBackgroundHandle => {
   // lazy-require the native pty addon (the same seam genCloneOndisk loads it through)
   // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -94,8 +120,17 @@ export const spawnRhachetCliBackground = (input: {
     Object.entries(mergedEnv).filter(([, v]) => v !== undefined),
   ) as { [key: string]: string };
 
+  // via a parent: the inner shell's `; true` keeps it from an exec into the cli, so it stays
+  //   the cli's parent; the outer shell's `sleep` keeps the session leader alive past its death
+  const [file, args] = input.viaParent
+    ? [
+        '/bin/sh',
+        ['-c', `sh -c '"$0" "$@"; true' "$0" "$@"; sleep 600`, RHACHET_BIN, ...input.args],
+      ]
+    : [RHACHET_BIN, input.args];
+
   // spawn rhachet through the pty at a fixed geometry (deterministic wraps)
-  const child = pty.spawn(RHACHET_BIN, input.args, {
+  const child = pty.spawn(file, args, {
     name: 'xterm-color',
     cols: 120,
     rows: 40,
@@ -261,22 +296,27 @@ export const spawnRhachetCliBackground = (input: {
   //   who reads the run and to no code at all — so `{ exited }` is the machine-side half, and
   //   a caller that cares whether the child actually died branches on it rather than greps
   //   stderr. the report is the floor here, never the whole of it
+  //
+  // ✅ the signal goes to the child's whole PROCESS GROUP, and it escalates: SIGHUP to the
+  //   group, then SIGKILL to the group if the child outlives it. node-pty makes the child a
+  //   session leader, so its group holds every process it forked outside a pty of its own
   const kill = async (): Promise<{ exited: boolean }> => {
     if (exited) return { exited: true };
-    child.kill();
-    return await waitForExit({ timeoutMs: 5000 })
+    sendToGroup({ pid: child.pid, signal: 'SIGHUP' });
+    const exitedOnHangup = await waitForExit({ timeoutMs: 2500 })
+      .then(() => true)
+      .catch((error: unknown) => {
+        if (!isExitTimeout({ error })) throw error;
+        return false;
+      });
+    if (exitedOnHangup) return { exited: true };
+    sendToGroup({ pid: child.pid, signal: 'SIGKILL' });
+    return await waitForExit({ timeoutMs: 2500 })
       .then(() => ({ exited: true }))
       .catch((error: unknown) => {
-        // read BOTH fields off one structural cast — the mark decides the allowlist, the
-        // message is the report. `unknown` narrows through neither, and an `instanceof`
-        // would reinstate the realm dependence the mark exists to avoid
-        const marked = error as {
-          [EXIT_TIMEOUT_MARK]?: unknown;
-          message?: unknown;
-        } | null;
-        if (marked?.[EXIT_TIMEOUT_MARK] !== true) throw error;
+        if (!isExitTimeout({ error })) throw error;
         console.warn(
-          `⚠️ spawnRhachetCliBackground: pid ${child.pid} did not exit within 5000ms of kill(); the process may still be live. cause: ${String(marked.message)}`,
+          `⚠️ spawnRhachetCliBackground: pid ${child.pid} did not exit within 5000ms of a hangup then a kill to its group; the process may still be live. cause: ${String((error as { message?: unknown }).message)}`,
         );
         return { exited: false };
       });

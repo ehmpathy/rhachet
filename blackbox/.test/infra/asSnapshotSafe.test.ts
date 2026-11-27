@@ -189,9 +189,35 @@ describe('asSnapshotSafe path mask', () => {
       then('the root is masked, and the path below it survives', () => {
         // the path below the root names WHICH file the census reports on, so it is the
         // half a reader is owed — a mask that ate it would pin a census of no file
+        //
+        // genTestTempRepo mints under the test-fns temp root, so its run reclaims it. the
+        // `rhachet-test` slug keeps it `/TMP_REPO`, apart from a bare genTempDir dir
         expect(
-          asSnapshotSafe('/tmp/rhachet-test-a1b2c3/.agent/.actors/x/boot.md'),
+          asSnapshotSafe(
+            '/tmp/test-fns/rhachet/.temp/2026-11-16T10-20-30.123Z.r7f3a91c2.rhachet-test-pubkey.a1b2c3d4/.agent/.actors/x/boot.md',
+          ),
         ).toEqual('/TMP_REPO/.agent/.actors/x/boot.md');
+      });
+
+      then('a bare genTempDir dir still renders its own token', () => {
+        expect(
+          asSnapshotSafe(
+            '/tmp/test-fns/rhachet/.temp/2026-11-16T10-20-30.123Z.r7f3a91c2.clone-say.a1b2c3d4/x',
+          ),
+        ).toEqual('/TMP_TEST_DIR/x');
+      });
+
+      then('a path that walks up out of a test repo masks its checkout name', () => {
+        // `../escaped` from a test repo lands in the bare temp root, whose repo-dirname is
+        // the checkout's own name; a worktree and ci must render the same snapshot
+        expect(
+          asSnapshotSafe(
+            '"/tmp/test-fns/rhachet.beav.some-worktree/.temp/escaped/boot.yml"',
+          ),
+        ).toEqual('"/TMP_TEST_ROOT/escaped/boot.yml"');
+        expect(
+          asSnapshotSafe('"/tmp/test-fns/rhachet/.temp/escaped/boot.yml"'),
+        ).toEqual('"/TMP_TEST_ROOT/escaped/boot.yml"');
       });
     });
   });

@@ -1,0 +1,13 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asReclaimNote given: [case1] a run whose tests left session daemons when: [t0] three keyrack daemons were reclaimed then: it counts them as a note, never as an error 1`] = `
+"ℹ reclaimed 3 keyrack daemons this run's tests left
+   └─ a session daemon outlives the call that spawned it, so the run ends it
+"
+`;
+
+exports[`asReclaimNote given: [case1] a run whose tests left session daemons when: [t1] one daemon was reclaimed then: the count reads singular 1`] = `
+"ℹ reclaimed 1 keyrack daemon this run's tests left
+   └─ a session daemon outlives the call that spawned it, so the run ends it
+"
+`;

@@ -1,4 +1,5 @@
 **/.claude/scheduled_tasks*
+**/.goals/asks.inventory.jsonl
 *.bak.*
 *.bc
 *.local.json

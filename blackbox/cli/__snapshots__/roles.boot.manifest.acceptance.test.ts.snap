@@ -266,7 +266,7 @@ exports[`rhachet roles boot --what given: [case6] a --what that reaches outside 
 {
   "hint": "name a boot.yml path inside the repo",
   "path": "../escaped/boot.yml",
-  "pathTaken": "/TMP_ROOT/escaped/boot.yml",
+  "pathTaken": "/TMP_TEST_ROOT/escaped/boot.yml",
   "repoRoot": "/TMP_REPO"
 }
 

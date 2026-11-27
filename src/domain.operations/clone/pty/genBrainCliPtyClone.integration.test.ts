@@ -16,7 +16,11 @@ import { getCloneSocketPath } from '../getCloneSocketPath';
 import { isCloneLive } from '../isCloneLive';
 import { getEmulatorModuleOrNull } from '../screen/getEmulatorModuleOrNull';
 import { sayClone } from '../socket/sayClone';
-import { genBrainCliPtyClone, type PtyCloneHost } from './genBrainCliPtyClone';
+import {
+  CLONE_HANGUP_ESCALATION_MS,
+  genBrainCliPtyClone,
+  type PtyCloneHost,
+} from './genBrainCliPtyClone';
 import { getPtyHostTupleFromProcess } from './getPtyHostTupleFromProcess';
 import { getPtyModuleOrNull, type PtyModule } from './getPtyModuleOrNull';
 import { getPtyPlatformSupportFromProcess } from './getPtyPlatformSupportFromProcess';
@@ -32,6 +36,16 @@ import { getPtyPlatformSupportFromProcess } from './getPtyPlatformSupportFromPro
  */
 
 const STUB_BRAIN = join(__dirname, '../../../.test/assets/stubBrainCli.cjs');
+
+/**
+ * .what = a brain that ignores a hangup and parks forever
+ * .why = the shape a hangup alone cannot end, so only the escalation kill can
+ */
+const BRAIN_DEAF_TO_HANGUP = [
+  "process.on('SIGHUP', () => undefined);",
+  "process.stdout.write('deaf ready\\n');",
+  'setInterval(() => undefined, 1000);',
+].join(' ');
 
 /**
  * .what = the byte cap a unix socket address may hold — `sockaddr_un.sun_path`
@@ -677,4 +691,68 @@ describe('genBrainCliPtyClone.integration', () => {
       });
     },
   );
+
+  given('[case6] a host that hangs up on a brain deaf to the hangup', () => {
+    when('[t0] the host fires SIGHUP and the brain ignores it', () => {
+      then(
+        'the brain is killed within the escalation bound, and waitForExit settles',
+        async () => {
+          // a real pty is the instrument; its absence fails loud
+          const pty = getPtyModuleOrNull();
+          if (!pty)
+            throw new MalfunctionError(
+              'node-pty addon absent — this test needs a real pty',
+              {
+                hostTuple: getPtyHostTupleFromProcess(),
+                hint:
+                  getPtyPlatformSupportFromProcess() === 'supported'
+                    ? 'the prebuilt addon ships inside the node-pty tarball for this platform, so an absent one means the install is damaged — run `pnpm install` to repair it'
+                    : 'upstream ships no prebuilt addon for this platform, so this suite can only run on a glibc linux, macos, or windows host',
+              },
+            );
+
+          // a brain that swallows SIGHUP and parks forever — a hangup alone cannot end it
+          const serial = getUuid();
+          const hangup: { fire: (() => void) | null } = { fire: null };
+          const output: string[] = [];
+          const clone = await genBrainCliPtyClone(
+            {
+              command: process.execPath,
+              args: ['-e', BRAIN_DEAF_TO_HANGUP],
+              cwd: genTempDir({ slug: `ptyclone-deaf-cwd-${serial}` }),
+              serial,
+              socketPath: getCloneSocketPath({ serial })!,
+              depth: 0,
+              leaf: false,
+              brainDir: genTempDir({ slug: `ptyclone-deaf-brain-${serial}` }),
+            },
+            {
+              pty,
+              host: {
+                ...genCaptureHost(output),
+                onSignal: (fn) => {
+                  hangup.fire = () => fn('SIGHUP');
+                  return () => undefined;
+                },
+              },
+              emulator: null,
+            },
+          );
+          await waitForOutput(output, (o) => o.includes('deaf ready'));
+
+          // the host is lost
+          const startedAt = Date.now();
+          hangup.fire?.();
+
+          // the brain ignored the hangup, so only the escalation could have ended it
+          await clone.waitForExit;
+          const elapsedMs = Date.now() - startedAt;
+          expect(elapsedMs).toBeGreaterThanOrEqual(
+            CLONE_HANGUP_ESCALATION_MS - 100,
+          );
+          expect(elapsedMs).toBeLessThan(CLONE_HANGUP_ESCALATION_MS + 3000);
+        },
+      );
+    });
+  });
 });

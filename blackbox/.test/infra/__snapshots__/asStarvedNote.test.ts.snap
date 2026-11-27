@@ -1,0 +1,21 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asStarvedNote given: [case1] a red run whose box was starved when: [t0] psi was measured then: it names the pressure and the load beside the box before the run, and the re-run 1`] = `
+"ℹ a test timed out while the box was starved
+   ├─ peak cpu pressure = 81% (cpu stall, 10s average), 31% before the run began
+   ├─ peak load = 55.7 on 12 cores, 9.4 before the run began
+   ├─ the red stays red; a timeout under starvation may be the box, not the code
+   └─ re-run the timed-out files at one worker
+      └─ rhx test.acceptance.credfree --scope 'blackbox/cli/enroll\\.acceptance\\.test\\.ts' --maxWorkers 1
+"
+`;
+
+exports[`asStarvedNote given: [case1] a red run whose box was starved when: [t1] psi was not measurable then: it says so rather than print a number 1`] = `
+"ℹ a test timed out while the box was starved
+   ├─ peak cpu pressure = not measurable on this host
+   ├─ peak load = 20.0 on 8 cores, 4.0 before the run began
+   ├─ the red stays red; a timeout under starvation may be the box, not the code
+   └─ re-run the timed-out files at one worker
+      └─ rhx test.acceptance.credfree --scope 'a\\.acceptance\\.test\\.ts' --maxWorkers 1
+"
+`;
