@@ -34,7 +34,11 @@ describe('getSettingsForRoles', () => {
     };
 
     when('[t0] the actor is enrolled in `architect` alone', () => {
-      const narrowed = getSettingsForRoles({ settings, roles: ['architect'] });
+      const narrowed = getSettingsForRoles({
+        settings,
+        roles: ['architect'],
+        isArmedByMods: false,
+      });
 
       then('it keeps the `architect` hook', () => {
         const commands = narrowed.hooks?.SessionStart?.[0]?.hooks.map(
@@ -62,6 +66,7 @@ describe('getSettingsForRoles', () => {
       const narrowed = getSettingsForRoles({
         settings,
         roles: ['architect-ops'],
+        isArmedByMods: false,
       });
 
       then('it keeps only the `architect-ops` hook', () => {
@@ -94,7 +99,11 @@ describe('getSettingsForRoles', () => {
     };
 
     when('[t0] the actor is enrolled in `mechanic`', () => {
-      const narrowed = getSettingsForRoles({ settings, roles: ['mechanic'] });
+      const narrowed = getSettingsForRoles({
+        settings,
+        roles: ['mechanic'],
+        isArmedByMods: false,
+      });
 
       then('the event category with no surviving hook is dropped', () => {
         expect(narrowed.hooks).toEqual({});
@@ -129,6 +138,7 @@ describe('getSettingsForRoles', () => {
         const narrowed = getSettingsForRoles({
           settings,
           roles: ['any', 'mechanic::flow'],
+          isArmedByMods: false,
         });
 
         then('🔴 every hook of the role lands — hooks follow the role', () => {
@@ -163,6 +173,7 @@ describe('getSettingsForRoles', () => {
       const narrowed = getSettingsForRoles({
         settings,
         roles: ['ehmpathy/mechanic'],
+        isArmedByMods: false,
       });
 
       then('🔴 the pinned role keeps its own hooks', () => {
@@ -174,11 +185,61 @@ describe('getSettingsForRoles', () => {
     });
 
     when('[t1] enrolled as the bare mechanic', () => {
-      const narrowed = getSettingsForRoles({ settings, roles: ['mechanic'] });
+      const narrowed = getSettingsForRoles({
+        settings,
+        roles: ['mechanic'],
+        isArmedByMods: false,
+      });
 
       then('the bare slug carries the hooks of every repo', () => {
         expect(narrowed).toEqual(settings);
       });
     });
+  });
+
+  given('[case5] the stop sweep, carried by the `.this` role `any`', () => {
+    const settings: ClaudeCodeSettings = {
+      hooks: {
+        Stop: [
+          {
+            matcher: '*',
+            hooks: [
+              genHook({
+                author: 'repo=.this/role=any',
+                command:
+                  './node_modules/.bin/rhachet roles cost --all --when hook.onStop',
+              }),
+            ],
+          },
+        ],
+      },
+    };
+
+    when('[t0] a mod arms it, and the actor holds no `.this` role', () => {
+      const narrowed = getSettingsForRoles({
+        settings,
+        roles: ['surfer'],
+        isArmedByMods: true,
+      });
+
+      then('🔴 the sweep rides the actor, so its seat hears the fault', () => {
+        expect(narrowed).toEqual(settings);
+      });
+    });
+
+    when(
+      '[t1] only a budget arms it, and the actor holds no `.this` role',
+      () => {
+        const narrowed = getSettingsForRoles({
+          settings,
+          roles: ['surfer'],
+          isArmedByMods: false,
+        });
+
+        then('the sweep rides the holders of its carrier alone', () => {
+          expect(narrowed.hooks).toEqual({});
+        });
+      },
+    );
   });
 });

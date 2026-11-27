@@ -1,6 +1,6 @@
 import type { ContextCli } from '@src/domain.objects/ContextCli';
+import { getAllRoleModEntries } from '@src/domain.operations/mods/getAllRoleModEntries';
 import { getAllLinkedRoleRefs } from '@src/domain.operations/role/getAllLinkedRoleRefs';
-import { getAllRoleModEntries } from '@src/domain.operations/role/getAllRoleModEntries';
 
 /**
  * .what = the slug of each mod dir that no linked role carries, and each entry of the mods dir

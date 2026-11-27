@@ -1,6 +1,7 @@
 import { MalfunctionError } from 'helpful-errors';
 
 import type { ActorOndisk } from '@src/domain.objects/ActorOndisk';
+import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { RoleLinkRef } from '@src/domain.objects/RoleLinkRef';
 import { asActorsExceptRepoActor } from '@src/domain.operations/actor/enrolled/asActorsExceptRepoActor';
 import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
@@ -29,10 +30,13 @@ import { asRoleRefsForEnrolledSlugs } from './asRoleRefsForEnrolledSlugs';
  *         dirs (`asActorOndiskExidFromDirName`), and the repo actor is `setRepoActorBrainDir`'s
  *         to render, from the linked set rather than its first enroll's roles
  */
-export const syncActiveActorBrainDirs = async (input: {
-  repoPath: string;
-  refsLinked: RoleLinkRef[];
-}): Promise<{
+export const syncActiveActorBrainDirs = async (
+  input: {
+    repoPath: string;
+    refsLinked: RoleLinkRef[];
+  },
+  context: ContextCli,
+): Promise<{
   renders: BrainDirBootRender[];
   failures: BrainDirBootFailure[];
 }> => {
@@ -44,7 +48,10 @@ export const syncActiveActorBrainDirs = async (input: {
   // render each active actor; a throw is collected under that actor's scope
   const outcomes = await Promise.all(
     enumeration.actors.map((actor) =>
-      getOneActorBrainDirBootOutcome({ actor, refsLinked: input.refsLinked }),
+      getOneActorBrainDirBootOutcome(
+        { actor, refsLinked: input.refsLinked },
+        context,
+      ),
     ),
   );
 
@@ -78,14 +85,17 @@ const getAllActorsOrFailure = (input: {
  * .why = one broken actor must never skip the rest of the sweep
  * .note = a code defect is the one fault that is rethrown, not collected
  */
-const getOneActorBrainDirBootOutcome = (input: {
-  actor: ActorOndisk;
-  refsLinked: RoleLinkRef[];
-}): Promise<{
+const getOneActorBrainDirBootOutcome = (
+  input: {
+    actor: ActorOndisk;
+    refsLinked: RoleLinkRef[];
+  },
+  context: ContextCli,
+): Promise<{
   render: BrainDirBootRender | null;
   failure: BrainDirBootFailure | null;
 }> =>
-  setActiveActorBrainDirBoot(input).then(
+  setActiveActorBrainDirBoot(input, context).then(
     (render) => ({ render, failure: null }),
     (error: unknown) => ({
       render: null,
@@ -100,10 +110,13 @@ const getOneActorBrainDirBootOutcome = (input: {
  * .what = render one actor's brain dir if the actor is active, else skip it
  * .why = keeps the sweep loop a narrative of collect-or-continue
  */
-const setActiveActorBrainDirBoot = async (input: {
-  actor: ActorOndisk;
-  refsLinked: RoleLinkRef[];
-}): Promise<BrainDirBootRender | null> => {
+const setActiveActorBrainDirBoot = async (
+  input: {
+    actor: ActorOndisk;
+    refsLinked: RoleLinkRef[];
+  },
+  context: ContextCli,
+): Promise<BrainDirBootRender | null> => {
   // an actor with no clone still live reads naught; skip it
   if (!(await getOneIsActorActive({ actor: input.actor }))) return null;
 
@@ -113,17 +126,20 @@ const setActiveActorBrainDirBoot = async (input: {
     slugs: input.actor.roles,
     refsLinked: input.refsLinked,
   });
-  return setBrainDirBoot({
-    brainDir: getBrainOndiskDir({
-      actorDir: getActorOndiskDir({
-        repoPath: input.actor.repoPath,
-        exid: input.actor.exid,
+  return setBrainDirBoot(
+    {
+      brainDir: getBrainOndiskDir({
+        actorDir: getActorOndiskDir({
+          repoPath: input.actor.repoPath,
+          exid: input.actor.exid,
+        }),
       }),
-    }),
-    roles: refs,
-    repoPath: input.actor.repoPath,
-    scope: { kind: 'actor', actorExid: input.actor.exid },
-  });
+      roles: refs,
+      repoPath: input.actor.repoPath,
+      scope: { kind: 'actor', actorExid: input.actor.exid },
+    },
+    context,
+  );
 };
 
 /**

@@ -1,5 +1,8 @@
+import { asErrnoCode } from '@src/infra/filesystem/asErrnoCode';
+
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
+import { getOnePackageEntryPathByWalk } from './getOnePackageEntryPathByWalk';
 
 /**
  * .what = looks up a package's entry file as a file: URL, from a caller repo's package.json
@@ -34,11 +37,28 @@ import { pathToFileURL } from 'node:url';
  *         strategy: to reach it, a caller would pass a bare specifier to importEsmSafe (which
  *         honors node's esm lookup), a strategy-level choice out of this fix's scope. see
  *         ehmpathy/rhachet#429.
+ * .note = where the runtime's lookup throws, a walk of the caller's node_modules dirs finds the
+ *         entry instead. a bun-compiled binary (`roles cost`, the stop sweep) fails some lookups
+ *         node makes, yet imports the file by path (`getOnePackageEntryPathByWalk`)
+ * .note = the walk answers `MODULE_NOT_FOUND` alone: bun's `ResolveMessage` carries that code, as
+ *         node's own error does (measured: `rhx bun.compiled.lookup.probe`). every other throw is
+ *         a real fault of the package, so it escapes (`rule.forbid.failhide`)
  */
 export const getOnePackageEntryUrl = (input: {
   packageName: string;
   fromPackageJson: string;
 }): string => {
-  const require = createRequire(input.fromPackageJson);
-  return pathToFileURL(require.resolve(input.packageName)).href;
+  try {
+    const require = createRequire(input.fromPackageJson);
+    return pathToFileURL(require.resolve(input.packageName)).href;
+  } catch (error: unknown) {
+    // only a package not found earns the walk; an exports refusal or a bad manifest fails loud
+    if (asErrnoCode({ error }) !== 'MODULE_NOT_FOUND') throw error;
+
+    // a bun-compiled binary may fail a lookup node would make; the walk finds the same file,
+    //   and where it finds none, the runtime's own error stands
+    const entryByWalk = getOnePackageEntryPathByWalk(input);
+    if (!entryByWalk) throw error;
+    return pathToFileURL(entryByWalk).href;
+  }
 };

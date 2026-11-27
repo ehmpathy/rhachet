@@ -8,7 +8,8 @@ import { given, then, useThen, when } from 'test-fns';
  *   contract (rule.always.resnap-the-help-a-skill-renders). a snapshot here makes an edit to
  *   that header show as a diff in the same change
  *
- * .note = an integration test: it spawns bash. no case runs jest itself
+ * .note = an integration test: it spawns bash. one case (case5) runs jest, scoped to the one
+ *   bash-only probe suite, so the `--what integration` path is proven, not only its refusal
  */
 
 /** this file sits at `.agent/repo=.this/role=any/skills/`, so four hops reach the repo root */
@@ -83,6 +84,48 @@ describe('test.acceptance.credfree', () => {
       then('it refuses, and names the anchor fix', () => {
         expect(run.status).toEqual(2);
         expect(run.stderr).toContain('anchor it on the file name');
+      });
+    });
+  });
+
+  given('[case4] a --what that names no tier', () => {
+    when('[t0] the skill runs with --what unit', () => {
+      const run = useThen('exits 2', () =>
+        runSkill({ args: ['--what', 'unit', '--scope', 'asRoleBootBody'] }),
+      );
+
+      then('it refuses before any build or jest run, and names the tiers', () => {
+        expect(run.status).toEqual(2);
+        expect(run.stderr).toContain(
+          '--what must be acceptance or integration',
+        );
+        expect(run.stderr).toContain('what = unit');
+      });
+      then('the refusal holds its shape', () => {
+        expect(run.stderr).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case5] --what integration, scoped to one fast integration suite', () => {
+    when('[t0] the skill runs it', () => {
+      const run = useThen('exits 0', () =>
+        runSkill({
+          args: [
+            '--what',
+            'integration',
+            '--scope',
+            'bun\\.compiled\\.lookup\\.probe\\.integration',
+          ],
+        }),
+      );
+
+      then('jest runs that integration suite, and it passes', () => {
+        // the whole run in one object, so a failure shows what the nested jest printed
+        expect(run).toMatchObject({
+          status: 0,
+          stdout: expect.stringContaining('Test Suites: 1 passed, 1 total'),
+        });
       });
     });
   });

@@ -12,6 +12,7 @@
 # usage:
 #   rhx test.acceptance.credfree --scope 'focus\.acceptance'
 #   rhx test.acceptance.credfree --scope 'init\.focus' --resnap
+#   rhx test.acceptance.credfree --what integration --scope 'enroll\.mods\.integration'
 #
 # options:
 #   --scope    jest path regex for the suites to run (required)
@@ -20,6 +21,11 @@
 #              anchor it on the file name: 'keyrack\.acceptance'.
 #              a scope that matches the repo root is refused, exit 2
 #   --resnap   write snapshots (default: verify only, under --ci)
+#   --what     acceptance (default) | integration, as in git.repo.test.
+#              integration runs the `*.integration.test.ts` suites under
+#              this same lenient setup: for a blackbox suite that spawns
+#              the cli and reads no key, which the strict integration
+#              setup would halt
 #
 # guarantee:
 #   - builds when stale, then runs jest with the acceptance config
@@ -39,10 +45,12 @@ set -euo pipefail
 
 SCOPE=""
 RESNAP=""
+WHAT="acceptance"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --scope) SCOPE="$2"; shift 2 ;;
     --resnap) RESNAP="true"; shift ;;
+    --what) WHAT="$2"; shift 2 ;;
     --help|-h) awk 'NR > 2 && /^#/ { sub(/^# ?/, ""); print } /^set -euo/ { exit }' "$0" | grep -v '^#*$' || :; exit 0 ;;
     --skill|--repo|--role) shift 2 ;;
     *) echo "✋ ConstraintError: unknown option: $1" >&2; exit 2 ;;
@@ -56,6 +64,19 @@ done
   } >&2
   exit 2
 }
+
+# --what names which tier's suites jest matches; the lenient acceptance setup runs both
+#   .note = `--testMatch` takes a list, so it must follow the scope, or it swallows the scope as a
+#     glob and runs the whole tier. the trash dir stays out via testPathIgnorePatterns
+case "$WHAT" in
+  acceptance) MATCH=() ;;
+  integration) MATCH=(--testMatch '**/*.integration.test.ts') ;;
+  *)
+    echo "✋ ConstraintError: --what must be acceptance or integration" >&2
+    echo "   └─ what = $WHAT" >&2
+    exit 2
+    ;;
+esac
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
@@ -90,11 +111,13 @@ command -v pnpm > /dev/null || {
 
 # resnap writes snapshots (the package command reads RESNAP); the default verifies them under
 #   CI=true, which jest reads as --ci, so an unwritten snapshot fails as it does in ci
+#   .note = FORCE_COLOR=0, since a caller that sets FORCE_COLOR (a jest worker, some ci) outranks
+#   jest's own --no-colors, and a colored totals line is one the summary below cannot read
 set +e
 if [[ -n "$RESNAP" ]]; then
-  RESNAP=true pnpm run test:acceptance:locally "$SCOPE" > "$LOG_PATH" 2>&1
+  FORCE_COLOR=0 RESNAP=true pnpm run test:acceptance:locally "$SCOPE" ${MATCH[@]+"${MATCH[@]}"} > "$LOG_PATH" 2>&1
 else
-  CI=true pnpm run test:acceptance:locally "$SCOPE" > "$LOG_PATH" 2>&1
+  FORCE_COLOR=0 CI=true pnpm run test:acceptance:locally "$SCOPE" ${MATCH[@]+"${MATCH[@]}"} > "$LOG_PATH" 2>&1
 fi
 STATUS=$?
 set -e
@@ -108,7 +131,7 @@ TOTALS="$(grep -E '^Tests:|^Test Suites:|^Snapshots:' "$LOG_PATH" || true)"
 print_leaves() {
   local lines="$1"
   local count
-  count="$(printf '%s\n' "$lines" | grep -c .)"
+  count="$(printf '%s\n' "$lines" | grep -c . || true)"
   local index=0
   while IFS= read -r one; do
     [[ -z "$one" ]] && continue

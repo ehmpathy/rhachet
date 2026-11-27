@@ -12,6 +12,7 @@ describe('asRoleModViewsChangedReadout', () => {
           asRoleModViewsChangedReadout({
             roles: [],
             reverted: [],
+            skipped: [],
             unplaced: [],
           }),
         ).toEqual([]);
@@ -24,6 +25,7 @@ describe('asRoleModViewsChangedReadout', () => {
       const lines = asRoleModViewsChangedReadout({
         roles: ['surfer', 'lifeguard', 'surfer'],
         reverted: [],
+        skipped: [],
         unplaced: [],
       });
 
@@ -54,6 +56,7 @@ describe('asRoleModViewsChangedReadout', () => {
       const lines = asRoleModViewsChangedReadout({
         roles: [],
         reverted: [],
+        skipped: [],
         unplaced: [
           {
             role: 'surfr',
@@ -83,6 +86,7 @@ describe('asRoleModViewsChangedReadout', () => {
         const lines = asRoleModViewsChangedReadout({
           roles: [],
           reverted: [],
+          skipped: [],
           unplaced: [
             {
               role: 'surfr',
@@ -120,6 +124,7 @@ describe('asRoleModViewsChangedReadout', () => {
         const lines = asRoleModViewsChangedReadout({
           roles: [],
           reverted: [],
+          skipped: [],
           unplaced: [
             { role: 'surfr', error: new ConstraintError('no linked role') },
             { role: 'Divr', error: new ConstraintError('no linked role') },
@@ -146,6 +151,7 @@ describe('asRoleModViewsChangedReadout', () => {
       const lines = asRoleModViewsChangedReadout({
         roles: [],
         reverted: [],
+        skipped: [],
         unplaced: [
           {
             role: 'readme.md',
@@ -171,11 +177,100 @@ describe('asRoleModViewsChangedReadout', () => {
     });
   });
 
+  given('[case3.4] a render that skipped a mod a role carries', () => {
+    when('[t0] the readout is rendered', () => {
+      const lines = asRoleModViewsChangedReadout({
+        roles: [],
+        reverted: [],
+        skipped: [
+          {
+            role: 'surfer',
+            error: new ConstraintError('the mod names another version', {
+              fix: 'set of: to test/surfer@1.0.0',
+            }),
+          },
+        ],
+        unplaced: [],
+      });
+
+      then('it names the role as booted published, with its fix', () => {
+        expect(lines).toEqual([
+          '🧢 .agent/repo=.mods',
+          '   └─ skipped, booted as published until cured',
+          '      └─ role=surfer — ✋ ConstraintError: the mod names another version',
+          '         └─ fix = set of: to test/surfer@1.0.0',
+        ]);
+      });
+
+      then('it matches its snapshot', () => {
+        expect(lines.join('\n')).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case3.5] one role skipped twice, beside a second role', () => {
+    when('[t0] the readout is rendered', () => {
+      const lines = asRoleModViewsChangedReadout({
+        roles: [],
+        reverted: [],
+        skipped: [
+          { role: 'surfer', error: new ConstraintError('the first fault') },
+          { role: 'diver', error: new ConstraintError('a diver fault') },
+          { role: 'surfer', error: new ConstraintError('the second fault') },
+        ],
+        unplaced: [],
+      });
+
+      then('each role is named once, by its first fault, in order', () => {
+        expect(lines.filter((line) => line.includes('role='))).toEqual([
+          '      ├─ role=diver — ✋ ConstraintError: a diver fault',
+          '      └─ role=surfer — ✋ ConstraintError: the first fault',
+        ]);
+      });
+    });
+  });
+
+  given(
+    '[case3.6] a render that changed a view, skipped a mod, and met an unplaced mod',
+    () => {
+      when('[t0] the readout is rendered', () => {
+        const lines = asRoleModViewsChangedReadout({
+          roles: ['lifeguard'],
+          reverted: [],
+          skipped: [
+            { role: 'surfer', error: new ConstraintError('a skip fault') },
+          ],
+          unplaced: [
+            { role: 'surfr', error: new ConstraintError('no linked role') },
+          ],
+        });
+
+        then(
+          'the sections run rendered, skipped, refused, then the re-enroll tip last',
+          () => {
+            const heads = lines.filter((line) => /^ {3}[├└]─ /.test(line));
+            expect(heads).toEqual([
+              '   ├─ rendered',
+              '   ├─ skipped, booted as published until cured',
+              '   ├─ refused, with no linked role to carry it',
+              '   └─ a live clone keeps the boot it read at session start; re-enroll it to pick up the change',
+            ]);
+          },
+        );
+
+        then('it matches its snapshot', () => {
+          expect(lines.join('\n')).toMatchSnapshot();
+        });
+      });
+    },
+  );
+
   given('[case4] a render that returned a role to its published form', () => {
     when('[t0] the readout is rendered', () => {
       const lines = asRoleModViewsChangedReadout({
         roles: [],
         reverted: ['lifeguard'],
+        skipped: [],
         unplaced: [],
       });
 
@@ -184,6 +279,7 @@ describe('asRoleModViewsChangedReadout', () => {
           '🧢 .agent/repo=.mods',
           '   ├─ returned to published, its mod gone',
           '   │  └─ role=lifeguard',
+          '   │',
           '   └─ a live clone keeps the boot it read at session start; re-enroll it to pick up the change',
         ]);
       });

@@ -3,6 +3,7 @@ import { getError, given, then, when } from 'test-fns';
 
 import { genSampleRepoWithRoles } from '@src/.test/assets/genSampleRepoWithRoles';
 import { genSampleRepoWithSubjects } from '@src/.test/assets/genSampleRepoWithSubjects';
+import { ContextCli } from '@src/domain.objects/ContextCli';
 
 import { mkdirSync, readFileSync, readlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -21,6 +22,15 @@ const ROLES = [
 const genRepoWithRoles = (input: { slug: string }): string =>
   genSampleRepoWithRoles({ slug: input.slug, roles: ROLES });
 
+/**
+ * .what = render one brain dir, with the context of the repo it renders, as each prod caller does
+ */
+const setBrainDirBootOfRepo = (input: Parameters<typeof setBrainDirBoot>[0]) =>
+  setBrainDirBoot(
+    input,
+    new ContextCli({ cwd: input.repoPath, gitroot: input.repoPath }),
+  );
+
 describe('setBrainDirBoot', () => {
   given('[case1] a repo with two linked roles', () => {
     when('[t0] one brain dir is rendered', () => {
@@ -30,7 +40,7 @@ describe('setBrainDirBoot', () => {
           const repoPath = genRepoWithRoles({ slug: 'setBrainDirBoot-c1t0' });
           const brainDir = join(repoPath, 'brain', '.claude');
 
-          const render = await setBrainDirBoot({
+          const render = await setBrainDirBootOfRepo({
             brainDir,
             roles: ROLES,
             repoPath,
@@ -58,7 +68,7 @@ describe('setBrainDirBoot', () => {
         'boot.md opens with the rhachet intro, ahead of every role',
         async () => {
           const repoPath = genRepoWithRoles({ slug: 'setBrainDirBoot-c1t0b' });
-          const render = await setBrainDirBoot({
+          const render = await setBrainDirBootOfRepo({
             brainDir: join(repoPath, 'brain', '.claude'),
             roles: ROLES,
             repoPath,
@@ -84,13 +94,13 @@ describe('setBrainDirBoot', () => {
       then('the two boot.md files are byte-equal', async () => {
         const repoPath = genRepoWithRoles({ slug: 'setBrainDirBoot-c1t1' });
 
-        const renderA = await setBrainDirBoot({
+        const renderA = await setBrainDirBootOfRepo({
           brainDir: join(repoPath, 'a'),
           roles: ROLES,
           repoPath,
           scope: { kind: 'repo', actorExid: 'repo=ambient' },
         });
-        const renderB = await setBrainDirBoot({
+        const renderB = await setBrainDirBootOfRepo({
           brainDir: join(repoPath, 'b'),
           roles: [...ROLES].reverse(),
           repoPath,
@@ -107,7 +117,7 @@ describe('setBrainDirBoot', () => {
       then('the second render yields the same bytes and no reset', async () => {
         const repoPath = genRepoWithRoles({ slug: 'setBrainDirBoot-c1t2' });
         const brainDir = join(repoPath, 'brain');
-        const first = await setBrainDirBoot({
+        const first = await setBrainDirBootOfRepo({
           brainDir,
           roles: ROLES,
           repoPath,
@@ -115,7 +125,7 @@ describe('setBrainDirBoot', () => {
         });
         const bytesFirst = readFileSync(first.bootMdPath, 'utf8');
 
-        const second = await setBrainDirBoot({
+        const second = await setBrainDirBootOfRepo({
           brainDir,
           roles: ROLES,
           repoPath,
@@ -135,14 +145,14 @@ describe('setBrainDirBoot', () => {
         async () => {
           const repoPath = genRepoWithRoles({ slug: 'setBrainDirBoot-c1t2b' });
           const brainDir = join(repoPath, 'brain');
-          await setBrainDirBoot({
+          await setBrainDirBootOfRepo({
             brainDir,
             roles: ROLES,
             repoPath,
             scope: { kind: 'repo', actorExid: 'repo=ambient' },
           });
 
-          const narrowed = await setBrainDirBoot({
+          const narrowed = await setBrainDirBootOfRepo({
             brainDir,
             roles: ROLES.slice(0, 1),
             repoPath,
@@ -162,13 +172,13 @@ describe('setBrainDirBoot', () => {
         const repoPathB = genRepoWithRoles({ slug: 'setBrainDirBoot-c1t3b' });
         expect(repoPathA).not.toEqual(repoPathB);
 
-        const renderA = await setBrainDirBoot({
+        const renderA = await setBrainDirBootOfRepo({
           brainDir: join(repoPathA, 'brain'),
           roles: ROLES,
           repoPath: repoPathA,
           scope: { kind: 'repo', actorExid: 'repo=ambient' },
         });
-        const renderB = await setBrainDirBoot({
+        const renderB = await setBrainDirBootOfRepo({
           brainDir: join(repoPathB, 'brain'),
           roles: ROLES,
           repoPath: repoPathB,
@@ -190,7 +200,7 @@ describe('setBrainDirBoot', () => {
           'every published role precedes every repo=.this role, parted by one boundary line',
           async () => {
             const repoPath = genRepoWithRoles({ slug: 'setBrainDirBoot-c5t0' });
-            const render = await setBrainDirBoot({
+            const render = await setBrainDirBootOfRepo({
               brainDir: join(repoPath, 'brain'),
               roles: ROLES,
               repoPath,
@@ -219,7 +229,7 @@ describe('setBrainDirBoot', () => {
           const brainDir = join(repoPath, 'brain');
           const before = readFileSync(
             (
-              await setBrainDirBoot({
+              await setBrainDirBootOfRepo({
                 brainDir,
                 roles: ROLES,
                 repoPath,
@@ -242,7 +252,7 @@ describe('setBrainDirBoot', () => {
           );
           const after = readFileSync(
             (
-              await setBrainDirBoot({
+              await setBrainDirBootOfRepo({
                 brainDir,
                 roles: ROLES,
                 repoPath,
@@ -262,7 +272,7 @@ describe('setBrainDirBoot', () => {
       when('[t2] only published roles are rendered', () => {
         then('no boundary line is written', async () => {
           const repoPath = genRepoWithRoles({ slug: 'setBrainDirBoot-c5t2' });
-          const render = await setBrainDirBoot({
+          const render = await setBrainDirBootOfRepo({
             brainDir: join(repoPath, 'brain'),
             roles: [{ repo: 'fixture', role: 'zeta', subjects: null }],
             repoPath,
@@ -285,7 +295,7 @@ describe('setBrainDirBoot', () => {
           const brainDir = join(repoPath, 'brain');
 
           const error = await getError(
-            setBrainDirBoot({
+            setBrainDirBootOfRepo({
               brainDir,
               roles: [
                 ...ROLES,
@@ -315,7 +325,7 @@ describe('setBrainDirBoot', () => {
         mkdirSync(brainDir, { recursive: true });
         writeFileSync(join(brainDir, 'AGENTS.md'), 'hand edit\n');
 
-        const render = await setBrainDirBoot({
+        const render = await setBrainDirBootOfRepo({
           brainDir,
           roles: ROLES,
           repoPath,
@@ -336,7 +346,7 @@ describe('setBrainDirBoot', () => {
         writeFileSync(join(brainDir, 'CLAUDE.md'), 'a human file');
 
         const error = await getError(
-          setBrainDirBoot({
+          setBrainDirBootOfRepo({
             brainDir,
             roles: ROLES,
             repoPath,
@@ -356,7 +366,7 @@ describe('setBrainDirBoot', () => {
         const repoPath = genSampleRepoWithSubjects({
           slug: 'setBrainDirBoot-c5t0',
         });
-        const render = await setBrainDirBoot({
+        const render = await setBrainDirBootOfRepo({
           brainDir: join(repoPath, 'brain', '.claude'),
           roles: [
             { repo: '.this', role: 'any', subjects: ['flow'] },
@@ -376,7 +386,7 @@ describe('setBrainDirBoot', () => {
         const repoPath = genSampleRepoWithSubjects({
           slug: 'setBrainDirBoot-c5t0-skill',
         });
-        const render = await setBrainDirBoot({
+        const render = await setBrainDirBootOfRepo({
           brainDir: join(repoPath, 'brain', '.claude'),
           roles: [{ repo: '.this', role: 'any', subjects: ['flow'] }],
           repoPath,
@@ -393,7 +403,7 @@ describe('setBrainDirBoot', () => {
         const repoPath = genSampleRepoWithSubjects({
           slug: 'setBrainDirBoot-c5t1',
         });
-        const render = await setBrainDirBoot({
+        const render = await setBrainDirBootOfRepo({
           brainDir: join(repoPath, 'brain', '.claude'),
           roles: [{ repo: '.this', role: 'any', subjects: ['lean'] }],
           repoPath,
@@ -412,7 +422,7 @@ describe('setBrainDirBoot', () => {
         const repoPath = genSampleRepoWithSubjects({
           slug: 'setBrainDirBoot-c5t2',
         });
-        const render = await setBrainDirBoot({
+        const render = await setBrainDirBootOfRepo({
           brainDir: join(repoPath, 'brain', '.claude'),
           roles: [{ repo: '.this', role: 'any', subjects: null }],
           repoPath,
@@ -435,7 +445,7 @@ describe('setBrainDirBoot', () => {
               slug: 'setBrainDirBoot-c5t3',
             });
             const error = await getError(
-              setBrainDirBoot({
+              setBrainDirBootOfRepo({
                 brainDir: join(repoPath, 'brain', '.claude'),
                 roles: [{ repo: '.this', role: 'any', subjects: ['gone'] }],
                 repoPath,

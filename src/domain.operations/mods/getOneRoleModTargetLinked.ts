@@ -32,7 +32,7 @@ export const getOneRoleModTargetLinked = (input: {
       problem: `its \`of: ${ofLabel}\` names a role this repo owns`,
       subject: 'boot.yml',
       nearest: candidatesLabel[0] ?? null,
-      fix: `edit .agent/repo=${of.repo}/role=${of.role}/ in place, and delete the mod`,
+      fix: `edit .agent/repo=${of.repo}/role=${of.role}/ in place, then delete the mod with your human's ok`,
     });
 
   // a pinned repo must be linked
@@ -56,7 +56,7 @@ export const getOneRoleModTargetLinked = (input: {
       problem: `its \`of: ${ofLabel}\` names a role that is not linked`,
       subject: 'boot.yml',
       nearest: null,
-      fix: `link it first (rhx init --roles <repo>/${of.role}), or delete the mod`,
+      fix: `link it first (rhx init --roles <repo>/${of.role}), or delete the mod with your human's ok`,
     });
   throw asRoleModRefusalError({
     role: of.role,

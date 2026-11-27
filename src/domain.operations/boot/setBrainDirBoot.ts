@@ -1,7 +1,11 @@
 import { MalfunctionError } from 'helpful-errors';
 
+import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { RoleLinkRefAtFocus } from '@src/domain.objects/RoleLinkRefAtFocus';
+import { asRoleModsSkippedBlockLines } from '@src/domain.operations/mods/asRoleModsSkippedBlockLines';
+import { getAllRoleModFaultsUncarried } from '@src/domain.operations/mods/getAllRoleModFaultsUncarried';
 import { setFileAtomic } from '@src/infra/setFileAtomic';
+import { asTextOfLines } from '@src/utils/asTextOfLines';
 
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -27,13 +31,20 @@ import { setBrainDirPointerFiles } from './setBrainDirPointerFiles';
  *         order — so a local edit re-writes only the cached tail
  * .note = a focused role renders its subjects alone; a whole one (`subjects: null`) renders
  *         every subject, as it always has
+ * .note = a mod fault no role carries closes the corpus as one `<mods.skipped>` block, after
+ *         the local tail, so it rewrites only the part a local edit already rewrites
+ * .note = every caller injects the context of the repo it renders, so a forgotten one fails at
+ *         compile time rather than reads a repo it was never handed
  */
-export const setBrainDirBoot = async (input: {
-  brainDir: string;
-  roles: RoleLinkRefAtFocus[];
-  repoPath: string;
-  scope: BrainDirBootScope;
-}): Promise<BrainDirBootRender> => {
+export const setBrainDirBoot = async (
+  input: {
+    brainDir: string;
+    roles: RoleLinkRefAtFocus[];
+    repoPath: string;
+    scope: BrainDirBootScope;
+  },
+  context: ContextCli,
+): Promise<BrainDirBootRender> => {
   // render each role: the published roles, then the repo=.this roles, each in the one
   //   enrollment order; Promise.all keeps that order
   const { published, local } = asRoleRefsInCacheOrder({ refs: input.roles });
@@ -53,10 +64,20 @@ export const setBrainDirBoot = async (input: {
 
   // join the corpus around the boundary line, before any write; a role body that holds the
   //   literal is refused here
-  const corpus = asBootCorpusWithCacheBoundary({
+  const corpusOfRoles = asBootCorpusWithCacheBoundary({
     published: contentsPublished,
     local: contentsLocal,
   });
+
+  // a mod fault no role carries is named once, after the last role, so the cached prefix holds
+  //   whether a fault appears or is cured
+  const linesModsSkipped = asRoleModsSkippedBlockLines({
+    faults: getAllRoleModFaultsUncarried({}, context),
+  });
+  const corpus = {
+    ...corpusOfRoles,
+    body: `${corpusOfRoles.body}${asTextOfLines({ lines: linesModsSkipped })}`,
+  };
 
   // write boot.md whole, then the pointer files; an fs fault names the brain dir
   const bootMdPath = join(input.brainDir, BRAIN_DIR_BOOT_FILENAMES.bootMd);

@@ -80,22 +80,42 @@ exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case1] a mod
 }
 `;
 
-exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case2] a mod with no of when: [t0] a clone is enrolled with the modded role then: the refusal stderr matches its snapshot 1`] = `
-"
-✋ ConstraintError: the mod of role=surfer is refused: its boot.yml declares no \`of:\`
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case2] a mod with no of when: [t0] a clone is enrolled with the modded role then: the enroll stderr matches its snapshot 1`] = `
+"🧢 .agent/repo=.mods
+   └─ skipped, booted as published until cured
+      └─ role=surfer — ✋ ConstraintError: the mod of role=surfer is refused: its boot.yml declares no \`of:\`
+         └─ fix = add \`of: test/surfer\` — the role this mod is over (and, optionally, \`@<version>\`)
 
-{
-  "mod": ".agent/repo=.mods/role=surfer/",
-  "subject": "boot.yml",
-  "fix": "add \`of: test/surfer\` — the role this mod is over (and, optionally, \`@<version>\`)"
-}
+ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
 
-[args] enroll,claude,--roles,surfer
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
 
 "
 `;
 
-exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case2] a mod with no of when: [t1] a clone is enrolled without the modded role (usecase 12) then: the actor boot.md matches its snapshot 1`] = `
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case2] a mod with no of when: [t1] a clone is enrolled without the modded role (usecase 12) then: the enroll output matches its snapshot 1`] = `
+{
+  "stderr": "🧢 .agent/repo=.mods
+   └─ skipped, booted as published until cured
+      └─ role=surfer — ✋ ConstraintError: the mod of role=surfer is refused: its boot.yml declares no \`of:\`
+         └─ fix = add \`of: test/surfer\` — the role this mod is over (and, optionally, \`@<version>\`)
+
+ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+",
+  "stdout": "",
+}
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case2] a mod with no of when: [t1] a clone is enrolled without the modded role (usecase 12) then: the lifeguard actor boot.md matches its snapshot 1`] = `
 "<brief.say path="rhachet/intro">
 # rhachet
 
@@ -135,63 +155,50 @@ blow the whistle before a swimmer passes the flags
 "
 `;
 
-exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case2] a mod with no of when: [t1] a clone is enrolled without the modded role (usecase 12) then: the enroll output matches its snapshot 1`] = `
-{
-  "stderr": "ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case3] a mod whose of names no linked role when: [t0] a clone is enrolled with the role then: the enroll stderr matches its snapshot 1`] = `
+"🧢 .agent/repo=.mods
+   └─ skipped, booted as published until cured
+      └─ role=surfer — ✋ ConstraintError: the mod of role=surfer is refused: its \`of: ghost/surfer\` names a role that is not linked
+         └─ fix = link it first (rhx init --roles ghost/surfer), or point \`of:\` at a linked role (did you mean: test/surfer)
+
+ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
 ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
 
 😶 clone enrolled
    ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
    └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
 
-",
-  "stdout": "",
-}
-`;
-
-exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case3] a mod whose of names no linked role when: [t0] a clone is enrolled with the role then: the refusal stderr matches its snapshot 1`] = `
-"
-✋ ConstraintError: the mod of role=surfer is refused: its \`of: ghost/surfer\` names a role that is not linked
-
-{
-  "mod": ".agent/repo=.mods/role=surfer/",
-  "subject": "boot.yml",
-  "did you mean": "test/surfer",
-  "fix": "link it first (rhx init --roles ghost/surfer), or point \`of:\` at a linked role"
-}
-
-[args] enroll,claude,--roles,surfer
-
 "
 `;
 
-exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case4] a mod of a .this role (F18) when: [t0] a clone is enrolled with the .this role then: the refusal stderr matches its snapshot 1`] = `
-"
-✋ ConstraintError: the mod of role=surfer is refused: its \`of: .this/surfer\` names a role this repo owns
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case4] a mod of a .this role (F18) when: [t0] a clone is enrolled with the .this role then: the enroll stderr matches its snapshot 1`] = `
+"🧢 .agent/repo=.mods
+   └─ skipped, booted as published until cured
+      └─ role=surfer — ✋ ConstraintError: the mod of role=surfer is refused: its \`of: .this/surfer\` names a role this repo owns
+         └─ fix = edit .agent/repo=.this/role=surfer/ in place, then delete the mod with your human's ok
 
-{
-  "mod": ".agent/repo=.mods/role=surfer/",
-  "subject": "boot.yml",
-  "fix": "edit .agent/repo=.this/role=surfer/ in place, and delete the mod"
-}
+ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
 
-[args] enroll,claude,--roles,surfer
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
 
 "
 `;
 
-exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case5] two linked roles of one slug, a mod whose bare of names both when: [t0] a clone is enrolled with both then: the refusal stderr matches its snapshot 1`] = `
-"
-✋ ConstraintError: the mod of role=surfer is refused: its \`of: surfer\` matches 2 linked roles
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case5] two linked roles of one slug, a mod whose bare of names both when: [t0] a clone is enrolled with both then: the enroll stderr matches its snapshot 1`] = `
+"🧢 .agent/repo=.mods
+   └─ skipped, booted as published until cured
+      └─ role=surfer — ✋ ConstraintError: the mod of role=surfer is refused: its \`of: surfer\` matches 2 linked roles
+         └─ fix = pin one: \`of: alpha/surfer\` (did you mean: alpha/surfer, beta/surfer)
 
-{
-  "mod": ".agent/repo=.mods/role=surfer/",
-  "subject": "boot.yml",
-  "did you mean": "alpha/surfer, beta/surfer",
-  "fix": "pin one: \`of: alpha/surfer\`"
-}
+ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
 
-[args] enroll,claude,--roles,alpha/surfer,beta/surfer
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
 
 "
 `;
@@ -339,6 +346,7 @@ exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case6] a mod
   "stderr": "🧢 .agent/repo=.mods
    ├─ returned to published, its mod gone
    │  └─ role=surfer
+   │
    └─ a live clone keeps the boot it read at session start; re-enroll it to pick up the change
 
 ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
@@ -365,6 +373,758 @@ exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case7] a str
 😶 clone enrolled
    ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
    └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+"
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case8.c0] C0: a stray entry under .agent/repo=.mods when: [t0] a clone is enrolled, then a session stops then: the enroll and stop stderr match their snapshot 1`] = `
+{
+  "enroll": "🧢 .agent/repo=.mods
+   └─ refused, with no linked role to carry it
+      └─ .agent/repo=.mods/readme.md — ✋ ConstraintError: a mods dir holds an entry that names no role
+         └─ fix = rename .agent/repo=.mods/readme.md to .agent/repo=.mods/role=<slug>, or move it out of .agent/repo=.mods/
+
+ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+",
+  "stop": "🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 mod fault, held at the first stop of each turn until cured
+   │  └─ .agent/repo=.mods/readme.md
+   │     ├─ ✋ ConstraintError: a mods dir holds an entry that names no role
+   │     └─ fix = rename .agent/repo=.mods/readme.md to .agent/repo=.mods/role=<slug>, or move it out of .agent/repo=.mods/
+   │
+   └─ ask your human before you delete a mod
+
+",
+}
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case8.c1] C1: a mod dir with no boot.yml when: [t0] a clone is enrolled, then a session stops then: the enroll and stop stderr match their snapshot 1`] = `
+{
+  "enroll": "🧢 .agent/repo=.mods
+   └─ skipped, booted as published until cured
+      └─ role=surfer — ✋ ConstraintError: the mod of role=surfer is refused: it holds no boot.yml
+         └─ fix = add .agent/repo=.mods/role=surfer/boot.yml with \`of: <repo>/surfer\`
+
+ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+",
+  "stop": "🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 mod fault, held at the first stop of each turn until cured
+   │  └─ role=surfer
+   │     ├─ ✋ ConstraintError: the mod of role=surfer is refused: it holds no boot.yml
+   │     └─ fix = add .agent/repo=.mods/role=surfer/boot.yml with \`of: <repo>/surfer\`
+   │
+   └─ ask your human before you delete a mod
+
+",
+}
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case8.c2] C2: a boot.yml the parser refuses (a budget) when: [t0] a clone is enrolled, then a session stops then: the enroll and stop stderr match their snapshot 1`] = `
+{
+  "enroll": "🧢 .agent/repo=.mods
+   └─ skipped, booted as published until cured
+      └─ role=surfer — ✋ ConstraintError: the mod of role=surfer is refused: its boot.yml declares a \`budget:\`
+         └─ fix = delete the \`budget:\` key — the role's own budget caps the modded payload
+
+ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+",
+  "stop": "🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 mod fault, held at the first stop of each turn until cured
+   │  └─ role=surfer
+   │     ├─ ✋ ConstraintError: the mod of role=surfer is refused: its boot.yml declares a \`budget:\`
+   │     └─ fix = delete the \`budget:\` key — the role's own budget caps the modded payload
+   │
+   └─ ask your human before you delete a mod
+
+",
+}
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case8.c3] C3: an of to a role no package links when: [t0] a clone is enrolled, then a session stops then: the enroll and stop stderr match their snapshot 1`] = `
+{
+  "enroll": "🧢 .agent/repo=.mods
+   └─ skipped, booted as published until cured
+      └─ role=surfer — ✋ ConstraintError: the mod of role=surfer is refused: its \`of: ghost/surfer\` names a role that is not linked
+         └─ fix = link it first (rhx init --roles ghost/surfer), or point \`of:\` at a linked role (did you mean: test/surfer)
+
+ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+",
+  "stop": "🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 mod fault, held at the first stop of each turn until cured
+   │  └─ role=surfer
+   │     ├─ ✋ ConstraintError: the mod of role=surfer is refused: its \`of: ghost/surfer\` names a role that is not linked
+   │     └─ fix = link it first (rhx init --roles ghost/surfer), or point \`of:\` at a linked role (did you mean: test/surfer)
+   │
+   └─ ask your human before you delete a mod
+
+",
+}
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case8.c4] C4: a mod file at an unheld path no say or ref names when: [t0] a clone is enrolled, then a session stops then: the enroll and stop stderr match their snapshot 1`] = `
+{
+  "enroll": "🧢 .agent/repo=.mods
+   └─ skipped, booted as published until cured
+      └─ role=surfer — ✋ ConstraintError: the mod of role=surfer is refused: it holds briefs/rule.require.surf-wux.md, a path the role does not hold, and no say or ref names it
+         └─ fix = to shadow, move it to the held path; to add, say it in the mod boot.yml (briefs.say: [briefs/rule.require.surf-wux.md]) (did you mean: briefs/rule.require.surf-wax.md)
+
+ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+",
+  "stop": "🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 mod fault, held at the first stop of each turn until cured
+   │  └─ role=surfer
+   │     ├─ ✋ ConstraintError: the mod of role=surfer is refused: it holds briefs/rule.require.surf-wux.md, a path the role does not hold, and no say or ref names it
+   │     └─ fix = to shadow, move it to the held path; to add, say it in the mod boot.yml (briefs.say: [briefs/rule.require.surf-wux.md]) (did you mean: briefs/rule.require.surf-wax.md)
+   │
+   └─ ask your human before you delete a mod
+
+",
+}
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case8.c5] C5: an orphan .md.min in the mod when: [t0] a clone is enrolled, then a session stops then: the enroll and stop stderr match their snapshot 1`] = `
+{
+  "enroll": "🧢 .agent/repo=.mods
+   └─ skipped, booted as published until cured
+      └─ role=surfer — ✋ ConstraintError: the mod of role=surfer is refused: it holds briefs/rule.require.tide-charts.md.min, a minified brief with no .md beside it
+         └─ fix = add briefs/rule.require.tide-charts.md beside it, or remove the orphan with your human's ok
+
+ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+",
+  "stop": "🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 mod fault, held at the first stop of each turn until cured
+   │  └─ role=surfer
+   │     ├─ ✋ ConstraintError: the mod of role=surfer is refused: it holds briefs/rule.require.tide-charts.md.min, a minified brief with no .md beside it
+   │     └─ fix = add briefs/rule.require.tide-charts.md beside it, or remove the orphan with your human's ok
+   │
+   └─ ask your human before you delete a mod
+
+",
+}
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case8.c6] C6: a mod file of a kind a mod cannot change (a readme) when: [t0] a clone is enrolled, then a session stops then: the enroll and stop stderr match their snapshot 1`] = `
+{
+  "enroll": "🧢 .agent/repo=.mods
+   └─ skipped, booted as published until cured
+      └─ role=surfer — ✋ ConstraintError: the mod of role=surfer is refused: it holds readme.md, a kind a mod cannot change
+         └─ fix = a mod holds only briefs/ and skills/ files; for a readme, an init, or a keyrack.yml, use a .this role or an upstream pr
+
+ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+",
+  "stop": "🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 mod fault, held at the first stop of each turn until cured
+   │  └─ role=surfer
+   │     ├─ ✋ ConstraintError: the mod of role=surfer is refused: it holds readme.md, a kind a mod cannot change
+   │     └─ fix = a mod holds only briefs/ and skills/ files; for a readme, an init, or a keyrack.yml, use a .this role or an upstream pr
+   │
+   └─ ask your human before you delete a mod
+
+",
+}
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case8.c7] C7: a not that removes a path the mod also shadows when: [t0] a clone is enrolled, then a session stops then: the enroll and stop stderr match their snapshot 1`] = `
+{
+  "enroll": "🧢 .agent/repo=.mods
+   └─ skipped, booted as published until cured
+      └─ role=surfer — ✋ ConstraintError: the mod of role=surfer is refused: its not \`briefs/rule.require.surf-wax.md\` removes briefs/rule.require.surf-wax.md, a path the mod also shadows
+         └─ fix = to shadow it, narrow the not so it leaves briefs/rule.require.surf-wax.md; to drop it, delete the mod file with your human's ok
+
+ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+",
+  "stop": "🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 mod fault, held at the first stop of each turn until cured
+   │  └─ role=surfer
+   │     ├─ ✋ ConstraintError: the mod of role=surfer is refused: its not \`briefs/rule.require.surf-wax.md\` removes briefs/rule.require.surf-wax.md, a path the mod also shadows
+   │     └─ fix = to shadow it, narrow the not so it leaves briefs/rule.require.surf-wax.md; to drop it, delete the mod file with your human's ok
+   │
+   └─ ask your human before you delete a mod
+
+",
+}
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case8.c8] C8: a mod in subject mode, of a role in simple mode when: [t0] a clone is enrolled, then a session stops then: the enroll and stop stderr match their snapshot 1`] = `
+{
+  "enroll": "🧢 .agent/repo=.mods
+   └─ skipped, booted as published until cured
+      └─ role=surfer — ✋ ConstraintError: the mod of role=surfer is refused: its boot.yml is in subject mode, but the role's is in simple mode
+         └─ fix = write the mod with top-level \`briefs:\` / \`skills:\`, as the role does
+
+ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+",
+  "stop": "🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 mod fault, held at the first stop of each turn until cured
+   │  └─ role=surfer
+   │     ├─ ✋ ConstraintError: the mod of role=surfer is refused: its boot.yml is in subject mode, but the role's is in simple mode
+   │     └─ fix = write the mod with top-level \`briefs:\` / \`skills:\`, as the role does
+   │
+   └─ ask your human before you delete a mod
+
+",
+}
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case8.c9] C9: a not of a skill a hook invokes, beside a sound surfer mod when: [t0] a clone is enrolled, then a session stops then: the enroll and stop stderr match their snapshot 1`] = `
+{
+  "enroll": "🧢 .agent/repo=.mods
+   └─ skipped, booted as published until cured
+      └─ role=lifeguard — ✋ ConstraintError: the mod of role=lifeguard is refused: its not of skills/flags.raise.sh removes a skill one of the role's hooks invokes (\`rhx flags.raise\`)
+         └─ fix = shadow skills/flags.raise.sh rather than not it, so the hook still finds it
+
+ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+",
+  "stop": "🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 mod fault, held at the first stop of each turn until cured
+   │  └─ role=lifeguard
+   │     ├─ ✋ ConstraintError: the mod of role=lifeguard is refused: its not of skills/flags.raise.sh removes a skill one of the role's hooks invokes (\`rhx flags.raise\`)
+   │     └─ fix = shadow skills/flags.raise.sh rather than not it, so the hook still finds it
+   │
+   └─ ask your human before you delete a mod
+
+",
+}
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case8.c10] C10: a role kind dir that holds a file no link made when: [t0] a clone is enrolled, then a session stops then: the enroll and stop stderr match their snapshot 1`] = `
+{
+  "enroll": "🧢 .agent/repo=.mods
+   └─ skipped, booted as published until cured
+      └─ role=surfer — ✋ ConstraintError: a linked role dir holds a file no link made (.agent/repo=test/role=surfer/briefs/rule.require.hand-wax.md)
+         └─ fix = move the file out (to .agent/repo=.mods/ if it is a mod), then run rhx init --hooks
+
+ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+",
+  "stop": "🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 mod fault, held at the first stop of each turn until cured
+   │  └─ role=surfer
+   │     ├─ ✋ ConstraintError: a linked role dir holds a file no link made (.agent/repo=test/role=surfer/briefs/rule.require.hand-wax.md)
+   │     └─ fix = move the file out (to .agent/repo=.mods/ if it is a mod), then run rhx init --hooks
+   │
+   └─ ask your human before you delete a mod
+
+",
+}
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case8.c11.orphan] C11: a corrupt modded view record, whose mod is gone when: [t0] a clone is enrolled, then a session stops then: the enroll and stop stderr match their snapshot 1`] = `
+{
+  "enroll": "🧢 .agent/repo=.mods
+   └─ skipped, booted as published until cured
+      └─ role=surfer — 💥 MalfunctionError: the modded view record is unreadable
+         └─ fix = delete .agent/repo=test/role=surfer/.modded.json, then run rhx init --roles +test/surfer to re-link the role
+
+ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+",
+  "stop": "🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 mod fault, held at the first stop of each turn until cured
+   │  └─ role=surfer
+   │     ├─ 💥 MalfunctionError: the modded view record is unreadable
+   │     └─ fix = delete .agent/repo=test/role=surfer/.modded.json, then run rhx init --roles +test/surfer to re-link the role
+   │
+   └─ ask your human before you delete a mod
+
+",
+}
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case8.c11] C11: a corrupt modded view record when: [t0] a clone is enrolled, then a session stops then: the enroll and stop stderr match their snapshot 1`] = `
+{
+  "enroll": "🧢 .agent/repo=.mods
+   └─ skipped, booted as published until cured
+      └─ role=surfer — 💥 MalfunctionError: the modded view record is unreadable
+         └─ fix = delete .agent/repo=test/role=surfer/.modded.json, then run rhx init --roles +test/surfer to re-link the role
+
+ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+",
+  "stop": "🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 mod fault, held at the first stop of each turn until cured
+   │  └─ role=surfer
+   │     ├─ 💥 MalfunctionError: the modded view record is unreadable
+   │     └─ fix = delete .agent/repo=test/role=surfer/.modded.json, then run rhx init --roles +test/surfer to re-link the role
+   │
+   └─ ask your human before you delete a mod
+
+",
+}
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case8.c13] C13: a file where the mods dir belongs when: [t0] a clone is enrolled, then a session stops then: the enroll and stop stderr match their snapshot 1`] = `
+{
+  "enroll": "🧢 .agent/repo=.mods
+   └─ refused, with no linked role to carry it
+      └─ .agent/repo=.mods — ✋ ConstraintError: the mods path cannot be read
+         └─ fix = move the file aside, so .agent/repo=.mods is a dir or absent
+
+ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+",
+  "stop": "🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 mod fault, held at the first stop of each turn until cured
+   │  └─ .agent/repo=.mods
+   │     ├─ ✋ ConstraintError: the mods path cannot be read
+   │     └─ fix = move the file aside, so .agent/repo=.mods is a dir or absent
+   │
+   └─ ask your human before you delete a mod
+
+",
+}
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case9] C12: a mod edited after the last render when: [t0] a clone is enrolled then: the enroll stderr and the re-rendered boot match their snapshot 1`] = `
+{
+  "boot": "<brief.say path="rhachet/intro">
+# rhachet
+
+you are enrolled via rhachet. your roles' briefs and skills follow.
+
+- \`rhx list\` — every skill your roles grant. check it before you improvise
+- \`rhx <skill> --help\` — how to call one
+- \`rhx init · roles · list · run · enroll · actor · clone · keyrack · ask · act · upgrade\` — the commands; \`rhx <command> --help\` for each
+
+entool: a tactic worth repeat becomes a skill — \`.agent/repo=.this/role=any/skills/<name>.sh\` — so the next clone runs it, never rediscovers it.
+
+</brief.say>
+
+<mod of="test/lifeguard@1.0.0">
+role test/lifeguard@1.0.0 is modded in this repo — 1 shadow, 0 add, 0 not
+</mod>
+
+<readme path=".agent/repo=test/role=lifeguard/readme.md">
+# lifeguard
+
+test role no mod names; it shows a refused mod of another role leaves this one's actors whole
+
+</readme>
+
+<brief.say path=".agent/repo=test/role=lifeguard/briefs/rule.require.whistle.md" mod="shadow">
+modded: whistle twice, then wave
+
+</brief.say>
+
+<skill.say path=".agent/repo=test/role=lifeguard/skills/flags.raise.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = raise the swim flags
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<mod of="test/surfer@1.0.0">
+role test/surfer@1.0.0 is modded in this repo — 1 shadow, 1 add, 1 not
+[-] not briefs/rule.forbid.wipeouts.md
+[~] shadow briefs/rule.require.surf-wax.md drops the published briefs/rule.require.surf-wax.md.min
+</mod>
+
+<readme path=".agent/repo=test/role=surfer/readme.md">
+# surfer
+
+a test role, as published
+
+</readme>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/howto.paddle-out.md">
+published: paddle out past the break
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.require.reef-etiquette.md" mod="add">
+modded: mind the reef, yield to the inside surfer
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.require.surf-wax.md" mod="shadow">
+modded again: wax the board in cold water
+
+</brief.say>
+
+<skill.say path=".agent/repo=test/role=surfer/skills/wax.board.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = wax the board
+#
+# .note = sources its peer by its own dir, so a mod that shadows the
+#         peer alone is what this skill reads
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<skill.say path=".agent/repo=test/role=surfer/skills/wax.lib.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = the word a waxed board says; sourced by wax.board.sh
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+",
+  "stderr": "ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+",
+}
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case10] two faulty mods in one walk, cured one at a time (vision case=8) when: [t1] a session stops then: the stop stderr matches its snapshot 1`] = `
+"🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 2 mod faults, held at the first stop of each turn until cured
+   │  ├─ role=lifeguard
+   │  │  ├─ ✋ ConstraintError: the mod of role=lifeguard is refused: it holds briefs/rule.require.tide-charts.md.min, a minified brief with no .md beside it
+   │  │  └─ fix = add briefs/rule.require.tide-charts.md beside it, or remove the orphan with your human's ok
+   │  │
+   │  └─ role=surfer
+   │     ├─ ✋ ConstraintError: the mod of role=surfer is refused: it holds briefs/rule.require.surf-wux.md, a path the role does not hold, and no say or ref names it
+   │     └─ fix = to shadow, move it to the held path; to add, say it in the mod boot.yml (briefs.say: [briefs/rule.require.surf-wux.md]) (did you mean: briefs/rule.require.surf-wax.md)
+   │
+   └─ ask your human before you delete a mod
+
+"
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case10] two faulty mods in one walk, cured one at a time (vision case=8) when: [t2] only the surfer mod is cured, then a session stops then: the stop that still holds matches its snapshot 1`] = `
+{
+  "status": 2,
+  "stderr": "🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 mod fault, held at the first stop of each turn until cured
+   │  └─ role=lifeguard
+   │     ├─ ✋ ConstraintError: the mod of role=lifeguard is refused: it holds briefs/rule.require.tide-charts.md.min, a minified brief with no .md beside it
+   │     └─ fix = add briefs/rule.require.tide-charts.md beside it, or remove the orphan with your human's ok
+   │
+   └─ ask your human before you delete a mod
+
+",
+}
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case10] two faulty mods in one walk, cured one at a time (vision case=8) when: [t3] the lifeguard mod is cured too, then a session stops then: the stop that clears matches its snapshot 1`] = `
+{
+  "status": 0,
+  "stderr": "",
+  "stdout": "",
+}
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case11] a C4 fault, and an enroll that resumes a session (the lockout shape) when: [t0] a clone is enrolled with --resume then: the enroll stderr matches its snapshot 1`] = `
+"🧢 .agent/repo=.mods
+   └─ skipped, booted as published until cured
+      └─ role=surfer — ✋ ConstraintError: the mod of role=surfer is refused: it holds briefs/rule.require.surf-wux.md, a path the role does not hold, and no say or ref names it
+         └─ fix = to shadow, move it to the held path; to add, say it in the mod boot.yml (briefs.say: [briefs/rule.require.surf-wux.md]) (did you mean: briefs/rule.require.surf-wax.md)
+
+ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+"
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case11] a C4 fault, and an enroll that resumes a session (the lockout shape) when: [t0] a clone is enrolled with --resume then: the enrolled boot, its sound mod beside the skip notice, matches its snapshot 1`] = `
+"<brief.say path="rhachet/intro">
+# rhachet
+
+you are enrolled via rhachet. your roles' briefs and skills follow.
+
+- \`rhx list\` — every skill your roles grant. check it before you improvise
+- \`rhx <skill> --help\` — how to call one
+- \`rhx init · roles · list · run · enroll · actor · clone · keyrack · ask · act · upgrade\` — the commands; \`rhx <command> --help\` for each
+
+entool: a tactic worth repeat becomes a skill — \`.agent/repo=.this/role=any/skills/<name>.sh\` — so the next clone runs it, never rediscovers it.
+
+</brief.say>
+
+<mod of="test/lifeguard@1.0.0">
+role test/lifeguard@1.0.0 is modded in this repo — 1 shadow, 0 add, 0 not
+</mod>
+
+<readme path=".agent/repo=test/role=lifeguard/readme.md">
+# lifeguard
+
+test role no mod names; it shows a refused mod of another role leaves this one's actors whole
+
+</readme>
+
+<brief.say path=".agent/repo=test/role=lifeguard/briefs/rule.require.whistle.md" mod="shadow">
+modded: whistle twice, then wave
+
+</brief.say>
+
+<skill.say path=".agent/repo=test/role=lifeguard/skills/flags.raise.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = raise the swim flags
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<mod.skipped of="surfer">
+role surfer boots as published in this repo — its mod is skipped until it is cured
+mod = .agent/repo=.mods/role=surfer/
+✋ ConstraintError: the mod of role=surfer is refused: it holds briefs/rule.require.surf-wux.md, a path the role does not hold, and no say or ref names it
+fix = to shadow, move it to the held path; to add, say it in the mod boot.yml (briefs.say: [briefs/rule.require.surf-wux.md]) (did you mean: briefs/rule.require.surf-wax.md)
+</mod.skipped>
+
+<readme path=".agent/repo=test/role=surfer/readme.md">
+# surfer
+
+a test role, as published
+
+</readme>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/howto.paddle-out.md">
+published: paddle out past the break
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.forbid.wipeouts.md">
+published: a wipeout is forbidden
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.require.surf-wax.md.min">
+published (min): wax the board before each session
+
+</brief.say>
+
+<skill.say path=".agent/repo=test/role=surfer/skills/wax.board.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = wax the board
+#
+# .note = sources its peer by its own dir, so a mod that shadows the
+#         peer alone is what this skill reads
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<skill.say path=".agent/repo=test/role=surfer/skills/wax.lib.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = the word a waxed board says; sourced by wax.board.sh
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+"
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case11] a C4 fault, and an enroll that resumes a session (the lockout shape) when: [t1] the session stops, then stops again after claude held it once then: the held stop and the stop that passes match their snapshot 1`] = `
+{
+  "again": {
+    "status": 0,
+    "stderr": "",
+    "stdout": "",
+  },
+  "first": {
+    "status": 2,
+    "stderr": "🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 mod fault, held at the first stop of each turn until cured
+   │  └─ role=surfer
+   │     ├─ ✋ ConstraintError: the mod of role=surfer is refused: it holds briefs/rule.require.surf-wux.md, a path the role does not hold, and no say or ref names it
+   │     └─ fix = to shadow, move it to the held path; to add, say it in the mod boot.yml (briefs.say: [briefs/rule.require.surf-wux.md]) (did you mean: briefs/rule.require.surf-wax.md)
+   │
+   └─ ask your human before you delete a mod
+
+",
+    "stdout": "",
+  },
+}
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case12] a mod spec with no read access (an errno inside the render) when: [t0] a clone is enrolled with both modded roles then: the enroll stderr matches its snapshot, the errno readout and its fix 1`] = `
+"🧢 .agent/repo=.mods
+   ├─ rendered
+   │  └─ role=lifeguard
+   ├─ skipped, booted as published until cured
+   │  └─ role=surfer — ✋ ConstraintError: a mod path cannot be read (EACCES: permission denied, open '.agent/repo=.mods/role=surfer/boot.yml')
+   │     └─ fix = grant read access, via chmod u+r .agent/repo=.mods/role=surfer/boot.yml
+   │
+   └─ a live clone keeps the boot it read at session start; re-enroll it to pick up the change
+
+ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+"
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case13] a C4 fault, and a clone whose actor holds no .this role when: [t0] a clone is enrolled with surfer alone, then its seat stops twice then: the seat's held stop and the stop that passes match their snapshot 1`] = `
+{
+  "again": {
+    "status": 0,
+    "stderr": "",
+    "stdout": "",
+  },
+  "first": {
+    "status": 2,
+    "stderr": "🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 mod fault, held at the first stop of each turn until cured
+   │  └─ role=surfer
+   │     ├─ ✋ ConstraintError: the mod of role=surfer is refused: it holds briefs/rule.require.surf-wux.md, a path the role does not hold, and no say or ref names it
+   │     └─ fix = to shadow, move it to the held path; to add, say it in the mod boot.yml (briefs.say: [briefs/rule.require.surf-wux.md]) (did you mean: briefs/rule.require.surf-wax.md)
+   │
+   └─ ask your human before you delete a mod
+
+🪝 hooks.dispatch Stop blocked by ./node_modules/.bin/rhachet roles cost --all --when hook.onStop
+",
+    "stdout": "",
+  },
+}
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case13] a C4 fault, and a clone whose actor holds no .this role when: [t1] a clone is enrolled with lifeguard alone, a seat that holds no faulty role then: the stop stderr matches its snapshot 1`] = `
+"🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 mod fault, held at the first stop of each turn until cured
+   │  └─ role=surfer
+   │     ├─ ✋ ConstraintError: the mod of role=surfer is refused: it holds briefs/rule.require.surf-wux.md, a path the role does not hold, and no say or ref names it
+   │     └─ fix = to shadow, move it to the held path; to add, say it in the mod boot.yml (briefs.say: [briefs/rule.require.surf-wux.md]) (did you mean: briefs/rule.require.surf-wax.md)
+   │
+   └─ ask your human before you delete a mod
+
+🪝 hooks.dispatch Stop blocked by ./node_modules/.bin/rhachet roles cost --all --when hook.onStop
+"
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case14] a C4 fault beside a sound mod, at the edges of the contract when: [t0] a clone is enrolled with --output json then: the json stdout and the fault stderr match their snapshot 1`] = `
+{
+  "stderr": "🧢 .agent/repo=.mods
+   └─ skipped, booted as published until cured
+      └─ role=surfer — ✋ ConstraintError: the mod of role=surfer is refused: it holds briefs/rule.require.surf-wux.md, a path the role does not hold, and no say or ref names it
+         └─ fix = to shadow, move it to the held path; to add, say it in the mod boot.yml (briefs.say: [briefs/rule.require.surf-wux.md]) (did you mean: briefs/rule.require.surf-wax.md)
+
+ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+",
+  "stdout": "{"outcome":"baked","serial":"__SERIAL__","slug":null,"socketEligible":true}
+",
+}
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case14] a C4 fault beside a sound mod, at the edges of the contract when: [t1] a clone is enrolled, attended then: the attended enroll output matches its snapshot 1`] = `
+{
+  "stderr": "🧢 .agent/repo=.mods
+   └─ skipped, booted as published until cured
+      └─ role=surfer — ✋ ConstraintError: the mod of role=surfer is refused: it holds briefs/rule.require.surf-wux.md, a path the role does not hold, and no say or ref names it
+         └─ fix = to shadow, move it to the held path; to add, say it in the mod boot.yml (briefs.say: [briefs/rule.require.surf-wux.md]) (did you mean: briefs/rule.require.surf-wax.md)
+
+ℹ no claude login at /PATH_STRIPPED — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at /PATH_STRIPPED — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+",
+  "stdout": "",
+}
+`;
+
+exports[`rhx enroll — a role modded via .agent/repo=.mods given: [case15] fifty sound mods beside one faulty mod (the stop sweep at scale) when: [t0] a session stops then: the stop stderr matches its snapshot 1`] = `
+"🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 mod fault, held at the first stop of each turn until cured
+   │  └─ role=surfer
+   │     ├─ ✋ ConstraintError: the mod of role=surfer is refused: it holds briefs/rule.require.surf-wux.md, a path the role does not hold, and no say or ref names it
+   │     └─ fix = to shadow, move it to the held path; to add, say it in the mod boot.yml (briefs.say: [briefs/rule.require.surf-wux.md]) (did you mean: briefs/rule.require.surf-wax.md)
+   │
+   └─ ask your human before you delete a mod
 
 "
 `;

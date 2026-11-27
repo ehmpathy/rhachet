@@ -6,6 +6,7 @@ import type { RoleModSpec } from '@src/domain.objects/RoleModSpec';
 import { RoleModViewStaleError } from '@src/domain.objects/RoleModViewStaleError';
 import { asRoleDir } from '@src/domain.operations/role/asRoleDir';
 
+import { assertRoleKindDirsLinksOnly } from './assertRoleKindDirsLinksOnly';
 import { getAllRoleModdedViewDriftPaths } from './getAllRoleModdedViewDriftPaths';
 import { getOneRoleModdedViewRecord } from './getOneRoleModdedViewRecord';
 import { getOneRoleModHookBasis } from './getOneRoleModHookBasis';
@@ -60,6 +61,28 @@ const isPathSetSame = (input: { a: string[]; b: string[] }): boolean => {
  *   repo pays no scan
  */
 export const assertRoleModdedViewFresh = (input: {
+  cwd: string;
+  ref: RoleLinkRef;
+  getRefsLinked: () => RoleLinkRef[];
+}): { spec: RoleModSpec; plan: RoleModPlan; ofLabel: string } | null => {
+  try {
+    return assertRoleModdedViewFreshOfDisk(input);
+  } catch (error: unknown) {
+    // a file no link made in the view also reads as stale; name it, as the stop does, so the
+    //   fix is the one that cures it. only a stale view is checked: an unmodded role's kind dir
+    //   may hold real files
+    if (error instanceof RoleModViewStaleError)
+      assertRoleKindDirsLinksOnly({
+        roleDir: asRoleDir({ cwd: input.cwd, ref: input.ref }),
+      });
+    throw error;
+  }
+};
+
+/**
+ * .what = the freshness check itself, over the view on disk
+ */
+const assertRoleModdedViewFreshOfDisk = (input: {
   cwd: string;
   ref: RoleLinkRef;
   getRefsLinked: () => RoleLinkRef[];

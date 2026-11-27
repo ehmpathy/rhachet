@@ -8,6 +8,7 @@ import { getAllDirEntriesOrNone } from '@src/infra/filesystem/getAllDirEntriesOr
 
 import { lstatSync, readlinkSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
+import { asRepoRelPathOfAgentPath } from './asRepoRelPathOfAgentPath';
 import { asRoleModdedViewRecordPath } from './asRoleModdedViewRecordPath';
 import { isDirLink } from './isDirLink';
 
@@ -55,11 +56,14 @@ export const getAllRoleViewSources = (input: {
 
   // a file where the kind dir belongs is content no link made; a view built over it would drop it
   if (!stats.isDirectory())
-    throw new ConstraintError('a linked role dir holds a file no link made', {
-      kindDir,
-      file: kindDir,
-      fix: 'move the file out (to .agent/repo=.mods/ if it is a mod), then run rhx init --hooks',
-    });
+    throw new ConstraintError(
+      `a linked role dir holds a file no link made (${asRepoRelPathOfAgentPath({ path: kindDir })})`,
+      {
+        kindDir,
+        file: kindDir,
+        fix: 'move the file out (to .agent/repo=.mods/ if it is a mod), then run rhx init --hooks',
+      },
+    );
 
   // an array-dir link mounts each source as an entry of the kind dir
   //   a kind dir gone mid-walk (a render swap in flight) reads as no entries, so the record answers

@@ -1,0 +1,22 @@
+# F19 — every stop hold ends on its tree, with no cli error tail below it
+
+- **fork**: a hold at the stop printed its readout tree, then the tail every hook hold printed.
+  - The tail was a second `✋ ConstraintError` header, a json copy of the hint and the held mods, and the `[args] roles,cost,--all,--when,hook.onStop` echo of `emitCliErrorAndExit`.
+  - So each hold said each fact twice, seen in the 5.3 walk (`rhx mods.walk`, path 1).
+  - The fault, drift, and budget holds all printed it: `invokeRolesCostForHook` threw a `ConstraintError` after each readout.
+  - The options:
+    - (a) drop the throw in the fault arm alone
+    - (b) drop it in every hold arm at once, so one hook keeps one output shape
+    - (c) defer the tail as a caught dream
+- **taken**: (b).
+  - (a) would give one hook two shapes for one kind of hold.
+  - (c) fails `rule.forbid.deferrals-short-of-a-dedicated-pr`: the change sits in one function, never a core-contract reshape.
+  - The hook prints one tree for every hold it found, then sets `process.exitCode = 2` once. The tree names each fact and its fix, so naught is lost.
+  - A refusal of bad input (`--when hook.bogus`, `--when` without `--all`) still ends in the tail. It is a cli error, not a hold, and `emitCliErrorAndExit` stays shared by every cli refusal.
+- **rework**: clean. One exit in `invokeRolesCostForHook` in place of the throws, plus the stop snapshots that lose the tail.
+- **confidence**: 90%.
+- **verdict**: ruled (b), on 5.3 r1 blocker.1.
+- **where**:
+  - `src/contract/cli/invokeRolesCost.ts`, `invokeRolesCostForHook`
+  - proof: `mods.walk.integration.test.ts` case3 (no `[args]` line, no json blob, three `exit=2`), and the stop snapshots of `enroll.mods.integration`, `init.mods`, `roles.mods`, `upgrade.mods`, `init.hooks.boot-guard`
+- **raised by**: 5.3 self review `has-critical-paths-frictionless`, the walk's path 1 stop; 5.3 r1 blocker.1 (repo-rules)

@@ -11,15 +11,15 @@ import {
   type BootSayResource,
   getAllBootSayResources,
 } from '@src/domain.operations/boot/getAllBootSayResources';
+import { getAllRoleFilesToRead } from '@src/domain.operations/boot/getAllRoleFilesToRead';
 import { assertRoleModdedViewFresh } from '@src/domain.operations/mods/assertRoleModdedViewFresh';
 import { assertRoleModSparesNativeRole } from '@src/domain.operations/mods/assertRoleModSparesNativeRole';
-import { withRoleModReadConfirmed } from '@src/domain.operations/mods/withRoleModReadConfirmed';
+import { getOneRoleModVerdict } from '@src/domain.operations/mods/getOneRoleModVerdict';
 import { asRepoSlugKind } from '@src/domain.operations/role/asRepoSlugKind';
 import { assertZeroOrphanMinifiedBriefs } from '@src/domain.operations/role/briefs/assertZeroOrphanMinifiedBriefs';
 import { getRoleBriefRefs } from '@src/domain.operations/role/briefs/getRoleBriefRefs';
 import { getAllLinkedRoleRefs } from '@src/domain.operations/role/getAllLinkedRoleRefs';
 import { getOneRoleBootSpecFromRef } from '@src/domain.operations/role/getOneRoleBootSpecFromRef';
-import { getAllFilesFromDir } from '@src/infra/filesystem/getAllFilesFromDir';
 
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -59,38 +59,39 @@ export const getOneRoleBootContent = async (input: {
       },
     );
 
-  // a native role is never modded (F18); a mod that names it is refused here, at its boot
-  if (asRepoSlugKind({ slug: input.slugRepo }) !== 'package')
-    assertRoleModSparesNativeRole({
-      cwd: input.cwd,
-      ref: { repo: input.slugRepo, role: input.slugRole },
-      getRefsLinked: () =>
-        getAllLinkedRoleRefs(
-          {},
-          new ContextCli({ cwd: input.cwd, gitroot: input.cwd }),
-        ),
-    });
-
-  // a modded role boots its view only once that view is proven fresh; a boot never heals it.
-  //   a `.this` role is never modded (F18), so its boot never reads a mod of its slug. a read
-  //   that refuses is confirmed under the role view lock, so a render mid-swap never fails it
-  const mod =
-    asRepoSlugKind({ slug: input.slugRepo }) === 'package'
-      ? await withRoleModReadConfirmed({ cwd: input.cwd }, () =>
-          assertRoleModdedViewFresh({
+  // the mod gate: a modded role boots its view only once that view is proven fresh, and a boot
+  //   never heals it. a native role is never modded (F18), so a mod that names it is a fault.
+  //   a mod fault never stops the boot: the role boots as published, and names the fault
+  const ref = { repo: input.slugRepo, role: input.slugRole };
+  const getRefsLinked = () =>
+    getAllLinkedRoleRefs(
+      {},
+      new ContextCli({ cwd: input.cwd, gitroot: input.cwd }),
+    );
+  const verdict = await getOneRoleModVerdict(
+    { cwd: input.cwd },
+    {
+      read: () => {
+        if (asRepoSlugKind({ slug: input.slugRepo }) === 'package')
+          return assertRoleModdedViewFresh({
             cwd: input.cwd,
-            ref: { repo: input.slugRepo, role: input.slugRole },
-            getRefsLinked: () =>
-              getAllLinkedRoleRefs(
-                {},
-                new ContextCli({ cwd: input.cwd, gitroot: input.cwd }),
-              ),
-          }),
-        )
-      : null;
+            ref,
+            getRefsLinked,
+          });
+        assertRoleModSparesNativeRole({ cwd: input.cwd, ref, getRefsLinked });
+        return null;
+      },
+    },
+  );
+  const mod = verdict.verdict === 'modded' ? verdict : null;
 
-  // read all files, then split into readme, briefs, and skills
-  const allFiles = [...getAllFilesFromDir({ dir: roleDir })].sort();
+  // read all files, then split into readme, briefs, and skills. a skipped mod is skipped whole,
+  //   so the role boots its published files, whatever the view on disk still links (F03)
+  const { files: allFiles, asPathToRead } = getAllRoleFilesToRead({
+    roleDir,
+    cwdOfSkippedMod: verdict.verdict === 'skipped' ? input.cwd : null,
+    skipDirNames: [],
+  });
   const briefsDir = resolve(roleDir, 'briefs');
   const skillsDir = resolve(roleDir, 'skills');
   const readmePath = resolve(roleDir, 'readme.md');
@@ -139,6 +140,7 @@ export const getOneRoleBootContent = async (input: {
     pathToReadme: readmeFile,
     briefsSay: bootPlan.briefs.say,
     skillsSay: bootPlan.skills.say,
+    asPathToRead,
   });
   const asSaid = (tag: BootSayResource['tag']) =>
     saidAll
@@ -162,5 +164,9 @@ export const getOneRoleBootContent = async (input: {
     skillsSaid,
     focus,
     mod: mod ? { ofLabel: mod.ofLabel, plan: mod.plan } : null,
+    skipped:
+      verdict.verdict === 'skipped'
+        ? { role: input.slugRole, error: verdict.error }
+        : null,
   });
 };

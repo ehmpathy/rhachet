@@ -3,6 +3,7 @@ import { getError, given, then, useBeforeAll, when } from 'test-fns';
 import { genSampleRepoWithRoles } from '@src/.test/assets/genSampleRepoWithRoles';
 import { getOneIsPathIgnoredByGit } from '@src/.test/infra/getOneIsPathIgnoredByGit';
 import { withTempHome } from '@src/.test/infra/withTempHome';
+import { ContextCli } from '@src/domain.objects/ContextCli';
 
 import {
   existsSync,
@@ -35,6 +36,17 @@ const genRepoWithRoles = (input: { slug: string }): string =>
   });
 
 /**
+ * .what = sync the repo actor's brain dir, with the context of the repo, as the init sync does
+ */
+const setRepoActorBrainDirOfRepo = (
+  input: Parameters<typeof setRepoActorBrainDir>[0],
+) =>
+  setRepoActorBrainDir(
+    input,
+    new ContextCli({ cwd: input.repoPath, gitroot: input.repoPath }),
+  );
+
+/**
  * .what = the repo actor brain dir `.gitignore`: ignore all, re-include the doors and the
  *         four settings names
  */
@@ -55,7 +67,7 @@ describe('setRepoActorBrainDir', () => {
   given('[case1] a repo with two linked roles and no <repo>/.claude', () => {
     const scene = useBeforeAll(async () => {
       const repoPath = genRepoWithRoles({ slug: 'sync-repo-actor-brain-dir' });
-      const result = await setRepoActorBrainDir({
+      const result = await setRepoActorBrainDirOfRepo({
         repoPath,
         refsLinked: ROLES,
       });
@@ -171,7 +183,7 @@ describe('setRepoActorBrainDir', () => {
           join(scene.repoPath, '.gitignore'),
           'utf8',
         );
-        const result = await setRepoActorBrainDir({
+        const result = await setRepoActorBrainDirOfRepo({
           repoPath: scene.repoPath,
           refsLinked: ROLES,
         });
@@ -201,7 +213,7 @@ describe('setRepoActorBrainDir', () => {
             brainGitignore,
             'boot.md\n*.local.json\nsettings.json\nsettings.of.repo.json\nsettings.of.grove.json\n*.forked.*.json\n',
           );
-          await setRepoActorBrainDir({
+          await setRepoActorBrainDirOfRepo({
             repoPath: scene.repoPath,
             refsLinked: ROLES,
           });
@@ -221,7 +233,7 @@ describe('setRepoActorBrainDir', () => {
         slug: 'sync-repo-actor-brain-dir-throw',
       });
       const error = await getError(
-        setRepoActorBrainDir({
+        setRepoActorBrainDirOfRepo({
           repoPath,
           refsLinked: [{ repo: 'fixture', role: 'absent' }],
         }),
@@ -263,7 +275,7 @@ describe('setRepoActorBrainDir', () => {
           '/home/fixturehuman/.claude/settings.json',
           join(brainDir, 'settings.of.grove.json'),
         );
-        await setRepoActorBrainDir({ repoPath, refsLinked: ROLES });
+        await setRepoActorBrainDirOfRepo({ repoPath, refsLinked: ROLES });
         return { repoPath, brainDir };
       });
 

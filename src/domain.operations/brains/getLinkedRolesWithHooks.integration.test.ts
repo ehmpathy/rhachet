@@ -394,4 +394,43 @@ describe('getLinkedRolesWithHooks (integration)', () => {
       });
     });
   });
+
+  given('[case8] a modded repo, and an actor that holds no .this role', () => {
+    when('[t0] the actor holds only a package role', () => {
+      // .why = a mod fault is the repo's; a seat that holds no carrier role must still be
+      //        pestered at its stop, so a mod-armed sweep rides every actor's hooks
+      const scene = useBeforeAll(async () => {
+        mockImportPackageExports.mockImplementation(async () =>
+          asHealthyRegistryModule({ slug: 'goodpkg', role: 'surfer' }),
+        );
+        const gitroot = genRepoWithLinkedRoles({
+          slug: 'getLinkedRoles-modded-unheld-carrier',
+          linked: { goodpkg: ['surfer'] },
+        });
+        mkdirSync(join(gitroot, '.agent', 'repo=.mods', 'role=surfer'), {
+          recursive: true,
+        });
+        const context = new ContextCli({ cwd: gitroot, gitroot });
+        return getLinkedRolesWithHooks({ rolesHeld: ['surfer'] }, context);
+      });
+
+      then('the held role and the repo-wide sweep carrier both load', () => {
+        expect(scene.roles.map((role) => `${role.repo}/${role.slug}`)).toEqual([
+          'goodpkg/surfer',
+          '.this/any',
+        ]);
+      });
+
+      then('the carrier holds the stop sweep', () => {
+        const carrier = scene.roles.find((role) => role.repo === '.this');
+        expect(carrier?.hooks?.onBrain?.onStop).toEqual([
+          {
+            command:
+              './node_modules/.bin/rhachet roles cost --all --when hook.onStop',
+            timeout: 'PT60S',
+          },
+        ]);
+      });
+    });
+  });
 });

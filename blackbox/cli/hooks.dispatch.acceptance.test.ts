@@ -766,6 +766,54 @@ describe('hook dispatcher (one process per claude event)', () => {
       });
     });
 
+    when('[t9b] a stop rule reads whether claude already held this stop', () => {
+      const rowEcho = {
+        event: 'Stop',
+        matcher: '',
+        timeout: 5,
+        command: `printf 'held=%s\\n' "\${RHACHET_HOOKS_STOP_HELD:-unset}" >&2; exit 2`,
+      };
+      const result = useBeforeAll(async () => ({
+        first: scene.dispatchManifest({
+          name: 'stop-held-first',
+          manifest: asManifestOfCommands({ rows: [rowEcho] }),
+          event: 'Stop',
+          payload: JSON.stringify({ hook_event_name: 'Stop', stop_hook_active: false }),
+          env: { RHACHET_HOOKS_STOP_HELD: undefined },
+        }),
+        again: scene.dispatchManifest({
+          name: 'stop-held-again',
+          manifest: asManifestOfCommands({ rows: [rowEcho] }),
+          event: 'Stop',
+          payload: JSON.stringify({ hook_event_name: 'Stop', stop_hook_active: true }),
+          env: { RHACHET_HOOKS_STOP_HELD: undefined },
+        }),
+        firstInherited: scene.dispatchManifest({
+          name: 'stop-held-first-inherited',
+          manifest: asManifestOfCommands({ rows: [rowEcho] }),
+          event: 'Stop',
+          payload: JSON.stringify({ hook_event_name: 'Stop', stop_hook_active: false }),
+          env: { RHACHET_HOOKS_STOP_HELD: '1' },
+        }),
+      }));
+
+      then('the first stop runs the rule with no held mark', () => {
+        expect(result.first.stderr).toContain('held=unset');
+      });
+
+      then('🔴 a first stop drops a held mark the caller env carried in: the payload alone sets it', () => {
+        expect(result.firstInherited.stderr).toContain('held=unset');
+      });
+
+      then('a stop claude already held runs the rule with RHACHET_HOOKS_STOP_HELD=1', () => {
+        expect(result.again.stderr).toContain('held=1');
+      });
+
+      then('the stderr of both stops matches its snapshot', () => {
+        expect({ first: result.first.stderr, again: result.again.stderr }).toMatchSnapshot();
+      });
+    });
+
     when('[t10] two rules emit json decisions of different rank', () => {
       const result = useBeforeAll(async () => ({
         allowThenDeny: scene.dispatchManifest({

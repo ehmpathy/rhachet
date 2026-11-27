@@ -1,0 +1,43 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`bun.compiled.lookup.probe given: [case1] the help flag when: [t0] \`--help\` then: the help holds its shape 1`] = `
+".what = probe how a bun-compiled binary finds and loads a package of
+        the repo it runs in: createRequire, a node_modules walk, and a
+        runtime import() of the file found
+.why  = \`roles cost\` runs as a bun binary. a node run finds a package
+        of the caller repo via createRequire; a bun binary may not.
+        this shows which lookup works there, apart from any rhachet code
+usage:
+  rhx bun.compiled.lookup.probe
+  rhx bun.compiled.lookup.probe --dep-spec 'file:./node_modules/probe-pkg'
+  rhx bun.compiled.lookup.probe --at blackbox/.test/assets/with-mods --pkg rhachet-roles-test
+options:
+  --dep-spec   the spec the made repo's package.json declares for the package
+  --at         probe a repo dir that exists (a copy of it), not a made one
+  --pkg        the package to look up in the --at repo
+guarantee:
+  - writes only to a temp dir it removes; an --at repo is copied, never touched
+  - prints one line per method: ok, or the error it threw
+  - exit 0 = probed, 2 = bad input or bun absent
+"
+`;
+
+exports[`bun.compiled.lookup.probe given: [case2] an option the skill does not know when: [t0] the skill runs with \`--bogus\` then: the refusal holds its shape 1`] = `
+"✋ ConstraintError: unknown arg '--bogus'; see --help
+"
+`;
+
+exports[`bun.compiled.lookup.probe given: [case3] an --at that names no dir when: [t0] the skill runs with \`--at ./absent-dir\` then: the refusal holds its shape 1`] = `
+"✋ ConstraintError: --at must name a dir
+   └─ at = ./absent-dir
+"
+`;
+
+exports[`bun.compiled.lookup.probe given: [case4] a made repo, probed by a compiled binary when: [t0] the skill runs with no args then: the probe matrix holds its shape, per-run bytes masked 1`] = `
+"🔭 bun <version>, compiled, pkg = probe-pkg
+createRequire = ok <tmp>/repo/node_modules/probe-pkg/index.js
+require.paths = ok <tmp>/repo/node_modules/probe-pkg/index.js
+walk = ok <tmp>/repo/node_modules/probe-pkg/index.js
+import.fileurl = ok getRoleRegistry found
+"
+`;

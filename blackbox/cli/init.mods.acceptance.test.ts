@@ -3,8 +3,10 @@ import * as path from 'node:path';
 
 import { genTempDir, given, then, useBeforeAll, useThen, when } from 'test-fns';
 
+import { asAmbientBrainPath } from '@/blackbox/.test/infra/asAmbientBrainPath';
 import { setupBrainHooksAdapterPackage } from '@/blackbox/.test/infra/brainDirBootJourney';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
+import { setRoleModBootYml } from '@/blackbox/.test/infra/setRoleModBootYml';
 import {
   getAllHookDispatchManifestRows,
   HOOK_DISPATCH_AUTHOR,
@@ -24,20 +26,6 @@ const invoke = (
     ...input,
     env: { HOME: genTempDir({ slug: 'init-mods-home' }), ...input.env },
   });
-
-/**
- * .what = a file of the repo actor's brain dir
- */
-const asAmbientBrainPath = (input: { repo: string; file: string }): string =>
-  path.join(
-    input.repo,
-    '.agent',
-    '.actors',
-    'actor.via.repo=ambient',
-    'brain',
-    '.claude',
-    input.file,
-  );
 
 /**
  * .what = the proof of how `rhx init` treats `.agent/repo=.mods`: it is no supplier, a sound mod
@@ -182,18 +170,18 @@ describe('rhx init — a repo with .agent/repo=.mods', () => {
   given('[case2] a refused mod beside a role no mod names (usecase 12)', () => {
     const repo = useBeforeAll(async () => {
       const one = await genTestTempRepo({ fixture: 'with-mods' });
-      await fs.writeFile(
-        path.join(one.path, '.agent', 'repo=.mods', 'role=surfer', 'boot.yml'),
-        [
+      await setRoleModBootYml({
+        repo: one.path,
+        role: 'surfer',
+        lines: [
           'of: test/surfer@0.9.0',
           'briefs:',
           '  say:',
           '    - briefs/rule.require.reef-etiquette.md',
           '  not:',
           '    - briefs/rule.forbid.wipeoutz.md',
-          '',
-        ].join('\n'),
-      );
+        ],
+      });
       return one;
     });
 
@@ -206,14 +194,48 @@ describe('rhx init — a repo with .agent/repo=.mods', () => {
         }),
       );
 
-      then('init exits 2, once every actor is rendered', () => {
-        expect(result.status).toEqual(2);
+      then('init exits 0: a faulty mod is skipped, never a refusal (F01)', () => {
+        expect(result.status).toEqual(0);
       });
 
-      then('init names the refused mod, and the actor whose render it failed', () => {
-        const output = `${result.stdout}\n${result.stderr}`;
-        expect(output).toContain('the mod of role=surfer is refused');
-        expect(output).toContain('briefs/rule.forbid.wipeoutz.md');
+      then('init names the skipped mod, its problem, and its fix', () => {
+        expect(result.stdout).toContain('skipped, booted as published until cured');
+        expect(result.stdout).toContain('the mod of role=surfer is refused');
+        expect(result.stdout).toContain('briefs/rule.forbid.wipeoutz.md');
+        expect(result.stdout).toContain('fix = point the not at a held path, or delete the line');
+      });
+
+      const actor = useThen('the repo actor boot is read', async () => ({
+        boot: await fs.readFile(asAmbientBrainPath({ repo: repo.path, file: 'boot.md' }), 'utf-8'),
+      }));
+
+      then('the repo actor boot carries the published role, with the skip notice', () => {
+        expect(actor.boot).toContain('<mod.skipped of="surfer">');
+        expect(actor.boot).toContain('a wipeout is forbidden');
+        expect(actor.boot).not.toContain('<mod of="test/surfer');
+        expect(actor.boot).toContain('blow the whistle before a swimmer passes the flags');
+      });
+
+      then('the fault rides in its role section alone: the tail block lists only faults no role carries', () => {
+        expect(actor.boot).not.toContain('<mods.skipped>');
+      });
+
+      then('the repo actor boot.md matches its snapshot', () => {
+        expect(asSnapshotSafe(actor.boot)).toMatchSnapshot();
+      });
+
+      const sweep = useThen('the stop sweep runs as the hook runs it', async () =>
+        invoke({
+          args: ['roles', 'cost', '--all', '--when', 'hook.onStop'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('the stop sweep holds, exit 2, and names the skipped mod with its fix (F02)', () => {
+        expect(sweep.status).toEqual(2);
+        expect(sweep.stderr).toContain('held at the first stop of each turn until cured');
+        expect(sweep.stderr).toContain('fix = point the not at a held path, or delete the line');
       });
 
       then('the role no mod names is still linked', async () => {
@@ -233,18 +255,18 @@ describe('rhx init — a repo with .agent/repo=.mods', () => {
 
     when('[t1] the typo is fixed, and init renders again', () => {
       const result = useBeforeAll(async () => {
-        await fs.writeFile(
-          path.join(repo.path, '.agent', 'repo=.mods', 'role=surfer', 'boot.yml'),
-          [
+        await setRoleModBootYml({
+          repo: repo.path,
+          role: 'surfer',
+          lines: [
             'of: test/surfer@0.9.0',
             'briefs:',
             '  say:',
             '    - briefs/rule.require.reef-etiquette.md',
             '  not:',
             '    - briefs/rule.forbid.wipeouts.md',
-            '',
-          ].join('\n'),
-        );
+          ],
+        });
         return invoke({ args: ['init', '--hooks'], cwd: repo.path });
       });
 
@@ -259,6 +281,21 @@ describe('rhx init — a repo with .agent/repo=.mods', () => {
       then('the repo actor boot now carries the mod', () => {
         expect(actor.boot).toContain('<mod of="test/surfer@0.9.0 (installed 1.0.0)">');
         expect(actor.boot).not.toContain('a wipeout is forbidden');
+        expect(actor.boot).not.toContain('<mod.skipped');
+      });
+
+      const sweep = useThen('the stop sweep runs as the hook runs it', async () =>
+        invoke({
+          args: ['roles', 'cost', '--all', '--when', 'hook.onStop'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('the stop no longer holds on the mod, once cured: only the version pin is left', () => {
+        expect(sweep.stderr).not.toContain('held at the first stop of each turn until cured');
+        expect(sweep.stderr).not.toContain('modsFaulted');
+        expect(sweep.stderr).toContain('moved off the version its mod pins');
       });
 
       then('init stdout and the repo actor boot.md match their snapshot', () => {

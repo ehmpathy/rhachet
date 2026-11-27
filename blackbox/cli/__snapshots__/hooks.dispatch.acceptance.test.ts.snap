@@ -131,6 +131,17 @@ exports[`hook dispatcher (one process per claude event) given: [case1] a repo wh
 "
 `;
 
+exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t9b] a stop rule reads whether claude already held this stop then: the stderr of both stops matches its snapshot 1`] = `
+{
+  "again": "held=1
+🪝 hooks.dispatch Stop blocked by printf 'held=%s\\n' "\${RHACHET_HOOKS_STOP_HELD:-unset}" >&2; exit 2
+",
+  "first": "held=unset
+🪝 hooks.dispatch Stop blocked by printf 'held=%s\\n' "\${RHACHET_HOOKS_STOP_HELD:-unset}" >&2; exit 2
+",
+}
+`;
+
 exports[`hook dispatcher (one process per claude event) given: [case1] a repo whose role declares hook rules of every kind when: [t10] two rules emit json decisions of different rank then: the decisions claude reads match the snapshot 1`] = `
 "{
   "allowThenDeny": {

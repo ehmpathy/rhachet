@@ -114,7 +114,7 @@ const getAllRoleModPlanNots = (input: {
         problem: `its not \`${glob}\` removes ${overlap}, a path the mod also shadows`,
         subject: overlap,
         nearest: null,
-        fix: `to shadow it, narrow the not so it leaves ${overlap}; to drop it, delete the mod file`,
+        fix: `to shadow it, narrow the not so it leaves ${overlap}; to drop it, delete the mod file with your human's ok`,
       });
     return matched;
   });
@@ -154,8 +154,8 @@ const assertRoleModAddsSurviveNots = (input: {
           nearest: null,
           fix:
             source.owner === 'its'
-              ? `to add it, narrow the not so it leaves ${path}; to drop it, delete the mod file`
-              : `rename the add to a path the role's not leaves, or delete the mod file`,
+              ? `to add it, narrow the not so it leaves ${path}; to drop it, delete the mod file with your human's ok`
+              : `rename the add to a path the role's not leaves, or delete the mod file with your human's ok`,
         });
     }
   }
@@ -229,7 +229,7 @@ export const computeRoleModPlan = (input: {
         problem: `it holds ${path}, a minified brief with no .md beside it`,
         subject: path,
         nearest: getOneNearestPath({ path, candidates: input.filesPublished }),
-        fix: `add ${pathMd} beside it, or remove the orphan`,
+        fix: `add ${pathMd} beside it, or remove the orphan with your human's ok`,
       });
     }
 

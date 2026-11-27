@@ -83,6 +83,15 @@ describe('hook dispatch manifest contract, typescript against bin/hooks.dispatch
           expect(Number(grace?.[1])).toEqual(HOOK_DISPATCH.timeoutGraceSeconds);
         });
       });
+
+      when('[t4] the bash export of a held stop is read', () => {
+        then('it exports the var a stop rule reads', () => {
+          const names = [
+            ...scene.dispatcher.matchAll(/export (RHACHET_[A-Z_]+)=1/g),
+          ].map((match) => match[1]!);
+          expect(names).toEqual([HOOK_DISPATCH.envStopHeld]);
+        });
+      });
     },
   );
 });

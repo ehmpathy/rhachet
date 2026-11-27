@@ -1,3 +1,4 @@
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import { given, then, when } from 'test-fns';
 
 import { genSampleRoleModPlan } from '@src/.test/assets/genSampleRoleModPlan';
@@ -42,6 +43,7 @@ describe('asRoleBootBody', () => {
           ],
           focus: null,
           mod: null,
+          skipped: null,
         });
 
         then(
@@ -108,6 +110,7 @@ describe('asRoleBootBody', () => {
         skillsSaid: [],
         focus: null,
         mod: null,
+        skipped: null,
       });
 
       then('the body holds only the also section', () => {
@@ -146,6 +149,7 @@ describe('asRoleBootBody', () => {
         skillsSaid: [],
         focus: null,
         mod: null,
+        skipped: null,
       });
 
       then('the body is empty and the census is zero', () => {
@@ -187,6 +191,7 @@ describe('asRoleBootBody', () => {
           alwaysShed: input.alwaysShed,
         },
         mod: null,
+        skipped: null,
       });
 
     when('[t0] the body is composed with always kept', () => {
@@ -288,6 +293,7 @@ describe('asRoleBootBody', () => {
               minsDropped: ['briefs/wave.md.min'],
             }),
           },
+          skipped: null,
         });
         const lines = result.body.split('\n');
 
@@ -331,4 +337,85 @@ describe('asRoleBootBody', () => {
       });
     },
   );
+
+  given('[case6] a role whose mod is skipped', () => {
+    const genBody = (input: { error: Error }) =>
+      asRoleBootBody({
+        slugRepo: 'ehmpathy',
+        slugRole: 'surfer',
+        roleDir,
+        bootPlan: {
+          briefs: {
+            say: [
+              {
+                pathToOriginal: `${roleDir}/briefs/wave.md`,
+                pathToMinified: null,
+              },
+            ],
+            ref: [],
+          },
+          skills: { say: [], ref: [] },
+          also: { briefs: [], skills: [] },
+        },
+        readme: null,
+        briefsSaid: [{ path: `${roleDir}/briefs/wave.md`, content: 'ride it' }],
+        skillsSaid: [],
+        focus: null,
+        mod: null,
+        skipped: { role: 'surfer', error: input.error },
+      });
+
+    when('[t0] the fault carries a fix', () => {
+      const result = genBody({
+        error: new ConstraintError('the mod names a role at another version', {
+          fix: 'set of: to ehmpathy/surfer@1.2.3',
+        }),
+      });
+      const lines = result.body.split('\n');
+
+      then('the skip notice leads the body, before any resource', () => {
+        expect(lines[0]).toEqual('<mod.skipped of="surfer">');
+        expect(
+          lines.findIndex((line) => line.includes('<brief.say')),
+        ).toBeGreaterThan(0);
+      });
+
+      then('the notice says the role boots as published', () => {
+        expect(lines).toContain(
+          'role surfer boots as published in this repo — its mod is skipped until it is cured',
+        );
+      });
+
+      then('the notice names the fault with its class, and its fix', () => {
+        expect(lines).toContain(
+          '✋ ConstraintError: the mod names a role at another version',
+        );
+        expect(lines).toContain('fix = set of: to ehmpathy/surfer@1.2.3');
+      });
+
+      then('the published brief renders with no mod attr', () => {
+        expect(lines).toContain(
+          '<brief.say path=".agent/repo=ehmpathy/role=surfer/briefs/wave.md">',
+        );
+      });
+
+      then('the notice adds no file to the census', () => {
+        expect(result.stats.files).toEqual(1);
+      });
+
+      then('the body matches its snapshot', () => {
+        expect(result.body).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] the fault carries no fix', () => {
+      const result = genBody({ error: new MalfunctionError('a disk fault') });
+      const lines = result.body.split('\n');
+
+      then('the notice names the fault, and holds no fix line', () => {
+        expect(lines).toContain('💥 MalfunctionError: a disk fault');
+        expect(lines.some((line) => line.startsWith('fix = '))).toEqual(false);
+      });
+    });
+  });
 });

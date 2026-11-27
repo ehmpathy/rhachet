@@ -1,0 +1,44 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asRoleModFaultsHookReadout given: [case1] one refused mod with a fix when: [t0] the hold is rendered then: the hold matches its snapshot 1`] = `
+"🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 mod fault, held at the first stop of each turn until cured
+   │  └─ role=surfer
+   │     ├─ ✋ ConstraintError: the mod of role=surfer is refused: its not matches no file
+   │     └─ fix = point the not at a held path, or delete the line
+   │
+   └─ ask your human before you delete a mod
+"
+`;
+
+exports[`asRoleModFaultsHookReadout given: [case2] a stray with a fix, and a corrupt record with none when: [t0] the hold is rendered then: the hold matches its snapshot 1`] = `
+"🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 2 mod faults, held at the first stop of each turn until cured
+   │  ├─ .agent/repo=.mods/readme.md
+   │  │  ├─ ✋ ConstraintError: a mods dir holds an entry that names no role
+   │  │  └─ fix = move it out of .agent/repo=.mods/
+   │  │
+   │  └─ role=surfer
+   │     └─ 💥 MalfunctionError: the modded view record is unreadable
+   │
+   └─ ask your human before you delete a mod
+"
+`;
+
+exports[`asRoleModFaultsHookReadout given: [case4] three stacked faults: a stray, a refused mod, and a corrupt record when: [t0] the hold is rendered then: the hold matches its snapshot 1`] = `
+"🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 3 mod faults, held at the first stop of each turn until cured
+   │  ├─ .agent/repo=.mods/readme.md
+   │  │  ├─ ✋ ConstraintError: a mods dir holds an entry that names no role
+   │  │  └─ fix = move it out of .agent/repo=.mods/
+   │  │
+   │  ├─ role=lifeguard
+   │  │  └─ 💥 MalfunctionError: the modded view record is unreadable
+   │  │
+   │  └─ role=surfer
+   │     ├─ ✋ ConstraintError: the mod of role=surfer is refused: its not matches no file
+   │     └─ fix = point the not at a held path, or delete the line
+   │
+   └─ ask your human before you delete a mod
+"
+`;

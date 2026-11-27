@@ -1,11 +1,11 @@
 import { ContextCli } from '@src/domain.objects/ContextCli';
 import type { RoleLinkRef } from '@src/domain.objects/RoleLinkRef';
+import { getAllRoleModEntries } from '@src/domain.operations/mods/getAllRoleModEntries';
 import { getAllLinkedRoleRefs } from '@src/domain.operations/role/getAllLinkedRoleRefs';
-import { getAllRoleModEntries } from '@src/domain.operations/role/getAllRoleModEntries';
 import { getFileContentOrNull } from '@src/infra/filesystem/getFileContentOrNull';
 
 import { basename, join } from 'node:path';
-import { getOneRoleModState } from './getOneRoleModState';
+import { getOneRoleModStateOrRefusal } from './getOneRoleModStateOrRefusal';
 
 /**
  * .what = whether a role-relative skill path names the skill of the given slug
@@ -51,12 +51,16 @@ export const getAllRoleModNotsOfSkill = (input: {
     {},
     new ContextCli({ cwd: input.cwd, gitroot: input.cwd }),
   );
+  //   a refused mod is skipped: its fault is the boot's and the stop's to name, and it must never
+  //   turn this skill's "not found" into the mod's own refusal
   return slugsNamed.flatMap((role) => {
-    const { target, plan } = getOneRoleModState({
+    const { state } = getOneRoleModStateOrRefusal({
       cwd: input.cwd,
       role,
       refsLinked,
     });
+    if (!state) return [];
+    const { target, plan } = state;
     return plan.nots
       .filter((path) => isSkillPathOfSlug({ path, slug: input.slugSkill }))
       .map((path) => ({

@@ -3,11 +3,14 @@ import * as path from 'node:path';
 
 import { genTempDir, given, then, useBeforeAll, useThen, when } from 'test-fns';
 
+import { asAmbientBrainPath } from '@/blackbox/.test/infra/asAmbientBrainPath';
+import { asModsPath } from '@/blackbox/.test/infra/asModsPath';
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import {
   asSnapshotSafe,
   invokeRhachetCliBinary,
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import { setRoleModBootYml } from '@/blackbox/.test/infra/setRoleModBootYml';
 
 /**
  * .what = the cli, run in a HOME with no grove, so no brain dir arrow reaches the host
@@ -32,7 +35,7 @@ const SKILL_NOTED = 'wax.board.sh';
  * .what = the path of one file under the mod dir of `surfer`
  */
 const asModPath = (input: { repo: string; rel: string }): string =>
-  path.join(input.repo, '.agent', 'repo=.mods', 'role=surfer', input.rel);
+  asModsPath({ repo: input.repo, rel: path.join('role=surfer', input.rel) });
 
 describe('rhachet roles — a role modded via .agent/repo=.mods', () => {
   given('[case1] a repo that mods a linked package role', () => {
@@ -78,15 +81,7 @@ describe('rhachet roles — a role modded via .agent/repo=.mods', () => {
 
       const actor = useThen('the boot.md a clone reads is read', async () => ({
         bootMd: await fs.readFile(
-          path.join(
-            repo.path,
-            '.agent',
-            '.actors',
-            'actor.via.repo=ambient',
-            'brain',
-            '.claude',
-            'boot.md',
-          ),
+          asAmbientBrainPath({ repo: repo.path, file: 'boot.md' }),
           'utf-8',
         ),
       }));
@@ -267,17 +262,25 @@ describe('rhachet roles — a role modded via .agent/repo=.mods', () => {
         invoke({ args: ARGS_BOOT, cwd: repo.path, logOnError: false }),
       );
 
-      then('the boot fails loud as a constraint, exit 2', () => {
-        expect(result.status).toEqual(2);
+      then('the boot exits 0: a stale view is skipped, never a refusal', () => {
+        expect(result.status).toEqual(0);
       });
 
-      then('the error names the stale view and the render that fixes it', () => {
-        expect(result.stderr).toContain('is stale');
-        expect(result.stderr).toContain('rhx init --hooks');
+      then('the boot carries the published role, and a notice that names the stale view and its render', () => {
+        expect(result.stdout).toContain('<mod.skipped of="surfer">');
+        expect(result.stdout).toContain('is stale');
+        expect(result.stdout).toContain('rhx init --hooks');
+        expect(result.stdout).toContain('wax the board before each session');
+        expect(result.stdout).toContain('published: paddle out past the break');
+        expect(result.stdout).toContain('published: a wipeout is forbidden');
+        expect(result.stdout).not.toContain('modded: paddle out, then duck dive');
       });
 
-      then('the stale view stderr matches its snapshot', () => {
-        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
+      then('the stale view boot matches its snapshot', () => {
+        expect({
+          stdout: asSnapshotSafe(result.stdout),
+          stderr: asSnapshotSafe(result.stderr),
+        }).toMatchSnapshot();
       });
     });
 
@@ -293,8 +296,10 @@ describe('rhachet roles — a role modded via .agent/repo=.mods', () => {
         );
       });
 
-      then('the headline names the spec withheld, never absent', () => {
-        expect(result.stdout).toContain('0 boot specs priced — 1 withheld by a mod (named below)');
+      then('the spec is priced as the boot it emits: published, its mod skipped', () => {
+        expect(result.stdout).toContain('🧢 1 boot spec — none declare a budget');
+        expect(result.stdout).not.toContain('withheld by a mod');
+        expect(result.stdout).not.toContain('carries your mod');
         expect(result.stdout).not.toContain('none found at the paths swept');
       });
 
@@ -493,14 +498,13 @@ describe('rhachet roles — a role modded via .agent/repo=.mods', () => {
         }),
       );
 
-      then('init exits 2, once every actor is rendered', () => {
-        expect(result.status).toEqual(2);
+      then('init exits 0: a faulty mod is skipped, never a refusal (F01)', () => {
+        expect(result.status).toEqual(0);
       });
 
-      then('init names the refused mod', () => {
-        expect(`${result.stdout}\n${result.stderr}`).toContain(
-          'the mod of role=surfer is refused',
-        );
+      then('init names the skipped mod', () => {
+        expect(result.stdout).toContain('skipped, booted as published until cured');
+        expect(result.stdout).toContain('the mod of role=surfer is refused');
       });
 
       then('init stdout and stderr match their snapshot', () => {
@@ -545,18 +549,65 @@ describe('rhachet roles — a role modded via .agent/repo=.mods', () => {
         invoke({ args: ARGS_BOOT, cwd: repo.path, logOnError: false }),
       );
 
-      then('the boot is refused as a constraint, exit 2', () => {
+      then('the boot exits 0, the role booted as published', () => {
+        expect(result.status).toEqual(0);
+        expect(result.stdout).toContain('published (min): wax the board before each session');
+        expect(result.stdout).toContain('published: a wipeout is forbidden');
+        expect(result.stdout).not.toContain('a typo of a held path');
+      });
+
+      then('the skip notice names the mod, the file, and the held path it missed', () => {
+        expect(result.stdout).toContain('<mod.skipped of="surfer">');
+        expect(result.stdout).toContain('the mod of role=surfer is refused');
+        expect(result.stdout).toContain('rule.require.surf-wux.md');
+        expect(result.stdout).toContain('rule.require.surf-wax.md');
+      });
+
+      then('the skipped boot matches its snapshot', () => {
+        expect({
+          stdout: asSnapshotSafe(result.stdout),
+          stderr: asSnapshotSafe(result.stderr),
+        }).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case5.1] a sound mod whose pin drifted, beside a stray file under .agent/repo=.mods', () => {
+    const repo = useBeforeAll(async () => {
+      const one = await genTestTempRepo({ fixture: 'with-mods' });
+      await invoke({ args: ['init', '--roles', 'surfer'], cwd: one.path });
+      await fs.writeFile(
+        path.join(one.path, '.agent', 'repo=.mods', 'notes.md'),
+        'a note the human left beside the mods\n',
+      );
+      return one;
+    });
+
+    when('[t0] a stop claude already held', () => {
+      const result = useBeforeAll(async () =>
+        invoke({
+          args: ['roles', 'cost', '--all', '--when', 'hook.onStop'],
+          cwd: repo.path,
+          env: { RHACHET_HOOKS_STOP_HELD: '1' },
+          logOnError: false,
+        }),
+      );
+
+      then('🔴 it still holds (exit 2): only a fault alone passes a held stop', () => {
         expect(result.status).toEqual(2);
       });
 
-      then('the refusal names the mod, the file, and the held path it missed', () => {
-        expect(result.stderr).toContain('the mod of role=surfer is refused');
-        expect(result.stderr).toContain('rule.require.surf-wux.md');
-        expect(result.stderr).toContain('rule.require.surf-wax.md');
+      then('it names the drift and the stray, under one echo of the invocation', () => {
+        expect(result.stderr).toContain('0.9.0');
+        expect(result.stderr).toContain('.agent/repo=.mods/notes.md');
+        expect(result.stderr.split('🧢 roles cost --all --when hook.onStop').length - 1).toEqual(1);
       });
 
-      then('the refusal stderr matches its snapshot', () => {
-        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
+      then('the held stop matches its snapshot', () => {
+        expect({
+          stdout: asSnapshotSafe(result.stdout),
+          stderr: asSnapshotSafe(result.stderr),
+        }).toMatchSnapshot();
       });
     });
   });
@@ -581,9 +632,12 @@ describe('rhachet roles — a role modded via .agent/repo=.mods', () => {
         }),
       );
 
-      then('the stop is clear, exit 0: a refused mod is the boot to refuse, never a drift', () => {
-        expect(result.status).toEqual(0);
-        expect(result.stderr).not.toContain('surfer');
+      then('the stop holds, exit 2, on the skipped mod with its fix, until it is cured (F02)', () => {
+        expect(result.status).toEqual(2);
+        expect(result.stderr).toContain('1 mod fault, held at the first stop of each turn until cured');
+        expect(result.stderr).toContain('the mod of role=surfer is refused');
+        expect(result.stderr).toContain('fix = ');
+        expect(result.stderr).not.toContain('moved off the version its mod pins');
       });
 
       then('the stop stdout and stderr match their snapshot', () => {
@@ -599,16 +653,23 @@ describe('rhachet roles — a role modded via .agent/repo=.mods', () => {
         invoke({ args: ARGS_BOOT, cwd: repo.path, logOnError: false }),
       );
 
-      then('the boot fails loud, exit 2, and names that the mod no longer applies', () => {
-        expect(result.status).toEqual(2);
-        expect(result.stderr).toContain('the mod of role=surfer is refused');
+      then('the boot exits 0, as published, and names that the mod no longer applies', () => {
+        expect(result.status).toEqual(0);
+        expect(result.stdout).toContain('<mod.skipped of="surfer">');
+        expect(result.stdout).toContain('the mod of role=surfer is refused');
+        expect(result.stdout).toContain('published: paddle out past the break');
+        expect(result.stdout).not.toContain('<mod of=');
       });
 
-      then('the refusal stdout and stderr match their snapshot', () => {
+      then('the skipped boot stdout and stderr match their snapshot', () => {
         expect({
           stdout: asSnapshotSafe(result.stdout),
           stderr: asSnapshotSafe(result.stderr),
         }).toMatchSnapshot();
+      });
+
+      then('the brief the mod nots boots too: the view the last render left modded is not trusted (F03)', () => {
+        expect(result.stdout).toContain('published: a wipeout is forbidden');
       });
     });
   });
@@ -633,9 +694,12 @@ describe('rhachet roles — a role modded via .agent/repo=.mods', () => {
         }),
       );
 
-      then('the stop is clear, exit 0: a refused mod is the boot to refuse, never a drift', () => {
-        expect(result.status).toEqual(0);
-        expect(result.stderr).not.toContain('surfer');
+      then('the stop holds, exit 2, on the skipped mod with its fix, until it is cured (F02)', () => {
+        expect(result.status).toEqual(2);
+        expect(result.stderr).toContain('1 mod fault, held at the first stop of each turn until cured');
+        expect(result.stderr).toContain('the mod of role=surfer is refused');
+        expect(result.stderr).toContain('fix = ');
+        expect(result.stderr).not.toContain('moved off the version its mod pins');
       });
 
       then('the stop stdout and stderr match their snapshot', () => {
@@ -651,12 +715,15 @@ describe('rhachet roles — a role modded via .agent/repo=.mods', () => {
         invoke({ args: ARGS_BOOT, cwd: repo.path, logOnError: false }),
       );
 
-      then('the boot fails loud, exit 2, and names that the mod no longer applies', () => {
-        expect(result.status).toEqual(2);
-        expect(result.stderr).toContain('the mod of role=surfer is refused');
+      then('the boot exits 0, as published, and names that the mod no longer applies', () => {
+        expect(result.status).toEqual(0);
+        expect(result.stdout).toContain('<mod.skipped of="surfer">');
+        expect(result.stdout).toContain('the mod of role=surfer is refused');
+        expect(result.stdout).toContain('published: paddle out past the break');
+        expect(result.stdout).not.toContain('<mod of=');
       });
 
-      then('the refusal stdout and stderr match their snapshot', () => {
+      then('the skipped boot stdout and stderr match their snapshot', () => {
         expect({
           stdout: asSnapshotSafe(result.stdout),
           stderr: asSnapshotSafe(result.stderr),
@@ -722,13 +789,13 @@ describe('rhachet roles — a role modded via .agent/repo=.mods', () => {
         }),
       );
 
-      then('init exits 2', () => {
-        expect(result.status).toEqual(2);
+      then('init exits 0: a faulty mod is skipped, never a refusal (F01)', () => {
+        expect(result.status).toEqual(0);
       });
 
       then('init names the not and the held path it missed', () => {
-        const output = `${result.stdout}\n${result.stderr}`;
-        expect(output).toContain('the mod of role=surfer is refused');
+        expect(result.stdout).toContain('skipped, booted as published until cured');
+        expect(result.stdout).toContain('the mod of role=surfer is refused');
       });
 
       then('init stdout and stderr match their snapshot', () => {
@@ -740,10 +807,14 @@ describe('rhachet roles — a role modded via .agent/repo=.mods', () => {
 
       then('the boot names the not and the held path it missed', async () => {
         const boot = await invoke({ args: ARGS_BOOT, cwd: repo.path, logOnError: false });
-        expect(boot.status).toEqual(2);
-        expect(boot.stderr).toContain('briefs/rule.forbid.wipeoutz.md');
-        expect(boot.stderr).toContain('rule.forbid.wipeouts.md');
-        expect(asSnapshotSafe(boot.stderr)).toMatchSnapshot();
+        expect(boot.status).toEqual(0);
+        expect(boot.stdout).toContain('<mod.skipped of="surfer">');
+        expect(boot.stdout).toContain('briefs/rule.forbid.wipeoutz.md');
+        expect(boot.stdout).toContain('published: a wipeout is forbidden');
+        expect({
+          stdout: asSnapshotSafe(boot.stdout),
+          stderr: asSnapshotSafe(boot.stderr),
+        }).toMatchSnapshot();
       });
     });
 
@@ -829,17 +900,23 @@ describe('rhachet roles — a role modded via .agent/repo=.mods', () => {
         invoke({ args: ARGS_BOOT, cwd: repo.path, logOnError: false }),
       );
 
-      then('the boot is refused, exit 2', () => {
-        expect(result.status).toEqual(2);
+      then('the boot exits 0, as published', () => {
+        expect(result.status).toEqual(0);
+        expect(result.stdout).toContain('<mod.skipped of="surfer">');
+        expect(result.stdout).not.toContain('an orphan minification');
       });
 
-      then('the refusal names the orphan and the fix', () => {
-        expect(result.stderr).toContain('rule.require.tide-charts.md.min');
-        expect(result.stderr).toContain('a minified brief with no .md beside it');
+      then('the skip notice names the orphan, and what makes it one', () => {
+        expect(result.stdout).toContain(
+          'it holds briefs/rule.require.tide-charts.md.min, a minified brief with no .md beside it',
+        );
       });
 
-      then('the refusal stderr matches its snapshot', () => {
-        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
+      then('the skipped boot matches its snapshot', () => {
+        expect({
+          stdout: asSnapshotSafe(result.stdout),
+          stderr: asSnapshotSafe(result.stderr),
+        }).toMatchSnapshot();
       });
     });
   });
@@ -963,11 +1040,10 @@ describe('rhachet roles — a role modded via .agent/repo=.mods', () => {
           return { init, boot, cost };
         });
 
-        then('init exits 2 and names the refused mod', () => {
-          expect(result.init.status).toEqual(2);
-          expect(`${result.init.stdout}\n${result.init.stderr}`).toContain(
-            'the mod of role=surfer is refused',
-          );
+        then('init exits 0 and names the skipped mod (F01)', () => {
+          expect(result.init.status).toEqual(0);
+          expect(result.init.stdout).toContain('skipped, booted as published until cured');
+          expect(result.init.stdout).toContain('the mod of role=surfer is refused');
         });
 
         then('init stdout and stderr match their snapshot', () => {
@@ -983,13 +1059,18 @@ describe('rhachet roles — a role modded via .agent/repo=.mods', () => {
           expect(asSnapshotSafe(result.cost.stdout)).toMatchSnapshot();
         });
 
-        then('the boot exits 2 and names the problem', () => {
-          expect(result.boot.status).toEqual(2);
-          expect(result.boot.stderr).toContain(thisCase.problem);
+        then('the boot exits 0, as published, and names the problem', () => {
+          expect(result.boot.status).toEqual(0);
+          expect(result.boot.stdout).toContain('<mod.skipped of="surfer">');
+          expect(result.boot.stdout).toContain(thisCase.problem);
+          expect(result.boot.stdout).toContain('published: a wipeout is forbidden');
         });
 
-        then('the boot stderr matches its snapshot', () => {
-          expect(asSnapshotSafe(result.boot.stderr)).toMatchSnapshot();
+        then('the boot stdout and stderr match their snapshot', () => {
+          expect({
+            stdout: asSnapshotSafe(result.boot.stdout),
+            stderr: asSnapshotSafe(result.boot.stderr),
+          }).toMatchSnapshot();
         });
       });
     }),
@@ -1026,9 +1107,10 @@ describe('rhachet roles — a role modded via .agent/repo=.mods', () => {
           return { init, cost, boot };
         });
 
-        then('init exits 2 and names the file, its kind, and the fix', () => {
-          const output = `${result.init.stdout}\n${result.init.stderr}`;
-          expect(result.init.status).toEqual(2);
+        then('init exits 0 and names the file, its kind, and the fix (F01)', () => {
+          const output = result.init.stdout;
+          expect(result.init.status).toEqual(0);
+          expect(output).toContain('skipped, booted as published until cured');
           expect(output).toContain('the mod of role=surfer is refused');
           expect(output).toContain(thisCase.rel);
           expect(output).toContain('a kind a mod cannot change');
@@ -1054,15 +1136,188 @@ describe('rhachet roles — a role modded via .agent/repo=.mods', () => {
           }).toMatchSnapshot();
         });
 
-        then('the boot exits 2 and names the kind', () => {
-          expect(result.boot.status).toEqual(2);
-          expect(result.boot.stderr).toContain('a kind a mod cannot change');
+        then('the boot exits 0, as published, and names the kind', () => {
+          expect(result.boot.status).toEqual(0);
+          expect(result.boot.stdout).toContain('<mod.skipped of="surfer">');
+          expect(result.boot.stdout).toContain('a kind a mod cannot change');
+          expect(result.boot.stdout).toContain('a test role, as published');
         });
 
         then('the boot stdout and stderr match their snapshot', () => {
           expect({
             stdout: asSnapshotSafe(result.boot.stdout),
             stderr: asSnapshotSafe(result.boot.stderr),
+          }).toMatchSnapshot();
+        });
+      });
+    }),
+  );
+
+  /**
+   * .what = one fault class per row, each of a class no other case covers (C1, C3, C7, C10, C11,
+   *   C13 of the vision's fault axis)
+   * .why = every class must leave the boot whole and hold the stop until cured; a row whose
+   *   `stage` is `boot` plants its fault after the render, as a hand edit or a corrupt write would
+   */
+  const CASES_FAULT_CLASSES: Array<{
+    slug: string;
+    title: string;
+    stage: 'render' | 'boot';
+    plant: (input: { repo: string }) => Promise<void>;
+    named: string;
+    booted: string;
+
+    /**
+     * the problem the repo actor's `<mods.skipped>` tail block names, for a fault no role
+     *   carries; null where a role section carries the notice
+     */
+    tailed: string | null;
+  }> = [
+    {
+      slug: 'case18.1',
+      title: 'C1: a mod dir with no boot.yml',
+      stage: 'render',
+      plant: async ({ repo }) => fs.rm(asModPath({ repo, rel: 'boot.yml' })),
+      named: 'it holds no boot.yml',
+      booted: '<mod.skipped of="surfer">',
+      tailed: null,
+    },
+    {
+      slug: 'case18.2',
+      title: 'C3: a mod whose of names a role that is not linked, beside a sound mod',
+      stage: 'render',
+      plant: async ({ repo }) => {
+        const pathModDir = path.join(repo, '.agent', 'repo=.mods', 'role=lifeguard');
+        await fs.mkdir(path.join(pathModDir, 'briefs'), { recursive: true });
+        await fs.writeFile(path.join(pathModDir, 'boot.yml'), 'of: test/lifeguard\n');
+        await fs.writeFile(
+          path.join(pathModDir, 'briefs', 'rule.require.whistle.md'),
+          'modded: whistle twice, then wave\n',
+        );
+      },
+      named: 'names a role that is not linked',
+      booted: '<mod of="test/surfer@0.9.0',
+      tailed: 'names a role that is not linked',
+    },
+    {
+      slug: 'case18.3',
+      title: 'C7: a not that removes a path the mod also shadows',
+      stage: 'render',
+      plant: async ({ repo }) =>
+        setModBootYml({
+          repo,
+          lines: [
+            'of: test/surfer@0.9.0',
+            'briefs:',
+            '  say:',
+            '    - briefs/rule.require.reef-etiquette.md',
+            '  not:',
+            '    - briefs/rule.require.surf-wax.md',
+          ],
+        }),
+      named: 'a path the mod also shadows',
+      booted: '<mod.skipped of="surfer">',
+      tailed: null,
+    },
+    {
+      slug: 'case18.4',
+      title: 'C10: a role kind dir that holds a file no link made',
+      stage: 'boot',
+      plant: async ({ repo }) =>
+        fs.writeFile(
+          path.join(repo, '.agent', 'repo=test', 'role=surfer', 'briefs', 'rule.require.hand-wax.md'),
+          'a brief no link made\n',
+        ),
+      named: 'a linked role dir holds a file no link made',
+      booted: 'ConstraintError: a linked role dir holds a file no link made',
+      tailed: null,
+    },
+    {
+      slug: 'case18.5',
+      title: 'C11: a corrupt modded view record',
+      stage: 'boot',
+      plant: async ({ repo }) =>
+        fs.writeFile(
+          path.join(repo, '.agent', 'repo=test', 'role=surfer', '.modded.json'),
+          '{ not json',
+        ),
+      named: 'the modded view record is unreadable',
+
+      // the brief the mod not-ed boots back, read through the view's file links (no record)
+      booted: 'published: a wipeout is forbidden',
+      tailed: null,
+    },
+    {
+      slug: 'case18.6',
+      title: 'C13: a file where the mods dir belongs',
+      stage: 'render',
+      plant: async ({ repo }) => {
+        const pathMods = path.join(repo, '.agent', 'repo=.mods');
+        await fs.rm(pathMods, { recursive: true });
+        await fs.writeFile(pathMods, 'not a dir\n');
+      },
+      named: 'the mods path cannot be read',
+      booted: 'published: a wipeout is forbidden',
+      tailed: 'the mods path cannot be read',
+    },
+  ];
+  CASES_FAULT_CLASSES.map((thisCase) =>
+    given(`[${thisCase.slug}] ${thisCase.title}`, () => {
+      const repo = useBeforeAll(async () => {
+        const one = await genTestTempRepo({ fixture: 'with-mods' });
+        if (thisCase.stage === 'render') await thisCase.plant({ repo: one.path });
+        const init = await invoke({
+          args: ['init', '--roles', 'surfer'],
+          cwd: one.path,
+          logOnError: false,
+        });
+        if (thisCase.stage === 'boot') await thisCase.plant({ repo: one.path });
+        return { path: one.path, init };
+      });
+
+      when('[t0] the role is booted, then a session stops', () => {
+        const result = useBeforeAll(async () => {
+          const boot = await invoke({ args: ARGS_BOOT, cwd: repo.path, logOnError: false });
+          const stop = await invoke({
+            args: ['roles', 'cost', '--all', '--when', 'hook.onStop'],
+            cwd: repo.path,
+            logOnError: false,
+          });
+          return { boot, stop };
+        });
+
+        then('init exits 0 (F01)', () => {
+          expect(repo.init.status).toEqual(0);
+        });
+
+        then('the boot exits 0, and renders what it can', () => {
+          expect(result.boot.status).toEqual(0);
+          expect(result.boot.stdout).toContain(thisCase.booted);
+        });
+
+        then('the stop holds, exit 2, and names the fault (F02)', () => {
+          expect(result.stop.status).toEqual(2);
+          expect(result.stop.stderr).toContain('held at the first stop of each turn until cured');
+          expect(result.stop.stderr).toContain(thisCase.named);
+        });
+
+        then('the repo actor boot.md tails a fault no role carries, else holds no tail block', async () => {
+          const boot = await fs.readFile(
+            asAmbientBrainPath({ repo: repo.path, file: 'boot.md' }),
+            'utf-8',
+          );
+          if (!thisCase.tailed) return expect(boot).not.toContain('<mods.skipped>');
+          const tail = boot.slice(boot.lastIndexOf('<mods.skipped>'));
+          expect(tail).toContain(thisCase.tailed);
+          expect(tail).toContain('fix = ');
+        });
+
+        then('init, boot and stop output match their snapshot', () => {
+          expect({
+            init: asSnapshotSafe(repo.init.stdout),
+            boot: asSnapshotSafe(result.boot.stdout),
+            bootStderr: asSnapshotSafe(result.boot.stderr),
+            stop: asSnapshotSafe(result.stop.stderr),
           }).toMatchSnapshot();
         });
       });
@@ -1292,29 +1547,33 @@ describe('rhachet roles — a role modded via .agent/repo=.mods', () => {
         invoke({ args: ['init', '--roles', 'surfer', 'lifeguard'], cwd: repo.path, logOnError: false }),
       );
 
-      then('init exits 2, and names the not and the hook it would break', () => {
-        expect(result.status).toEqual(2);
-        const output = `${result.stdout}\n${result.stderr}`;
-        expect(output).toContain('the mod of role=lifeguard is refused');
+      then('init exits 0, and names the skipped mod (F01)', () => {
+        expect(result.status).toEqual(0);
+        expect(result.stdout).toContain('skipped, booted as published until cured');
+        expect(result.stdout).toContain('the mod of role=lifeguard is refused');
       });
 
-      then('the refusal names its class once, and lists each field once', () => {
-        expect(result.stderr).not.toContain('ConstraintError: ✋ ConstraintError');
-        expect(result.stderr.split('"fix":')).toHaveLength(1);
-        expect(result.stderr.split('fix = ')).toHaveLength(2);
+      then('the skip names its class once, and its fix once', () => {
+        expect(result.stdout).not.toContain('ConstraintError: ✋ ConstraintError');
+        expect(result.stdout.split('"fix":')).toHaveLength(1);
+        expect(result.stdout.split('fix = ')).toHaveLength(2);
       });
 
-      then('the boot of lifeguard names the hook and the shadow fix', async () => {
+      then('the boot of lifeguard boots as published, and names the hook and the shadow fix', async () => {
         const boot = await invoke({
           args: ['roles', 'boot', '--repo', 'test', '--role', 'lifeguard'],
           cwd: repo.path,
           logOnError: false,
         });
-        expect(boot.status).toEqual(2);
-        expect(boot.stderr).toContain("removes a skill one of the role's hooks invokes");
-        expect(boot.stderr).toContain('rhx flags.raise');
-        expect(boot.stderr).toContain('shadow skills/flags.raise.sh');
-        expect(asSnapshotSafe(boot.stderr)).toMatchSnapshot();
+        expect(boot.status).toEqual(0);
+        expect(boot.stdout).toContain('<mod.skipped of="lifeguard">');
+        expect(boot.stdout).toContain("removes a skill one of the role's hooks invokes");
+        expect(boot.stdout).toContain('rhx flags.raise');
+        expect(boot.stdout).toContain('shadow skills/flags.raise.sh');
+        expect({
+          stdout: asSnapshotSafe(boot.stdout),
+          stderr: asSnapshotSafe(boot.stderr),
+        }).toMatchSnapshot();
       });
 
       then('the published skill is still there: the refused mod left no half view', async () => {
@@ -1392,12 +1651,14 @@ describe('rhachet roles — a role modded via .agent/repo=.mods', () => {
         return invoke({ args: ARGS_BOOT, cwd: repo.path, logOnError: false });
       });
 
-      then('the refusals still apply: the boot fails loud, and names the refused mod', () => {
-        expect(result.status).toEqual(2);
-        expect(result.stderr).toContain('the mod of role=surfer is refused');
+      then('the refusals still apply: the mod is skipped, the role boots as published, and the skip names it', () => {
+        expect(result.status).toEqual(0);
+        expect(result.stdout).toContain('<mod.skipped of="surfer">');
+        expect(result.stdout).toContain('the mod of role=surfer is refused');
+        expect(result.stdout).toContain('published: a wipeout is forbidden');
       });
 
-      then('the refusal stdout and stderr match their snapshot', () => {
+      then('the skipped boot stdout and stderr match their snapshot', () => {
         expect({
           stdout: asSnapshotSafe(result.stdout),
           stderr: asSnapshotSafe(result.stderr),
@@ -1443,10 +1704,13 @@ describe('rhachet roles — a role modded via .agent/repo=.mods', () => {
         }),
       );
 
-      then("the stop holds on the sound mod's moved pin alone; the stray is the sweep report to name, as [t0] shows", () => {
+      then("the stop holds on the sound mod's moved pin, and on the stray with its fix (F02)", () => {
         expect(result.status).toEqual(2);
         expect(result.stderr).toContain('role    = test/surfer');
-        expect(result.stderr).not.toContain('readme.md');
+        expect(result.stderr).toContain('a mods dir holds an entry that names no role');
+        expect(result.stderr).toContain(
+          'fix = rename .agent/repo=.mods/readme.md to .agent/repo=.mods/role=<slug>',
+        );
       });
 
       then('the stop stdout and stderr match their snapshot', () => {
@@ -1530,11 +1794,8 @@ const setPackageWithoutBootSpec = async (input: {
 /**
  * .what = rewrite the mod's boot.yml of `surfer`
  */
-const setModBootYml = async (input: { repo: string; lines: string[] }): Promise<void> =>
-  fs.writeFile(
-    asModPath({ repo: input.repo, rel: 'boot.yml' }),
-    `${input.lines.join('\n')}\n`,
-  );
+const setModBootYml = (input: { repo: string; lines: string[] }): Promise<void> =>
+  setRoleModBootYml({ ...input, role: 'surfer' });
 
 /**
  * .what = a release of the installed `test/surfer` that removes some published briefs

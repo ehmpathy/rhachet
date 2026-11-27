@@ -55,7 +55,11 @@ describe('getAllRepoThisRolesWithHooks', () => {
 
     when('[t0] the roles are read', () => {
       then('it returns no roles and no errors', () => {
-        expect(scene.result).toEqual({ roles: [], errors: [] });
+        expect(scene.result).toEqual({
+          roles: [],
+          errors: [],
+          isArmedByMods: false,
+        });
       });
     });
   });
@@ -72,7 +76,11 @@ describe('getAllRepoThisRolesWithHooks', () => {
 
     when('[t0] the roles are read', () => {
       then('no gate is armed, since no role opted in', () => {
-        expect(scene.result).toEqual({ roles: [], errors: [] });
+        expect(scene.result).toEqual({
+          roles: [],
+          errors: [],
+          isArmedByMods: false,
+        });
       });
     });
   });
@@ -270,9 +278,38 @@ describe('getAllRepoThisRolesWithHooks', () => {
     });
 
     when('[t0] the roles are read', () => {
-      then('no sweep is armed, since no role is modded', () => {
-        expect(scene.result).toEqual({ roles: [], errors: [] });
+      then(
+        'the stray arms the stop sweep, so the stop names it until cured (C0)',
+        () => {
+          expect(scene.result.errors).toEqual([]);
+          expect(
+            scene.result.roles.map((role) => [role.repo, role.slug]),
+          ).toEqual([['.this', 'any']]);
+        },
+      );
+    });
+  });
+
+  given('[case8.3] a file where the mods dir belongs', () => {
+    const scene = useBeforeAll(async () => {
+      const repo = genTempDir({ slug: 'repo-this-hooks-mods-unreadable' });
+      genSampleFileTree({
+        dir: join(repo, '.agent'),
+        files: { 'repo=.mods': 'not a dir\n' },
       });
+      return { result: getAllRepoThisRolesWithHooks({ gitroot: repo }) };
+    });
+
+    when('[t0] the roles are read', () => {
+      then(
+        'the unreadable mods path arms the stop sweep, so the stop names it until cured (C13)',
+        () => {
+          expect(scene.result.errors).toEqual([]);
+          expect(
+            scene.result.roles.map((role) => [role.repo, role.slug]),
+          ).toEqual([['.this', 'any']]);
+        },
+      );
     });
   });
 

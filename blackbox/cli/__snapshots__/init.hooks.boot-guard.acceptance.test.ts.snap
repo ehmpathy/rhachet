@@ -40,7 +40,7 @@ exports[`rhachet init --hooks, boot guard for .agent/repo=.this/role=any given: 
 "
 `;
 
-exports[`rhachet init --hooks, boot guard for .agent/repo=.this/role=any given: [case1] a repo whose own role has a payload and no budget when: [t2] a brief grows the boot past its budget, then the hook fires then: stderr names the spec over budget and the remedies 1`] = `
+exports[`rhachet init --hooks, boot guard for .agent/repo=.this/role=any given: [case1] a repo whose own role has a payload and no budget when: [t2.1] the hook fires again in the same turn, a held stop then: exits with status 2: the breach holds the held stop too 1`] = `
 "🧢 roles cost --all --when hook.onStop
    ├─ ✋ ConstraintError: 1 boot spec over budget
    │  └─ .agent/repo=.this/role=any/boot.yml (29,270 / 5,000 tokens)
@@ -54,17 +54,22 @@ exports[`rhachet init --hooks, boot guard for .agent/repo=.this/role=any given: 
       ├─ reference   move a say entry to ref (it stays addressable, costs its path line)
       └─ eliminate   list what does not earn its boot under \`not\` (the file stays)
 
+"
+`;
 
-✋ ConstraintError: boot specs exceed their declared budget
-
-{
-  "hint": "trim a resource — catalogize a set, condense or ref a say entry, list one under \`not\` — or raise budget.tokens deliberately",
-  "specsOver": [
-    ".agent/repo=.this/role=any/boot.yml"
-  ]
-}
-
-[args] roles,cost,--all,--when,hook.onStop
+exports[`rhachet init --hooks, boot guard for .agent/repo=.this/role=any given: [case1] a repo whose own role has a payload and no budget when: [t2] a brief grows the boot past its budget, then the hook fires then: stderr names the spec over budget and the remedies 1`] = `
+"🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 boot spec over budget
+   │  └─ .agent/repo=.this/role=any/boot.yml (29,270 / 5,000 tokens)
+   │
+   ├─ some resources must go — you choose which
+   │  └─ rhx cost --what .agent/repo=.this/role=any/boot.yml   sorts every batch by what it costs
+   │
+   └─ fix — four strategies, cheapest first
+      ├─ catalogize  replace a set with one catalog that indexes it
+      ├─ condense    author an x.md.min beside x.md
+      ├─ reference   move a say entry to ref (it stays addressable, costs its path line)
+      └─ eliminate   list what does not earn its boot under \`not\` (the file stays)
 
 "
 `;
@@ -121,18 +126,6 @@ exports[`rhachet init --hooks, boot guard for .agent/repo=.this/role=any given: 
       ├─ condense    author an x.md.min beside x.md
       ├─ reference   move a say entry to ref (it stays addressable, costs its path line)
       └─ eliminate   list what does not earn its boot under \`not\` (the file stays)
-
-
-✋ ConstraintError: boot specs exceed their declared budget
-
-{
-  "hint": "trim a resource — catalogize a set, condense or ref a say entry, list one under \`not\` — or raise budget.tokens deliberately",
-  "specsOver": [
-    ".agent/repo=.this/role=any/boot.yml"
-  ]
-}
-
-[args] roles,cost,--all,--when,hook.onStop
 
 "
 `;

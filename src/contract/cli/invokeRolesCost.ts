@@ -21,13 +21,17 @@ import { getAllRepoBootSpecCosts } from '@src/domain.operations/boot/getAllRepoB
 import { getAllSpecsOverBudget } from '@src/domain.operations/boot/getAllSpecsOverBudget';
 import { getOneBootSource } from '@src/domain.operations/boot/getOneBootSource';
 import { getOneBrainTokenCounter } from '@src/domain.operations/brainCost/getOneBrainTokenCounter';
+import { HOOK_DISPATCH } from '@src/domain.operations/brains/dispatch/constants';
 import { asRoleModDriftHookReadout } from '@src/domain.operations/mods/asRoleModDriftHookReadout';
+import { asRoleModFaultsHookReadout } from '@src/domain.operations/mods/asRoleModFaultsHookReadout';
 import { genRoleModsUncostedReadout } from '@src/domain.operations/mods/genRoleModsUncostedReadout';
 import { getAllRoleModDriftsOfRepo } from '@src/domain.operations/mods/getAllRoleModDriftsOfRepo';
+import { getAllRoleModFaultsOfRepo } from '@src/domain.operations/mods/getAllRoleModFaultsOfRepo';
 import { getOneRoleModMarkForRoleDir } from '@src/domain.operations/mods/getOneRoleModMarkForRoleDir';
+import { asTreesUnderOneRoot } from '@src/utils/asTreesUnderOneRoot';
 import { getOneTokensColumnWidth } from '@src/utils/getOneTokensColumnWidth';
 
-import { dirname, relative } from 'node:path';
+import { dirname } from 'node:path';
 import { asFlagList } from './asFlagList';
 import { asSubjectFlagValues } from './asSubjectFlagValues';
 import {
@@ -90,49 +94,71 @@ const isHookWhenValue = (input: { value: string }): boolean =>
  * 🔴 .note = it caps `.agent/repo=.this/role=*` ALONE. a linked role is its supplier's to
  *   cap (`rule.forbid.framework-owned-hooks`); a mod pin is this repo's own declaration
  *
- * .note = silent within budget and on a matched pin, so the hook prints only when a human must act
- * .note = a refused mod is the boot's and the render's to refuse, never the stop's
+ * .note = silent within budget, on a matched pin, and on sound mods, so the hook prints only when
+ *   a human must act
+ * .note = a mod fault no longer refuses a boot — its role boots as published — so the stop is the
+ *   surface that cannot be missed; it holds the first stop of each turn until each fault is cured,
+ *   and reads each mod as it stands, so a cure clears the next stop with no re-render
  */
-const invokeRolesCostForHook = async (): Promise<void> => {
+const invokeRolesCostForHook = async (input: {
+  /**
+   * whether claude already held this stop once, read at the cli edge from the var the hook
+   *   dispatcher exports (`HOOK_DISPATCH.envStopHeld`)
+   */
+  isStopHeld: boolean;
+}): Promise<void> => {
   const cwd = process.cwd();
   const invocation = 'roles cost --all --when hook.onStop';
+  const context = new ContextCli({ cwd, gitroot: cwd });
 
-  // the two drifts the sweep holds a stop for: an owned boot past its cap, a mod pin past its role
+  // the three facts the sweep holds a stop for: an owned boot past its cap, a mod pin past its
+  //   role, and a mod fault
   const { over } = await genOneRepoThisBootBudgetVerdict({ cwd });
-  const { drifts } = getAllRoleModDriftsOfRepo(
-    {},
-    new ContextCli({ cwd, gitroot: cwd }),
+  const { drifts } = getAllRoleModDriftsOfRepo({}, context);
+  const isOver = over.length > 0;
+  const isDrifted = drifts.length > 0;
+
+  // each readout is the human surface, and one stop names every fact at once under one echo of
+  //   the invocation. the budget and drift readouts print even when the fault sweep throws, so a
+  //   defect in the sweep never erases them
+  const readoutsHeld = [
+    ...(isOver
+      ? [asBootSweepOverBudgetReadout({ invocation, over, cwd })]
+      : []),
+    ...(isDrifted ? [asRoleModDriftHookReadout({ invocation, drifts })] : []),
+  ];
+  const faults = await getAllRoleModFaultsOfRepo({}, context).catch(
+    (error: unknown) => {
+      if (readoutsHeld.length > 0)
+        console.error(asTreesUnderOneRoot({ trees: readoutsHeld }).join('\n'));
+      throw error;
+    },
   );
-  if (over.length === 0 && drifts.length === 0) return;
+  const isFaulted = faults.length > 0;
+  if (!isOver && !isDrifted && !isFaulted) return;
 
-  // each readout is the human surface; both print, so one stop names every drift at once
-  if (over.length > 0)
-    console.error(
-      asBootSweepOverBudgetReadout({ invocation, over, cwd }).join('\n'),
-    );
-  if (drifts.length > 0)
-    console.error(asRoleModDriftHookReadout({ invocation, drifts }).join('\n'));
+  // a fault alone holds the first stop of a turn and names its fix; a stop claude already held
+  //   passes, so a fault the brain cannot cure pesters each turn and never loops the seat
+  const isFaultOnly = !isOver && !isDrifted;
+  if (isFaultOnly && input.isStopHeld) return;
+  const readouts = [
+    ...readoutsHeld,
+    ...(isFaulted ? [asRoleModFaultsHookReadout({ invocation, faults })] : []),
+  ];
+  console.error(asTreesUnderOneRoot({ trees: readouts }).join('\n'));
 
-  // the error carries the same facts for a caller to branch on; a mod drift alone has its own
-  if (over.length === 0)
-    throw new ConstraintError(
-      'modded roles moved off the version their mods pin',
-      {
-        hint: 'review each mod against the installed release, then set its `of:` to the installed version',
-        modsDrifted: drifts.map((one) => one.pathToSpec),
-      },
-    );
-  throw new ConstraintError('boot specs exceed their declared budget', {
-    hint: 'trim a resource — catalogize a set, condense or ref a say entry, list one under `not` — or raise budget.tokens deliberately',
-    // `specsOver`, never `over` — the boot halt's `over` is a token COUNT, and one key name
-    // across the two refusals must hold one type
-    specsOver: over.map((one) => relative(cwd, one.pathToSpec)),
-    // named only when a mod drifted too, so a plain budget breach reads as it always has
-    ...(drifts.length > 0 && {
-      modsDrifted: drifts.map((one) => one.pathToSpec),
-    }),
-  });
+  // the tree is the whole hold: each fact, its fix, and the move that clears it. the hook sets
+  //   its own exit 2, so no cli error tail restates the tree a second time below it
+  process.exitCode = 2;
 };
+
+/**
+ * .what = whether claude already held this stop once (`stop_hook_active`), as the hook
+ *         dispatcher exports it
+ * .why = a second hold of the same stop would loop the seat on a fault the brain cannot cure
+ */
+const isStopHeldOnce = (input: { env: NodeJS.ProcessEnv }): boolean =>
+  input.env[HOOK_DISPATCH.envStopHeld] === '1';
 
 /**
  * .what = the token count of each spec in a sweep roster, in roster order
@@ -143,6 +169,15 @@ const getAllTokensOfCosts = (input: { costs: BootSpecCost[] }): number[] =>
     one.tokens,
     ...one.subjects.map((subject) => subject.tokens),
   ]);
+
+/**
+ * .what = whether a role's mod mark is a plan its boot applied
+ * .why = a stale or refused mod is skipped, so its role boots published; only a plan is a mod
+ *        in the boot
+ */
+const isRoleModMarkApplied = (input: {
+  mark: ReturnType<typeof getOneRoleModMarkForRoleDir>;
+}): boolean => input.mark !== null && typeof input.mark === 'object';
 
 /**
  * .what = the repo-wide arm — every boot spec this repo can reach, costed
@@ -218,8 +253,10 @@ const invokeRolesCostForAll = async (): Promise<void> => {
   //    of them the reader can act on. it prints naught where no spec is linked
   asBootCostSweepOwnershipLines({
     costs,
+    // a stale or refused mod is skipped, so its row prices the published boot: no shadow of
+    //   the mod is in it to trim
     pathsToSpecModded: marks
-      .filter(({ plan }) => plan !== null)
+      .filter(({ plan }) => isRoleModMarkApplied({ mark: plan }))
       .map(({ one }) => one.pathToSpec),
   }).forEach((line) => console.log(line));
 
@@ -312,7 +349,10 @@ export const invokeRolesCost = ({ command }: { command: Command }): void => {
               },
             );
           // a hook caller gets the quiet `.this` check
-          if (opts.when) return await invokeRolesCostForHook();
+          if (opts.when)
+            return await invokeRolesCostForHook({
+              isStopHeld: isStopHeldOnce({ env: process.env }),
+            });
 
           // a human gets the full roster
           return await invokeRolesCostForAll();

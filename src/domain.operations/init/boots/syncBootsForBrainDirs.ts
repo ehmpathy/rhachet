@@ -33,6 +33,7 @@ import { syncActiveActorBrainDirs } from './syncActiveActorBrainDirs';
  * .note = `modsChanged` names each role whose modded view this sync rewrote, so the caller
  *         can tell the author that live clones keep their prior boot (usecase 8)
  * .note = `modsReverted` names each role whose mod is gone, now returned to its published form
+ * .note = `modsSkipped` names each mod a role carries that the render skipped, with its fault
  * .note = `modsUnplaced` names each mod refused before it found its role, which no boot will
  *         raise, so the caller names it (usecase 6)
  * .note = `symlinkPrior` is what an earlier layout step of this same run did to the link
@@ -49,10 +50,11 @@ export const syncBootsForBrainDirs = async (
   settings: ReturnType<typeof asRepoActorBrainDirOutcome>['settings'];
   modsChanged: string[];
   modsReverted: string[];
+  modsSkipped: Array<{ role: string; error: Error }>;
   modsUnplaced: Array<{ role: string; error: Error }>;
 }> => {
   // each modded view is put in step with its mod first, so every render below reads it; a
-  //   refused mod is raised again by the render of each actor that carries its role (F13).
+  //   refused mod is skipped by the render of each actor that carries its role (F13).
   //   the mods graph loads here, at call time, so a caller that imports this module for
   //   its help or its plan never pays for it (rule.require.thinnest-import-path)
   const { syncRoleModdedViews } = await import(
@@ -61,6 +63,7 @@ export const syncBootsForBrainDirs = async (
   const {
     changed: modsChanged,
     reverted: modsReverted,
+    skipped: modsSkipped,
     unplaced: modsUnplaced,
   } = await syncRoleModdedViews({}, context);
   const refsLinked = getAllLinkedRoleRefs({}, context);
@@ -78,10 +81,10 @@ export const syncBootsForBrainDirs = async (
   // the repo actor's brain dir; a throw is collected under the repo scope
   const [repoActorSettled] = await Promise.allSettled([
     refsAmbient
-      ? setRepoActorBrainDir({
-          repoPath: input.repoPath,
-          refsLinked: refsAmbient,
-        })
+      ? setRepoActorBrainDir(
+          { repoPath: input.repoPath, refsLinked: refsAmbient },
+          context,
+        )
       : Promise.reject(
           refsAmbientSettled.status === 'rejected'
             ? refsAmbientSettled.reason
@@ -118,10 +121,10 @@ export const syncBootsForBrainDirs = async (
     : { failures: [] };
 
   // each active actor; its own failures are already collected per scope
-  const actorOutcome = await syncActiveActorBrainDirs({
-    repoPath: input.repoPath,
-    refsLinked,
-  });
+  const actorOutcome = await syncActiveActorBrainDirs(
+    { repoPath: input.repoPath, refsLinked },
+    context,
+  );
 
   // the repo actor leads, then each actor in order
   const repoActorResult = asBrainDirSyncResult({
@@ -144,6 +147,7 @@ export const syncBootsForBrainDirs = async (
     settings: repoActorOutcome.settings,
     modsChanged,
     modsReverted,
+    modsSkipped,
     modsUnplaced,
   };
 };

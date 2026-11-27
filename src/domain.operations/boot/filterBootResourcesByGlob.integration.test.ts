@@ -5,10 +5,10 @@ import { join, resolve } from 'node:path';
 import { filterPathsByGlob } from './filterBootResourcesByGlob';
 
 /**
- * .what = an INTEGRATION suite: the glob under test reads real dirents
- * .why = `filterPathsByGlob` expands a glob against the filesystem, so a real tree is the
- *        only honest subject — which makes this an integration test, never a unit one
- *        (`rule.forbid.unit.remote-boundaries`)
+ * .what = an INTEGRATION suite: the glob under test runs over paths of a real tree
+ * .why = a boot hands `filterPathsByGlob` the paths of a real role dir, so a real tree proves
+ *        the filter agrees with what the disk holds; the filter itself reads no dirent, and
+ *        its in-memory contract is proven by the unit suite beside this one
  * .note = the tree is built under `genTempDir`, so two parallel runs never share a path
  *         (`rule.forbid.adhoc-gentempdir-reimpl`, `rule.require.hermetic-tests`)
  */

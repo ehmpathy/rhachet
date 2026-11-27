@@ -181,8 +181,16 @@ export const getLinkedRolesWithHooks = async (
   }
 
   // a budgeted `.this` boot or a mod arms the built-in sweep, which joins the same sync as a supplier's
+  // .note = where a mod arms the sweep, every actor carries it, whatever roles it holds: a mod
+  //   fault is the repo's, so a seat that holds no carrier role must still be pestered at its
+  //   stop. a sweep a `.this` budget alone arms rides the actors that hold its carrier, as the
+  //   budget is that role's own
   const repoThis = getAllRepoThisRolesWithHooks({ gitroot: context.gitroot });
-  roles.push(...repoThis.roles.filter((role) => isHeld(role.slug)));
+  roles.push(
+    ...repoThis.roles.filter(
+      (role) => repoThis.isArmedByMods || isHeld(role.slug),
+    ),
+  );
   errors.push(
     ...repoThis.errors
       .filter((one) => isHeld(one.roleSlug))

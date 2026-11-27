@@ -51,6 +51,8 @@
 #   - the per-call files are private (umask 077), named by pid plus a
 #     random part, created under noclobber so a planted entry is never
 #     written through, and removed on any exit
+#   - on a Stop claude already held (`stop_hook_active`), each rule runs with
+#     RHACHET_HOOKS_STOP_HELD=1 in its env
 #   - RHACHET_HOOKS_DISPATCH_TRACE=<file> appends which rules ran or were
 #     skipped, each exit, and the verdict to that file; stdout and stderr
 #     are unchanged
@@ -77,6 +79,13 @@ if [[ "$__rhx_dispatch_event" == Stop ]]; then
   __rhx_dispatch_re='"stop_hook_active"[[:space:]]*:[[:space:]]*true'
   [[ "$__rhx_dispatch_payload" =~ $__rhx_dispatch_re ]] && __rhx_dispatch_refuse=1
 fi
+
+# a rule reads the same fact from RHACHET_HOOKS_STOP_HELD=1, so a hold that cannot clear from the
+#   seat it holds (a fault the brain cannot cure) may hold the first stop and let the next pass
+#   with no read of the payload. the payload alone sets it: a value the caller's env carries in
+#   is dropped first, so a first stop is never read as held
+unset RHACHET_HOOKS_STOP_HELD
+[[ "$__rhx_dispatch_event" == Stop && "$__rhx_dispatch_refuse" == 1 ]] && export RHACHET_HOOKS_STOP_HELD=1
 
 # fail closed when the manifest is absent: a guard that cannot load must never allow
 if [[ -z "$__rhx_dispatch_manifest" || ! -f "$__rhx_dispatch_manifest" ]]; then

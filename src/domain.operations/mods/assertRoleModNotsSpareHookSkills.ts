@@ -83,7 +83,7 @@ export const assertRoleModNotsSpareHookSkills = (input: {
     if (!conflict) continue;
     throw asRoleModRefusalError({
       role: input.ref.role,
-      problem: `its not of ${conflict} removes a skill one of the role's hooks invokes`,
+      problem: `its not of ${conflict} removes a skill one of the role's hooks invokes (\`${command}\`)`,
       subject: command,
       nearest: null,
       fix: `shadow ${conflict} rather than not it, so the hook still finds it`,

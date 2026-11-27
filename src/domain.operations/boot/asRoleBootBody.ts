@@ -1,10 +1,34 @@
 import type { RoleModPlan } from '@src/domain.objects/RoleModPlan';
 import { asRoleModAttr } from '@src/domain.operations/mods/asRoleModAttr';
 import { asRoleModNoticeLines } from '@src/domain.operations/mods/asRoleModNoticeLines';
+import { asRoleModSkippedNoticeLines } from '@src/domain.operations/mods/asRoleModSkippedNoticeLines';
+import { asTextOfLines } from '@src/utils/asTextOfLines';
 
 import { relative } from 'node:path';
 import type { BootStats } from './BootStats';
 import type { BootPlan } from './computeBootPlan';
+
+/**
+ * .what = the count of files a boot plan touches: the readme, each said and ref'd brief and
+ *         skill, and each one the plan leaves in its also section
+ * .why = the census counts a file once wherever the plan places it
+ */
+const computeBootFileCount = (input: {
+  hasReadme: boolean;
+  bootPlan: BootPlan;
+}): number => {
+  const { briefs, skills, also } = input.bootPlan;
+  const counts = [
+    input.hasReadme ? 1 : 0,
+    briefs.say.length,
+    briefs.ref.length,
+    skills.say.length,
+    skills.ref.length,
+    also.briefs.length,
+    also.skills.length,
+  ];
+  return counts.reduce((sum, count) => sum + count, 0);
+};
 
 /**
  * .what = compose one role's boot body and its census from a plan and the said contents
@@ -35,13 +59,24 @@ export const asRoleBootBody = (input: {
    * .note = a modded role opens with a notice, and each modded resource carries a `mod` attr
    */
   mod: { ofLabel: string; plan: RoleModPlan } | null;
-}): { body: string; stats: BootStats } => {
-  const { bootPlan, readme, briefsSaid, skillsSaid, focus, mod } = input;
 
-  // a modded role names its mod first, so the clone knows its role differs from the published
-  const linesMod = mod
-    ? asRoleModNoticeLines({ of: mod.ofLabel, plan: mod.plan })
-    : [];
+  /**
+   * the mod fault that skipped this role's mod; null where no mod of it is skipped
+   *
+   * .note = a skipped role boots as published, and opens with a notice that names the fault
+   *   and its fix, so the clone can cure it or tell its human
+   */
+  skipped: { role: string; error: Error } | null;
+}): { body: string; stats: BootStats } => {
+  const { bootPlan, readme, briefsSaid, skillsSaid, focus, mod, skipped } =
+    input;
+
+  // a modded role names its mod first, so the clone knows its role differs from the published;
+  //   a skipped one names the fault, so the clone knows its mod did not apply
+  const linesMod = [
+    ...(mod ? asRoleModNoticeLines({ of: mod.ofLabel, plan: mod.plan }) : []),
+    ...(skipped ? asRoleModSkippedNoticeLines(skipped) : []),
+  ];
 
   // a focused role names its focus first, so the clone reads the scope before the content
   const linesFocus = focus
@@ -120,17 +155,10 @@ export const asRoleBootBody = (input: {
   ];
 
   // each line ends with a newline, as the prior per-line print did
-  const body = lines.map((line) => `${line}\n`).join('');
+  const body = asTextOfLines({ lines });
 
   // count every file the plan touches, and every char said
-  const files =
-    (readme ? 1 : 0) +
-    bootPlan.briefs.say.length +
-    bootPlan.briefs.ref.length +
-    bootPlan.skills.say.length +
-    bootPlan.skills.ref.length +
-    bootPlan.also.briefs.length +
-    bootPlan.also.skills.length;
+  const files = computeBootFileCount({ hasReadme: readme !== null, bootPlan });
   const chars = computeSaidChars({
     saids: [...(readme ? [readme] : []), ...briefsSaid, ...skillsSaid],
   });

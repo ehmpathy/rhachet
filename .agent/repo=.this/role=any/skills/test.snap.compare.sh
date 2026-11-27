@@ -29,14 +29,15 @@ while [[ $# -gt 0 ]]; do
     --before) BEFORE="$2"; shift 2 ;;
     --after) AFTER="$2"; shift 2 ;;
     --skill|--repo|--role) shift 2 ;;
-    *) echo "unknown option: $1" >&2; exit 2 ;;
+    --help|-h) awk 'NR > 2 && /^#/ { sub(/^# ?/, ""); print } /^set -euo/ { exit }' "${BASH_SOURCE[0]}" | grep -v '^#*$' || :; exit 0 ;;
+    *) printf '✋ ConstraintError: unknown option: %s\n   └─ see test.snap.compare --help\n' "$1" >&2; exit 2 ;;
   esac
 done
-[[ -n "$BEFORE" && -n "$AFTER" ]] || { echo "--before and --after are required" >&2; exit 2; }
+[[ -n "$BEFORE" && -n "$AFTER" ]] || { printf '✋ ConstraintError: --before and --after are required\n   └─ see test.snap.compare --help\n' >&2; exit 2; }
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 for f in $BEFORE $AFTER; do
   ABS="$(realpath "$f")"
-  [[ "$ABS" == "$REPO_ROOT"/* && -f "$ABS" ]] || { echo "not a file inside the repo: $f" >&2; exit 2; }
+  [[ "$ABS" == "$REPO_ROOT"/* && -f "$ABS" ]] || { printf '✋ ConstraintError: not a file inside the repo: %s\n   └─ name a .snap file under this repo root\n' "$f" >&2; exit 2; }
 done
 
 # one entry per record: each `exports[` block, its newlines escaped, so a sort orders whole entries.

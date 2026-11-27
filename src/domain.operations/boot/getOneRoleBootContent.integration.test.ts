@@ -242,15 +242,20 @@ describe('getOneRoleBootContent', () => {
           expect(body).toContain('.this brief body');
         });
 
-        then('ehmpathy/mechanic, the mod target, is refused', async () => {
-          const cwd = genRepoSameSlug({
-            slug: 'getOneRoleBootContent-c7t0-ehmpathy',
-            of: 'ehmpathy/mechanic',
-          });
-          const error = await getError(render({ cwd, slugRepo: 'ehmpathy' }));
-          expect(error).toBeInstanceOf(ConstraintError);
-          expect(error.message).toContain('no say or ref names it');
-        });
+        then(
+          'ehmpathy/mechanic, the mod target, boots as published with the skip notice',
+          async () => {
+            const cwd = genRepoSameSlug({
+              slug: 'getOneRoleBootContent-c7t0-ehmpathy',
+              of: 'ehmpathy/mechanic',
+            });
+            const { body } = await render({ cwd, slugRepo: 'ehmpathy' });
+            expect(body).toContain('<mod.skipped of="mechanic">');
+            expect(body).toContain('no say or ref names it');
+            expect(body).toContain('ehmpathy brief body');
+            expect(body).not.toContain('typo body');
+          },
+        );
       });
     },
   );

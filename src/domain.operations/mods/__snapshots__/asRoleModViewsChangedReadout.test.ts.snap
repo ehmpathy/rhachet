@@ -5,6 +5,26 @@ exports[`asRoleModViewsChangedReadout given: [case2] a render that changed two v
    ├─ rendered
    │  ├─ role=lifeguard
    │  └─ role=surfer
+   │
+   └─ a live clone keeps the boot it read at session start; re-enroll it to pick up the change"
+`;
+
+exports[`asRoleModViewsChangedReadout given: [case3.4] a render that skipped a mod a role carries when: [t0] the readout is rendered then: it matches its snapshot 1`] = `
+"🧢 .agent/repo=.mods
+   └─ skipped, booted as published until cured
+      └─ role=surfer — ✋ ConstraintError: the mod names another version
+         └─ fix = set of: to test/surfer@1.0.0"
+`;
+
+exports[`asRoleModViewsChangedReadout given: [case3.6] a render that changed a view, skipped a mod, and met an unplaced mod when: [t0] the readout is rendered then: it matches its snapshot 1`] = `
+"🧢 .agent/repo=.mods
+   ├─ rendered
+   │  └─ role=lifeguard
+   ├─ skipped, booted as published until cured
+   │  └─ role=surfer — ✋ ConstraintError: a skip fault
+   ├─ refused, with no linked role to carry it
+   │  └─ role=surfr — ✋ ConstraintError: no linked role
+   │
    └─ a live clone keeps the boot it read at session start; re-enroll it to pick up the change"
 `;
 
@@ -18,5 +38,6 @@ exports[`asRoleModViewsChangedReadout given: [case4] a render that returned a ro
 "🧢 .agent/repo=.mods
    ├─ returned to published, its mod gone
    │  └─ role=lifeguard
+   │
    └─ a live clone keeps the boot it read at session start; re-enroll it to pick up the change"
 `;

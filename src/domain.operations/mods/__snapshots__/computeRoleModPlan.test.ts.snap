@@ -17,7 +17,7 @@ exports[`computeRoleModPlan given: [case3] a mod file the plan cannot place when
 {
   "mod": ".agent/repo=.mods/role=mechanic/",
   "subject": "briefs/rule.require.ghost.md.min",
-  "fix": "add briefs/rule.require.ghost.md beside it, or remove the orphan"
+  "fix": "add briefs/rule.require.ghost.md beside it, or remove the orphan with your human's ok"
 }"
 `;
 
@@ -48,7 +48,7 @@ exports[`computeRoleModPlan given: [case6] a not that covers a path the mod also
 {
   "mod": ".agent/repo=.mods/role=mechanic/",
   "subject": "briefs/rule.require.surf-wax.md",
-  "fix": "to shadow it, narrow the not so it leaves briefs/rule.require.surf-wax.md; to drop it, delete the mod file"
+  "fix": "to shadow it, narrow the not so it leaves briefs/rule.require.surf-wax.md; to drop it, delete the mod file with your human's ok"
 }"
 `;
 
@@ -58,7 +58,7 @@ exports[`computeRoleModPlan given: [case7] an add that a not glob matches when: 
 {
   "mod": ".agent/repo=.mods/role=mechanic/",
   "subject": "briefs/rule.forbid.wipeouts-renamed.md",
-  "fix": "to add it, narrow the not so it leaves briefs/rule.forbid.wipeouts-renamed.md; to drop it, delete the mod file"
+  "fix": "to add it, narrow the not so it leaves briefs/rule.forbid.wipeouts-renamed.md; to drop it, delete the mod file with your human's ok"
 }"
 `;
 
@@ -68,6 +68,6 @@ exports[`computeRoleModPlan given: [case7] an add that a not glob matches when: 
 {
   "mod": ".agent/repo=.mods/role=mechanic/",
   "subject": "briefs/howto.paddle-back.md",
-  "fix": "rename the add to a path the role's not leaves, or delete the mod file"
+  "fix": "rename the add to a path the role's not leaves, or delete the mod file with your human's ok"
 }"
 `;

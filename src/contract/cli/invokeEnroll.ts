@@ -356,6 +356,14 @@ const getRepoAmbientForEnroll = async (
 };
 
 /**
+ * .what = the role slug of each focus
+ * .why = the focus check reads which roles the caller typed a focus for, never the subjects
+ */
+const getAllRoleSlugsOfFoci = (input: {
+  foci: Array<{ role: string }>;
+}): string[] => input.foci.map((one) => one.role);
+
+/**
  * .what = derive one enrollment from argv — the actor form (`@<slug>`), the bare form, or the
  *         inline form — then render its actor dir and spawn the brain-cli clone
  * .why = one path for every enroll form, so each lands in the namespace its form decides (F7)
@@ -388,19 +396,20 @@ const performEnroll = async (input: {
       hint: 'run `rhachet roles link` first to initialize',
     });
 
-  // each modded view is put in step with its mod before the render reads it; a refused mod
-  //   is raised again by the render of the actor that carries its role (F13, usecase 12)
+  // each modded view is put in step with its mod before the render reads it (F13); a mod
+  //   fault never refuses the enroll: its role boots as published, and names the fault
   const contextRepo = new ContextCli({ cwd: repoPath, gitroot: repoPath });
   const {
     changed: modsChanged,
     reverted: modsReverted,
+    skipped: modsSkipped,
     unplaced: modsUnplaced,
   } = await syncRoleModdedViews({}, contextRepo);
 
   // this clone reads the new view; every other live clone keeps its prior boot (usecase 8).
-  //   a mod no linked role carries is named, since no boot raises it (usecase 6). on stderr,
-  //   so a json stdout stays one document. a detached host replays this enroll and its caller
-  //   forwards the host's stderr, so only the caller prints, or each line would show twice
+  //   each skipped mod is named with its fix, and so is a mod no linked role carries. on
+  //   stderr, so a json stdout stays one document. a detached host replays this enroll and its
+  //   caller forwards the host's stderr, so only the caller prints, or each line would show twice
   const isReplayedByHost =
     process.env[CLONE_ENV_KEYS.hostDetached] !== undefined;
   const linesMods = isReplayedByHost
@@ -408,6 +417,7 @@ const performEnroll = async (input: {
     : asRoleModViewsChangedReadout({
         roles: modsChanged,
         reverted: modsReverted,
+        skipped: modsSkipped,
         unplaced: modsUnplaced,
       });
   // a blank line closes the block, so the next tree on stderr does not run into it
@@ -530,9 +540,9 @@ const performEnroll = async (input: {
   //   gets the recorded hint, since the caller never typed it
   assertRoleFociDeclared({
     refs: refsEnrolled,
-    rolesFocusTyped: getAllRoleFociOfDeltas({ deltas: spec.deltas }).map(
-      (entry) => entry.role,
-    ),
+    rolesFocusTyped: getAllRoleSlugsOfFoci({
+      foci: getAllRoleFociOfDeltas({ deltas: spec.deltas }),
+    }),
     repoPath,
   });
 
@@ -717,12 +727,15 @@ const performEnroll = async (input: {
   //   stream a real fault must own. a render that FAILS still throws, loud, with its hint
   // .note = the spawn names `bootMdPath` as its system-prompt file, so a clone boots the
   //   exact file this render wrote and proved delivered
-  const { bootMdPath } = await setBrainDirBoot({
-    brainDir,
-    roles: refsEnrolled,
-    repoPath,
-    scope: { kind: 'actor', actorExid: exid },
-  });
+  const { bootMdPath } = await setBrainDirBoot(
+    {
+      brainDir,
+      roles: refsEnrolled,
+      repoPath,
+      scope: { kind: 'actor', actorExid: exid },
+    },
+    contextRepo,
+  );
 
   // observe the shared login every clone reads, to say plainly when there is none (D13)
   //
