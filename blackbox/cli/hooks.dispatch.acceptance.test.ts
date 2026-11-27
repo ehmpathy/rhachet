@@ -3,6 +3,7 @@ import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
 import { invokeRhachetCliBinary } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import { setupStubBrainPath } from '@/blackbox/.test/infra/setupStubBrainPath';
 
 import { spawn, spawnSync } from 'node:child_process';
 import {
@@ -2040,6 +2041,149 @@ module.exports = { getRoleRegistry };
           expect(scene.corrupt.agent.code).toEqual(2);
           expect(scene.corrupt.agent.stderr).toContain('✋ ConstraintError');
           expect(scene.corrupt.agent.stderr).toContain('rhx init --hooks');
+        });
+      });
+    },
+  );
+
+  given(
+    '[case3] an enrolled clone actor, whose role then adds a row on a tool no prior row named',
+    () => {
+      // the seats a human starts are clones: each holds its own settings and manifest, and the
+      //   actor pass of a later sync must land the row there with no clone settings write
+      const asRoleRegistry = (input: { hooks: string }): string => `
+const asRole = (slug, hooks) => ({
+  slug,
+  name: slug,
+  purpose: 'test role for the clone actor case',
+  readme: { uri: 'roles/' + slug + '/readme.md' },
+  traits: [],
+  skills: { dirs: { uri: 'roles/' + slug + '/skills' }, refs: [] },
+  briefs: { dirs: { uri: 'roles/' + slug + '/briefs' } },
+  inits: { dirs: { uri: 'roles/' + slug + '/inits' } },
+  hooks: { onBrain: hooks },
+});
+const getRoleRegistry = () => ({
+  slug: 'test',
+  readme: { uri: 'readme.md' },
+  roles: [asRole('tester', ${input.hooks}), asRole('helper', {})],
+});
+module.exports = { getRoleRegistry };
+`;
+      const HOOKS_FIRST = `{
+        onTool: [{ command: 'echo "bash guard ran"', timeout: 'PT10S', filter: { what: 'Bash' } }],
+      }`;
+      const HOOKS_LATER = `{
+        onTool: [
+          { command: 'echo "bash guard ran"', timeout: 'PT10S', filter: { what: 'Bash' } },
+          { command: 'echo "agent guard ran"', timeout: 'PT10S', filter: { what: 'Agent' } },
+        ],
+      }`;
+
+      const scene = useBeforeAll(async () => {
+        const cwd = (await genTestTempRepo({ fixture: 'with-hook-dispatch' })).path;
+        setRhachetLinkedInto({ cwd });
+        const packageDir = join(cwd, 'node_modules/rhachet-roles-test');
+        for (const sub of ['skills', 'briefs', 'inits'])
+          mkdirSync(join(packageDir, 'roles/helper', sub), { recursive: true });
+        writeFileSync(join(packageDir, 'roles/helper/readme.md'), '# helper\n');
+        writeFileSync(join(packageDir, 'roles/helper/briefs/helper.brief.md'), '# helper brief\n');
+        const manifestPath = join(packageDir, 'rhachet.repo.yml');
+        writeFileSync(
+          manifestPath,
+          readFileSync(manifestPath, 'utf-8') +
+            [
+              '  - slug: helper',
+              '    name: helper',
+              '    purpose: a second role, so a roleset without it lands in its own hash actor',
+              '    readme: roles/helper/readme.md',
+              '    briefs:',
+              '      dirs: roles/helper/briefs',
+              '    skills:',
+              '      dirs: roles/helper/skills',
+              '    inits:',
+              '      dirs: roles/helper/inits',
+              '',
+            ].join('\n'),
+        );
+        const registryPath = join(packageDir, 'dist/index.js');
+        const home = genTempDir({ slug: 'hooks-dispatch-clone-home' });
+        const env = { HOME: home, PATH: setupStubBrainPath({ dir: cwd }) };
+        const syncHooks = (input: { hooks: string; args: string[] }) => {
+          writeFileSync(registryPath, asRoleRegistry({ hooks: input.hooks }));
+          return invokeRhachetCliBinary({ args: input.args, cwd, env });
+        };
+
+        // the first sync links both roles; then a clone actor enrolls with the tester role alone
+        const initFirst = syncHooks({ hooks: HOOKS_FIRST, args: ['init', '--roles', 'tester', 'helper', '--hooks'] });
+        const enroll = invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--roles', '-helper'],
+          cwd,
+          env,
+          logOnError: false,
+        });
+        const actorsRoot = join(cwd, '.agent/.actors');
+        const actorDirs = readdirSync(actorsRoot).filter((name) => name.startsWith('actor.via.hash='));
+        if (actorDirs.length !== 1)
+          throw new MalfunctionError('the enroll did not land in exactly one hash actor', {
+            actorDirs,
+            stderr: enroll.stderr,
+            hint: 'a `-helper` roleset differs from the ambient one, so it should land in its own hash actor',
+          });
+        const settingsPath = join(actorsRoot, actorDirs[0]!, 'brain/.claude/settings.of.repo.json');
+        const settingsTextFirst = readFileSync(settingsPath, 'utf-8');
+        const settings = JSON.parse(settingsTextFirst);
+        const commandOf = (event: string): string => asHooksOfEvent({ settings, event })[0]!.command;
+        const dispatch = (event: string, payload: string) =>
+          runAsClaude({ cwd, command: commandOf(event), payload });
+        const before = { agent: dispatch('PreToolUse', asPayloadOfTool('Agent')) };
+
+        // the later sync: the role adds an Agent row; the actor pass re-derives the clone manifest
+        const initLater = syncHooks({ hooks: HOOKS_LATER, args: ['init', '--hooks'] });
+        const settingsTextLater = readFileSync(settingsPath, 'utf-8');
+        const after = {
+          agent: dispatch('PreToolUse', asPayloadOfTool('Agent')),
+          bash: dispatch('PreToolUse', asPayloadOfTool('Bash')),
+          read: dispatch('PreToolUse', asPayloadOfTool('Read')),
+        };
+
+        return { initFirst, enroll, initLater, settings, settingsTextFirst, settingsTextLater, before, after };
+      });
+
+      then('the syncs and the enroll succeed', () => {
+        expect(scene.initFirst.status).toEqual(0);
+        expect(scene.enroll.status).toEqual(0);
+        expect(scene.initLater.status).toEqual(0);
+      });
+
+      then('the clone actor holds one `*` wire per mapped event, named at its own manifest', () => {
+        const events = ['PreToolUse', 'SessionStart', 'Stop', 'UserPromptSubmit'];
+        expect(Object.keys(scene.settings.hooks).sort()).toEqual(events);
+        for (const event of events) {
+          const hooks = asHooksOfEvent({ settings: scene.settings, event });
+          expect(hooks.length).toEqual(1);
+          expect(hooks[0]!.command).toContain('.agent/.actors/actor.via.hash=');
+        }
+      });
+
+      when('[t0] the clone calls a tool no row names yet', () => {
+        then('the call exits 0 with no bytes', () => {
+          expect(scene.before.agent).toEqual({ code: 0, stdout: '', stderr: '' });
+        });
+      });
+
+      when('[t1] the role adds an Agent row, and the hooks sync again', () => {
+        then('the clone settings are byte-equal: the later row needs no clone settings write', () => {
+          expect(scene.settingsTextLater).toEqual(scene.settingsTextFirst);
+        });
+
+        then('the wire the clone was enrolled with runs the new Agent row', () => {
+          expect(scene.after.agent).toEqual({ code: 0, stdout: 'agent guard ran\n', stderr: '' });
+        });
+
+        then('each row still runs only on the tools its own matcher names', () => {
+          expect(scene.after.bash).toEqual({ code: 0, stdout: 'bash guard ran\n', stderr: '' });
+          expect(scene.after.read).toEqual({ code: 0, stdout: '', stderr: '' });
         });
       });
     },
