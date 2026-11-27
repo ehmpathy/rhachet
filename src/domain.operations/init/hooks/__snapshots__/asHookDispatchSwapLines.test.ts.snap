@@ -1,9 +1,10 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`asHookDispatchSwapLines a brain whose manifest is gone names zero dispatchers, its wires taken back 1`] = `
+exports[`asHookDispatchSwapLines a brain whose manifest is gone names the dispatchers it took back 1`] = `
 "🪝 hook dispatchers set
    └─ claude-code
       ├─ 0 rules → 0 dispatchers
+      ├─ 4 dispatchers taken back from the settings
       └─ manifest = .claude/hooks.dispatch.manifest"
 `;
 

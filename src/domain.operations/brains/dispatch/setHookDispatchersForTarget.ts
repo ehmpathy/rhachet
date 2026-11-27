@@ -82,5 +82,7 @@ export interface HookDispatchSwap {
   manifestPathRel: string;
   dispatchers: number;
   dispatchersSet: number;
+  /** dispatchers the sync removed: a stale one, or every one when the manifest is gone */
+  dispatchersTakenBack: number;
   roleHooksTakenBack: number;
 }

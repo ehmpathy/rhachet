@@ -16,6 +16,7 @@ const genSwap = (
   manifestPathRel: '.claude/hooks.dispatch.manifest',
   dispatchers: 4,
   dispatchersSet: 4,
+  dispatchersTakenBack: 0,
   roleHooksTakenBack: 0,
   ...input,
 });
@@ -74,14 +75,16 @@ describe('asHookDispatchSwapLines', () => {
     }),
   );
 
-  test('a brain whose manifest is gone names zero dispatchers, its wires taken back', () => {
+  test('a brain whose manifest is gone names the dispatchers it took back', () => {
+    // the swap `setHookDispatchersViaAdapter` returns for `rules: null` over four wires in place
     const lines = asHookDispatchSwapLines({
       swaps: [
         genSwap({
           rules: 0,
           rulesByEvent: [],
           dispatchers: 0,
-          dispatchersSet: 4,
+          dispatchersSet: 0,
+          dispatchersTakenBack: 4,
           roleHooksTakenBack: 0,
         }),
       ],

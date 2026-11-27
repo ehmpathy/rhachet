@@ -12,6 +12,7 @@ import {
   readFileSync,
   readdirSync,
   symlinkSync,
+  unlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
@@ -1995,7 +1996,17 @@ module.exports = { getRoleRegistry };
             hint: 'read the init --hooks output; each dispatcher command should end `<manifest> <event>`',
           });
         writeFileSync(join(cwd, manifestRel), 'not a manifest\n');
-        const corrupt = { agent: dispatch('PreToolUse', asPayloadOfTool('Agent')) };
+        const corrupt = {
+          agent: dispatch('PreToolUse', asPayloadOfTool('Agent')),
+          talk: dispatch('UserPromptSubmit', payloadTalk),
+        };
+
+        // then the recovery a human has today: remove the unreadable file, and sync. a sync over the
+        //   corrupt file itself refuses on the same read (F12, dream hook-sync-refuses-a-corrupt-manifest)
+        unlinkSync(join(cwd, manifestRel));
+        const initRecover = syncHooks({ hooks: HOOKS_LATER, args: ['init', '--hooks'] });
+        const settingsTextRecover = readFileSync(settingsPath, 'utf-8');
+        const recovered = { agent: dispatch('PreToolUse', asPayloadOfTool('Agent')) };
 
         return {
           cwd,
@@ -2009,6 +2020,9 @@ module.exports = { getRoleRegistry };
           before,
           after,
           corrupt,
+          initRecover,
+          settingsTextRecover,
+          recovered,
         };
       });
 
@@ -2041,6 +2055,10 @@ module.exports = { getRoleRegistry };
             asView(scene.after.boot),
             '=== a corrupt manifest, met by a tool no row names ===',
             asView(scene.corrupt.agent),
+            '=== a corrupt manifest, met by a talk ===',
+            asView(scene.corrupt.talk),
+            '=== after the corrupt file is removed and the hooks sync: the later Agent row ===',
+            asView(scene.recovered.agent),
           ].join('\n'),
         ).toMatchSnapshot();
       });
@@ -2115,6 +2133,23 @@ module.exports = { getRoleRegistry };
           expect(scene.corrupt.agent.code).toEqual(2);
           expect(scene.corrupt.agent.stderr).toContain('✋ ConstraintError');
           expect(scene.corrupt.agent.stderr).toContain('rhx init --hooks');
+        });
+
+        then('a talk exits 1, so the prompt is not held, and names the same fix', () => {
+          expect(scene.corrupt.talk.code).toEqual(1);
+          expect(scene.corrupt.talk.stderr).toContain('✋ ConstraintError');
+          expect(scene.corrupt.talk.stderr).toContain('rhx init --hooks');
+        });
+      });
+
+      when('[t3] the human removes the corrupt file and the hooks sync (vision case=8 [t2], F12)', () => {
+        then('the sync succeeds, and the settings stay byte-equal', () => {
+          expect(scene.initRecover.status).toEqual(0);
+          expect(scene.settingsTextRecover).toEqual(scene.settingsTextLater);
+        });
+
+        then('the wire runs the Agent row again', () => {
+          expect(scene.recovered.agent).toEqual({ code: 0, stdout: 'agent guard ran\n', stderr: '' });
         });
       });
     },
@@ -2644,4 +2679,5 @@ module.exports = { getRoleRegistry };
       });
     });
   });
+
 });

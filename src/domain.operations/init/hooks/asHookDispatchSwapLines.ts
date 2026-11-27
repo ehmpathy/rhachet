@@ -7,14 +7,17 @@ import type { HookDispatchSwap } from '@src/domain.operations/brains/dispatch/se
  *   the role hooks that left the settings, and where the rules now live, or a first sync reads as
  *   `no changes needed` while the settings changed
  *
- * .note = a brain whose dispatchers were already in place, with no role hook to move, prints
- *   naught, so a re-sync stays quiet
+ * .note = a brain whose dispatchers were already in place, with no role hook to move and no
+ *   dispatcher taken back, prints naught, so a re-sync stays quiet
  */
 export const asHookDispatchSwapLines = (input: {
   swaps: HookDispatchSwap[];
 }): string[] => {
   const swapsChanged = input.swaps.filter(
-    (swap) => swap.dispatchersSet > 0 || swap.roleHooksTakenBack > 0,
+    (swap) =>
+      swap.dispatchersSet > 0 ||
+      swap.dispatchersTakenBack > 0 ||
+      swap.roleHooksTakenBack > 0,
   );
   if (swapsChanged.length === 0) return [];
   return [
@@ -31,6 +34,14 @@ export const asHookDispatchSwapLines = (input: {
               `${each.event} = ${each.rules} ${asNoun({ count: each.rules, noun: 'rule' })}`,
           ),
         },
+        ...(swap.dispatchersTakenBack > 0
+          ? [
+              {
+                text: `${swap.dispatchersTakenBack} ${asNoun({ count: swap.dispatchersTakenBack, noun: 'dispatcher' })} taken back from the settings`,
+                children: [],
+              },
+            ]
+          : []),
         ...(swap.roleHooksTakenBack > 0
           ? [
               {

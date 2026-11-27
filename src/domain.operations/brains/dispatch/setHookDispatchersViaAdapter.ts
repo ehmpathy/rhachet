@@ -31,6 +31,7 @@ export const setHookDispatchersViaAdapter = async (input: {
 }): Promise<{
   dispatchers: number;
   dispatchersSet: number;
+  dispatchersTakenBack: number;
   roleHooksTakenBack: number;
 }> => {
   const { adapter } = input;
@@ -70,6 +71,9 @@ export const setHookDispatchersViaAdapter = async (input: {
   return {
     dispatchers: desired.length,
     dispatchersSet: toSet.length,
+    dispatchersTakenBack: toDel.filter(
+      (hook) => hook.author === HOOK_DISPATCH.author,
+    ).length,
     roleHooksTakenBack: toDel.filter((hook) =>
       isHookAuthorOfRole({ author: hook.author }),
     ).length,

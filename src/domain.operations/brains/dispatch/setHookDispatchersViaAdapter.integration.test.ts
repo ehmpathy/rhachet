@@ -342,7 +342,18 @@ describe('setHookDispatchersViaAdapter', () => {
             `del ${HOOK_DISPATCH.author}`,
           ]);
           expect(result.after).toEqual([]);
-          expect(result.swap.dispatchers).toEqual(0);
+        },
+      );
+
+      then(
+        'the swap counts the four it took back, so the sync can name them',
+        () => {
+          expect(result.swap).toEqual({
+            dispatchers: 0,
+            dispatchersSet: 0,
+            dispatchersTakenBack: 4,
+            roleHooksTakenBack: 0,
+          });
         },
       );
     });
@@ -379,6 +390,7 @@ describe('setHookDispatchersViaAdapter', () => {
             expect(scene.first).toEqual({
               dispatchers: 4,
               dispatchersSet: 4,
+              dispatchersTakenBack: 0,
               roleHooksTakenBack: 0,
             });
           });
@@ -390,6 +402,7 @@ describe('setHookDispatchersViaAdapter', () => {
               expect(result.second).toEqual({
                 dispatchers: scene.first.dispatchers,
                 dispatchersSet: 0,
+                dispatchersTakenBack: 0,
                 roleHooksTakenBack: 0,
               });
             },

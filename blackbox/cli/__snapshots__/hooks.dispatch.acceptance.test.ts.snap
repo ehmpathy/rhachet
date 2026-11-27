@@ -341,7 +341,25 @@ exit = 2
    ├─ header = not a manifest
    ├─ reads = v1
    └─ fix = run \`npx rhx init --hooks\`, with the rhachet this repo installs, to rewrite it
-"
+
+=== a corrupt manifest, met by a talk ===
+exit = 1
+--- stdout ---
+(empty)
+--- stderr ---
+✋ ConstraintError: hook dispatch manifest version is not one this dispatcher reads
+   ├─ manifest = .claude/hooks.dispatch.manifest
+   ├─ header = not a manifest
+   ├─ reads = v1
+   └─ fix = run \`npx rhx init --hooks\`, with the rhachet this repo installs, to rewrite it
+
+=== after the corrupt file is removed and the hooks sync: the later Agent row ===
+exit = 0
+--- stdout ---
+agent guard ran
+
+--- stderr ---
+(empty)"
 `;
 
 exports[`hook dispatcher (one process per claude event) given: [case2] a repo synced once, whose role then adds a row on a tool and an event no prior row named when: [t1] the role adds an Agent row, a talk row, a stop row and a boot row, and the hooks sync again (vision case=1, case=2) then: the later sync names the rows it added, with no swap report (vision case=4 [t2], F9) 1`] = `
