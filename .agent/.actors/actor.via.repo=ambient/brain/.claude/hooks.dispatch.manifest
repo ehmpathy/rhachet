@@ -49,11 +49,3 @@ PreToolUseWebFetch60repo=ehmpathy/role=mechanicshell.agent/repo=ehmpathy/ro
 UserPromptSubmit*15repo=ehmpathy/role=mechanicshell.agent/repo=ehmpathy/role=mechanic/inits/claude.hooks/userpromptsubmit.git-pull-watch.shbash .agent/repo=ehmpathy/role=mechanic/inits/claude.hooks/userpromptsubmit.git-pull-watch.sh
 # Stop · * · 60s · repo=.this/role=any · ./node_modules/.bin/rhachet roles cost --all --when hook.onStop
 Stop*60repo=.this/role=anyforeign./node_modules/.bin/rhachet roles cost --all --when hook.onStop
-# SessionStart · * · 10s · repo=bhrain/role=achiever · ./node_modules/.bin/rhx goal.triage.next --when hook.onBoot
-SessionStart*10repo=bhrain/role=achieverrhx-skill.agent/repo=bhrain/role=achiever/skills/goal.triage.next.sh🪨 run solid skill repo=bhrain/role=achiever/skill=goal.triage.next--skillgoal.triage.next--whenhook.onBoot./node_modules/.bin/rhx goal.triage.next --when hook.onBoot
-# PreToolUse · Read|Write|Edit|Bash · 5s · repo=bhrain/role=achiever · ./node_modules/.bin/rhx goal.guard
-PreToolUseRead|Write|Edit|Bash5repo=bhrain/role=achieverrhx-skill.agent/repo=bhrain/role=achiever/skills/goal.guard.sh🪨 run solid skill repo=bhrain/role=achiever/skill=goal.guard--skillgoal.guard./node_modules/.bin/rhx goal.guardbefore
-# UserPromptSubmit · * · 5s · repo=bhrain/role=achiever · ./node_modules/.bin/rhx goal.triage.infer --when hook.onTalk
-UserPromptSubmit*5repo=bhrain/role=achieverrhx-skill.agent/repo=bhrain/role=achiever/skills/goal.triage.infer.sh🪨 run solid skill repo=bhrain/role=achiever/skill=goal.triage.infer--skillgoal.triage.infer--whenhook.onTalk./node_modules/.bin/rhx goal.triage.infer --when hook.onTalk
-# Stop · * · 5s · repo=bhrain/role=telepath · ./node_modules/.bin/rhx elucidate.summary --when hook.onStop
-Stop*5repo=bhrain/role=telepathrhx-skill.agent/repo=bhrain/role=telepath/skills/elucidate.summary.sh🪨 run solid skill repo=bhrain/role=telepath/skill=elucidate.summary--skillelucidate.summary--whenhook.onStop./node_modules/.bin/rhx elucidate.summary --when hook.onStop
