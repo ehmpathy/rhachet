@@ -84,13 +84,19 @@ describe('setHookDispatchersViaAdapter', () => {
           () => {
             expect(result.calls).toEqual([
               `upsert ${HOOK_DISPATCH.author}`,
+              `upsert ${HOOK_DISPATCH.author}`,
+              `upsert ${HOOK_DISPATCH.author}`,
+              `upsert ${HOOK_DISPATCH.author}`,
               'del repo=test/role=tester',
             ]);
           },
         );
 
-        then('the settings then hold the dispatcher alone', () => {
+        then('the settings then hold the four dispatchers alone', () => {
           expect(result.after.map((hook) => hook.author)).toEqual([
+            HOOK_DISPATCH.author,
+            HOOK_DISPATCH.author,
+            HOOK_DISPATCH.author,
             HOOK_DISPATCH.author,
           ]);
         });

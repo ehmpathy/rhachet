@@ -63,9 +63,10 @@ const TEST_CASES = [
     expected: [],
   },
   {
-    description: 'an event a row names beyond the mapped four follows them',
+    description:
+      'only the four mapped events are wired, whatever event a row names',
     rules: [genRule({ event: 'PermissionRequest' })],
-    expected: [...WHOLE, { event: 'PermissionRequest', matcher: '*' }],
+    expected: WHOLE,
   },
 ] as const;
 

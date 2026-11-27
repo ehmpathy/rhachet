@@ -9,7 +9,7 @@ import { HOOK_DISPATCH_EVENTS } from './constants';
  *   of dispatchers
  *
  * .note = the events match `asHookDispatchersOfRules`: none for `rules: null` (no manifest), else
- *   every mapped event, then any event a row names beyond them
+ *   every mapped event
  */
 export const asRuleCountsByEvent = (input: {
   rules: Pick<HookDispatchRule, 'event'>[] | null;
@@ -18,11 +18,8 @@ export const asRuleCountsByEvent = (input: {
   if (!input.rules) return [];
   const rules = input.rules;
 
-  // every mapped event, then any event a row names beyond them
-  const events = [
-    ...new Set([...HOOK_DISPATCH_EVENTS, ...rules.map((rule) => rule.event)]),
-  ];
-  return events.map((event) => ({
+  // one leaf per mapped event, rows or not
+  return HOOK_DISPATCH_EVENTS.map((event) => ({
     event,
     rules: rules.filter((rule) => rule.event === event).length,
   }));

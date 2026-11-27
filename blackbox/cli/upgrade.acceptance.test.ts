@@ -1600,13 +1600,21 @@ describe('rhachet upgrade', () => {
         expect(result.status).toEqual(0);
       });
 
-      then('the settings hold one dispatcher per event and no role hook', () => {
+      then('the settings hold one dispatcher per mapped event and no role hook', () => {
         const settings = JSON.parse(
           readFileSync(join(scene.repo.path, '.claude', 'settings.of.repo.json'), 'utf-8'),
         );
-        const authors = Object.values(settings.hooks as Record<string, Array<{ hooks: Array<{ author: string }> }>>)
-          .flatMap((entries) => entries.flatMap((entry) => entry.hooks.map((hook) => hook.author)));
-        expect(authors).toEqual(['rhachet/hooks.dispatch', 'rhachet/hooks.dispatch']);
+        // .note = the fixture's test brain keys each event by its own name (`onTalk` stays raw), so
+        //   this reads the shape: four events, each with the one dispatcher and naught else
+        const authorsPerEvent = Object.values(
+          settings.hooks as Record<string, Array<{ hooks: Array<{ author: string }> }>>,
+        ).map((entries) => entries.flatMap((entry) => entry.hooks.map((hook) => hook.author)));
+        expect(authorsPerEvent).toEqual([
+          ['rhachet/hooks.dispatch'],
+          ['rhachet/hooks.dispatch'],
+          ['rhachet/hooks.dispatch'],
+          ['rhachet/hooks.dispatch'],
+        ]);
       });
 
       then('the manifest holds the three rules', () => {

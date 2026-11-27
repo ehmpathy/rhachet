@@ -15,8 +15,8 @@ import { HOOK_DISPATCH, HOOK_DISPATCH_EVENTS } from './constants';
  *   widens which tool a rule runs on
  * .note = the timeout sits above the slowest rule's, and never below the floor, by the margin, so
  *   claude never kills the dispatcher before the dispatcher kills a hung rule
- * .note = events come back in `HOOK_DISPATCH_EVENTS` order; an event a row names beyond those (none
- *   can be written by the sync today) follows, in the order its first row holds
+ * .note = events come back in `HOOK_DISPATCH_EVENTS` order: the four claude events a role hook maps
+ *   to, so no sync can write a row on any other
  */
 export const asHookDispatchersOfRules = (input: {
   rules: HookDispatchRule[] | null;
@@ -31,11 +31,8 @@ export const asHookDispatchersOfRules = (input: {
   if (!input.rules) return [];
   const rules = input.rules;
 
-  // every mapped event, then any event a row names beyond them
-  const events = [
-    ...new Set([...HOOK_DISPATCH_EVENTS, ...rules.map((rule) => rule.event)]),
-  ];
-  return events.map((event) => ({
+  // one wire per mapped event, rows or not
+  return HOOK_DISPATCH_EVENTS.map((event) => ({
     event,
     matcher: '*',
     timeoutSeconds:
