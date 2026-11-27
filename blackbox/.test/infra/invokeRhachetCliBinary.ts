@@ -130,7 +130,9 @@ export const asSnapshotSafe = (output: string): string => {
       )
       // strip a clone socket path (host-scoped, varies by run) BEFORE the serial
       // mask, so the whole `.sock` token collapses to one stable placeholder
-      .replace(/\S*clone\.[0-9a-f-]+\.[0-9a-f]+\.sock/gi, '__SOCKET__')
+      // ⚠️ the prefix class stops at a `"`: as a json value the path opens on a quote, and a
+      //   `\S*` prefix ate it, which rendered `"socketPath": __SOCKET__",` — an unopened string
+      .replace(/[^\s"]*clone\.[0-9a-f-]+\.[0-9a-f]+\.sock/gi, '__SOCKET__')
       // strip a clone serial (a uuid — varies every spawn). the actor hash is a
       // 64-char sha256 (a different shape) and stays UNMASKED — it is deterministic
       .replace(

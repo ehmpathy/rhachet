@@ -193,13 +193,19 @@ describe('getCloneInputStateOrBlind.integration', () => {
         },
       );
 
-      then('the forwarded bound degrades it probe-blind, fast', () => {
-        expect(outcome.probe).toEqual('unsupported');
-        expect(outcome.reason).toEqual('feed-not-live');
-        // scale-tied to the forwarded bound (10x headroom for socket + parse overhead), which
-        // also proves it rode the 150ms bound, never the 5000ms default the unforwarded probe takes
-        expect(outcome.elapsedMs).toBeLessThan(forwardedBoundMs * 10);
-      });
+      // a silent accepted socket is the shape a slow auth gate presents (#678): the reply timed
+      //   out, so the degrade names it `probe-unanswered`, never `feed-not-live` (whose fix,
+      //   re-enroll, cures no loaded box)
+      then(
+        'the forwarded bound degrades it probe-blind as unanswered, fast',
+        () => {
+          expect(outcome.probe).toEqual('unsupported');
+          expect(outcome.reason).toEqual('probe-unanswered');
+          // scale-tied to the forwarded bound (10x headroom for socket + parse overhead), which
+          // also proves it rode the 150ms bound, never the 5000ms default the unforwarded probe takes
+          expect(outcome.elapsedMs).toBeLessThan(forwardedBoundMs * 10);
+        },
+      );
     });
   });
 });

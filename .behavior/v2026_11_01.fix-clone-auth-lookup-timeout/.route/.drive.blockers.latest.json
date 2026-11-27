@@ -1,0 +1,9 @@
+{
+  "count": 0,
+  "stone": null,
+  "brain": {
+    "slug": "claude-sonnet-5-5[1m]",
+    "effort": null,
+    "stone": "5.3.verification"
+  }
+}

@@ -22,9 +22,9 @@ export interface CloneAuthGateOutcome {
  *     peer that never answers and falls to its own 30s wedge timer with an EMPTY ack trail —
  *     a report two hops from its cause. measured 2026-09-18 on an 11-suite clone acceptance
  *     tier against 3 live brains: `acksSeen: []`, `silentMs: 30092`
- *   - the check shells out to `ss -xp` (a scan of every unix socket on the host, each mapped
- *     to the pid that holds it) once per connection, so its cost scales with how busy the
- *     host is — the one input this process does not control
+ *   - the check runs `ss -x` (a scan of every unix socket on the host) and then a `/proc` scan
+ *     for the peer's holder, once per connection, so its cost scales with how busy the host
+ *     is — the one input this process does not control
  *   - it fails CLOSED on a throw: an auth check that errored has not proven the caller, so
  *     the safe verdict is `deny`. only a genuinely unsettled check reports `timeout`
  *

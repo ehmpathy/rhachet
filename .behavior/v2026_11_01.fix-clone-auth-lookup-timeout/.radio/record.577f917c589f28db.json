@@ -1,0 +1,19 @@
+{
+  "key": "577f917c589f28db",
+  "kind": "create",
+  "repo": {
+    "owner": "ehmpathy",
+    "name": "rhachet"
+  },
+  "exid": null,
+  "title": "feat(clone): clone say shows status while it waits on a slow box",
+  "description": "## the gap\n\non a loaded box, `rhx clone say` prints naught while it waits. for a 9s `ss -xp` the cli is silent for ~14s (the auth gate, then the observe loop), and up to ~29s when the transcript is slow to rise. before #678 that box printed a deny at ~10s; now the say lands, but the human sees no status in the meantime (`rule.require.status-feedback`).\n\n## the shape of the fix\n\n- a status line on stderr once the dispatch has waited past a short threshold (e.g. 3s): `⏳ the clone is slow to answer — its peer-cred scan is in flight`\n- a second line once `delivered` arrives and the observe loop starts, so the two waits read apart\n\n## evidence\n\n- found in review of the #678 fix (`.behavior/v2026_11_01.fix-clone-auth-lookup-timeout`, fulcrum F12)",
+  "status": null,
+  "via": "gh.issues",
+  "auth": "as-human",
+  "idem": "findsert",
+  "heldSeq": 7,
+  "recordStatus": "DELIVERED",
+  "reason": null,
+  "deliveredExid": "688"
+}

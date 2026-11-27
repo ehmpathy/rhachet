@@ -1,0 +1,19 @@
+{
+  "key": "6214c0c8a88c085b",
+  "kind": "create",
+  "repo": {
+    "owner": "ehmpathy",
+    "name": "rhachet"
+  },
+  "exid": null,
+  "title": "fix(clone): clone get times out at 5s on a box where ss is slow",
+  "description": "## the gap\n\non a loaded box where `ss -xp` takes 5s or more, a direct `rhx clone get` always reads `clone get read timed out { replyMs: 5000 }`. its 5s reply bound sits below the peer-cred lookup bound (60s since #678) and the auth gate (65s). each timed-out `get` also leaves its scan to run, up to the 60s bound.\n\n## the shape of the fix\n\n- give `clone get` a reply window that rides the lookup, or a named `auth-in-flight` reply, so the caller can tell a slow gate from a dead clone\n- pair with #684 (abort the scan on hangup), so a timed-out `get` frees its scan\n\n## evidence\n\n- found in review of the #678 fix (`.behavior/v2026_11_01.fix-clone-auth-lookup-timeout`, catalog row `.get × same × >= 5s`)",
+  "status": null,
+  "via": "gh.issues",
+  "auth": "as-human",
+  "idem": "findsert",
+  "heldSeq": 6,
+  "recordStatus": "DELIVERED",
+  "reason": null,
+  "deliveredExid": "687"
+}

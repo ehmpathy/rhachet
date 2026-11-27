@@ -15,13 +15,24 @@ import type { Socket } from 'node:net';
  * .note = compares the peer's real uid (SO_PEERCRED, via getSocketPeerCred) to
  *   this process's uid. a non-POSIX host has no getuid — there the socket is not
  *   stood up at all (getCloneSocketPath returns null), so this is never reached
+ * .note = the peer read and the own uid are injectable, so the compare is unit-tested on every
+ *   host — the integration proof ([case21]) needs a pid 1 that is not the test user
  */
-export const isCallerSameUser = async (input: {
-  socket: Socket;
-}): Promise<boolean> => {
-  const ownUid = process.getuid?.();
+export const isCallerSameUser = async (
+  input: { socket: Socket },
+  context: {
+    getPeerCred: typeof getSocketPeerCred;
+    getOwnUid: () => number | undefined;
+  } = {
+    getPeerCred: getSocketPeerCred,
+    getOwnUid: () => process.getuid?.(),
+  },
+): Promise<boolean> => {
+  // fail closed on a host with no uid: no compare can prove the caller
+  const ownUid = context.getOwnUid();
   if (ownUid === undefined) return false;
 
-  const peer = await getSocketPeerCred({ socket: input.socket });
+  // compare the peer's uid to ours; a lookup fault propagates, and the gate denies on it
+  const peer = await context.getPeerCred({ socket: input.socket });
   return peer.uid === ownUid;
 };
