@@ -20,3 +20,7 @@ two rules point two ways at the unit grain; the file's own shape breaks the tie.
 ## .where
 `src/domain.operations/brains/dispatch/asHookDispatcherTimeoutSeconds.test.ts`,
 `blackbox/cli/hooks.dispatch.acceptance.test.ts` [case2], [case3]
+
+## .verdict
+settled: holds (driver, 2026-11-27). `rule.prefer.data-driven` asks for a caselist in a transformer unit
+test, and the file shape breaks the tie at the acceptance grain. a test frame is no harm to a human.

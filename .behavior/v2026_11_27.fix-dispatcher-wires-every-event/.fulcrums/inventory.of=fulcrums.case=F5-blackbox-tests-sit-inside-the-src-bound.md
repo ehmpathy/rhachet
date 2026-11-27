@@ -20,4 +20,6 @@ the bound's text says `src/**`; the read rests on its purpose, not its words. no
 `blackbox/cli/hooks.dispatch.acceptance.test.ts`, `blackbox/cli/upgrade.acceptance.test.ts`, `blackbox/cli/__snapshots__/*`
 
 ## .verdict
-open: for the director
+settled: holds (driver, 2026-11-27). the bound guards the five files the declapract upgrade owns, and
+no `blackbox/` file is among them. the per-case proof the wish asks for runs only in this tier, and ci
+ran it green on the head. no harm to a human rides on either read.

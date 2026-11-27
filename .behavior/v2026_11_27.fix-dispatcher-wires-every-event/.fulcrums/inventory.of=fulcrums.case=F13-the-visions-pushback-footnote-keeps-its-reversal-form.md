@@ -22,3 +22,7 @@ may prefer the fold.
 
 ## .where
 `.behavior/v2026_11_27.fix-dispatcher-wires-every-event/1.vision.yield.md:112`
+
+## .verdict
+settled: holds (driver, 2026-11-27). the footnote is the pushback record the wish asks for, and its
+purpose is the reversal. a phrase change in an approved vision protects no human.

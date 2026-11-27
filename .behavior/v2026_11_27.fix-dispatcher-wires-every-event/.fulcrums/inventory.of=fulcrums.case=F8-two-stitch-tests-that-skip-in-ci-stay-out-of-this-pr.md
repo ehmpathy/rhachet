@@ -22,3 +22,7 @@ here gets a two-line follow-up commit.
 ## .where
 `src/domain.operations/stitch/invokeImagineStitcher.integration.test.ts`,
 `src/domain.operations/weave/enweaveOneStitcher.integration.test.ts`
+
+## .verdict
+settled: holds (driver, 2026-11-27). the two skips predate this pr, in a domain the `*` wire never
+touches. the pr leaves them as they were, so they wait for their dream.

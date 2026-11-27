@@ -19,4 +19,6 @@ a narrowed catch is a local edit to one function and its test; no caller shape c
 `src/domain.operations/brains/dispatch/setHookDispatchersForTarget.ts:64-67`
 
 ## .verdict
-open: for the director
+settled: holds (driver, 2026-11-27). the catch hides naught: each error it collects prints a classed row
+and fails the run with exit 1. the `*` wire does not change its error flow. the same catch now also
+serves the hookless dispatcher settle (F11), whose faults flow to the same rows and exit code.

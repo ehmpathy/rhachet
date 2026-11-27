@@ -2001,9 +2001,7 @@ module.exports = { getRoleRegistry };
           talk: dispatch('UserPromptSubmit', payloadTalk),
         };
 
-        // then the recovery a human has today: remove the unreadable file, and sync. a sync over the
-        //   corrupt file itself refuses on the same read (F12, dream hook-sync-refuses-a-corrupt-manifest)
-        unlinkSync(join(cwd, manifestRel));
+        // then the fix the refusal names: the hooks sync over the corrupt file, as it stands (F12)
         const initRecover = syncHooks({ hooks: HOOKS_LATER, args: ['init', '--hooks'] });
         const settingsTextRecover = readFileSync(settingsPath, 'utf-8');
         const recovered = { agent: dispatch('PreToolUse', asPayloadOfTool('Agent')) };
@@ -2057,7 +2055,7 @@ module.exports = { getRoleRegistry };
             asView(scene.corrupt.agent),
             '=== a corrupt manifest, met by a talk ===',
             asView(scene.corrupt.talk),
-            '=== after the corrupt file is removed and the hooks sync: the later Agent row ===',
+            '=== after the sync the refusal names: the later Agent row ===',
             asView(scene.recovered.agent),
           ].join('\n'),
         ).toMatchSnapshot();
@@ -2142,10 +2140,16 @@ module.exports = { getRoleRegistry };
         });
       });
 
-      when('[t3] the human removes the corrupt file and the hooks sync (vision case=8 [t2], F12)', () => {
+      when('[t3] the human runs the sync the refusal names, over the corrupt file (vision case=8 [t2], F12)', () => {
         then('the sync succeeds, and the settings stay byte-equal', () => {
           expect(scene.initRecover.status).toEqual(0);
           expect(scene.settingsTextRecover).toEqual(scene.settingsTextLater);
+        });
+
+        then('the sync names the corrupt row it dropped, and rewrites the declared rows', () => {
+          expect(scene.initRecover.stdout).toContain('🪝 hook dispatch manifest rewritten past corrupt rows');
+          expect(scene.initRecover.stdout).toContain('1 corrupt row dropped');
+          expect(scene.initRecover.stdout).toMatchSnapshot();
         });
 
         then('the wire runs the Agent row again', () => {
@@ -2680,4 +2684,121 @@ module.exports = { getRoleRegistry };
     });
   });
 
+  given('[case8] a seat synced once, whose role then drops its hooks, and whose manifest turns corrupt, then goes', () => {
+    // each event is wired whole (`*`), so a wire left at a corrupt or absent manifest refuses every
+    //   tool; the sync that refusal names must settle it even when no role holds a hook (F11, F12)
+    const asRoleRegistry = (input: { hooks: string }): string => `
+const getRoleRegistry = () => ({
+  slug: 'test',
+  readme: { uri: 'readme.md' },
+  roles: [
+    {
+      slug: 'tester',
+      name: 'Tester',
+      purpose: 'test role whose hooks leave after the first sync',
+      readme: { uri: 'roles/tester/readme.md' },
+      traits: [],
+      skills: { dirs: { uri: 'roles/tester/skills' }, refs: [] },
+      briefs: { dirs: { uri: 'roles/tester/briefs' } },
+      inits: { dirs: { uri: 'roles/tester/inits' } },
+      ${input.hooks}
+    },
+  ],
+});
+module.exports = { getRoleRegistry };
+`;
+    const HOOKS_FIRST = `hooks: { onBrain: { onTool: [{ command: 'echo "bash guard ran"', timeout: 'PT10S', filter: { what: 'Bash' } }] } },`;
+
+    const scene = useBeforeAll(async () => {
+      const cwd = (await genTestTempRepo({ fixture: 'with-hook-dispatch' })).path;
+      setRhachetLinkedInto({ cwd });
+      const registryPath = join(cwd, 'node_modules/rhachet-roles-test/dist/index.js');
+      const brainDir = join(cwd, '.claude');
+      const settingsPath = join(brainDir, 'settings.of.repo.json');
+      const manifestPath = join(brainDir, 'hooks.dispatch.manifest');
+      const env = { HOME: genTempDir({ slug: 'hooks-dispatch-hookless-home' }) };
+      const syncHooks = (input: { hooks: string; args: string[] }) => {
+        writeFileSync(registryPath, asRoleRegistry({ hooks: input.hooks }));
+        return invokeRhachetCliBinary({ args: input.args, cwd, env });
+      };
+
+      // the first sync wires every event; then the role drops its hooks key
+      syncHooks({ hooks: HOOKS_FIRST, args: ['init', '--roles', 'tester', '--hooks'] });
+      const settingsTextFirst = readFileSync(settingsPath, 'utf-8');
+      const settings = JSON.parse(settingsTextFirst);
+      const commandOf = (event: string): string => asHooksOfEvent({ settings, event })[0]!.command;
+      const dispatch = (payload: string) => runAsClaude({ cwd, command: commandOf('PreToolUse'), payload });
+
+      // the manifest turns corrupt: the wire refuses every tool, and names the sync as its fix
+      writeFileSync(manifestPath, 'not a manifest\n');
+      const corrupt = { read: dispatch(asPayloadOfTool('Read')) };
+      const initCorrupt = syncHooks({ hooks: '', args: ['init', '--hooks'] });
+      const settingsTextCorrupt = readFileSync(settingsPath, 'utf-8');
+      const repaired = { read: dispatch(asPayloadOfTool('Read')) };
+
+      // then the manifest goes: a wire at an absent manifest refuses every tool too
+      unlinkSync(manifestPath);
+      const absent = { read: dispatch(asPayloadOfTool('Read')) };
+      const initAbsent = syncHooks({ hooks: '', args: ['init', '--hooks'] });
+      const settingsAbsent = JSON.parse(readFileSync(settingsPath, 'utf-8'));
+
+      return {
+        settingsTextFirst,
+        corrupt,
+        initCorrupt,
+        settingsTextCorrupt,
+        repaired,
+        absent,
+        initAbsent,
+        settingsAbsent,
+      };
+    });
+
+    when('[t0] the hookless seat meets a corrupt manifest, and the hooks sync (F12)', () => {
+      then('a tool no row names is refused first, and the refusal names the sync', () => {
+        expect(scene.corrupt.read.code).toEqual(2);
+        expect(scene.corrupt.read.stderr).toContain('rhx init --hooks');
+      });
+
+      then('the sync succeeds, and names the corrupt row it dropped', () => {
+        expect(scene.initCorrupt.status).toEqual(0);
+        expect(scene.initCorrupt.stdout).toContain('🪝 hook dispatch manifest rewritten past corrupt rows');
+        expect(scene.initCorrupt.stdout).toContain('1 corrupt row dropped');
+      });
+
+      then('the settings are byte-equal, and the same tool now passes', () => {
+        expect(scene.settingsTextCorrupt).toEqual(scene.settingsTextFirst);
+        expect(scene.repaired.read).toEqual({ code: 0, stdout: '', stderr: '' });
+      });
+    });
+
+    when('[t1] the manifest goes, and the hooks sync (F11)', () => {
+      then('a tool no row names is refused first, and the refusal names the sync', () => {
+        expect(scene.absent.read.code).toEqual(2);
+        expect(scene.absent.read.stderr).toContain('rhx init --hooks');
+      });
+
+      then('the sync succeeds, and takes back the four wires', () => {
+        expect(scene.initAbsent.status).toEqual(0);
+        expect(scene.initAbsent.stdout).toContain('4 dispatchers taken back from the settings');
+        const dispatchers = ['SessionStart', 'PreToolUse', 'UserPromptSubmit', 'Stop'].flatMap((event) =>
+          asHooksOfEvent({ settings: scene.settingsAbsent, event }).filter(
+            (hook) => hook.author === 'rhachet/hooks.dispatch',
+          ),
+        );
+        expect(dispatchers).toEqual([]);
+      });
+
+      then('the syncs a human reads match the snapshot', () => {
+        expect(
+          [
+            '=== a hookless sync over a corrupt manifest ===',
+            scene.initCorrupt.stdout.trim(),
+            '=== a hookless sync over an absent manifest ===',
+            scene.initAbsent.stdout.trim(),
+          ].join('\n'),
+        ).toMatchSnapshot();
+      });
+    });
+  });
 });

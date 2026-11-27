@@ -25,3 +25,8 @@ the vision cell names the swap report by name. b meets the intent (status shown)
 ## .where
 `src/domain.operations/init/hooks/asHookDispatchSwapLines.ts:16-18`,
 `blackbox/cli/hooks.dispatch.acceptance.test.ts` [case2] [t1]
+
+## .verdict
+settled: holds (driver, 2026-11-27). a later sync names the rows it added (`+4`, `4 created`), so the
+human sees what landed, and no wire changed to report. the swap report stays the report of a wire
+change. vision case=4 [t2] holds in intent: the sync shows its change.

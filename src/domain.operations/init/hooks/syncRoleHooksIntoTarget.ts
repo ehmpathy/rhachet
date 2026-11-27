@@ -6,13 +6,18 @@ import {
   type HookDispatchSwap,
   setHookDispatchersForTarget,
 } from '@src/domain.operations/brains/dispatch/setHookDispatchersForTarget';
+import {
+  type HookDispatchManifestRepair,
+  setHookDispatchManifestsRepairedForTarget,
+} from '@src/domain.operations/brains/dispatch/setHookDispatchManifestsRepairedForTarget';
 import { pruneOrphanedRoleHooksFromAllBrains } from '@src/domain.operations/brains/pruneOrphanedRoleHooksFromAllBrains';
 import { syncAllRoleHooksIntoEachBrainRepl } from '@src/domain.operations/brains/syncAllRoleHooksIntoEachBrainRepl';
 
 import { isActorHookSyncFault } from './isActorHookSyncFault';
 
 /**
- * .what = prunes orphan role hooks, then syncs every role's hooks, into one brain config target
+ * .what = repairs each corrupt manifest, prunes orphan role hooks, then syncs every role's hooks,
+ *   into one brain config target
  * .why = the root brain dir and each actor's brain dir take the identical prune + sync + catch,
  *   so the allowlist of faults a sweep survives is declared once (`isActorHookSyncFault`)
  * .note = `configTargetDir: null` targets the repo root; a path targets an actor's brain dir
@@ -28,6 +33,7 @@ export const syncRoleHooksIntoTarget = async (
   },
   context: ContextCli,
 ): Promise<{
+  repairs: HookDispatchManifestRepair[];
   pruneResult: Awaited<ReturnType<typeof pruneOrphanedRoleHooksFromAllBrains>>;
   syncResult: Awaited<ReturnType<typeof syncAllRoleHooksIntoEachBrainRepl>>;
   swaps: HookDispatchSwap[];
@@ -35,6 +41,24 @@ export const syncRoleHooksIntoTarget = async (
 }> => {
   const brains = input.brains ?? undefined;
   const configTargetDir = input.configTargetDir ?? undefined;
+
+  // first, repair each manifest that holds a corrupt row: the prune, the sync and the swap each
+  //   read it, and a dispatcher that met it names this very sync as the fix
+  const repairResult = await withActorHookSyncFaultCaught(() =>
+    setHookDispatchManifestsRepairedForTarget(
+      { brains: input.brains, configTargetDir: input.configTargetDir },
+      context,
+    ),
+  );
+  if ('error' in repairResult)
+    return {
+      repairs: [],
+      pruneResult: { removed: [] },
+      syncResult: { applied: [], errors: [] },
+      swaps: [],
+      faults: [{ error: repairResult.error }],
+    };
+  const { repairs } = repairResult;
 
   // prune; a classified or fs fault is the target's, reported by the caller; all else rethrows
   const pruneResult = await withActorHookSyncFaultCaught(() =>
@@ -45,6 +69,7 @@ export const syncRoleHooksIntoTarget = async (
   );
   if ('error' in pruneResult)
     return {
+      repairs,
       pruneResult: { removed: [] },
       syncResult: { applied: [], errors: [] },
       swaps: [],
@@ -60,6 +85,7 @@ export const syncRoleHooksIntoTarget = async (
   );
   if ('error' in syncResult)
     return {
+      repairs,
       pruneResult,
       syncResult: { applied: [], errors: [] },
       swaps: [],
@@ -76,6 +102,7 @@ export const syncRoleHooksIntoTarget = async (
   );
   if ('error' in swapResult)
     return {
+      repairs,
       pruneResult,
       syncResult,
       swaps: [],
@@ -85,6 +112,7 @@ export const syncRoleHooksIntoTarget = async (
   // a brain that refused its dispatchers runs none of its rules, so each role synced into it
   //   reports that refusal, as the per-rule sync reported a refused write per role × brain
   return {
+    repairs,
     pruneResult,
     syncResult: asSyncResultWithSwapErrors({
       syncResult,

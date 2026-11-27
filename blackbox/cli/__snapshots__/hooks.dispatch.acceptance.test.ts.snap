@@ -353,7 +353,7 @@ exit = 1
    ├─ reads = v1
    └─ fix = run \`npx rhx init --hooks\`, with the rhachet this repo installs, to rewrite it
 
-=== after the corrupt file is removed and the hooks sync: the later Agent row ===
+=== after the sync the refusal names: the later Agent row ===
 exit = 0
 --- stdout ---
 agent guard ran
@@ -383,6 +383,24 @@ exports[`hook dispatcher (one process per claude event) given: [case2] a repo sy
 
 ✨ hooks
    └─ no changes needed
+
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case2] a repo synced once, whose role then adds a row on a tool and an event no prior row named when: [t3] the human runs the sync the refusal names, over the corrupt file (vision case=8 [t2], F12) then: the sync names the corrupt row it dropped, and rewrites the declared rows 1`] = `
+"🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: +5
+
+🪝 hook dispatch manifest rewritten past corrupt rows
+   └─ anthropic/claude/code
+      ├─ 1 corrupt row dropped
+      └─ manifest = .claude/hooks.dispatch.manifest
+
+✨ hooks
+   └─ 5 created
 
 "
 `;
@@ -621,4 +639,26 @@ exports[`hook dispatcher (one process per claude event) given: [case7] a repo sy
 
 ✨ hooks
    └─ 1 created"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case8] a seat synced once, whose role then drops its hooks, and whose manifest turns corrupt, then goes when: [t1] the manifest goes, and the hooks sync (F11) then: the syncs a human reads match the snapshot 1`] = `
+"=== a hookless sync over a corrupt manifest ===
+🔭 search for linked roles with hooks...
+
+🫧 no roles with hooks found
+
+🪝 hook dispatch manifest rewritten past corrupt rows
+   └─ anthropic/claude/code
+      ├─ 1 corrupt row dropped
+      └─ manifest = .claude/hooks.dispatch.manifest
+=== a hookless sync over an absent manifest ===
+🔭 search for linked roles with hooks...
+
+🫧 no roles with hooks found
+
+🪝 hook dispatchers set
+   └─ anthropic/claude/code
+      ├─ 0 rules → 0 dispatchers
+      ├─ 4 dispatchers taken back from the settings
+      └─ manifest = .claude/hooks.dispatch.manifest"
 `;

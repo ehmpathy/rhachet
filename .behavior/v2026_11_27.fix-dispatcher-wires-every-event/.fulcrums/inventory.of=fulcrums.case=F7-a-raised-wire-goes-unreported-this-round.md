@@ -18,3 +18,8 @@ a human with a slow row learns of the raise from the pr body only, not from the 
 
 ## .where
 `src/domain.operations/init/hooks/asHookDispatchSwapLines.ts`, `asHookDispatcherTimeoutSeconds.ts`
+
+## .verdict
+settled: holds (driver, 2026-11-27). a raised wire is the cure for a slow row, not a harm: the row runs
+to its own timeout ([case4] proves the 95 s wire). no human hits a refusal or a loss from the absent
+leaf. it waits for its dream.
