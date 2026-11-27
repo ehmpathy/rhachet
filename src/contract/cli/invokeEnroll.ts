@@ -10,6 +10,7 @@ import type { RoleSlug } from '@src/domain.objects/RoleSlug';
 import { asActorRolesDelta } from '@src/domain.operations/actor/enrolled/asActorRolesDelta';
 import { asBrainDirAuthMigratedLine } from '@src/domain.operations/actor/enrolled/asBrainDirAuthMigratedLine';
 import { asBrainGroveAbsentLine } from '@src/domain.operations/actor/enrolled/asBrainGroveAbsentLine';
+import { asBrainKeybindingsUnreadableLine } from '@src/domain.operations/actor/enrolled/asBrainKeybindingsUnreadableLine';
 import { findsertBrainFirstRunState } from '@src/domain.operations/actor/enrolled/findsertBrainFirstRunState';
 import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
 import { getActorsRootDir } from '@src/domain.operations/actor/enrolled/getActorsRootDir';
@@ -846,6 +847,15 @@ const performEnroll = async (input: {
   //   under the same gate and for the same reason
   if (!layout.grove.isPresent && result.spawn !== null)
     console.error(asBrainGroveAbsentLine({ groveSource: layout.grove.source }));
+
+  // say the box holds a keybindings file it cannot read, so the clone keeps the default keys,
+  //   under the same gate and for the same reason
+  if (layout.keybindings.state === 'unreadable' && result.spawn !== null)
+    console.error(
+      asBrainKeybindingsUnreadableLine({
+        keybindingsSource: layout.keybindings.source,
+      }),
+    );
 
   // a live-slug reuse spawns no child — report it and return (no exit to forward).
   // a `--output json` caller (the idempotent-cron-retry path) still gets the

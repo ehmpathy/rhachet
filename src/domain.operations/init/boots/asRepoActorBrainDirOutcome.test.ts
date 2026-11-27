@@ -41,6 +41,10 @@ describe('asRepoActorBrainDirOutcome', () => {
               source: '/home/x/.claude/settings.json',
               isPresent: true,
             },
+            keybindings: {
+              source: '/home/x/.claude/keybindings.json',
+              state: 'absent' as const,
+            },
           };
           expect(
             asRepoActorBrainDirOutcome({

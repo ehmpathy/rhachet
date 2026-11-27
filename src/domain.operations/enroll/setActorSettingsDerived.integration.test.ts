@@ -38,6 +38,7 @@ const asSettingsOfRoles = genSampleSettingsOfRoles;
 const useSceneOfBlendedActor = (input: {
   slug: string;
   claudeSettingsReal: string | null;
+  keybindings: string | null;
 }) =>
   useBeforeAll(async () => {
     const repoPath = genSampleRepoWithRoles({
@@ -51,6 +52,7 @@ const useSceneOfBlendedActor = (input: {
     const { home } = genSampleHomeWithBrainDir({
       slug: `${input.slug}-home`,
       grove: '{}\n',
+      keybindings: input.keybindings,
     });
 
     // the repo actor's settings.of.repo.json — the source every actor narrows from
@@ -109,6 +111,7 @@ describe('setActorSettingsDerived', () => {
       const scene = useSceneOfBlendedActor({
         slug: 'actor-settings-derived-blend',
         claudeSettingsReal: null,
+        keybindings: '{ "bindings": [] }\n',
       });
 
       when('[t0] its settings are derived', () => {
@@ -157,6 +160,18 @@ describe('setActorSettingsDerived', () => {
           ).toEqual(join(scene.home, '.claude', 'settings.json'));
         });
 
+        // the derived path runs the same layout, so a derived actor sees the human's keys too
+        then('the layout links keybindings.json to the home file', () => {
+          expect(
+            readlinkSync(join(scene.brainDir, 'keybindings.json')),
+          ).toEqual('.home/.claude/keybindings.json');
+          expect(
+            readlinkSync(
+              join(scene.brainDir, '.home/.claude/keybindings.json'),
+            ),
+          ).toEqual(join(scene.home, '.claude', 'keybindings.json'));
+        });
+
         then('no settings file was kept aside', () => {
           expect(
             readdirSync(scene.brainDir).filter((name) =>
@@ -174,6 +189,7 @@ describe('setActorSettingsDerived', () => {
       const scene = useSceneOfBlendedActor({
         slug: 'actor-settings-derived-fork',
         claudeSettingsReal: JSON.stringify({ model: 'haiku' }),
+        keybindings: null,
       });
 
       when('[t0] its settings are derived', () => {
@@ -224,6 +240,7 @@ describe('setActorSettingsDerived', () => {
         const { home } = genSampleHomeWithBrainDir({
           slug: 'actor-settings-derived-dispatched-home',
           grove: '{}\n',
+          keybindings: null,
         });
         const rulesAll = ['any', 'zeta', 'omega'].map((role) =>
           genSampleHookDispatchRule({
@@ -360,6 +377,7 @@ describe('setActorSettingsDerived', () => {
         const { home } = genSampleHomeWithBrainDir({
           slug: 'actor-settings-derived-moved-home',
           grove: '{}\n',
+          keybindings: null,
         });
         const rule = genSampleHookDispatchRule({
           event: 'SessionStart',

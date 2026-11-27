@@ -843,6 +843,326 @@ describe('rhx enroll --roles (acceptance)', () => {
     });
   });
 
+  given('[case2g] the keybindings arrows, through a real enroll, under a HOME the case pins', () => {
+    // the layout op has its own integration suite; this case proves the enroll path lays the
+    //   keybindings arrows, on both source branches, with a HOME the case owns — never the
+    //   host's, whose `~/.claude/keybindings.json` decides the branch per box
+    //   (`rule.require.hermetic-tests`)
+    //
+    // .note = [t0], [t1] and [t5] seed a grove, so the stderr snapshot holds no grove line and
+    //   shows only what the keybindings branch says
+
+    when('[t0] the HOME holds a `.claude/keybindings.json`', () => {
+      const scene = useBeforeAll(async () => {
+        const dir = genTempDir({ slug: 'enroll-keybindings-present' });
+        setupEnrollFixture(dir);
+        const home = join(dir, '.home');
+        mkdirSync(join(home, '.claude'), { recursive: true });
+        writeFileSync(join(home, '.claude', 'settings.json'), '{}\n', 'utf-8');
+        const keybindings = join(home, '.claude', 'keybindings.json');
+        writeFileSync(keybindings, '{ "bindings": [] }\n', 'utf-8');
+        const run = invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--roles', '-driver'],
+          cwd: dir,
+          env: { PATH: setupStubBrainPath({ dir }), HOME: home },
+          logOnError: false,
+        });
+        const brainDir = join(
+          dir,
+          '.agent',
+          '.actors',
+          getOneEnrolledActorDirName({ dir }),
+          'brain',
+          '.claude',
+        );
+        return { run, keybindings, brainDir };
+      });
+
+      then('enroll exits 0 and says naught of keybindings.json', () => {
+        // success says naught, as for every layout arrow; the file name, never the bare word
+        expect(scene.run.status).toEqual(0);
+        expect(scene.run.stderr).not.toContain('keybindings.json');
+        expect(scene.run.stdout).not.toContain('keybindings.json');
+      });
+
+      then('enroll stderr matches snapshot', () => {
+        expect(asSnapshotSafeOfCredential(scene.run.stderr)).toMatchSnapshot();
+      });
+
+      then('keybindings.json is a relative arrow to the home name', () => {
+        expect(readlinkSync(join(scene.brainDir, 'keybindings.json'))).toEqual(
+          join('.home', '.claude', 'keybindings.json'),
+        );
+      });
+
+      then('keybindings.json resolves to the HOME file', () => {
+        expect(realpathSync(join(scene.brainDir, 'keybindings.json'))).toEqual(
+          realpathSync(scene.keybindings),
+        );
+      });
+    });
+
+    when('[t1] the HOME holds no `.claude/keybindings.json`', () => {
+      const scene = useBeforeAll(async () => {
+        const dir = genTempDir({ slug: 'enroll-keybindings-absent' });
+        setupEnrollFixture(dir);
+        const home = join(dir, '.home');
+        mkdirSync(join(home, '.claude'), { recursive: true });
+        writeFileSync(join(home, '.claude', 'settings.json'), '{}\n', 'utf-8');
+        const run = invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--roles', '-driver'],
+          cwd: dir,
+          env: { PATH: setupStubBrainPath({ dir }), HOME: home },
+          logOnError: false,
+        });
+        const brainDir = join(
+          dir,
+          '.agent',
+          '.actors',
+          getOneEnrolledActorDirName({ dir }),
+          'brain',
+          '.claude',
+        );
+        return { run, home, brainDir };
+      });
+
+      then('enroll exits 0 and says naught of keybindings.json', () => {
+        // the file name, never the bare word: the temp dir slug names keybindings in every path
+        expect(scene.run.status).toEqual(0);
+        expect(scene.run.stderr).not.toContain('keybindings.json');
+        expect(scene.run.stdout).not.toContain('keybindings.json');
+      });
+
+      then('enroll stderr matches snapshot', () => {
+        expect(asSnapshotSafeOfCredential(scene.run.stderr)).toMatchSnapshot();
+      });
+
+      then('neither keybindings name is written', () => {
+        // lstat, never existsSync: existsSync follows the link, so an arrow to an absent
+        //   file would read as absent and the defect would ship green
+        expect(
+          lstatSync(join(scene.brainDir, 'keybindings.json'), { throwIfNoEntry: false }),
+        ).toBeUndefined();
+        expect(
+          lstatSync(join(scene.brainDir, '.home', '.claude', 'keybindings.json'), {
+            throwIfNoEntry: false,
+          }),
+        ).toBeUndefined();
+      });
+
+      then('the HOME gains no keybindings file', () => {
+        expect(
+          lstatSync(join(scene.home, '.claude', 'keybindings.json'), {
+            throwIfNoEntry: false,
+          }),
+        ).toBeUndefined();
+      });
+    });
+
+    when('[t2] the HOME holds the file, and enroll runs twice', () => {
+      const scene = useBeforeAll(async () => {
+        const dir = genTempDir({ slug: 'enroll-keybindings-rerun' });
+        setupEnrollFixture(dir);
+        const home = join(dir, '.home');
+        mkdirSync(join(home, '.claude'), { recursive: true });
+        writeFileSync(join(home, '.claude', 'keybindings.json'), '{ "bindings": [] }\n', 'utf-8');
+        const env = { PATH: setupStubBrainPath({ dir }), HOME: home };
+        const enroll = () =>
+          invokeRhachetCliBinary({
+            args: ['enroll', 'claude', '--roles', '-driver'],
+            cwd: dir,
+            env,
+            logOnError: false,
+          });
+        const first = enroll();
+        const brainDir = join(
+          dir,
+          '.agent',
+          '.actors',
+          getOneEnrolledActorDirName({ dir }),
+          'brain',
+          '.claude',
+        );
+        const readArrows = () => ({
+          top: readlinkSync(join(brainDir, 'keybindings.json')),
+          home: readlinkSync(join(brainDir, '.home', '.claude', 'keybindings.json')),
+        });
+        const arrowsFirst = readArrows();
+        const second = enroll();
+        const homeBytesAfter = readFileSync(join(home, '.claude', 'keybindings.json'), 'utf-8');
+        return { first, second, arrowsFirst, arrowsSecond: readArrows(), homeBytesAfter };
+      });
+
+      then('the HOME file holds the bytes the human wrote', () => {
+        expect(scene.homeBytesAfter).toEqual('{ "bindings": [] }\n');
+      });
+
+      then('both enrolls exit 0', () => {
+        expect(scene.first.status).toEqual(0);
+        expect(scene.second.status).toEqual(0);
+      });
+
+      then('the second enroll leaves both arrows as the first laid them', () => {
+        expect(scene.arrowsSecond).toEqual(scene.arrowsFirst);
+      });
+    });
+
+    when('[t3] the HOME file is removed between two enrolls', () => {
+      const scene = useBeforeAll(async () => {
+        const dir = genTempDir({ slug: 'enroll-keybindings-removed' });
+        setupEnrollFixture(dir);
+        const home = join(dir, '.home');
+        mkdirSync(join(home, '.claude'), { recursive: true });
+        const keybindings = join(home, '.claude', 'keybindings.json');
+        writeFileSync(keybindings, '{ "bindings": [] }\n', 'utf-8');
+        const env = { PATH: setupStubBrainPath({ dir }), HOME: home };
+        const enroll = () =>
+          invokeRhachetCliBinary({
+            args: ['enroll', 'claude', '--roles', '-driver'],
+            cwd: dir,
+            env,
+            logOnError: false,
+          });
+        const first = enroll();
+        rmSync(keybindings);
+        const second = enroll();
+        const brainDir = join(
+          dir,
+          '.agent',
+          '.actors',
+          getOneEnrolledActorDirName({ dir }),
+          'brain',
+          '.claude',
+        );
+        return { first, second, brainDir };
+      });
+
+      then('both enrolls exit 0', () => {
+        expect(scene.first.status).toEqual(0);
+        expect(scene.second.status).toEqual(0);
+      });
+
+      then('the second enroll removes both arrows: none dangles', () => {
+        expect(
+          lstatSync(join(scene.brainDir, 'keybindings.json'), { throwIfNoEntry: false }),
+        ).toBeUndefined();
+        expect(
+          lstatSync(join(scene.brainDir, '.home', '.claude', 'keybindings.json'), {
+            throwIfNoEntry: false,
+          }),
+        ).toBeUndefined();
+      });
+    });
+
+    when('[t4] the HOME file is created after the first enroll', () => {
+      // the likeliest real path: the human runs `/keybindings` in a bare claude after the
+      //   actor was first enrolled; the next enroll lays the arrows
+      const scene = useBeforeAll(async () => {
+        const dir = genTempDir({ slug: 'enroll-keybindings-created' });
+        setupEnrollFixture(dir);
+        const home = join(dir, '.home');
+        mkdirSync(join(home, '.claude'), { recursive: true });
+        const keybindings = join(home, '.claude', 'keybindings.json');
+        const env = { PATH: setupStubBrainPath({ dir }), HOME: home };
+        const enroll = () =>
+          invokeRhachetCliBinary({
+            args: ['enroll', 'claude', '--roles', '-driver'],
+            cwd: dir,
+            env,
+            logOnError: false,
+          });
+        const first = enroll();
+        const brainDir = join(
+          dir,
+          '.agent',
+          '.actors',
+          getOneEnrolledActorDirName({ dir }),
+          'brain',
+          '.claude',
+        );
+        const topAfterFirst = lstatSync(join(brainDir, 'keybindings.json'), {
+          throwIfNoEntry: false,
+        });
+        writeFileSync(keybindings, '{ "bindings": [] }\n', 'utf-8');
+        const second = enroll();
+        return { first, second, brainDir, keybindings, topAfterFirst };
+      });
+
+      then('both enrolls exit 0', () => {
+        expect(scene.first.status).toEqual(0);
+        expect(scene.second.status).toEqual(0);
+      });
+
+      then('the first enroll lays no arrow', () => {
+        expect(scene.topAfterFirst).toBeUndefined();
+      });
+
+      then('the second enroll lays the arrows, which lead to the HOME file', () => {
+        expect(readlinkSync(join(scene.brainDir, 'keybindings.json'))).toEqual(
+          join('.home', '.claude', 'keybindings.json'),
+        );
+        expect(realpathSync(join(scene.brainDir, 'keybindings.json'))).toEqual(
+          realpathSync(scene.keybindings),
+        );
+      });
+    });
+
+    when('[t5] the HOME keybindings name is a link loop, unreadable', () => {
+      const scene = useBeforeAll(async () => {
+        const dir = genTempDir({ slug: 'enroll-keybindings-unreadable' });
+        setupEnrollFixture(dir);
+        const home = join(dir, '.home');
+        mkdirSync(join(home, '.claude'), { recursive: true });
+        writeFileSync(join(home, '.claude', 'settings.json'), '{}\n', 'utf-8');
+        // a two-link cycle: a stat through it throws ELOOP, as it does on any host
+        symlinkSync('keybindings.loop.json', join(home, '.claude', 'keybindings.json'));
+        symlinkSync('keybindings.json', join(home, '.claude', 'keybindings.loop.json'));
+        const run = invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--roles', '-driver'],
+          cwd: dir,
+          env: { PATH: setupStubBrainPath({ dir }), HOME: home },
+          logOnError: false,
+        });
+        const brainDir = join(
+          dir,
+          '.agent',
+          '.actors',
+          getOneEnrolledActorDirName({ dir }),
+          'brain',
+          '.claude',
+        );
+        return { run, brainDir, home };
+      });
+
+      then('enroll exits 0: an optional file never fails the enroll', () => {
+        expect(scene.run.status).toEqual(0);
+      });
+
+      then('enroll says the file could not be read, and that the clone keeps default keys', () => {
+        // the snapshot masks the path, so the raw stderr proves the line names the HOME's own file
+        expect(scene.run.stderr).toContain(
+          `keybindings at ${join(scene.home, '.claude', 'keybindings.json')} could not be read`,
+        );
+        expect(scene.run.stderr).toContain("the clone keeps claude's default keys");
+      });
+
+      then('enroll stderr matches snapshot', () => {
+        expect(asSnapshotSafeOfCredential(scene.run.stderr)).toMatchSnapshot();
+      });
+
+      then('neither keybindings name is written', () => {
+        expect(
+          lstatSync(join(scene.brainDir, 'keybindings.json'), { throwIfNoEntry: false }),
+        ).toBeUndefined();
+        expect(
+          lstatSync(join(scene.brainDir, '.home', '.claude', 'keybindings.json'), {
+            throwIfNoEntry: false,
+          }),
+        ).toBeUndefined();
+      });
+    });
+  });
+
   given('[case2d] a repo still at the legacy repo actor dir, enrolled before any init', () => {
     // an everyday `claude` (a bare enroll) can run on an upgraded repo before its first
     //   `rhx init`. were enroll to make `actor.via.repo=ambient` first, the legacy move would

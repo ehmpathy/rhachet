@@ -90,7 +90,7 @@ describe('setRepoActorBrainDir', () => {
       );
 
       then(
-        "only the doors and the four settings names are tracked; boot.md and claude's runtime state are ignored",
+        "only the doors and the four settings names are tracked; boot.md, the keybindings arrows, and claude's runtime state are ignored",
         () => {
           expect(
             readFileSync(
@@ -103,6 +103,9 @@ describe('setRepoActorBrainDir', () => {
             '.claude.json',
             '.credentials.json',
             'projects/-repo/transcript.jsonl',
+            // the keybindings arrows exist only on a box whose home holds the file
+            'keybindings.json',
+            '.home/.claude/keybindings.json',
           ])
             expect(
               getOneIsPathIgnoredByGit({

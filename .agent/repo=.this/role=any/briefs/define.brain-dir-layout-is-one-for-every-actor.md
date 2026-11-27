@@ -15,7 +15,11 @@ hooks.dispatch.manifest                               # REAL: this actor's roles
 settings.json        -> settings.of.grove.json        # claude's fixed name → our clear name
 settings.of.grove.json  -> .home/.claude/settings.json            # the grove (the box); relative
 .home/.claude/settings.json -> <home>/.claude/settings.json      # the ONE name that holds a home path
+keybindings.json     -> .home/.claude/keybindings.json            # only while the home file exists
+.home/.claude/keybindings.json -> <home>/.claude/keybindings.json
 ```
+
+the keybindings arrows track the box: no home file, no arrows of ours (`inventory.of=requirements.case=27`).
 
 three real files carry content; every other name is an arrow. one `bin/hooks.dispatch.sh` per event
 runs every manifest rule of that event. `settings.of.repo.json` is passed to claude by its clear name.

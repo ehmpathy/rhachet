@@ -17,9 +17,10 @@
 - **reach** differs: a bare `claude` reaches the repo actor's dir through `<repo>/.claude`; a clone
   reaches its own through `CLAUDE_CONFIG_DIR`. the reach path is not the layout
 - **git** differs: only the repo actor's brain dir is tracked. what git sees is not what the dir holds
-- **the box** decides the grove names for all actors alike: on a box with no `~/.claude/settings.json`,
-  every actor lacks `settings.of.grove.json` and `settings.json` together. no actor lacks what another holds,
-  so that is not divergence
+- **the box** decides the home names for all actors alike: with no `~/.claude/settings.json`, every
+  actor lacks `.home/.claude/settings.json` and keeps its two tracked grove arrows; with no
+  `~/.claude/keybindings.json`, every actor lacks both keybindings arrows. no actor lacks what another
+  holds, so that is not divergence
 
 ## .why
 

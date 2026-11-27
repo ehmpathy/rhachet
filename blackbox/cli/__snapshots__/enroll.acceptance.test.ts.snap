@@ -619,6 +619,34 @@ exports[`rhx enroll --roles (acceptance) given: [case2f] a committed repo actor 
 }"
 `;
 
+exports[`rhx enroll --roles (acceptance) given: [case2g] the keybindings arrows, through a real enroll, under a HOME the case pins when: [t0] the HOME holds a \`.claude/keybindings.json\` then: enroll stderr matches snapshot 1`] = `
+"
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case2g] the keybindings arrows, through a real enroll, under a HOME the case pins when: [t1] the HOME holds no \`.claude/keybindings.json\` then: enroll stderr matches snapshot 1`] = `
+"
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+"
+`;
+
+exports[`rhx enroll --roles (acceptance) given: [case2g] the keybindings arrows, through a real enroll, under a HOME the case pins when: [t5] the HOME keybindings name is a link loop, unreadable then: enroll stderr matches snapshot 1`] = `
+"ℹ keybindings at /PATH_STRIPPED could not be read (a link loop, or no read permission) — the clone keeps claude's default keys; fix the file, then enroll again
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:__SERIAL8__ --what "…"
+   └─ 🎧 rhx clone get @:__SERIAL8__ --tail 50
+
+"
+`;
+
 exports[`rhx enroll --roles (acceptance) given: [case3] positive replace — bare \`mechanic\` keeps ONLY mechanic when: [t0] \`enroll claude --roles mechanic\` (replace mode) then: the authored config body is locked to a snapshot 1`] = `
 "{
   "hooks": {

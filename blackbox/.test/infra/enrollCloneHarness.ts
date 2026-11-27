@@ -648,6 +648,8 @@ export const enrollRealClaudeAndWaitReach = async (input: {
   /** the roleset to enroll; absent → the repo default */
   roles?: string[];
   model?: string;
+  /** extra claude passthrough args (e.g. `--debug-file <path>`); absent → none */
+  brainArgs?: string[];
   timeoutMs?: number;
 }): Promise<{ bg: RhachetBackgroundHandle; address: string; serial: string }> => {
   // 🔴 take a host-wide slot BEFORE the spawn. every realbrain suite passes through this
@@ -668,6 +670,7 @@ export const enrollRealClaudeAndWaitReach = async (input: {
       'claude',
       '--model',
       input.model ?? 'haiku',
+      ...(input.brainArgs ?? []),
       ...(input.as ? ['--as', input.as] : []),
       ...(input.roles ? ['--roles', input.roles.join(',')] : []),
       '--output',

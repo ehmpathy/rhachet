@@ -1,17 +1,23 @@
 import { ConstraintError } from 'helpful-errors';
 
-import { CLAUDE_SETTINGS_FILENAMES } from '@src/domain.operations/brains/claudeCodeSettings';
+import {
+  CLAUDE_KEYBINDINGS_FILENAMES,
+  CLAUDE_SETTINGS_FILENAMES,
+} from '@src/domain.operations/brains/claudeCodeSettings';
 import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 import { setFileAtomic } from '@src/infra/setFileAtomic';
 import { setSymlinkSwapped } from '@src/infra/setSymlinkSwapped';
 
 import {
+  accessSync,
+  constants,
   existsSync,
   lstatSync,
   mkdirSync,
   readdirSync,
   readlinkSync,
   rmSync,
+  statSync,
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 
@@ -22,12 +28,26 @@ import { dirname, join } from 'node:path';
  */
 type BrainDirSettingsLayoutEffect =
   | { kind: 'LINKED'; name: string; target: string }
-  | { kind: 'UNLINKED'; name: string; reason: 'grove absent' };
+  | {
+      kind: 'UNLINKED';
+      name: string;
+      reason: BrainDirSettingsLayoutUnlinkReason;
+    };
+
+/**
+ * .what = why the layout removed one of its own entries
+ * .note = one union, read by each removal leaf, so a new reason is added in one place
+ */
+type BrainDirSettingsLayoutUnlinkReason =
+  | 'grove absent'
+  | 'keybindings absent'
+  | 'keybindings unreadable';
 
 /**
  * .what = findsert the settings layout of one brain dir:
  *         `settings.json -> settings.of.grove.json -> .home/.claude/settings.json -> ~/.claude/settings.json`,
- *         and `settings.of.repo.json` as the one real file
+ *         `settings.of.repo.json` as the one real file, and, while the home holds one,
+ *         `keybindings.json -> .home/.claude/keybindings.json -> ~/.claude/keybindings.json`
  * .note = only `.home/.claude/settings.json` names this box; the arrows before it are relative,
  *   so they hold the same bytes on every box and stay tracked (#779)
  * .why = one layout for every actor (define.brain-dir-layout-is-one-for-every-actor). claude
@@ -47,6 +67,8 @@ type BrainDirSettingsLayoutEffect =
  * .note = a box with no grove (`~/.claude/settings.json` absent) drops only the home link. the
  *   tracked arrows stay, so git stays clean, and the chain ends inside the brain dir, so no
  *   write through it can create the human's home settings
+ * .note = the keybindings arrows are laid only while the home file is a file. claude reads
+ *   keybindings from its config dir, so a clone sees the human's keys only through them
  * .note = idempotent: a dir already in the layout yields no effect
  * .note = the whole findsert holds the brain dir's `settings.of.repo.json` mutex, so a peer
  *   `rhx` process (an `enroll` beside an `init`, or two `init`s) never interleaves with it.
@@ -70,13 +92,19 @@ export const setBrainDirSettingsLayout = async (input: {
 
 /**
  * .what = what the layout findsert did, and which grove it found
- * .note = `grove` rides out so a caller can say a box has no grove (vision case=4) without
- *   a second probe of the home dir
+ * .note = `grove` and `keybindings` ride out so a caller can say a box has no grove (vision
+ *   case=4), or holds a keybindings file it cannot read, without a second probe of the home dir
  */
 type BrainDirSettingsLayout = {
   effects: BrainDirSettingsLayoutEffect[];
   grove: { source: string; isPresent: boolean };
+  keybindings: { source: string; state: KeybindingsSourceState };
 };
+
+/**
+ * .what = what the home holds at the keybindings name
+ */
+type KeybindingsSourceState = 'file' | 'absent' | 'unreadable';
 
 /**
  * .what = the layout findsert itself; the caller holds the brain dir's `settings.of.repo.json` mutex
@@ -89,7 +117,11 @@ export const setBrainDirSettingsLayoutWithinLock = (input: {
   const pathGrove = join(brainDir, CLAUDE_SETTINGS_FILENAMES.grove);
   const pathClaude = join(brainDir, CLAUDE_SETTINGS_FILENAMES.claude);
   const pathHome = join(brainDir, CLAUDE_SETTINGS_FILENAMES.home);
-  const groveSource = join(input.home, '.claude', 'settings.json');
+  const groveSource = join(
+    input.home,
+    '.claude',
+    CLAUDE_SETTINGS_FILENAMES.claude,
+  );
   const isGrovePresent = existsSync(groveSource);
   const grove = { source: groveSource, isPresent: isGrovePresent };
 
@@ -108,6 +140,20 @@ export const setBrainDirSettingsLayoutWithinLock = (input: {
         hint: `remove ${pathRepo}, then rerun \`rhx init\`; rhachet derives it from the roles`,
       },
     );
+
+  // the keybindings source is read before any mutation, so an unexpected fault throws with the
+  //   layout untouched
+  //
+  // .note = the read and the lay are not atomic: a home file that vanishes between them leaves a
+  //   dead arrow, which the next findsert removes. claude reads a dead arrow as absent
+  const keybindingsSource = join(
+    input.home,
+    '.claude',
+    CLAUDE_KEYBINDINGS_FILENAMES.claude,
+  );
+  const keybindingsSourceState = getOneKeybindingsSourceState({
+    source: keybindingsSource,
+  });
 
   // no second answer lingers: drop each fork copy an earlier layout left behind
   delForkedSettingsCopies({ brainDir });
@@ -128,12 +174,14 @@ export const setBrainDirSettingsLayoutWithinLock = (input: {
     : delEntryIfPresent({
         name: CLAUDE_SETTINGS_FILENAMES.home,
         path: pathHome,
+        reason: 'grove absent',
       });
 
   // the grove arrows: our clear name to the home link (relative, so its bytes match on every
   //   box, grove or not), claude's fixed name to ours. both are tracked, so both stay put
   return {
     grove,
+    keybindings: { source: keybindingsSource, state: keybindingsSourceState },
     effects: [
       ...effectsHome,
       ...setArrow({
@@ -146,8 +194,119 @@ export const setBrainDirSettingsLayoutWithinLock = (input: {
         path: pathClaude,
         target: CLAUDE_SETTINGS_FILENAMES.grove,
       }),
+      ...setKeybindingsArrows({
+        brainDir,
+        source: keybindingsSource,
+        sourceState: keybindingsSourceState,
+      }),
     ],
   };
+};
+
+/**
+ * .what = what the home holds at the keybindings name, read through links
+ * .why = the arrows aim only at a readable file. an absent entry, a dead link, or a file parent
+ *        reads as `absent` (statSync folds ENOENT and ENOTDIR into absence). a link loop or a
+ *        denied read reads as `unreadable`: a bare claude on that box logs the fault and runs on
+ *        defaults, so enroll does the same and never fails over an optional file
+ * .note = `stat` needs no read permission on the file itself, so a file this process cannot read
+ *   (mode 000, or one a `sudo claude` left root-owned) stats as a file. the read check after it
+ *   catches that case, as EACCES
+ * .note = any other fault is rethrown; it names no state of the human's file
+ */
+const getOneKeybindingsSourceState = (input: {
+  source: string;
+}): KeybindingsSourceState => {
+  try {
+    const stat = statSync(input.source, { throwIfNoEntry: false });
+    if (!stat?.isFile()) return 'absent';
+    accessSync(input.source, constants.R_OK);
+    return 'file';
+  } catch (error) {
+    // the errno is read by shape, never by `instanceof Error`: a node fs error may come from
+    //   another realm (a jest vm), where that check is false
+    if (typeof error !== 'object' || error === null) throw error;
+    const errno = 'code' in error ? error.code : null;
+    if (errno !== 'ELOOP' && errno !== 'EACCES' && errno !== 'EPERM')
+      throw error;
+    return 'unreadable';
+  }
+};
+
+/**
+ * .what = findsert the keybindings arrows: `keybindings.json -> .home/.claude/keybindings.json`
+ *         (relative) and `.home/.claude/keybindings.json -> ~/.claude/keybindings.json`
+ * .why = claude reads `keybindings.json` from its config dir, and a clone spawns with this brain
+ *        dir as that dir, so without the arrows a clone shows keys the human rebound or unbound
+ * .note = laid only while the home file is a readable file (`getOneKeybindingsSourceState`: a dead
+ *   link or a dir reads as absent, a link loop or a denied read as unreadable). no arrow is laid
+ *   at an absent file, so a write through one at lay time cannot create the human's home file
+ * .note = with no readable source file, only rhachet's own entries go: the home name sits in
+ *   `.home/`, which the layout owns, so its entry is removed whole; at the top name only our arrow
+ *   is removed, and a file or arrow a hand left there stays
+ */
+const setKeybindingsArrows = (input: {
+  brainDir: string;
+  source: string;
+  sourceState: 'file' | 'absent' | 'unreadable';
+}): BrainDirSettingsLayoutEffect[] => {
+  const pathTop = join(input.brainDir, CLAUDE_KEYBINDINGS_FILENAMES.claude);
+  const pathHome = join(input.brainDir, CLAUDE_KEYBINDINGS_FILENAMES.home);
+
+  // a source file: the home name aims at it, the top name aims at the home name
+  if (input.sourceState === 'file') {
+    mkdirSync(dirname(pathHome), { recursive: true });
+    return [
+      ...setArrow({
+        name: CLAUDE_KEYBINDINGS_FILENAMES.home,
+        path: pathHome,
+        target: input.source,
+      }),
+      ...setArrow({
+        name: CLAUDE_KEYBINDINGS_FILENAMES.claude,
+        path: pathTop,
+        target: CLAUDE_KEYBINDINGS_FILENAMES.home,
+      }),
+    ];
+  }
+
+  // no readable source file: drop rhachet's own entries, never one a hand left at the top name
+  const reason =
+    input.sourceState === 'unreadable'
+      ? 'keybindings unreadable'
+      : 'keybindings absent';
+  return [
+    ...delEntryIfPresent({
+      name: CLAUDE_KEYBINDINGS_FILENAMES.home,
+      path: pathHome,
+      reason,
+    }),
+    ...delArrowIfOurs({
+      name: CLAUDE_KEYBINDINGS_FILENAMES.claude,
+      path: pathTop,
+      target: CLAUDE_KEYBINDINGS_FILENAMES.home,
+      reason,
+    }),
+  ];
+};
+
+/**
+ * .what = remove an arrow only if it is ours: a symlink whose target is the one we lay
+ * .why = a top-level name outside `.home/` may hold a file a hand put there; only our own arrow is
+ *        ours to retire
+ * .note = a real file, a dir, or an arrow aimed elsewhere is not rhachet's, so it stays
+ */
+const delArrowIfOurs = (input: {
+  name: string;
+  path: string;
+  target: string;
+  reason: BrainDirSettingsLayoutUnlinkReason;
+}): BrainDirSettingsLayoutEffect[] => {
+  const stat = lstatSync(input.path, { throwIfNoEntry: false });
+  if (!stat?.isSymbolicLink()) return [];
+  if (readlinkSync(input.path) !== input.target) return [];
+  rmSync(input.path, { force: true });
+  return [{ kind: 'UNLINKED', name: input.name, reason: input.reason }];
 };
 
 /**
@@ -168,19 +327,21 @@ const delForkedSettingsCopies = (input: { brainDir: string }): void => {
 };
 
 /**
- * .what = remove whatever holds one name — an arrow or a real file
- * .note = an UNLINKED effect only when an arrow was removed: a real file at the home link in a
- *   grove-less box is a write that landed there, dropped without a row
+ * .what = remove whatever holds one name under `.home/` — an arrow, a real file, or a dir
+ * .why = `.home/` is the layout's own namespace, so with no source the name it would aim from goes
+ * .note = an UNLINKED effect only when an arrow was removed: a real file at a home name with no
+ *   source is a write that landed there, dropped without a row
  */
 const delEntryIfPresent = (input: {
   name: string;
   path: string;
+  reason: BrainDirSettingsLayoutUnlinkReason;
 }): BrainDirSettingsLayoutEffect[] => {
   const stat = lstatSync(input.path, { throwIfNoEntry: false });
   if (!stat) return [];
   rmSync(input.path, { recursive: true, force: true });
   if (!stat.isSymbolicLink()) return [];
-  return [{ kind: 'UNLINKED', name: input.name, reason: 'grove absent' }];
+  return [{ kind: 'UNLINKED', name: input.name, reason: input.reason }];
 };
 
 /**

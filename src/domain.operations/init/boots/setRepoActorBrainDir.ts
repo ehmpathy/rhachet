@@ -33,6 +33,8 @@ import { setRepoActorDirFromLegacy } from './setRepoActorDirFromLegacy';
  *         `.home/` holds the one link that names this box (`<home>/.claude/settings.json`), and
  *         `/*` keeps it out (rule.forbid.machine-names-in-committed-config, #779)
  * .note = order matters: `/*` precedes each `!` re-include
+ * .note = the keybindings arrows stay ignored on purpose: each exists only on a box whose home
+ *         holds `keybindings.json`, so to track them would make the committed tree vary per box
  * .note = the dispatch manifest is tracked beside `settings.of.repo.json`: the settings name a
  *         dispatcher, and the rules it runs live in the manifest, so a fresh checkout needs both
  */

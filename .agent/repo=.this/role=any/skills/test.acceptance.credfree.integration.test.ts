@@ -86,4 +86,23 @@ describe('test.acceptance.credfree', () => {
       });
     });
   });
+
+  given('[case4] a --what that names no tier', () => {
+    when('[t0] the skill runs with --what unit', () => {
+      const run = useThen('exits 2', () =>
+        runSkill({ args: ['--what', 'unit', '--scope', 'asRoleBootBody'] }),
+      );
+
+      then('it refuses before any build or jest run, and names the tiers', () => {
+        expect(run.status).toEqual(2);
+        expect(run.stderr).toContain(
+          '--what must be acceptance or integration',
+        );
+        expect(run.stderr).toContain('what = unit');
+      });
+      then('the refusal holds its shape', () => {
+        expect(run.stderr).toMatchSnapshot();
+      });
+    });
+  });
 });
