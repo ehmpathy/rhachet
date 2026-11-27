@@ -6,6 +6,8 @@ import { execRoleInits } from '@src/domain.operations/invoke/init/execRoleInits'
 import { execRoleLink } from '@src/domain.operations/invoke/link/execRoleLink';
 import { withRoleViewLock } from '@src/domain.operations/role/withRoleViewLock';
 
+import { withRolesPartWayFault } from './withRolesPartWayFault';
+
 /**
  * .what = links + inits a set of already-found roles (the source of truth link loop)
  * .why = both the absolute path (initRolesFromPackages) and the incremental
@@ -28,18 +30,34 @@ export const getRolesLinkedFromFound = async (
   },
   context: ContextCli,
 ): Promise<{ repo: string; role: string }[]> => {
-  // link + init each role (sequential for deterministic, readable output); the link holds the
-  //   role view lock, so it never lands within a modded view swap
-  for (const one of input.found) {
-    await withRoleViewLock({ cwd: context.cwd }, async () =>
-      execRoleLink({ role: one.role, repo: one.repo }, context),
+  // the concrete { repo, role } of each found role, in loop order
+  const slugs = asRoleSlugsOfFound({ found: input.found });
+
+  // link + init each role (sequential for deterministic, readable output); the first fault
+  //   stops the loop (F5) and names which roles linked
+  for (const [faultAt, one] of input.found.entries()) {
+    // link the role under the role view lock, so it never lands within a modded view swap;
+    //   a link fault leaves this role unlinked
+    await withRolesPartWayFault({ slugs, faultAt, step: 'link' }, () =>
+      withRoleViewLock({ cwd: context.cwd }, async () =>
+        execRoleLink({ role: one.role, repo: one.repo }, context),
+      ),
     );
-    await execRoleInits({ role: one.role, repo: one.repo });
+
+    // init the role; an init fault leaves this role linked (F1)
+    await withRolesPartWayFault({ slugs, faultAt, step: 'init' }, () =>
+      execRoleInits({ role: one.role, repo: one.repo }),
+    );
   }
 
   // report the concrete { repo, role } of each linked role
-  return input.found.map((one) => ({
-    repo: one.repo.slug,
-    role: one.role.slug,
-  }));
+  return slugs;
 };
+
+/**
+ * .what = the concrete { repo, role } slugs of each found role, in loop order
+ */
+const asRoleSlugsOfFound = (input: {
+  found: { repo: RoleRegistryManifest; role: RoleManifest }[];
+}): { repo: string; role: string }[] =>
+  input.found.map((one) => ({ repo: one.repo.slug, role: one.role.slug }));

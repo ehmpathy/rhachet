@@ -6,7 +6,7 @@ import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 import { spawn } from 'node:child_process';
 import { EventEmitter, once } from 'node:events';
 import { readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, sep } from 'node:path';
 
 /**
  * .mock = `process.stderr.write`, spied and silenced in [case2], restored in `finally`
@@ -320,7 +320,9 @@ describe('withRepoMutex', () => {
       const prodFiles = readdirSync(srcDir, { recursive: true })
         .map(String)
         .filter((name) => name.endsWith('.ts') && !name.includes('.test.'))
-        .filter((name) => !name.startsWith(join('.test', '')));
+        .filter((name) => !name.startsWith(join('.test', '')))
+        // a `.temp` dir is scratch a parallel suite writes and deletes, never prod source
+        .filter((name) => !name.split(sep).includes('.temp'));
       const read = (name: string) => readFileSync(join(srcDir, name), 'utf8');
 
       then('only this wrapper imports with-simple-mutex', () => {

@@ -10,6 +10,8 @@ import {
   relative,
   resolve,
 } from 'node:path';
+import { getOneRhxProvenance } from '../getOneRhxProvenance';
+import { assertRepoMutexCacheFit } from './assertRepoMutexCacheFit';
 import { emitRepoMutexWaitNotice } from './emitRepoMutexWaitNotice';
 
 /**
@@ -64,10 +66,37 @@ const getOneRepoMutexCache = async (input: {
   if (found) return found;
   const created = (async () => {
     const { createCache } = await import('simple-on-disk-cache');
-    return createCache({ directory: { local: { path: dir } } });
+    const cache = createCache({ directory: { local: { path: dir } } });
+
+    // a foreign cache copy is named here, before any key is taken (vision case 5)
+    assertRepoMutexCacheFit({
+      cache,
+      rhx: () => getOneRhxProvenance({ repoPath: repoReal }),
+    });
+    return cache;
   })();
+
+  // a refusal is never memoized: the next call re-reads the disk, so a repaired install is seen
   cacheByRepo.set(repoReal, created);
+  forgetMemoOnRejection({ memo: cacheByRepo, key: repoReal, value: created });
   return created;
+};
+
+/**
+ * .what = drop a memoized promise from its memo once it rejects, unless a newer one took its key
+ * .why = a refusal must never be served from the memo; the identity check keeps a later, live
+ *   entry safe from an older promise's late rejection. the caller still awaits `value` itself,
+ *   so the rejection reaches it unchanged
+ */
+const forgetMemoOnRejection = <T>(input: {
+  memo: Map<string, Promise<T>>;
+  key: string;
+  value: Promise<T>;
+}): void => {
+  input.value.catch(() => {
+    const isStillMemoized = input.memo.get(input.key) === input.value;
+    if (isStillMemoized) input.memo.delete(input.key);
+  });
 };
 
 /**
