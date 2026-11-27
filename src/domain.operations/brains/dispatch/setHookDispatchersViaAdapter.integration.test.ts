@@ -1,7 +1,12 @@
 import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
-import { genBrainHooksAdapterForClaudeCode } from '@src/_topublish/rhachet-brains-anthropic/src';
+import {
+  genBrainHooksAdapterForClaudeCode,
+  readClaudeCodeSettings,
+  writeClaudeCodeSettings,
+} from '@src/_topublish/rhachet-brains-anthropic/src';
 import { BrainHook } from '@src/domain.objects/BrainHook';
+import { BrainHookFilter } from '@src/domain.objects/BrainHookFilter';
 import type { BrainHooksAdapter } from '@src/domain.objects/BrainHooksAdapter';
 import { HookDispatchRule } from '@src/domain.objects/HookDispatchRule';
 
@@ -83,13 +88,19 @@ describe('setHookDispatchersViaAdapter', () => {
           () => {
             expect(result.calls).toEqual([
               `upsert ${HOOK_DISPATCH.author}`,
+              `upsert ${HOOK_DISPATCH.author}`,
+              `upsert ${HOOK_DISPATCH.author}`,
+              `upsert ${HOOK_DISPATCH.author}`,
               'del repo=test/role=tester',
             ]);
           },
         );
 
-        then('the settings then hold the dispatcher alone', () => {
+        then('the settings then hold the four dispatchers alone', () => {
           expect(result.after.map((hook) => hook.author)).toEqual([
+            HOOK_DISPATCH.author,
+            HOOK_DISPATCH.author,
+            HOOK_DISPATCH.author,
             HOOK_DISPATCH.author,
           ]);
         });
@@ -116,8 +127,8 @@ describe('setHookDispatchersViaAdapter', () => {
   ];
 
   /**
-   * .what = one rule per claude event; PreToolUse holds two tool matchers, so its dispatcher
-   *   carries a list matcher (`Bash|Write`) the adapter must read back as written
+   * .what = one rule per claude event; PreToolUse holds two tool matchers, yet its dispatcher
+   *   carries `*`, so a row added later needs no settings write
    */
   const asRule = (input: {
     event: string;
@@ -143,20 +154,30 @@ describe('setHookDispatchersViaAdapter', () => {
     asRule({ event: 'Stop', matcher: '*' }),
   ];
 
+  // a hook a human added by hand: no author, so no sync may move it
+  const HAND_HOOK = { type: 'command', command: 'echo hand', timeout: 7 };
+
+  /**
+   * .what = a temp repo whose claude settings already hold the dispatchers RULES need
+   */
+  const genSceneWired = async (input: { slug: string }) => {
+    const repoPath = genTempDir({ slug: input.slug });
+    mkdirSync(join(repoPath, '.claude'), { recursive: true });
+    const adapter = genBrainHooksAdapterForClaudeCode({ repoPath });
+    await setHookDispatchersViaAdapter({
+      adapter,
+      rules: RULES,
+      manifestPathRel: '.claude/hooks.dispatch.manifest',
+    });
+    return { adapter, repoPath };
+  };
+
   given(
     '[case4] dispatchers in place, then the Stop event loses its last rule',
     () => {
-      const scene = useBeforeAll(async () => {
-        const repoPath = genTempDir({ slug: 'dispatch-swap-emptied' });
-        mkdirSync(join(repoPath, '.claude'), { recursive: true });
-        const adapter = genBrainHooksAdapterForClaudeCode({ repoPath });
-        await setHookDispatchersViaAdapter({
-          adapter,
-          rules: RULES,
-          manifestPathRel: '.claude/hooks.dispatch.manifest',
-        });
-        return { adapter };
-      });
+      const scene = useBeforeAll(async () =>
+        genSceneWired({ slug: 'dispatch-swap-emptied' }),
+      );
 
       when('[t0] the dispatchers are set from the rules without Stop', () => {
         const result = useBeforeAll(async () => {
@@ -169,22 +190,174 @@ describe('setHookDispatchersViaAdapter', () => {
           return { calls, after: await scene.adapter.dao.get.all() };
         });
 
+        then('naught is written: a wire waits on an event with no rows', () => {
+          expect(result.calls).toEqual([]);
+        });
+
         then(
-          'the Stop dispatcher is taken back, and naught else is written',
+          'the Stop dispatcher stays in place, beside the other three',
           () => {
-            expect(result.calls).toEqual([`del ${HOOK_DISPATCH.author}`]);
+            expect(
+              result.after
+                .filter((hook) => hook.author === HOOK_DISPATCH.author)
+                .map((hook) => hook.event)
+                .sort(),
+            ).toEqual(['onBoot', 'onStop', 'onTalk', 'onTool']);
+          },
+        );
+      });
+    },
+  );
+
+  given(
+    '[case5] dispatchers in place, then a row is added for a tool and an event no row named',
+    () => {
+      const scene = useBeforeAll(async () =>
+        genSceneWired({ slug: 'dispatch-swap-later-row' }),
+      );
+
+      when('[t0] the dispatchers are set from the grown rules', () => {
+        const result = useBeforeAll(async () => {
+          const calls: string[] = [];
+          const swap = await setHookDispatchersViaAdapter({
+            adapter: asAdapterRecorded({ adapter: scene.adapter, calls }),
+            rules: [
+              ...RULES.filter((rule) => rule.event !== 'UserPromptSubmit'),
+              asRule({ event: 'PreToolUse', matcher: 'Agent' }),
+              asRule({ event: 'UserPromptSubmit', matcher: '*' }),
+            ],
+            manifestPathRel: '.claude/hooks.dispatch.manifest',
+          });
+          return { calls, swap };
+        });
+
+        then(
+          'naught is written: the wire in place already reaches the new row',
+          () => {
+            expect(result.calls).toEqual([]);
+            expect(result.swap.dispatchersSet).toEqual(0);
+          },
+        );
+      });
+    },
+  );
+
+  given(
+    '[case6] settings whose PreToolUse dispatcher carries a union matcher, from an older sync',
+    () => {
+      const scene = useBeforeAll(async () => {
+        const base = await genSceneWired({ slug: 'dispatch-swap-union' });
+        const found = await base.adapter.dao.get.all();
+        const wire = found.find((hook) => hook.event === 'onTool')!;
+        await base.adapter.dao.set.upsert({
+          hook: new BrainHook({
+            author: wire.author,
+            event: wire.event,
+            command: wire.command,
+            timeout: wire.timeout,
+            filter: new BrainHookFilter({ what: 'Bash|Write' }),
+          }),
+        });
+
+        // a hook a human added by hand, under the union's own matcher
+        const settings = await readClaudeCodeSettings({ from: base.repoPath });
+        await writeClaudeCodeSettings({
+          settings: {
+            ...settings,
+            hooks: {
+              ...settings.hooks,
+              PreToolUse: [
+                ...(settings.hooks?.PreToolUse ?? []),
+                { matcher: 'Bash|Write', hooks: [HAND_HOOK] },
+              ],
+            },
+          },
+          to: base.repoPath,
+        });
+        return base;
+      });
+
+      when('[t0] the dispatchers are set again', () => {
+        const result = useBeforeAll(async () => {
+          const calls: string[] = [];
+          await setHookDispatchersViaAdapter({
+            adapter: asAdapterRecorded({ adapter: scene.adapter, calls }),
+            rules: RULES,
+            manifestPathRel: '.claude/hooks.dispatch.manifest',
+          });
+          return { calls, after: await scene.adapter.dao.get.all() };
+        });
+
+        then(
+          'the union wire is rewritten once, and naught is taken back',
+          () => {
+            expect(result.calls).toEqual([`upsert ${HOOK_DISPATCH.author}`]);
           },
         );
 
-        then('no dispatcher is left on the emptied event', () => {
-          expect(result.after.map((hook) => hook.event)).not.toContain(
-            'onStop',
-          );
-          expect(result.after.length).toBeGreaterThan(0);
+        then('every dispatcher now reaches every tool', () => {
+          expect(
+            result.after
+              .filter((hook) => hook.author === HOOK_DISPATCH.author)
+              .map((hook) => hook.filter?.what ?? '*'),
+          ).toEqual(['*', '*', '*', '*']);
+        });
+
+        then('the hand-added hook stays under its own matcher', async () => {
+          const settings = await readClaudeCodeSettings({
+            from: scene.repoPath,
+          });
+          expect(settings.hooks?.PreToolUse).toContainEqual({
+            matcher: 'Bash|Write',
+            hooks: [HAND_HOOK],
+          });
         });
       });
     },
   );
+
+  given('[case7] dispatchers in place, then the manifest is absent', () => {
+    const scene = useBeforeAll(async () =>
+      genSceneWired({ slug: 'dispatch-swap-absent' }),
+    );
+
+    when('[t0] the dispatchers are set with no rules to read', () => {
+      const result = useBeforeAll(async () => {
+        const calls: string[] = [];
+        const swap = await setHookDispatchersViaAdapter({
+          adapter: asAdapterRecorded({ adapter: scene.adapter, calls }),
+          rules: null,
+          manifestPathRel: '.claude/hooks.dispatch.manifest',
+        });
+        return { calls, swap, after: await scene.adapter.dao.get.all() };
+      });
+
+      then(
+        'every dispatcher is taken back: a wire at an absent manifest would refuse every call',
+        () => {
+          expect(result.calls).toEqual([
+            `del ${HOOK_DISPATCH.author}`,
+            `del ${HOOK_DISPATCH.author}`,
+            `del ${HOOK_DISPATCH.author}`,
+            `del ${HOOK_DISPATCH.author}`,
+          ]);
+          expect(result.after).toEqual([]);
+        },
+      );
+
+      then(
+        'the swap counts the four it took back, so the sync can name them',
+        () => {
+          expect(result.swap).toEqual({
+            dispatchers: 0,
+            dispatchersSet: 0,
+            dispatchersTakenBack: 4,
+            roleHooksTakenBack: 0,
+          });
+        },
+      );
+    });
+  });
 
   ADAPTERS.forEach((each, index) =>
     given(
@@ -213,15 +386,14 @@ describe('setHookDispatchersViaAdapter', () => {
             return { calls, second };
           });
 
-          then(
-            'the first set wrote one dispatcher per event and matcher',
-            () => {
-              expect(scene.first.dispatchersSet).toEqual(
-                scene.first.dispatchers,
-              );
-              expect(scene.first.dispatchers).toBeGreaterThan(0);
-            },
-          );
+          then('the first set wrote one `*` dispatcher per event', () => {
+            expect(scene.first).toEqual({
+              dispatchers: 4,
+              dispatchersSet: 4,
+              dispatchersTakenBack: 0,
+              roleHooksTakenBack: 0,
+            });
+          });
 
           then(
             'the second set writes naught, so a rerun reads as a no-op',
@@ -230,6 +402,7 @@ describe('setHookDispatchersViaAdapter', () => {
               expect(result.second).toEqual({
                 dispatchers: scene.first.dispatchers,
                 dispatchersSet: 0,
+                dispatchersTakenBack: 0,
                 roleHooksTakenBack: 0,
               });
             },

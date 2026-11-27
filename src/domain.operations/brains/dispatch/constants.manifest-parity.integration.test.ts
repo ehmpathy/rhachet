@@ -8,7 +8,13 @@ import {
   HOOK_DISPATCH_MANIFEST_HEAD,
   HOOK_DISPATCH_MANIFEST_VERSION,
 } from './asHookDispatchManifestText';
-import { HOOK_DISPATCH, HOOK_DISPATCH_MATCHER_LIST } from './constants';
+import {
+  BRAIN_HOOK_EVENTS,
+  CLAUDE_EVENT_OF_BRAIN_HOOK_EVENT,
+  HOOK_DISPATCH,
+  HOOK_DISPATCH_MATCHER_KEY_OF_BRAIN_HOOK_EVENT,
+  HOOK_DISPATCH_MATCHER_LIST,
+} from './constants';
 
 describe('hook dispatch manifest contract, typescript against bin/hooks.dispatch.sh', () => {
   given(
@@ -81,6 +87,41 @@ describe('hook dispatch manifest contract, typescript against bin/hooks.dispatch
         then('it equals the declared grace', () => {
           const grace = scene.dispatcher.match(/__rhx_dispatch_grace=(\d+)/);
           expect(Number(grace?.[1])).toEqual(HOOK_DISPATCH.timeoutGraceSeconds);
+        });
+      });
+
+      when('[t4] the bash matcher key table is read', () => {
+        // each `case` arm of the key table, as { events, key }
+        const arms = (): { events: string[]; key: string }[] =>
+          [
+            ...scene.dispatcher.matchAll(
+              /^\s+([A-Za-z*| ]+)\) __rhx_dispatch_keyname='([a-z_]*)' ;;$/gm,
+            ),
+          ].map((match) => ({
+            events: match[1]!.split('|').map((event) => event.trim()),
+            key: match[2]!,
+          }));
+
+        then('its catch-all arm reads no key', () => {
+          const catchAll = arms().filter((arm) => arm.events.includes('*'));
+          expect(catchAll).toEqual([{ events: ['*'], key: '' }]);
+        });
+
+        then('each wired event reads the key the typescript declares', () => {
+          const keyOfEvent = (claudeEvent: string): string =>
+            (
+              arms().find((arm) => arm.events.includes(claudeEvent)) ??
+              arms().find((arm) => arm.events.includes('*'))
+            )?.key ?? '';
+          const keysRead = BRAIN_HOOK_EVENTS.map((event) => ({
+            event,
+            key: keyOfEvent(CLAUDE_EVENT_OF_BRAIN_HOOK_EVENT[event]),
+          }));
+          const keysDeclared = BRAIN_HOOK_EVENTS.map((event) => ({
+            event,
+            key: HOOK_DISPATCH_MATCHER_KEY_OF_BRAIN_HOOK_EVENT[event] ?? '',
+          }));
+          expect(keysRead).toEqual(keysDeclared);
         });
       });
     },

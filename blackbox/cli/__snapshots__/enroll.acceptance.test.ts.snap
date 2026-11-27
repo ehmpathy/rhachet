@@ -428,7 +428,46 @@ exports[`rhx enroll --roles (acceptance) given: [case2e] 🔴 core invariant —
           {
             "type": "command",
             "command": "bash ./node_modules/rhachet/bin/hooks.dispatch.sh .agent/.actors/actor.via.hash=__HEX__/brain/.claude/hooks.dispatch.manifest SessionStart",
-            "timeout": 10,
+            "timeout": 65,
+            "author": "rhachet/hooks.dispatch"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ./node_modules/rhachet/bin/hooks.dispatch.sh .agent/.actors/actor.via.hash=__HEX__/brain/.claude/hooks.dispatch.manifest PreToolUse",
+            "timeout": 65,
+            "author": "rhachet/hooks.dispatch"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ./node_modules/rhachet/bin/hooks.dispatch.sh .agent/.actors/actor.via.hash=__HEX__/brain/.claude/hooks.dispatch.manifest UserPromptSubmit",
+            "timeout": 65,
+            "author": "rhachet/hooks.dispatch"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ./node_modules/rhachet/bin/hooks.dispatch.sh .agent/.actors/actor.via.hash=__HEX__/brain/.claude/hooks.dispatch.manifest Stop",
+            "timeout": 65,
             "author": "rhachet/hooks.dispatch"
           }
         ]

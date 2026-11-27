@@ -60,7 +60,7 @@ describe('setHookDispatchManifestRederived', () => {
       });
 
       then('the row reads as the bash skill it was synced as', () => {
-        expect(result.rules.map((rule) => rule.kind)).toEqual(['rhx-skill']);
+        expect(result.rules?.map((rule) => rule.kind)).toEqual(['rhx-skill']);
       });
 
       then('the manifest is not rewritten', () => {
@@ -97,7 +97,7 @@ describe('setHookDispatchManifestRederived', () => {
         then(
           'the row runs the file as its own process, never sourced as bash',
           () => {
-            expect(result.rules.map((rule) => rule.kind)).toEqual(['exec']);
+            expect(result.rules?.map((rule) => rule.kind)).toEqual(['exec']);
           },
         );
 
@@ -164,8 +164,44 @@ describe('setHookDispatchManifestRederived', () => {
         }),
       );
 
-      then('there are no rules, and naught is written', () => {
+      then(
+        'rules read as null, apart from an empty manifest, and naught is written',
+        () => {
+          expect(result.rules).toEqual(null);
+        },
+      );
+    });
+  });
+
+  given('[case5] a manifest with zero rows', () => {
+    const scene = useBeforeAll(async () => {
+      const repoPath = genTempDir({ slug: 'dispatch-rederive-empty' });
+      const manifestPath = join(repoPath, '.claude', 'hooks.dispatch.manifest');
+      mkdirSync(join(repoPath, '.claude'), { recursive: true });
+      await setHookDispatchManifest({ path: manifestPath, rules: [] });
+      return { repoPath, manifestPath };
+    });
+
+    when('[t0] the rules are derived again', () => {
+      const result = useBeforeAll(async () => {
+        const textBefore = readFileSync(scene.manifestPath, 'utf-8');
+        const { rules } = await setHookDispatchManifestRederived({
+          manifestPath: scene.manifestPath,
+          repoPath: scene.repoPath,
+        });
+        return {
+          rules,
+          textBefore,
+          textAfter: readFileSync(scene.manifestPath, 'utf-8'),
+        };
+      });
+
+      then('rules read as [], not null, so the four wires still land', () => {
         expect(result.rules).toEqual([]);
+      });
+
+      then('the manifest is left byte-equal', () => {
+        expect(result.textAfter).toEqual(result.textBefore);
       });
     });
   });

@@ -1,5 +1,4 @@
 import { BrainHook } from '@src/domain.objects/BrainHook';
-import { BrainHookFilter } from '@src/domain.objects/BrainHookFilter';
 import type { BrainHooksAdapter } from '@src/domain.objects/BrainHooksAdapter';
 import type { HookDispatchRule } from '@src/domain.objects/HookDispatchRule';
 import { isHookAuthorOfRole } from '@src/domain.operations/brains/isHookAuthorOfRole';
@@ -22,14 +21,17 @@ import { isHookReplacedByDispatch } from './isHookReplacedByDispatch';
  * .note = a hook with no role author (a hand-added one) is never touched
  * .note = a dispatcher hook already in place, the same in command, timeout and matcher, is
  *   left as is, so a re-sync writes naught
+ * .note = `rules: null` means no manifest: every dispatcher is taken back, since one named at an
+ *   absent manifest would refuse every call
  */
 export const setHookDispatchersViaAdapter = async (input: {
   adapter: BrainHooksAdapter;
-  rules: HookDispatchRule[];
+  rules: HookDispatchRule[] | null;
   manifestPathRel: string;
 }): Promise<{
   dispatchers: number;
   dispatchersSet: number;
+  dispatchersTakenBack: number;
   roleHooksTakenBack: number;
 }> => {
   const { adapter } = input;
@@ -69,6 +71,9 @@ export const setHookDispatchersViaAdapter = async (input: {
   return {
     dispatchers: desired.length,
     dispatchersSet: toSet.length,
+    dispatchersTakenBack: toDel.filter(
+      (hook) => hook.author === HOOK_DISPATCH.author,
+    ).length,
     roleHooksTakenBack: toDel.filter((hook) =>
       isHookAuthorOfRole({ author: hook.author }),
     ).length,
@@ -77,7 +82,7 @@ export const setHookDispatchersViaAdapter = async (input: {
 
 /**
  * .what = one dispatcher, as the brain hook the brain's adapter writes
- * .why = the adapter speaks BrainHook; a `*` matcher is a hook with no filter
+ * .why = the adapter speaks BrainHook; every dispatcher is `*`, a hook with no filter
  */
 const asBrainHookOfHookDispatcher = (input: {
   dispatcher: ReturnType<typeof asHookDispatchersOfRules>[number];
@@ -87,9 +92,6 @@ const asBrainHookOfHookDispatcher = (input: {
     event: asBrainHookEventOfClaudeEvent({ event: input.dispatcher.event }),
     command: input.dispatcher.command,
     timeout: { seconds: input.dispatcher.timeoutSeconds },
-    ...(input.dispatcher.matcher !== '*' && {
-      filter: new BrainHookFilter({ what: input.dispatcher.matcher }),
-    }),
   });
 
 /**
@@ -113,6 +115,8 @@ const isSameHook = (left: BrainHook, right: BrainHook): boolean =>
 
 /**
  * .what = whether two hooks match in key, timeout and matcher, so a rewrite would change naught
+ * .note = the matcher counts: a found dispatcher with a filter (a union wire a prior sync wrote)
+ *   differs from the desired `*`, so the sync rewrites it in place
  */
 const isSameBody = (left: BrainHook, right: BrainHook): boolean =>
   isSameHook(left, right) &&

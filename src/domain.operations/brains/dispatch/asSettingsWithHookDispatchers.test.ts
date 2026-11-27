@@ -16,6 +16,19 @@ const genRule = genSampleHookDispatchRule;
 // a hook a human added by hand: no dispatcher author
 const handHook = { type: 'command', command: 'echo hand', timeout: 7 };
 
+// the command of the dispatcher this manifest's event gets
+const commandOf = (event: string) =>
+  `bash ${HOOK_DISPATCH.bin} ${MANIFEST_PATH} ${event}`;
+
+// the commands an event's entries hold, in order
+const commandsOf = (input: {
+  settings: ClaudeCodeSettings;
+  event: 'SessionStart' | 'PreToolUse' | 'UserPromptSubmit' | 'Stop';
+}) =>
+  (input.settings.hooks?.[input.event] ?? []).flatMap((entry) =>
+    entry.hooks.map((hook) => hook.command),
+  );
+
 // a hook of a prior dispatcher, to be dropped
 const priorDispatcherHook = {
   type: 'command',
@@ -95,15 +108,27 @@ describe('asSettingsWithHookDispatchers', () => {
       });
     });
 
-    when('[t1] no rules are set', () => {
+    when('[t1] no rules are set (an empty manifest)', () => {
       const result = asSettingsWithHookDispatchers({
         settings,
         rules: [],
         manifestPathRel: MANIFEST_PATH,
       });
 
-      then('the hooks hold no event', () => {
-        expect(result.hooks).toEqual({});
+      then('every mapped event still holds one `*` dispatcher', () => {
+        expect(
+          Object.entries(result.hooks ?? {}).map(([event, entries]) => ({
+            event,
+            matchers: (entries ?? []).map((entry) => entry.matcher),
+          })),
+        ).toEqual(
+          ['SessionStart', 'PreToolUse', 'UserPromptSubmit', 'Stop'].map(
+            (event) => ({ event, matchers: ['*'] }),
+          ),
+        );
+        expect(commandsOf({ settings: result, event: 'PreToolUse' })).toEqual([
+          commandOf('PreToolUse'),
+        ]);
       });
     });
   });
@@ -136,26 +161,36 @@ describe('asSettingsWithHookDispatchers', () => {
           const dispatchers = all.filter(
             (hook) => hook.author === HOOK_DISPATCH.author,
           );
-          expect(dispatchers).toHaveLength(1);
-          expect(dispatchers[0]?.command).not.toContain('old.manifest');
+          expect(dispatchers.map((hook) => hook.command)).toEqual([
+            commandOf('Stop'),
+            commandOf('SessionStart'),
+            commandOf('PreToolUse'),
+            commandOf('UserPromptSubmit'),
+          ]);
         });
 
         then('the hand-added hook stays, before the new dispatcher', () => {
           const hooksOfStop = result.hooks?.Stop?.[0]?.hooks ?? [];
           expect(hooksOfStop.map((hook) => hook.command)).toEqual([
             'echo hand',
-            `bash ${HOOK_DISPATCH.bin} ${MANIFEST_PATH} Stop`,
+            commandOf('Stop'),
           ]);
         });
 
         then('an entry left empty by the drop leaves the settings', () => {
-          expect(result.hooks?.PreToolUse).toEqual([
-            { matcher: 'Bash', hooks: [handHook] },
-          ]);
+          expect(
+            result.hooks?.PreToolUse?.map((entry) => entry.matcher),
+          ).toEqual(['Bash', '*']);
+          expect(result.hooks?.PreToolUse?.[0]).toEqual({
+            matcher: 'Bash',
+            hooks: [handHook],
+          });
         });
 
-        then('an event left with no entry leaves the settings', () => {
-          expect(result.hooks).not.toHaveProperty('SessionStart');
+        then('an event no row holds keeps only its fresh dispatcher', () => {
+          expect(
+            commandsOf({ settings: result, event: 'SessionStart' }),
+          ).toEqual([commandOf('SessionStart')]);
         });
 
         then('a second set of the result equals the result', () => {
@@ -175,10 +210,27 @@ describe('asSettingsWithHookDispatchers', () => {
           manifestPathRel: MANIFEST_PATH,
         });
 
-        then('only hand-added hooks remain', () => {
+        then('hand-added hooks remain, beside the fresh dispatchers', () => {
+          const dispatcherOf = (event: string) => ({
+            type: 'command',
+            command: commandOf(event),
+            timeout:
+              HOOK_DISPATCH.timeoutFloorSeconds +
+              HOOK_DISPATCH.timeoutMarginSeconds,
+            author: HOOK_DISPATCH.author,
+          });
           expect(result.hooks).toEqual({
-            Stop: [{ matcher: '*', hooks: [handHook] }],
-            PreToolUse: [{ matcher: 'Bash', hooks: [handHook] }],
+            Stop: [{ matcher: '*', hooks: [handHook, dispatcherOf('Stop')] }],
+            SessionStart: [
+              { matcher: '*', hooks: [dispatcherOf('SessionStart')] },
+            ],
+            PreToolUse: [
+              { matcher: 'Bash', hooks: [handHook] },
+              { matcher: '*', hooks: [dispatcherOf('PreToolUse')] },
+            ],
+            UserPromptSubmit: [
+              { matcher: '*', hooks: [dispatcherOf('UserPromptSubmit')] },
+            ],
           });
         });
       });
@@ -219,17 +271,19 @@ describe('asSettingsWithHookDispatchers', () => {
         });
 
         then('the hand-added hook stays, before the dispatcher', () => {
-          expect(
-            result.hooks?.PreToolUse?.[0]?.hooks.map((hook) => hook.command),
-          ).toEqual([
-            'echo hand',
-            `bash ${HOOK_DISPATCH.bin} ${MANIFEST_PATH} PreToolUse`,
-          ]);
+          expect(commandsOf({ settings: result, event: 'PreToolUse' })).toEqual(
+            ['echo hand', commandOf('PreToolUse')],
+          );
         });
 
-        then('an event the role hooks alone held leaves the settings', () => {
-          expect(result.hooks).not.toHaveProperty('Stop');
-        });
+        then(
+          'an event the role hooks alone held keeps only its dispatcher',
+          () => {
+            expect(commandsOf({ settings: result, event: 'Stop' })).toEqual([
+              commandOf('Stop'),
+            ]);
+          },
+        );
       });
     },
   );
@@ -238,10 +292,10 @@ describe('asSettingsWithHookDispatchers', () => {
     '[case4] an event entry whose matcher equals the dispatcher matcher',
     () => {
       const settings: ClaudeCodeSettings = {
-        hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [handHook] }] },
+        hooks: { PreToolUse: [{ matcher: '*', hooks: [handHook] }] },
       };
 
-      when('[t0] a rule of that matcher is set', () => {
+      when('[t0] a rule of any matcher is set', () => {
         const result = asSettingsWithHookDispatchers({
           settings,
           rules: [genRule({ event: 'PreToolUse', matcher: 'Bash' })],
@@ -279,9 +333,46 @@ describe('asSettingsWithHookDispatchers', () => {
           () => {
             expect(
               result.hooks?.PreToolUse?.map((entry) => entry.matcher),
-            ).toEqual(['Write', 'Bash']);
+            ).toEqual(['Write', '*']);
           },
         );
+      });
+    },
+  );
+
+  given(
+    '[case6] a union entry from an older sync, which a hand-added hook shares with the dispatcher',
+    () => {
+      const settings: ClaudeCodeSettings = {
+        hooks: {
+          PreToolUse: [
+            { matcher: 'Bash|Write', hooks: [handHook, priorDispatcherHook] },
+          ],
+        },
+      };
+
+      when('[t0] the rules are set again', () => {
+        const result = asSettingsWithHookDispatchers({
+          settings,
+          rules: [genRule({ event: 'PreToolUse', matcher: 'Bash' })],
+          manifestPathRel: MANIFEST_PATH,
+        });
+
+        then('the hand-added hook stays under its own matcher, alone', () => {
+          expect(result.hooks?.PreToolUse?.[0]).toEqual({
+            matcher: 'Bash|Write',
+            hooks: [handHook],
+          });
+        });
+
+        then('the dispatcher leaves the union entry for a `*` entry', () => {
+          expect(
+            result.hooks?.PreToolUse?.map((entry) => entry.matcher),
+          ).toEqual(['Bash|Write', '*']);
+          expect(commandsOf({ settings: result, event: 'PreToolUse' })).toEqual(
+            ['echo hand', commandOf('PreToolUse')],
+          );
+        });
       });
     },
   );

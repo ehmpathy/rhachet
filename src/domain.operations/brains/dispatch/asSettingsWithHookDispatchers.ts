@@ -37,7 +37,7 @@ export const asSettingsWithHookDispatchers = (input: {
     ]),
   );
 
-  // add one dispatcher per event the rules hold
+  // add one `*` dispatcher per wired event, whether or not a rule holds it
   const dispatchers = asHookDispatchersOfRules({
     rules: input.rules,
     manifestPathRel: input.manifestPathRel,

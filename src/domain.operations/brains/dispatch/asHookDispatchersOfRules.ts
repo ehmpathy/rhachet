@@ -1,21 +1,19 @@
 import type { HookDispatchRule } from '@src/domain.objects/HookDispatchRule';
 
 import { asHookDispatcherCommand } from './asHookDispatcherCommand';
-import { HOOK_DISPATCH, HOOK_DISPATCH_MATCHER_LIST } from './constants';
+import { asHookDispatcherTimeoutSeconds } from './asHookDispatcherTimeoutSeconds';
+import { HOOK_DISPATCH_EVENTS } from './constants';
 
 /**
- * .what = the one dispatcher hook per claude event a set of rules needs
- * .why = claude starts one process per event, and only for a tool some rule names
+ * .what = the one dispatcher hook per claude event a manifest needs
+ * .why = a row added after a seat starts fires on its next event with no settings write
  *
- * .note = the matcher is the union of the rules' matchers: any `*` → `*`; else every token,
- *   joined by `|`. a union with a regex reads as a regex, a superset — the dispatcher still
- *   checks each rule's own matcher before it runs the rule
- * .note = the timeout sits above the slowest rule's by the margin, so claude never kills the
- *   dispatcher before the dispatcher kills a hung rule; every rule holds a timeout of at least 1s
- * .note = events come back in the order their first rule holds
+ * .note = every mapped event, matcher `*`; the dispatcher filters each row by its own matcher
+ * .note = `rules: null` = no manifest = no wires; `rules: []` = empty manifest = every wire
+ * .note = timeout = max(floor, slowest rule) + margin, in `HOOK_DISPATCH_EVENTS` order
  */
 export const asHookDispatchersOfRules = (input: {
-  rules: HookDispatchRule[];
+  rules: HookDispatchRule[] | null;
   manifestPathRel: string;
 }): Array<{
   event: string;
@@ -23,36 +21,18 @@ export const asHookDispatchersOfRules = (input: {
   timeoutSeconds: number;
   command: string;
 }> => {
-  const events = [...new Set(input.rules.map((rule) => rule.event))];
-  return events.map((event) => {
-    const rulesOfEvent = input.rules.filter((rule) => rule.event === event);
-    return {
-      event,
-      matcher: asMatcherUnion({
-        matchers: rulesOfEvent.map((rule) => rule.matcher),
-      }),
-      timeoutSeconds:
-        Math.max(...rulesOfEvent.map((rule) => rule.timeoutSeconds)) +
-        HOOK_DISPATCH.timeoutMarginSeconds,
-      command: asHookDispatcherCommand({
-        manifestPathRel: input.manifestPathRel,
-        event,
-      }),
-    };
-  });
-};
+  // no manifest, no wire
+  if (!input.rules) return [];
+  const rules = input.rules;
 
-/**
- * .what = one claude matcher that fits every tool any of the given matchers fit
- */
-const asMatcherUnion = (input: { matchers: string[] }): string => {
-  if (input.matchers.some((matcher) => matcher === '*' || matcher === ''))
-    return '*';
-  // an exact list splits into its names; a regex stays whole, as a group
-  const tokens = input.matchers.flatMap((matcher) =>
-    HOOK_DISPATCH_MATCHER_LIST.test(matcher)
-      ? matcher.split(/[|,]/)
-      : [`(${matcher})`],
-  );
-  return [...new Set(tokens)].join('|');
+  // one wire per mapped event, rows or not
+  return HOOK_DISPATCH_EVENTS.map((event) => ({
+    event,
+    matcher: '*',
+    timeoutSeconds: asHookDispatcherTimeoutSeconds({ rules, event }),
+    command: asHookDispatcherCommand({
+      manifestPathRel: input.manifestPathRel,
+      event,
+    }),
+  }));
 };

@@ -16,6 +16,7 @@ const genSwap = (
   manifestPathRel: '.claude/hooks.dispatch.manifest',
   dispatchers: 4,
   dispatchersSet: 4,
+  dispatchersTakenBack: 0,
   roleHooksTakenBack: 0,
   ...input,
 });
@@ -36,10 +37,30 @@ const TEST_CASES = [
         genSwap({
           brain: 'claude-code',
           rules: 1,
-          rulesByEvent: [{ event: 'PreToolUse', rules: 1 }],
-          dispatchers: 1,
+          rulesByEvent: [
+            { event: 'SessionStart', rules: 0 },
+            { event: 'PreToolUse', rules: 1 },
+            { event: 'UserPromptSubmit', rules: 0 },
+            { event: 'Stop', rules: 0 },
+          ],
         }),
         genSwap({ brain: 'claude-code@actor', roleHooksTakenBack: 1 }),
+      ],
+    },
+  },
+  {
+    description: 'an empty manifest still names a dispatcher per event',
+    given: {
+      swaps: [
+        genSwap({
+          rules: 0,
+          rulesByEvent: [
+            { event: 'SessionStart', rules: 0 },
+            { event: 'PreToolUse', rules: 0 },
+            { event: 'UserPromptSubmit', rules: 0 },
+            { event: 'Stop', rules: 0 },
+          ],
+        }),
       ],
     },
   },
@@ -53,6 +74,24 @@ describe('asHookDispatchSwapLines', () => {
       expect(lines.join('\n')).toMatchSnapshot();
     }),
   );
+
+  test('a brain whose manifest is gone names the dispatchers it took back', () => {
+    // the swap `setHookDispatchersViaAdapter` returns for `rules: null` over four wires in place
+    const lines = asHookDispatchSwapLines({
+      swaps: [
+        genSwap({
+          rules: 0,
+          rulesByEvent: [],
+          dispatchers: 0,
+          dispatchersSet: 0,
+          dispatchersTakenBack: 4,
+          roleHooksTakenBack: 0,
+        }),
+      ],
+    });
+    expect(lines[0]).toEqual('🪝 hook dispatchers set');
+    expect(lines.join('\n')).toMatchSnapshot();
+  });
 
   test('a re-sync with dispatchers in place and no role hook to move prints naught', () => {
     expect(

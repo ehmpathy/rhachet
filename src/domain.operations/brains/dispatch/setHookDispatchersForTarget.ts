@@ -4,7 +4,7 @@ import { detectBrainReplsInRepo } from '@src/domain.operations/brains/detectBrai
 
 import { relative } from 'node:path';
 import { asRuleCountsByEvent } from './asRuleCountsByEvent';
-import { getOneBrainHooksAdapterForSync } from './getOneBrainHooksAdapterForSync';
+import { getOneBrainHookDispatchOfTarget } from './getOneBrainHookDispatchOfTarget';
 import { setHookDispatchersViaAdapter } from './setHookDispatchersViaAdapter';
 import { setHookDispatchManifestRederived } from './setHookDispatchManifestRederived';
 
@@ -15,6 +15,10 @@ import { setHookDispatchManifestRederived } from './setHookDispatchManifestReder
  *
  * .note = each rule's file fields derive again first (`setHookDispatchManifestRederived`), so
  *   a moved file or a changed shebang reaches the row even when its declared hook is unchanged
+ * .note = a brain dir with no manifest gets no dispatcher, and loses any it held: a wire named at
+ *   an absent manifest would refuse every call
+ * .note = no migration runs here, so this step never writes a manifest where none is; a sync with
+ *   no hooked role runs it too, to take back wires an absent manifest left behind
  * .note = a brain with no dispatch (any brain but claude code) is left to its own adapter
  * .note = a brain whose adapter refuses the write is returned in `errors`, as the per-rule sync
  *   returns a refused write per role × brain; the caller reports it, and the other brains still
@@ -32,12 +36,15 @@ export const setHookDispatchersForTarget = async (
   const errors: Array<{ brain: BrainSpecifier; error: Error }> = [];
   const swaps: HookDispatchSwap[] = [];
   for (const brain of brains) {
-    const found = await getOneBrainHooksAdapterForSync(
+    const found = await getOneBrainHookDispatchOfTarget(
       { brain, configTargetDir: input.configTargetDir },
       context,
     );
-    if (!found?.dispatch) continue;
-    const dispatch = found.dispatch;
+    if (!found?.manifestPath) continue;
+    const dispatch = {
+      adapterOfBrain: found.adapterOfBrain,
+      manifestPath: found.manifestPath,
+    };
 
     // derive each rule's file fields again, then hand the brain its dispatchers; a refused
     //   write is this brain's, reported by the caller
@@ -54,7 +61,7 @@ export const setHookDispatchersForTarget = async (
       });
       swaps.push({
         brain,
-        rules: rules.length,
+        rules: rules?.length ?? 0,
         rulesByEvent: asRuleCountsByEvent({ rules }),
         manifestPathRel,
         ...swap,
@@ -75,10 +82,12 @@ export const setHookDispatchersForTarget = async (
 export interface HookDispatchSwap {
   brain: BrainSpecifier;
   rules: number;
-  /** each claude event's rule count, in the order the manifest first names the event */
+  /** each wired claude event's rule count, `0` where none; one leaf per dispatcher */
   rulesByEvent: Array<{ event: string; rules: number }>;
   manifestPathRel: string;
   dispatchers: number;
   dispatchersSet: number;
+  /** dispatchers the sync removed: a stale one, or every one when the manifest is gone */
+  dispatchersTakenBack: number;
   roleHooksTakenBack: number;
 }

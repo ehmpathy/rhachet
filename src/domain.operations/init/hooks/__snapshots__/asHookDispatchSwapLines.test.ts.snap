@@ -1,5 +1,13 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`asHookDispatchSwapLines a brain whose manifest is gone names the dispatchers it took back 1`] = `
+"🪝 hook dispatchers set
+   └─ claude-code
+      ├─ 0 rules → 0 dispatchers
+      ├─ 4 dispatchers taken back from the settings
+      └─ manifest = .claude/hooks.dispatch.manifest"
+`;
+
 exports[`asHookDispatchSwapLines a first sync on a fresh repo names the shape it wrote 1`] = `
 "🪝 hook dispatchers set
    └─ claude-code
@@ -23,11 +31,25 @@ exports[`asHookDispatchSwapLines a migration names the role hooks that left the 
       └─ manifest = .claude/hooks.dispatch.manifest"
 `;
 
+exports[`asHookDispatchSwapLines an empty manifest still names a dispatcher per event 1`] = `
+"🪝 hook dispatchers set
+   └─ claude-code
+      ├─ 0 rules → 4 dispatchers, one per event
+      │  ├─ SessionStart = 0 rules
+      │  ├─ PreToolUse = 0 rules
+      │  ├─ UserPromptSubmit = 0 rules
+      │  └─ Stop = 0 rules
+      └─ manifest = .claude/hooks.dispatch.manifest"
+`;
+
 exports[`asHookDispatchSwapLines two brains each get a branch 1`] = `
 "🪝 hook dispatchers set
    ├─ claude-code
-   │  ├─ 1 rule → 1 dispatcher, one per event
-   │  │  └─ PreToolUse = 1 rule
+   │  ├─ 1 rule → 4 dispatchers, one per event
+   │  │  ├─ SessionStart = 0 rules
+   │  │  ├─ PreToolUse = 1 rule
+   │  │  ├─ UserPromptSubmit = 0 rules
+   │  │  └─ Stop = 0 rules
    │  └─ manifest = .claude/hooks.dispatch.manifest
    └─ claude-code@actor
       ├─ 12 rules → 4 dispatchers, one per event

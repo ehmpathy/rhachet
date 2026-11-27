@@ -9,68 +9,64 @@ const MANIFEST_PATH =
 // a rule with sane defaults; each case overrides what it tests
 const genRule = genSampleHookDispatchRule;
 
+// every mapped event, wired whole
+const WHOLE = [
+  { event: 'SessionStart', matcher: '*' },
+  { event: 'PreToolUse', matcher: '*' },
+  { event: 'UserPromptSubmit', matcher: '*' },
+  { event: 'Stop', matcher: '*' },
+];
+
 const TEST_CASES = [
   {
-    description: 'one rule yields one dispatcher with its matcher',
+    description: 'one Bash rule still yields a `*` wire on every mapped event',
     rules: [genRule({ event: 'PreToolUse', matcher: 'Bash' })],
-    expected: [{ event: 'PreToolUse', matcher: 'Bash' }],
+    expected: WHOLE,
   },
   {
-    description: 'many rules of one event yield one dispatcher',
+    description: 'many rules of one event yield one dispatcher for it',
     rules: [
       genRule({ event: 'Stop', matcher: '*' }),
       genRule({ event: 'Stop', matcher: '*', command: 'echo two' }),
       genRule({ event: 'Stop', matcher: '*', command: 'echo three' }),
     ],
-    expected: [{ event: 'Stop', matcher: '*' }],
+    expected: WHOLE,
   },
   {
-    description: 'events come back in the order their first rule holds',
+    description:
+      'events come back in one fixed order, whatever order the rows hold',
     rules: [
       genRule({ event: 'Stop' }),
       genRule({ event: 'SessionStart' }),
-      genRule({ event: 'Stop', command: 'echo two' }),
       genRule({ event: 'PreToolUse' }),
     ],
-    expected: [
-      { event: 'Stop', matcher: '*' },
-      { event: 'SessionStart', matcher: '*' },
-      { event: 'PreToolUse', matcher: '*' },
-    ],
+    expected: WHOLE,
   },
   {
-    description: 'matchers of one event join as a union, deduplicated',
+    description:
+      'matchers of rows never narrow the wire: a list, a comma list, a regex',
     rules: [
       genRule({ matcher: 'Bash' }),
-      genRule({ matcher: 'Write|Edit' }),
-      genRule({ matcher: 'Bash' }),
+      genRule({ matcher: 'Write,Edit' }),
+      genRule({ matcher: 'mcp__.*' }),
     ],
-    expected: [{ event: 'PreToolUse', matcher: 'Bash|Write|Edit' }],
+    expected: WHOLE,
   },
   {
-    description: 'a comma list splits into names, joined by a bar',
-    rules: [genRule({ matcher: 'Write,Edit' })],
-    expected: [{ event: 'PreToolUse', matcher: 'Write|Edit' }],
-  },
-  {
-    description: 'a star matcher widens the union to a star',
-    rules: [genRule({ matcher: 'Bash' }), genRule({ matcher: '*' })],
-    expected: [{ event: 'PreToolUse', matcher: '*' }],
-  },
-  {
-    description: 'an empty matcher widens the union to a star',
-    rules: [genRule({ matcher: 'Bash' }), genRule({ matcher: '' })],
-    expected: [{ event: 'PreToolUse', matcher: '*' }],
-  },
-  {
-    description: 'a regex matcher stays whole, as a group',
-    rules: [genRule({ matcher: 'Bash' }), genRule({ matcher: 'mcp__.*' })],
-    expected: [{ event: 'PreToolUse', matcher: 'Bash|(mcp__.*)' }],
-  },
-  {
-    description: 'no rules yield no dispatchers',
+    description: 'an empty manifest still wires every mapped event',
     rules: [],
+    expected: WHOLE,
+  },
+  {
+    description: 'no manifest yields no dispatchers',
+    rules: null,
     expected: [],
+  },
+  {
+    description:
+      'only the four mapped events are wired, whatever event a row names',
+    rules: [genRule({ event: 'PermissionRequest' })],
+    expected: WHOLE,
   },
 ] as const;
 
@@ -78,7 +74,7 @@ describe('asHookDispatchersOfRules', () => {
   TEST_CASES.map((thisCase) =>
     test(thisCase.description, () => {
       const dispatchers = asHookDispatchersOfRules({
-        rules: [...thisCase.rules],
+        rules: thisCase.rules === null ? null : [...thisCase.rules],
         manifestPathRel: MANIFEST_PATH,
       });
       expect(
@@ -87,13 +83,73 @@ describe('asHookDispatchersOfRules', () => {
     }),
   );
 
+  describe('the wire holds naught a later row could move', () => {
+    test('a row added for a tool no row named before leaves every dispatcher as it was', () => {
+      const before = asHookDispatchersOfRules({
+        rules: [genRule({ matcher: 'Bash', timeoutSeconds: 15 })],
+        manifestPathRel: MANIFEST_PATH,
+      });
+      const after = asHookDispatchersOfRules({
+        rules: [
+          genRule({ matcher: 'Bash', timeoutSeconds: 15 }),
+          genRule({
+            matcher: 'Agent',
+            timeoutSeconds: 30,
+            command: 'echo agent',
+          }),
+        ],
+        manifestPathRel: MANIFEST_PATH,
+      });
+      expect(after).toEqual(before);
+    });
+
+    test('a row added on an event no row held before leaves every dispatcher as it was', () => {
+      const before = asHookDispatchersOfRules({
+        rules: [genRule({ event: 'PreToolUse' })],
+        manifestPathRel: MANIFEST_PATH,
+      });
+      const after = asHookDispatchersOfRules({
+        rules: [
+          genRule({ event: 'PreToolUse' }),
+          genRule({ event: 'UserPromptSubmit', command: 'echo remind' }),
+        ],
+        manifestPathRel: MANIFEST_PATH,
+      });
+      expect(after).toEqual(before);
+    });
+  });
+
   describe('timeout', () => {
-    test('sits above the slowest rule by the margin', () => {
+    test('sits at the floor by the margin, when every rule is faster', () => {
+      const [dispatcher] = asHookDispatchersOfRules({
+        rules: [genRule({ event: 'SessionStart', timeoutSeconds: 10 })],
+        manifestPathRel: MANIFEST_PATH,
+      });
+      expect(dispatcher!.timeoutSeconds).toEqual(
+        HOOK_DISPATCH.timeoutFloorSeconds + HOOK_DISPATCH.timeoutMarginSeconds,
+      );
+    });
+
+    test('sits at the floor by the margin, on an event with no rows', () => {
+      const dispatchers = asHookDispatchersOfRules({
+        rules: [],
+        manifestPathRel: MANIFEST_PATH,
+      });
+      expect(dispatchers.map((d) => d.timeoutSeconds)).toEqual(
+        dispatchers.map(
+          () =>
+            HOOK_DISPATCH.timeoutFloorSeconds +
+            HOOK_DISPATCH.timeoutMarginSeconds,
+        ),
+      );
+    });
+
+    test('sits above the slowest rule by the margin, when one is slower than the floor', () => {
       const [dispatcher] = asHookDispatchersOfRules({
         rules: [
-          genRule({ timeoutSeconds: 10 }),
-          genRule({ timeoutSeconds: 90 }),
-          genRule({ timeoutSeconds: 30 }),
+          genRule({ event: 'SessionStart', timeoutSeconds: 10 }),
+          genRule({ event: 'SessionStart', timeoutSeconds: 90 }),
+          genRule({ event: 'SessionStart', timeoutSeconds: 30 }),
         ],
         manifestPathRel: MANIFEST_PATH,
       });
@@ -110,9 +166,34 @@ describe('asHookDispatchersOfRules', () => {
         ],
         manifestPathRel: MANIFEST_PATH,
       });
-      expect(dispatchers.map((d) => d.timeoutSeconds)).toEqual([
-        10 + HOOK_DISPATCH.timeoutMarginSeconds,
-        120 + HOOK_DISPATCH.timeoutMarginSeconds,
+      expect(
+        dispatchers.map(({ event, timeoutSeconds }) => ({
+          event,
+          timeoutSeconds,
+        })),
+      ).toEqual([
+        {
+          event: 'SessionStart',
+          timeoutSeconds: 120 + HOOK_DISPATCH.timeoutMarginSeconds,
+        },
+        {
+          event: 'PreToolUse',
+          timeoutSeconds:
+            HOOK_DISPATCH.timeoutFloorSeconds +
+            HOOK_DISPATCH.timeoutMarginSeconds,
+        },
+        {
+          event: 'UserPromptSubmit',
+          timeoutSeconds:
+            HOOK_DISPATCH.timeoutFloorSeconds +
+            HOOK_DISPATCH.timeoutMarginSeconds,
+        },
+        {
+          event: 'Stop',
+          timeoutSeconds:
+            HOOK_DISPATCH.timeoutFloorSeconds +
+            HOOK_DISPATCH.timeoutMarginSeconds,
+        },
       ]);
     });
   });
@@ -120,12 +201,14 @@ describe('asHookDispatchersOfRules', () => {
   describe('command', () => {
     test('runs the dispatcher bin on the manifest and the event', () => {
       const dispatchers = asHookDispatchersOfRules({
-        rules: [genRule({ event: 'Stop' }), genRule({ event: 'SessionStart' })],
+        rules: [],
         manifestPathRel: MANIFEST_PATH,
       });
       expect(dispatchers.map((d) => d.command)).toEqual([
-        `bash ${HOOK_DISPATCH.bin} ${MANIFEST_PATH} Stop`,
         `bash ${HOOK_DISPATCH.bin} ${MANIFEST_PATH} SessionStart`,
+        `bash ${HOOK_DISPATCH.bin} ${MANIFEST_PATH} PreToolUse`,
+        `bash ${HOOK_DISPATCH.bin} ${MANIFEST_PATH} UserPromptSubmit`,
+        `bash ${HOOK_DISPATCH.bin} ${MANIFEST_PATH} Stop`,
       ]);
     });
   });

@@ -1,0 +1,18 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asHookDispatchRepairLines one brain whose manifest held one corrupt row 1`] = `
+"🪝 hook dispatch manifest rewritten past corrupt rows
+   └─ claude-code
+      ├─ 1 corrupt row dropped
+      └─ manifest = .claude/hooks.dispatch.manifest"
+`;
+
+exports[`asHookDispatchRepairLines two brains, each rewritten past corrupt rows 1`] = `
+"🪝 hook dispatch manifest rewritten past corrupt rows
+   ├─ claude-code
+   │  ├─ 3 corrupt rows dropped
+   │  └─ manifest = .claude/hooks.dispatch.manifest
+   └─ claude-code@actor
+      ├─ 1 corrupt row dropped
+      └─ manifest = .agent/.actors/actor.via.slug=x/brain/.claude/hooks.dispatch.manifest"
+`;

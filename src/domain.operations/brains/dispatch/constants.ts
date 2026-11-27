@@ -2,7 +2,7 @@ import type { BrainHookEvent } from '@src/domain.objects/BrainHookEvent';
 
 /**
  * .what = the claude hook event each rhachet hook event lands under, as the claude adapter maps it
- * .note = `filter.when: 'after'` still lands under PreToolUse, as the adapter places it today
+ * .note = `filter.when: 'after'` lands under PreToolUse, where the adapter places it
  */
 export const CLAUDE_EVENT_OF_BRAIN_HOOK_EVENT: Record<BrainHookEvent, string> =
   {
@@ -13,6 +13,22 @@ export const CLAUDE_EVENT_OF_BRAIN_HOOK_EVENT: Record<BrainHookEvent, string> =
   };
 
 /**
+ * .what = the payload key each wired event's matcher reads, or null where claude applies no matcher
+ * .why = `bin/hooks.dispatch.sh` runs every row of a keyless event, whatever its matcher; a record
+ *   over every `BrainHookEvent` makes a new event declare its key before it can be wired, and
+ *   `constants.manifest-parity.integration.test.ts` goes red the day the bash key table differs
+ */
+export const HOOK_DISPATCH_MATCHER_KEY_OF_BRAIN_HOOK_EVENT: Record<
+  BrainHookEvent,
+  string | null
+> = {
+  onBoot: 'source',
+  onTool: 'tool_name',
+  onTalk: null,
+  onStop: null,
+};
+
+/**
  * .what = every rhachet hook event, as a list typed without a cast
  */
 export const BRAIN_HOOK_EVENTS: BrainHookEvent[] = [
@@ -21,6 +37,15 @@ export const BRAIN_HOOK_EVENTS: BrainHookEvent[] = [
   'onTalk',
   'onStop',
 ];
+
+/**
+ * .what = every claude event a manifest row can name, in one fixed order
+ * .why = each gets one dispatcher wire, rows or not, so a row added after a seat starts rides a
+ *   wire already in place
+ */
+export const HOOK_DISPATCH_EVENTS: string[] = BRAIN_HOOK_EVENTS.map(
+  (event) => CLAUDE_EVENT_OF_BRAIN_HOOK_EVENT[event],
+);
 
 /**
  * .what = the names the hook dispatcher is known by
@@ -35,6 +60,9 @@ export const BRAIN_HOOK_EVENTS: BrainHookEvent[] = [
  *   trap defers; it sits below `timeoutMarginSeconds`, so the dispatcher reaps a hung rule and
  *   still returns its verdicts before claude kills the dispatcher. `bin/hooks.dispatch.sh` holds
  *   the same value as `__rhx_dispatch_grace`
+ * .note = `timeoutFloorSeconds` is the least rule timeout a wire covers; a wire's timeout is
+ *   `max(floor, slowest rule) + margin`, so a later row within the floor moves no wire, and an
+ *   event with no rows still holds a timeout. a rule slower than the floor moves its wire
  */
 export const HOOK_DISPATCH = {
   manifest: 'hooks.dispatch.manifest',
@@ -42,12 +70,13 @@ export const HOOK_DISPATCH = {
   bin: './node_modules/rhachet/bin/hooks.dispatch.sh',
   timeoutMarginSeconds: 5,
   timeoutGraceSeconds: 2,
+  timeoutFloorSeconds: 60,
 } as const;
 
 /**
  * .what = the shape of a matcher read as an exact list of tool names (`Bash|Write`, `Read,Edit`),
  *   never as a regex
- * .why = the sync (portability check, dispatcher matcher union) and the dispatcher bash must agree
+ * .why = the sync's portability check and the dispatcher bash must agree
  *   on which matchers are lists; `bin/hooks.dispatch.sh` holds the same pattern, and
  *   `constants.manifest-parity.integration.test.ts` goes red the day the two differ
  */

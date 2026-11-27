@@ -270,3 +270,395 @@ bash: .claude/gone.sh: No such file or directory
   "stdout": "",
 }
 `;
+
+exports[`hook dispatcher (one process per claude event) given: [case2] a repo synced once, whose role then adds a row on a tool and an event no prior row named then: the calls a human reads match the snapshot 1`] = `
+"=== before: a tool no row names, under the first wire ===
+exit = 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+=== before: a talk with no talk row ===
+exit = 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+=== before: a stop with no stop row ===
+exit = 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+=== a later Agent row, under the first wire ===
+exit = 0
+--- stdout ---
+agent guard ran
+
+--- stderr ---
+(empty)
+=== the first Bash row, under the first wire ===
+exit = 0
+--- stdout ---
+bash guard ran
+
+--- stderr ---
+(empty)
+=== a Read call no row names ===
+exit = 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+=== a later talk row, under the first wire ===
+exit = 0
+--- stdout ---
+talk guard ran
+
+--- stderr ---
+(empty)
+=== a later stop row, under the first wire ===
+exit = 0
+--- stdout ---
+stop guard ran
+
+--- stderr ---
+(empty)
+=== a later boot row, under the first wire ===
+exit = 0
+--- stdout ---
+boot guard ran
+
+--- stderr ---
+(empty)
+=== a corrupt manifest, met by a tool no row names ===
+exit = 2
+--- stdout ---
+(empty)
+--- stderr ---
+✋ ConstraintError: hook dispatch manifest version is not one this dispatcher reads
+   ├─ manifest = .claude/hooks.dispatch.manifest
+   ├─ header = not a manifest
+   ├─ reads = v1
+   └─ fix = run \`npx rhx init --hooks\`, with the rhachet this repo installs, to rewrite it
+
+=== a corrupt manifest, met by a talk ===
+exit = 1
+--- stdout ---
+(empty)
+--- stderr ---
+✋ ConstraintError: hook dispatch manifest version is not one this dispatcher reads
+   ├─ manifest = .claude/hooks.dispatch.manifest
+   ├─ header = not a manifest
+   ├─ reads = v1
+   └─ fix = run \`npx rhx init --hooks\`, with the rhachet this repo installs, to rewrite it
+
+=== after the sync the refusal names: the later Agent row ===
+exit = 0
+--- stdout ---
+agent guard ran
+
+--- stderr ---
+(empty)"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case2] a repo synced once, whose role then adds a row on a tool and an event no prior row named when: [t1] the role adds an Agent row, a talk row, a stop row and a boot row, and the hooks sync again (vision case=1, case=2) then: the later sync names the rows it added, with no swap report (vision case=4 [t2], F9) 1`] = `
+"🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: +4
+
+✨ hooks
+   └─ 4 created
+
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case2] a repo synced once, whose role then adds a row on a tool and an event no prior row named when: [t1b] the hooks sync again over an unchanged manifest (vision case=4) then: the sync succeeds, the settings stay byte-equal, and it reports no change 1`] = `
+"🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+
+✨ hooks
+   └─ no changes needed
+
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case2] a repo synced once, whose role then adds a row on a tool and an event no prior row named when: [t3] the human runs the sync the refusal names, over the corrupt file (vision case=8 [t2], F12) then: the sync names the corrupt row it dropped, and rewrites the declared rows 1`] = `
+"🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: +5
+
+🪝 hook dispatch manifest rewritten past corrupt rows
+   └─ anthropic/claude/code
+      ├─ 1 corrupt row dropped
+      └─ manifest = .claude/hooks.dispatch.manifest
+
+✨ hooks
+   └─ 5 created
+
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case3] an enrolled clone actor, whose role then adds a row on a tool no prior row named then: the clone calls a human reads match the snapshot 1`] = `
+"=== a later Agent row, under the clone wire ===
+exit = 0
+--- stdout ---
+agent guard ran
+
+--- stderr ---
+(empty)
+=== a Bash call, under the clone wire ===
+exit = 0
+--- stdout ---
+bash guard ran
+
+--- stderr ---
+(empty)
+=== a Stop, under the clone wire, with no stop row ===
+exit = 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case3] an enrolled clone actor, whose role then adds a row on a tool no prior row named when: [t1] the role adds an Agent row, and the hooks sync again then: the later sync a human reads, the actor pass included, matches the snapshot 1`] = `
+"🔭 search for linked roles with hooks...
+   ├─ test/helper
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: +1
+
+✨ hooks
+   └─ 1 created
+
+🧢 apply hooks to enrolled actors...
+   └─ hash=__HEX__: +1
+
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case4] a role whose PreToolUse row runs slower than the wire floor when: [t0] the hooks sync then: the init a human reads matches the snapshot 1`] = `
+"
+🔧 init 1 role(s)...
+
+📚 link role repo=test/role=tester
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=test/readme.md
+   │  ├─ + .agent/repo=test/.gitignore
+   │  ├─ + .agent/repo=test/role=tester/readme.md
+   │  ├─ + .agent/repo=test/role=tester/briefs
+   │  ├─ + .agent/repo=test/role=tester/skills
+   │  └─ + .agent/repo=test/role=tester/inits
+   └─ stats
+      ├─ 1 brief(s)
+      ├─ 2 skill(s)
+      └─ 5 init(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+🧠 brain://repo=ambient
+   ├─ moved
+   │  └─ .claude/settings.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+   └─ boot.md
+      └─ created — 1 role
+
+🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: +1
+
+🪝 hook dispatchers set
+   └─ anthropic/claude/code
+      ├─ 1 rule → 4 dispatchers, one per event
+      │  ├─ SessionStart = 0 rules
+      │  ├─ PreToolUse = 1 rule
+      │  ├─ UserPromptSubmit = 0 rules
+      │  └─ Stop = 0 rules
+      └─ manifest = .claude/hooks.dispatch.manifest
+
+✨ hooks
+   └─ 1 created
+
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
+
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case4] a role whose PreToolUse row runs slower than the wire floor when: [t0] the hooks sync then: the settings a human reads match the snapshot, each timeout in seconds as claude reads it 1`] = `
+"{
+  "SessionStart": [
+    {
+      "matcher": "*",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bash ./node_modules/rhachet/bin/hooks.dispatch.sh .claude/hooks.dispatch.manifest SessionStart",
+          "timeout": 65,
+          "author": "rhachet/hooks.dispatch"
+        }
+      ]
+    }
+  ],
+  "PreToolUse": [
+    {
+      "matcher": "*",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bash ./node_modules/rhachet/bin/hooks.dispatch.sh .claude/hooks.dispatch.manifest PreToolUse",
+          "timeout": 95,
+          "author": "rhachet/hooks.dispatch"
+        }
+      ]
+    }
+  ],
+  "UserPromptSubmit": [
+    {
+      "matcher": "*",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bash ./node_modules/rhachet/bin/hooks.dispatch.sh .claude/hooks.dispatch.manifest UserPromptSubmit",
+          "timeout": 65,
+          "author": "rhachet/hooks.dispatch"
+        }
+      ]
+    }
+  ],
+  "Stop": [
+    {
+      "matcher": "*",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bash ./node_modules/rhachet/bin/hooks.dispatch.sh .claude/hooks.dispatch.manifest Stop",
+          "timeout": 65,
+          "author": "rhachet/hooks.dispatch"
+        }
+      ]
+    }
+  ]
+}"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case5] a seat an older rhachet wired by the union of its row matchers, beside a hand hook when: [t0] the hooks sync over the union shape (vision case=6) then: the swap report a human reads matches the snapshot 1`] = `
+"🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: +1
+
+🪝 hook dispatchers set
+   └─ anthropic/claude/code
+      ├─ 2 rules → 4 dispatchers, one per event
+      │  ├─ SessionStart = 0 rules
+      │  ├─ PreToolUse = 2 rules
+      │  ├─ UserPromptSubmit = 0 rules
+      │  └─ Stop = 0 rules
+      └─ manifest = .claude/hooks.dispatch.manifest
+
+✨ hooks
+   └─ 1 created
+
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case6] a repo whose roles declare no hook, so no manifest is written when: [t0] rhx init --hooks runs (vision case=9) then: the init a human reads matches the snapshot 1`] = `
+"
+🔧 init 1 role(s)...
+
+📚 link role repo=test/role=tester
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=test/readme.md
+   │  ├─ + .agent/repo=test/.gitignore
+   │  ├─ + .agent/repo=test/role=tester/readme.md
+   │  ├─ + .agent/repo=test/role=tester/briefs
+   │  ├─ + .agent/repo=test/role=tester/skills
+   │  └─ + .agent/repo=test/role=tester/inits
+   └─ stats
+      ├─ 1 brief(s)
+      ├─ 2 skill(s)
+      └─ 5 init(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+🧠 brain://repo=ambient
+   ├─ moved
+   │  └─ .claude/settings.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+   └─ boot.md
+      └─ created — 1 role
+
+🔭 search for linked roles with hooks...
+
+🫧 no roles with hooks found
+
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
+
+"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case7] a repo synced once, whose role then drops its last row, and later adds one back when: [t1] the role adds a row back, one that refuses its tool (vision case=7 [t3]) then: the syncs a human reads match the snapshot 1`] = `
+"=== the role drops its last row ===
+🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: -1
+
+✨ hooks
+   └─ 1 deleted
+=== the role adds a row back ===
+🔭 search for linked roles with hooks...
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: +1
+
+✨ hooks
+   └─ 1 created"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case8] a seat synced once, whose role then drops its hooks, and whose manifest turns corrupt, then goes when: [t1] the manifest goes, and the hooks sync (F11) then: the syncs a human reads match the snapshot 1`] = `
+"=== a hookless sync over a corrupt manifest ===
+🔭 search for linked roles with hooks...
+
+🫧 no roles with hooks found
+
+🪝 hook dispatch manifest rewritten past corrupt rows
+   └─ anthropic/claude/code
+      ├─ 1 corrupt row dropped
+      └─ manifest = .claude/hooks.dispatch.manifest
+=== a hookless sync over an absent manifest ===
+🔭 search for linked roles with hooks...
+
+🫧 no roles with hooks found
+
+🪝 hook dispatchers set
+   └─ anthropic/claude/code
+      ├─ 0 rules → 0 dispatchers
+      ├─ 4 dispatchers taken back from the settings
+      └─ manifest = .claude/hooks.dispatch.manifest"
+`;

@@ -20,6 +20,7 @@ import { join } from 'node:path';
 import { asEnrolledActorsHookSyncLines } from './asEnrolledActorsHookSyncLines';
 import { asHookChangeSummary } from './asHookChangeSummary';
 import { asHookChangeTally } from './asHookChangeTally';
+import { asHookDispatchRepairLines } from './asHookDispatchRepairLines';
 import { asHookDispatchSwapLines } from './asHookDispatchSwapLines';
 import { asHookFaultFieldLines } from './asHookFaultFieldLines';
 import { asHookFaultRows } from './asHookFaultRows';
@@ -28,6 +29,7 @@ import { asHookSyncTotalRows } from './asHookSyncTotalRows';
 import { getBrainsOfRootHookPass } from './getBrainsOfRootHookPass';
 import { getOneHookChangeTally } from './getOneHookChangeTally';
 import { getOneHookOrphanCount } from './getOneHookOrphanCount';
+import { syncHookDispatchersIntoTarget } from './syncHookDispatchersIntoTarget';
 import { syncRoleHooksIntoTarget } from './syncRoleHooksIntoTarget';
 
 /**
@@ -93,10 +95,63 @@ export const syncHooksForLinkedRoles = async (
     }
   }
 
+  // the brains the root pass targets, by detection unless named
+  //
+  // .note = the brains are detected BEFORE the shield opens: the shield puts a real
+  //   settings.json in claude's slot, which detection would read as a claude repo
+  // .note = a detected brain no installed package supplies is skipped; a named one is not
+  //
+  // 🔴 under `.agent/actors.yml` claude is left out of the root pass: the repo actor there is a
+  //   declared actor, narrowed to its own roles by the actor pass below, which derives every
+  //   actor's claude hooks from the linked roles' union. a root write of the whole union into
+  //   its file would hand its clones a peer's hooks (inventory.of=requirements.case=9)
+  // 🔴 the manifest is read from the git root, as every other read of one init run does — a
+  //   read from the cwd would miss it from a subdir, and the root pass would leak the union
+  const brainsDetected =
+    brains ?? (await getBrainsDetectedAndSupplied(context));
+  const brainsTarget = getBrainsOfRootHookPass({
+    brains: brainsDetected,
+    isManifestDeclared: !!getActorsManifest({ repoPath: context.gitroot }),
+  });
+  const isClaudeCodeTargeted = brainsTarget.some((brain) =>
+    isBrainClaudeCode({ brain }),
+  );
+
+  // no role holds a hook: still repair a corrupt manifest and settle the root's dispatchers, since
+  //   a `*` wire left at an absent or corrupt manifest refuses every tool until this sync runs
   if (roles.length === 0) {
     console.log('');
     console.log('🫧 no roles with hooks found');
+    const settleRoot = () =>
+      syncHookDispatchersIntoTarget(
+        { brains: brainsTarget, configTargetDir: null },
+        context,
+      );
+    const settled = isClaudeCodeTargeted
+      ? await withRepoBrainDirShield({ repoPath: context.cwd }, settleRoot)
+      : await settleRoot();
+    const lines = [
+      ...asHookDispatchRepairLines({ repairs: settled.repairs }),
+      ...asHookDispatchSwapLines({ swaps: settled.swaps }),
+      ...asTreeBranchLines({
+        rows: asHookFaultRows({
+          faults: settled.faults.map(({ error }) => ({
+            source: 'root',
+            error,
+          })),
+        }),
+        indent: '   ',
+      }),
+    ];
+    if (lines.length > 0) {
+      console.log('');
+      lines.forEach((line) => console.log(line));
+    }
     console.log('');
+    for (const { error } of settled.faults)
+      errors.push({ source: 'sync:root', error });
+    if (settled.faults.length > 0)
+      console.log(asHookSyncFailureHeader({ count: errors.length }));
     return { errors };
   }
 
@@ -121,32 +176,13 @@ export const syncHooksForLinkedRoles = async (
   // 🔴 an adapter that predates the layout writes `<repo>/.claude/settings.json` by name — an
   //   arrow to the human's home settings — so the pair runs inside the shield, which keeps
   //   that write in the repo
-  //
-  // .note = the brains are detected BEFORE the shield opens: the shield puts a real
-  //   settings.json in claude's slot, which detection would read as a claude repo
-  // .note = a detected brain no installed package supplies is skipped; a named one is not
-  //
-  // 🔴 under `.agent/actors.yml` claude is left out of the root pass: the repo actor there is a
-  //   declared actor, narrowed to its own roles by the actor pass below, which derives every
-  //   actor's claude hooks from the linked roles' union. a root write of the whole union into
-  //   its file would hand its clones a peer's hooks (inventory.of=requirements.case=9)
-  // 🔴 the manifest is read from the git root, as every other read of one init run does — a
-  //   read from the cwd would miss it from a subdir, and the root pass would leak the union
-  const brainsDetected =
-    brains ?? (await getBrainsDetectedAndSupplied(context));
-  const brainsTarget = getBrainsOfRootHookPass({
-    brains: brainsDetected,
-    isManifestDeclared: !!getActorsManifest({ repoPath: context.gitroot }),
-  });
   const syncIntoRoot = () =>
     syncRoleHooksIntoTarget(
       { authorsDesired, roles, brains: brainsTarget, configTargetDir: null },
       context,
     );
-  const isClaudeCodeTargeted = brainsTarget.some((brain) =>
-    isBrainClaudeCode({ brain }),
-  );
   const {
+    repairs,
     pruneResult,
     syncResult,
     swaps,
@@ -218,7 +254,12 @@ export const syncHooksForLinkedRoles = async (
 
   // the dispatcher shape the swap wrote, where it wrote one: `N rules → M dispatchers`, and the
   //   role hooks that left the settings, so a first sync never reads as `no changes needed`
-  const swapLines = asHookDispatchSwapLines({ swaps });
+  //   a manifest rewritten past corrupt rows prints first, so the rows it cost are named above
+  //   the shape the sync then wrote
+  const swapLines = [
+    ...asHookDispatchRepairLines({ repairs }),
+    ...asHookDispatchSwapLines({ swaps }),
+  ];
   if (swapLines.length > 0) {
     console.log('');
     swapLines.forEach((line) => console.log(line));

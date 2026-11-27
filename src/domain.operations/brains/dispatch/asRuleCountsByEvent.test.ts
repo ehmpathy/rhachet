@@ -15,11 +15,12 @@ describe('asRuleCountsByEvent', () => {
 
     when('[t0] the counts are taken', () => {
       then(
-        'each event holds its count, in the order the manifest first names it',
+        'each wired event holds its count, in the fixed event order, 0 where none',
         () => {
           expect(asRuleCountsByEvent({ rules })).toEqual([
             { event: 'SessionStart', rules: 2 },
             { event: 'PreToolUse', rules: 3 },
+            { event: 'UserPromptSubmit', rules: 0 },
             { event: 'Stop', rules: 1 },
           ]);
         },
@@ -27,10 +28,23 @@ describe('asRuleCountsByEvent', () => {
     });
   });
 
-  given('[case2] no rules', () => {
+  given('[case2] an empty manifest', () => {
     when('[t0] the counts are taken', () => {
-      then('there are none', () => {
-        expect(asRuleCountsByEvent({ rules: [] })).toEqual([]);
+      then('every wired event reads 0', () => {
+        expect(asRuleCountsByEvent({ rules: [] })).toEqual([
+          { event: 'SessionStart', rules: 0 },
+          { event: 'PreToolUse', rules: 0 },
+          { event: 'UserPromptSubmit', rules: 0 },
+          { event: 'Stop', rules: 0 },
+        ]);
+      });
+    });
+  });
+
+  given('[case3] no manifest', () => {
+    when('[t0] the counts are taken', () => {
+      then('there are none, as there is no wire', () => {
+        expect(asRuleCountsByEvent({ rules: null })).toEqual([]);
       });
     });
   });

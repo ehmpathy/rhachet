@@ -1600,13 +1600,25 @@ describe('rhachet upgrade', () => {
         expect(result.status).toEqual(0);
       });
 
-      then('the settings hold one dispatcher per event and no role hook', () => {
+      then('the settings hold one dispatcher per mapped event and no role hook', () => {
         const settings = JSON.parse(
           readFileSync(join(scene.repo.path, '.claude', 'settings.of.repo.json'), 'utf-8'),
         );
-        const authors = Object.values(settings.hooks as Record<string, Array<{ hooks: Array<{ author: string }> }>>)
-          .flatMap((entries) => entries.flatMap((entry) => entry.hooks.map((hook) => hook.author)));
-        expect(authors).toEqual(['rhachet/hooks.dispatch', 'rhachet/hooks.dispatch']);
+        // the fixture's test brain maps no onTalk event, so it keys that wire `onTalk` raw
+        const authorsPerEvent = Object.fromEntries(
+          Object.entries(
+            settings.hooks as Record<string, Array<{ hooks: Array<{ author: string }> }>>,
+          ).map(([event, entries]) => [
+            event,
+            entries.flatMap((entry) => entry.hooks.map((hook) => hook.author)),
+          ]),
+        );
+        expect(authorsPerEvent).toEqual({
+          SessionStart: ['rhachet/hooks.dispatch'],
+          PreToolUse: ['rhachet/hooks.dispatch'],
+          onTalk: ['rhachet/hooks.dispatch'],
+          Stop: ['rhachet/hooks.dispatch'],
+        });
       });
 
       then('the manifest holds the three rules', () => {
@@ -1615,6 +1627,61 @@ describe('rhachet upgrade', () => {
 
       then('the swap report matches the snapshot', () => {
         // from the `🪝 hook dispatchers set` header to the next blank line
+        const lines = result.stdout.split('\n');
+        const start = lines.findIndex((line) => line.startsWith('🪝 hook dispatchers set'));
+        expect(start).toBeGreaterThanOrEqual(0);
+        const end = lines.findIndex((line, index) => index > start && line.trim() === '');
+        expect(lines.slice(start, end < 0 ? undefined : end).join('\n')).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case19] a linked role whose PreToolUse wire an older rhachet narrowed to the union of its row matchers', () => {
+    // the shape a seat holds after an older dispatcher sync: one wire per event, but PreToolUse
+    //   under the union of its rows' matchers, so a later row on another tool stays dark.
+    //   `rhx upgrade` must re-wire it whole
+    const scene = useBeforeAll(async () => {
+      const repo = await genTestTempRepo({ fixture: 'with-role-hooks' });
+      const linked = invokeRhachetCliBinary({ args: ['init', '--roles', 'tester', '--hooks'], cwd: repo.path });
+      if (linked.status !== 0)
+        throw new ConstraintError('init --roles tester --hooks failed', {
+          stderr: linked.stderr,
+          hint: 'run `npm run build` so the linked fixture sees a fresh dist, then re-run',
+        });
+
+      // narrow the PreToolUse wire to a union matcher, as an older sync wrote it
+      const settingsPath = join(repo.path, '.claude', 'settings.of.repo.json');
+      const settings = JSON.parse(readFileSync(settingsPath, 'utf-8'));
+      const entries = settings.hooks.PreToolUse as Array<{ matcher: string }>;
+      const settingsUnion = {
+        ...settings,
+        hooks: { ...settings.hooks, PreToolUse: entries.map((entry) => ({ ...entry, matcher: 'Write|Edit' })) },
+      };
+      writeFileSync(settingsPath, JSON.stringify(settingsUnion, null, 2));
+      return { repo, settingsPath };
+    });
+
+    when('[t0] rhachet upgrade --roles test/tester --which local', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['upgrade', '--roles', 'test/tester', '--which', 'local'],
+          cwd: scene.repo.path,
+        }),
+      );
+
+      then('exits 0', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('the PreToolUse wire sits whole under `*`, once', () => {
+        const settings = JSON.parse(readFileSync(scene.settingsPath, 'utf-8'));
+        const entries = settings.hooks.PreToolUse as Array<{ matcher: string; hooks: Array<{ author: string }> }>;
+        expect(
+          entries.map((entry) => ({ matcher: entry.matcher, authors: entry.hooks.map((hook) => hook.author) })),
+        ).toEqual([{ matcher: '*', authors: ['rhachet/hooks.dispatch'] }]);
+      });
+
+      then('the swap report matches the snapshot', () => {
         const lines = result.stdout.split('\n');
         const start = lines.findIndex((line) => line.startsWith('🪝 hook dispatchers set'));
         expect(start).toBeGreaterThanOrEqual(0);

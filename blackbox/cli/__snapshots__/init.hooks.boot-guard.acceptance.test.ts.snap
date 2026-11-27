@@ -30,7 +30,10 @@ exports[`rhachet init --hooks, boot guard for .agent/repo=.this/role=any given: 
 
 🪝 hook dispatchers set
    └─ anthropic/claude/code
-      ├─ 1 rule → 1 dispatcher, one per event
+      ├─ 1 rule → 4 dispatchers, one per event
+      │  ├─ SessionStart = 0 rules
+      │  ├─ PreToolUse = 0 rules
+      │  ├─ UserPromptSubmit = 0 rules
       │  └─ Stop = 1 rule
       └─ manifest = .claude/hooks.dispatch.manifest
 
@@ -98,7 +101,10 @@ exports[`rhachet init --hooks, boot guard for .agent/repo=.this/role=any given: 
 
 🪝 hook dispatchers set
    └─ anthropic/claude/code
-      ├─ 1 rule → 1 dispatcher, one per event
+      ├─ 1 rule → 4 dispatchers, one per event
+      │  ├─ SessionStart = 0 rules
+      │  ├─ PreToolUse = 0 rules
+      │  ├─ UserPromptSubmit = 0 rules
       │  └─ Stop = 1 rule
       └─ manifest = .claude/hooks.dispatch.manifest
 

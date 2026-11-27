@@ -52,8 +52,11 @@ exports[`rhachet init --hooks given: [case8] a role that declares a role boot ho
 
 🪝 hook dispatchers set
    └─ anthropic/claude/code
-      ├─ 1 rule → 1 dispatcher, one per event
-      │  └─ SessionStart = 1 rule
+      ├─ 1 rule → 4 dispatchers, one per event
+      │  ├─ SessionStart = 1 rule
+      │  ├─ PreToolUse = 0 rules
+      │  ├─ UserPromptSubmit = 0 rules
+      │  └─ Stop = 0 rules
       ├─ 1 role hook moved from the settings into the manifest
       └─ manifest = .claude/hooks.dispatch.manifest
 
@@ -153,8 +156,11 @@ exports[`rhachet init --hooks given: [case10] a role hook whose matcher the disp
 
 🪝 hook dispatchers set
    └─ anthropic/claude/code
-      ├─ 1 rule → 1 dispatcher, one per event
-      │  └─ SessionStart = 1 rule
+      ├─ 1 rule → 4 dispatchers, one per event
+      │  ├─ SessionStart = 1 rule
+      │  ├─ PreToolUse = 0 rules
+      │  ├─ UserPromptSubmit = 0 rules
+      │  └─ Stop = 0 rules
       └─ manifest = .claude/hooks.dispatch.manifest
 
 ✨ hooks

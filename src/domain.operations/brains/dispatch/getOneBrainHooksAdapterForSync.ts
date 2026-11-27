@@ -1,12 +1,9 @@
 import type { BrainHooksAdapter } from '@src/domain.objects/BrainHooksAdapter';
 import type { BrainSpecifier } from '@src/domain.objects/BrainSpecifier';
 import type { ContextCli } from '@src/domain.objects/ContextCli';
-import { isBrainClaudeCode } from '@src/domain.operations/brains/isBrainClaudeCode';
-import { getBrainHooksAdapterByConfigImplicit } from '@src/domain.operations/config/getBrainHooksAdapterByConfigImplicit';
 
-import { join } from 'node:path';
 import { genBrainHooksAdapterViaDispatchManifest } from './genBrainHooksAdapterViaDispatchManifest';
-import { getHookDispatchManifestPathOfBrainDir } from './getHookDispatchManifestPathOfBrainDir';
+import { getOneBrainHookDispatchOfTarget } from './getOneBrainHookDispatchOfTarget';
 import { setHookDispatchManifestMigratedFromSettings } from './setHookDispatchManifestMigratedFromSettings';
 
 /**
@@ -24,19 +21,10 @@ export const getOneBrainHooksAdapterForSync = async (
   adapter: BrainHooksAdapter;
   dispatch: { adapterOfBrain: BrainHooksAdapter; manifestPath: string } | null;
 } | null> => {
-  // .note = the config lookup keeps its extant optional input; null crosses to it as absent
-  const adapterOfBrain = await getBrainHooksAdapterByConfigImplicit(
-    { brain: input.brain, configTargetDir: input.configTargetDir ?? undefined },
-    context,
-  );
-  if (!adapterOfBrain) return null;
-  if (!isBrainClaudeCode({ brain: input.brain }))
-    return { adapter: adapterOfBrain, dispatch: null };
-
-  // claude code: the rules live in the manifest beside the settings the adapter writes
-  const manifestPath = getHookDispatchManifestPathOfBrainDir({
-    brainDir: join(input.configTargetDir ?? context.cwd, '.claude'),
-  });
+  const found = await getOneBrainHookDispatchOfTarget(input, context);
+  if (!found) return null;
+  const { adapterOfBrain, manifestPath } = found;
+  if (!manifestPath) return { adapter: adapterOfBrain, dispatch: null };
 
   // the one-time migration: a brain dir with no manifest yet gets one from its settings' role hooks
   await setHookDispatchManifestMigratedFromSettings({
