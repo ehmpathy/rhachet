@@ -3,6 +3,7 @@ import { MalfunctionError } from 'helpful-errors';
 import type { ActorOndisk } from '@src/domain.objects/ActorOndisk';
 import { BrainCliEnrollmentSpec } from '@src/domain.objects/BrainCliEnrollmentSpec';
 import type { ContextCli } from '@src/domain.objects/ContextCli';
+import type { RoleContentDefect } from '@src/domain.objects/RoleContentDefect';
 import type { RoleLinkRef } from '@src/domain.objects/RoleLinkRef';
 import type { RoleSlug } from '@src/domain.objects/RoleSlug';
 import { asActorsDeclared } from '@src/domain.operations/actor/enrolled/asActorsDeclared';
@@ -63,10 +64,12 @@ export const setDeclaredActorsOndisk = async (
 ): Promise<{
   rederived: { actorExid: string; before: RoleSlug[]; after: RoleSlug[] }[];
   failures: BrainDirBootFailure[];
+  /** each content defect a re-derived actor's render set aside, in actor order */
+  defects: RoleContentDefect[];
 }> => {
   // no manifest → no declared actor
   const manifest = getActorsManifest({ repoPath: input.repoPath });
-  if (!manifest) return { rederived: [], failures: [] };
+  if (!manifest) return { rederived: [], failures: [], defects: [] };
 
   // the repo actor's roles at their recorded focus, read once; a corrupt record is one failure
   const ambient = getRolesAmbientAtFocusOrFailure({
@@ -74,26 +77,28 @@ export const setDeclaredActorsOndisk = async (
     rolesAmbient: input.rolesAmbient,
   });
   if ('failure' in ambient)
-    return { rederived: [], failures: [ambient.failure] };
+    return { rederived: [], failures: [ambient.failure], defects: [] };
 
   // the repo actor's record, so `init --hooks` derives its hooks before any enroll (F31)
   const recordFailure = await getRepoActorRecordFailureOrNull(
     { repoPath: input.repoPath, rolesAmbient: ambient.rolesAmbient },
     context,
   );
-  if (recordFailure) return { rederived: [], failures: [recordFailure] };
+  if (recordFailure)
+    return { rederived: [], failures: [recordFailure], defects: [] };
 
   // enumerate the declared actors; a failed read is one failure, never a throw
   const enumeration = getAllDeclaredActorsOrFailure({
     repoPath: input.repoPath,
   });
   if ('failure' in enumeration)
-    return { rederived: [], failures: [enumeration.failure] };
+    return { rederived: [], failures: [enumeration.failure], defects: [] };
 
-  // one outcome per actor: rewritten, failed, or left as it was
+  // one outcome per actor: rewritten, failed, or left as it was. `Promise.all` keeps actor
+  //   order, so the defects read in actor order whatever order the renders finish in
   const slugsDeclared = new Set(asSlugsOfActorsDeclared({ manifest }));
   const exidRepoActor = getOneRepoActorExid({ repoPath: input.repoPath });
-  const outcomes = await Promise.all(
+  const results = await Promise.all(
     enumeration.actors.map((actor) =>
       getOneDeclaredActorOutcome(
         {
@@ -107,7 +112,12 @@ export const setDeclaredActorsOndisk = async (
       ),
     ),
   );
-  return asDeltaActorOutcomes({ outcomes });
+  return {
+    ...asDeltaActorOutcomes({
+      outcomes: results.map((result) => result.outcome),
+    }),
+    defects: results.flatMap((result) => result.defects),
+  };
 };
 
 /**
@@ -188,7 +198,7 @@ const getOneDeclaredActorOutcome = async (
     rolesAmbient: RoleSlug[];
   },
   context: ContextCli,
-): Promise<DeltaActorOutcome> => {
+): Promise<{ outcome: DeltaActorOutcome; defects: RoleContentDefect[] }> => {
   const { actor } = input;
   try {
     // the roles the actor stands for today; null where its base is no longer declared
@@ -208,9 +218,10 @@ const getOneDeclaredActorOutcome = async (
       },
       context,
     );
-    if (rolesNext === null) return null;
+    if (rolesNext === null) return { outcome: null, defects: [] };
     const rolesBefore: RoleSlug[] = recorded.roles;
-    if (isRolesetEqual({ left: rolesNext, right: rolesBefore })) return null;
+    if (isRolesetEqual({ left: rolesNext, right: rolesBefore }))
+      return { outcome: null, defects: [] };
 
     // the settings and the boot first, then the record. the record is what says "already
     //   re-derived": were it written first, a fault after it would leave it ahead, and the
@@ -219,48 +230,57 @@ const getOneDeclaredActorOutcome = async (
       actor: { ...actor, roles: rolesNext },
       repoPath: actor.repoPath,
     });
-    if (!input.isRepoActor)
-      await setBrainDirBoot({
-        brainDir: getBrainOndiskDir({
-          actorDir: getActorOndiskDir({
-            repoPath: actor.repoPath,
-            exid: actor.exid,
+    // a re-derived actor's render returns each content defect it set aside; the caller names
+    //   them on its one receipt, in actor order
+    const render = input.isRepoActor
+      ? null
+      : await setBrainDirBoot({
+          brainDir: getBrainOndiskDir({
+            actorDir: getActorOndiskDir({
+              repoPath: actor.repoPath,
+              exid: actor.exid,
+            }),
           }),
-        }),
-        roles: asRoleRefsForEnrolledSlugs({
-          actorExid: actor.exid,
-          slugs: rolesNext,
-          refsLinked: input.refsLinked,
-        }),
-        repoPath: actor.repoPath,
-        scope: { kind: 'actor', actorExid: actor.exid },
-      });
+          roles: asRoleRefsForEnrolledSlugs({
+            actorExid: actor.exid,
+            slugs: rolesNext,
+            refsLinked: input.refsLinked,
+          }),
+          repoPath: actor.repoPath,
+          scope: { kind: 'actor', actorExid: actor.exid },
+        });
     await setActorOndiskManifestRoles({ actor, roles: rolesNext });
     return {
-      rederived: {
-        actorExid: actor.exid,
-        before: rolesBefore,
-        after: rolesNext,
+      outcome: {
+        rederived: {
+          actorExid: actor.exid,
+          before: rolesBefore,
+          after: rolesNext,
+        },
       },
+      defects: render?.defects ?? [],
     };
   } catch (error) {
     // an allowlist: a classed or fs fault is this actor's row; a code defect surfaces loud
     if (isCodeDefectError({ error })) throw error;
     return {
-      failure: {
-        scope: { kind: 'actor' as const, actorExid: actor.exid },
-        cause:
-          error instanceof Error
-            ? error
-            : new MalfunctionError(
-                'declared actor re-derive threw a non-Error value',
-                {
-                  actorExid: actor.exid,
-                  reason: error,
-                  hint: `rerun \`rhx init\`; if it fails again, check .agent/actors.yml and .agent/.actors/actor.via.${actor.exid}/actor.json`,
-                },
-              ),
+      outcome: {
+        failure: {
+          scope: { kind: 'actor' as const, actorExid: actor.exid },
+          cause:
+            error instanceof Error
+              ? error
+              : new MalfunctionError(
+                  'declared actor re-derive threw a non-Error value',
+                  {
+                    actorExid: actor.exid,
+                    reason: error,
+                    hint: `rerun \`rhx init\`; if it fails again, check .agent/actors.yml and .agent/.actors/actor.via.${actor.exid}/actor.json`,
+                  },
+                ),
+        },
       },
+      defects: [],
     };
   }
 };

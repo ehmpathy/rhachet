@@ -474,16 +474,22 @@ describe('rhachet roles cost', () => {
         }),
       );
 
-      then('it refuses, and names the orphan file', () => {
-        // the cost report shares the boot's render, so it shares the boot's orphan refusal
-        expect(result.status).toEqual(2);
-        expect(result.stderr).toContain('orphan.md.min');
+      then('it costs the boot, never refuses on a content defect', () => {
+        // the cost report shares the boot's render: an orphan is skipped, never refused
+        expect(result.status).toEqual(0);
       });
 
-      then('the refusal renders as snapshotted — on STDERR', () => {
-        // .readout = `asSnapshotSafe` over raw STDERR
-        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot(
-          'stderr-orphan-min',
+      then('the orphan is absent from the costed rows, and named on a 🟡 receipt below them', () => {
+        // the set-aside is still said aloud (`rule.forbid.failhide`); only where moved
+        const [rowsCosted, receipt] = result.stdout.split('🟡 boot set aside');
+        expect(rowsCosted).not.toContain('orphan.md.min');
+        expect(receipt).toContain('orphan.md.min');
+        expect(receipt).toContain('restore its .md source, or delete the .md.min');
+      });
+
+      then('the cost report of a role that holds an orphan is locked', () => {
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot(
+          'stdout-orphan-min',
         );
       });
     });
@@ -764,19 +770,21 @@ describe('rhachet roles cost', () => {
         expect(result.status).toEqual(0);
       });
 
-      then('the fault is SAID rather than absorbed, on stderr', () => {
-        // a dropped row is said aloud (`rule.forbid.failhide`)
-        expect(result.stderr).toContain('could not be read');
-        expect(result.stderr).toContain('role=broken');
+      then('the fault is SAID once, on the 🟡 receipt, never doubled on stderr', () => {
+        // a dropped row is said aloud (`rule.forbid.failhide`); a role spec that will not parse
+        //   is a content defect, so the receipt below names it with the parser's line, and the
+        //   sweep's own unreadable notice stays silent on it
+        expect(result.stdout).toContain('refused as a boot spec, so the role boots refs-only');
+        expect(result.stderr).not.toContain('could not be costed');
       });
 
       then('the fault wears `🟡`, never the caller-fault `✋`', () => {
         // `✋` binds to a refusal at exit 2 (`rule.require.unabridged-error-prefix`); this exits 0
-        const [lineFault] = result.stderr
-          .split('\n')
-          .filter((line) => line.includes('could not be read'));
-        expect(lineFault).toContain('🟡');
-        expect(lineFault).not.toContain('✋');
+        const [, block] = result.stdout.split('🟡 boot set aside');
+        expect(result.stdout).toContain('🟡 boot set aside');
+        expect(block).toContain('role=broken');
+        expect(block).not.toContain('✋');
+        expect(result.stderr).not.toContain('✋');
       });
 
       then('the roster STILL prints the spec it could read', () => {
@@ -786,20 +794,75 @@ describe('rhachet roles cost', () => {
       then('the counts reflect the ONE spec that was measured', () => {
         // the broken spec is absent from the tally, never counted at zero
         expect(result.stdout).toContain('1 boot spec');
-        expect(result.stdout).not.toContain('role=broken');
+        // the 🟡 defect block names the broken spec on purpose. so the stdout is split at that
+        //   block: all above it (the summary, every row, the reach) must never name the broken
+        //   spec, and the block itself is the one place that does
+        const [roster, block] = result.stdout.split('🟡 boot set aside');
+        expect(roster).not.toContain('role=broken');
+        expect(block).toContain('role=broken');
       });
 
-      then('the fault block renders as snapshotted — on STDERR', () => {
-        // .readout = `asSnapshotSafe` over raw STDERR — no error-readout wrapper
-        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot(
-          'stderr-all-unreadable',
-        );
+      then('the broken spec is named on a 🟡 content defect block, exit 0 still', () => {
+        // a report never gates; it names what a boot sets aside
+        // (`rule.forbid.content-checks-that-halt-enroll`)
+        expect(result.stdout).toContain('🟡 boot set aside 1 role content defect');
+        expect(result.stdout).toContain('.agent/repo=.this/role=broken/boot.yml');
+      });
+
+      then('stderr stays empty: the 🟡 receipt on stdout is the one place the fault is named', () => {
+        expect(result.stderr).toEqual('');
       });
 
       then('the roster renders as snapshotted — on STDOUT', () => {
         // .readout = `asSnapshotSafe` over raw STDOUT
         expect(asSnapshotSafe(result.stdout)).toMatchSnapshot(
           'stdout-all-unreadable',
+        );
+      });
+    });
+  });
+
+  given('[case10.1] a repo where a route manifest, not a role spec, cannot be parsed', () => {
+    const repo = useBeforeAll(async () => {
+      const made = await genTestTempRepo({ fixture: 'with-boot-spec-unreadable' });
+      // the role spec is repaired, so the one unreadable spec is the route manifest
+      writeFileSync(
+        join(made.path, '.agent', 'repo=.this', 'role=broken', 'boot.yml'),
+        'briefs:\n  say:\n    - briefs/core.md\n',
+      );
+      mkdirSync(join(made.path, '.behavior', 'v2026_01_01.route'), {
+        recursive: true,
+      });
+      writeFileSync(
+        join(made.path, '.behavior', 'v2026_01_01.route', 'boot.yml'),
+        'briefs:\n  say: [unclosed\n',
+      );
+      return made;
+    });
+
+    when('[t0] roles cost --all', () => {
+      const result = useBeforeAll(async () =>
+        invokeRhachetCliBinary({
+          args: ['roles', 'cost', '--all'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('exits 0 — one unreadable spec does not refuse the report', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('a manifest is no role, so the sweep says its fault on stderr, as a 🟡 warn', () => {
+        expect(result.stderr).toContain('could not be costed');
+        expect(result.stderr).toContain('.behavior/v2026_01_01.route/boot.yml');
+        expect(result.stderr).toContain('🟡');
+        expect(result.stdout).not.toContain('🟡 boot set aside');
+      });
+
+      then('the stderr notice is locked', () => {
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot(
+          'stderr-all-unreadable-manifest',
         );
       });
     });

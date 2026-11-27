@@ -1,0 +1,7 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`setInitRoleFoci given: [case1] two linked roles focused at ::tiny, one whose boot.yml will not parse when: [t0] the focus receipt is composed then: the receipt is locked 1`] = `
+"🧢 focus
+   ├─ broken narrowed to ::tiny, which takes effect once its boot.yml is repaired
+   └─ sound narrowed to ::tiny"
+`;

@@ -1,6 +1,7 @@
 import { ConstraintError } from 'helpful-errors';
 
 import type { BootBudget } from '@src/domain.objects/RoleBootSpec';
+import type { RoleContentDefect } from '@src/domain.objects/RoleContentDefect';
 import { asBootPayloadBatches } from '@src/domain.operations/boot/asBootPayloadBatches';
 import { asBootRemedyMode } from '@src/domain.operations/boot/asBootRemedyMode';
 import { asBootStatsLines } from '@src/domain.operations/boot/asBootStatsLines';
@@ -17,7 +18,7 @@ import { getOneBootConfigForSource } from '@src/domain.operations/boot/getOneBoo
 import { asRoleDirCoordinates } from '@src/domain.operations/mods/asRoleDirCoordinates';
 import { getOneRoleModForRoleDir } from '@src/domain.operations/mods/getOneRoleModForRoleDir';
 import { withRoleModReadConfirmed } from '@src/domain.operations/mods/withRoleModReadConfirmed';
-import { assertZeroOrphanMinifiedBriefs } from '@src/domain.operations/role/briefs/assertZeroOrphanMinifiedBriefs';
+import { asRoleContentDefectsOfOrphans } from '@src/domain.operations/role/briefs/asRoleContentDefectsOfOrphans';
 import {
   BOOT_WALK_DIRS_SKIPPED,
   BRIEF_DIR_BLOCKLIST,
@@ -110,6 +111,16 @@ export interface BootPayload extends BootPayloadMeasurable {
    * the subject sections in scope, and how to re-measure without each — null where none apply
    */
   subjects: BootPayloadSubjects | null;
+
+  /**
+   * the content defects this render set aside: each orphan `.md.min` it skipped
+   *
+   * .note = a set-aside with no notice is a failhide, so the caller that emits the payload names
+   *   these on a receipt (`rule.forbid.content-checks-that-halt-enroll`)
+   * .note = empty for a declared manifest: a manifest names no role, so its orphans have no
+   *   `repo=`/`role=` to report under; the stop sweep walks roles, never manifests
+   */
+  defects: RoleContentDefect[];
 }
 
 /**
@@ -226,12 +237,20 @@ export const genBootPayload = async (input: {
     blocklist: BRIEF_DIR_BLOCKLIST,
   });
 
-  // prefer .md.min content and detect orphans
+  // prefer .md.min content; an orphan is never a ref, so the payload skips it and names it as a
+  //   defect for the caller's receipt; a boot never halts on it
   const { refs: briefRefs, orphans } = getRoleBriefRefs({
     briefFiles: briefFilesRaw,
     briefsDir: source.dirBriefs ?? source.rootDir,
   });
-  assertZeroOrphanMinifiedBriefs({ orphans });
+  const coordinatesOfRole = asRoleDirCoordinates({ roleDir: source.rootDir });
+  const defects = coordinatesOfRole
+    ? asRoleContentDefectsOfOrphans({
+        orphans,
+        ref: { repo: coordinatesOfRole.repo, role: coordinatesOfRole.role },
+        cwd: coordinatesOfRole.cwd,
+      })
+    : [];
 
   // load and parse the boot spec if present (a computed spec may be absent; a declared one
   //   may not — `getOneBootConfigForSource` owns that split)
@@ -359,6 +378,8 @@ export const genBootPayload = async (input: {
     mode: asBootRemedyMode({ spec: bootConfig }),
 
     subjects: getOneSubjectRoster(),
+
+    defects,
 
     genStatsLines,
   };

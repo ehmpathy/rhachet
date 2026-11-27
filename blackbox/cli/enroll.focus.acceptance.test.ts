@@ -470,8 +470,10 @@ describe('rhx enroll --roles <role>::<subject> (acceptance)', () => {
       });
     });
 
+    // a misspelled key is a spec that will not parse: content, so it never halts a clone birth
+    //   (`rule.forbid.content-checks-that-halt-enroll`). the receipt still names the rename (K2)
     when('[t1] the subject misspells the key as `inherits` (K2)', () => {
-      const run = useThen('it is refused', () => {
+      const run = useThen('the clone is born', () => {
         writeFileSync(
           join(roleDir, 'boot.yml'),
           [
@@ -484,21 +486,30 @@ describe('rhx enroll --roles <role>::<subject> (acceptance)', () => {
             '',
           ].join('\n'),
         );
+        // a pinned HOME, so the box's grove does not decide the receipt; the snap strips the login line
         return invokeRhachetCliBinary({
           args: ['enroll', 'claude', '--roles', 'lean::tiny'],
           cwd: dir,
-          env: { PATH: stubPath },
+          env: {
+            PATH: stubPath,
+            HOME: genTempDir({ slug: 'enroll-focus-corrupt-home' }),
+          },
           logOnError: false,
         });
       });
 
-      then('it exits 2 and names the key expected', () => {
-        expect(run.status).toEqual(2);
-        expect(run.stderr).toContain('inherit');
+      then('it exits 0, and the 🟡 receipt names the spec and the key expected', () => {
+        expect(run.status).toEqual(0);
+        expect(run.stderr).toContain('.agent/repo=.this/role=lean/boot.yml');
+        expect(run.stderr).toContain('rename `inherits` to `inherit`');
+        expect(run.stderr).not.toContain('ConstraintError');
       });
 
-      then('the refusal matches its snapshot', () => {
-        expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
+      then('the receipt matches its snapshot', () => {
+        // the runner's own credentials decide `ℹ no claude login at …`, so it is not snapped
+        expect(
+          asSnapshotSafe(run.stderr).replace(/^ℹ no claude login at .*\n?/gm, ''),
+        ).toMatchSnapshot();
       });
     });
   });

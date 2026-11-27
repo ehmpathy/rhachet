@@ -7,14 +7,21 @@ import type { RoleFocusChange } from './asRoleFocusChanges';
  *
  * .note = naught renders where no focus was touched, so an unfocused enroll prints as it did;
  *         a focus re-typed as held renders as `unchanged` (E2), so a no-op reads as one
+ * .note = a role whose boot spec the render refused boots refs-only, so its focus is recorded
+ *         but not yet in effect; its leaf says so, and never reads as applied (`rolesAwaitRepair`)
  * .note = pure transformer — no i/o, deterministic
  */
 export const asRoleFocusReceiptLines = (input: {
   changes: RoleFocusChange[];
   alwaysShed: string[];
+  rolesAwaitRepair: string[];
 }): string[] => {
   const leaves = [
-    ...input.changes.map(asRoleFocusChangeLeaf),
+    ...input.changes.map((change) =>
+      input.rolesAwaitRepair.includes(change.role)
+        ? `${asRoleFocusChangeLeaf(change)}, which takes effect once its boot.yml is repaired`
+        : asRoleFocusChangeLeaf(change),
+    ),
     ...input.alwaysShed.map(
       (role) =>
         `${role} sheds its always block, as its focus declares — its always briefs and skills do not boot`,

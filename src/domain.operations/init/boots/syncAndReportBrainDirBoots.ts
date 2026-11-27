@@ -8,7 +8,10 @@ import {
   asBrainDirSyncReportLines,
   type BrainDirSyncSymlink,
 } from '@src/domain.operations/boot/asBrainDirSyncReportLines';
+import { asRoleContentDefectReceiptLines } from '@src/domain.operations/boot/asRoleContentDefectReceiptLines';
+import { asRoleContentDefectsUnique } from '@src/domain.operations/boot/asRoleContentDefectsUnique';
 import { getSupportedBrainCommand } from '@src/domain.operations/brain/getSupportedBrainCommand';
+import { isRepoStopSweepArmed } from '@src/domain.operations/brains/isRepoStopSweepArmed';
 import { assertBrainCliVersionFloor } from '@src/domain.operations/enroll/assertBrainCliVersionFloor';
 import { asRoleModViewsChangedReadout } from '@src/domain.operations/mods/asRoleModViewsChangedReadout';
 import { asTreeBranchLines } from '@src/utils/asTreeBranchLines';
@@ -79,6 +82,7 @@ export const syncAndReportBrainDirBoots = async (
     renders,
     failures,
     symlink,
+    defectsDeclared,
     modsChanged,
     modsReverted,
     modsUnplaced,
@@ -126,6 +130,25 @@ export const syncAndReportBrainDirBoots = async (
     for (const line of lines) console.log(line);
     console.log('');
   }
+
+  // each content defect a render set aside, once, on stderr, in render order then declared
+  //   actor order; the render still wrote its corpus (`rule.forbid.content-checks-that-halt-enroll`)
+  asRoleContentDefectReceiptLines(
+    {
+      defects: asRoleContentDefectsUnique({
+        defects: [
+          ...renders.flatMap((render) => render.defects),
+          ...defectsDeclared,
+        ],
+      }),
+      // a rerender (`init`, `upgrade`, `roles link`) is run by whoever repairs the repo, and births
+      //   no clone, so its receipt names none
+      for: 'human',
+    },
+    {
+      getIsSweepArmed: () => isRepoStopSweepArmed({ gitroot: input.repoPath }),
+    },
+  ).forEach((line) => console.error(line));
 
   // one named failure per corpus not written, on stderr
   for (const failure of failures)

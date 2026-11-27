@@ -262,6 +262,73 @@ describe('rhachet init --hooks, boot guard for .agent/repo=.this/role=any', () =
     });
   });
 
+  given('[case2.1] a repo whose budgeted role=any spec its author broke', () => {
+    const repo = useBeforeAll(async () => {
+      const made = await genTestTempRepo({ fixture: 'with-boot-guard-custom' });
+      await fs.writeFile(
+        path.join(made.path, '.agent', 'repo=.this', 'role=any', 'boot.yml'),
+        'budget:\n  tokens: 20\nalways:\n  briefs:\n    say: [briefs/core.md\n',
+      );
+      return made;
+    });
+
+    when('[t0] init --hooks', () => {
+      const result = useThen('it succeeds', async () =>
+        invokeRhachetCliBinary({
+          args: ['init', '--hooks'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('exits with status 0: the broken spec never halts the remedy path', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('the broken-carrier init is locked, on both streams', () => {
+        expect(asSnapshotSafe(result.stdout)).toMatchSnapshot('stdout-broken-carrier');
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot('stderr-broken-carrier');
+      });
+
+      then('the broken carrier keeps the Stop hook its author declared (F17)', async () => {
+        const stops = await getManifestRulesStop({ repoPath: repo.path });
+        expect(stops).toContainEqual(
+          expect.objectContaining({
+            command:
+              './node_modules/.bin/rhachet roles cost --all --when hook.onStop',
+            matcher: 'repo=.this/role=any',
+          }),
+        );
+      });
+
+      then('settings.of.repo.json starts the one Stop dispatcher', async () => {
+        const stops = await getSettingsHooksStop({ repoPath: repo.path });
+        expect(stops).toEqual([
+          expect.objectContaining({ matcher: HOOK_DISPATCH_AUTHOR }),
+        ]);
+      });
+    });
+
+    when('[t1] the onStop hook fires', () => {
+      const result = useThen('it runs', async () =>
+        invokeRhachetCliBinary({
+          args: HOOK_ARGS,
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('the stop holds on the spec: exit 2, the spec named', () => {
+        expect(result.status).toEqual(2);
+        expect(result.stderr).toContain('.agent/repo=.this/role=any/boot.yml');
+      });
+
+      then('the hold on the broken carrier is locked', () => {
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
+      });
+    });
+  });
+
   given('[case3] a caller that names no declared hook event', () => {
     const repo = useBeforeAll(async () =>
       genTestTempRepo({ fixture: 'with-boot-guard-unset' }),

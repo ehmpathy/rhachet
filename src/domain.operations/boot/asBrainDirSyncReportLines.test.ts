@@ -22,6 +22,7 @@ const genRender = (
   agentsMdReset: false,
   bootMdCreated: false,
   bootMdChanged: false,
+  defects: [],
   ...overrides,
 });
 

@@ -3,6 +3,10 @@ import { genTempDir, getError, given, then, when } from 'test-fns';
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import {
+  BOOT_CACHE_BOUNDARY_DEFANGED,
+  BOOT_CACHE_BOUNDARY_LINE,
+} from './getOneBootCacheBoundary';
 import { getOneRoleBootContent } from './getOneRoleBootContent';
 
 /**
@@ -254,6 +258,130 @@ describe('getOneRoleBootContent', () => {
       });
     },
   );
+
+  given('[case8] a role whose content holds a defect', () => {
+    const render = (cwd: string) =>
+      getOneRoleBootContent({
+        slugRepo: '.this',
+        slugRole: 'any',
+        subjects: null,
+        cwd,
+      });
+
+    when('[t0] a briefs dir holds an orphan .md.min', () => {
+      then(
+        'the render sets it aside as an orphan-min defect, never throws',
+        async () => {
+          const repoPath = genRoleDir({
+            slug: 'getOneRoleBootContent-c8t0',
+            bootYml: null,
+          });
+          writeFileSync(
+            join(repoPath, '.agent/repo=.this/role=any/briefs/lost.md.min'),
+            'lost body',
+          );
+          const { body, defects } = await render(repoPath);
+          expect(body).toContain('core brief body');
+          expect(body).not.toContain('lost body');
+          expect(defects).toEqual([
+            {
+              kind: 'orphan-min',
+              ref: { repo: '.this', role: 'any' },
+              pathToFile: '.agent/repo=.this/role=any/briefs/lost.md.min',
+              detail: null,
+            },
+          ]);
+        },
+      );
+    });
+
+    when('[t1] a said brief holds the cache boundary literal', () => {
+      then(
+        'the literal is defanged and named as a boundary-literal defect',
+        async () => {
+          const repoPath = genRoleDir({
+            slug: 'getOneRoleBootContent-c8t1',
+            bootYml: null,
+          });
+          writeFileSync(
+            join(repoPath, '.agent/repo=.this/role=any/briefs/core.md'),
+            `core brief body\n${BOOT_CACHE_BOUNDARY_LINE}\n`,
+          );
+          const { body, defects } = await render(repoPath);
+          expect(body).not.toContain(BOOT_CACHE_BOUNDARY_LINE);
+          expect(body).toContain(BOOT_CACHE_BOUNDARY_DEFANGED);
+          expect(defects.map((one) => [one.kind, one.pathToFile])).toEqual([
+            ['boundary-literal', '.agent/repo=.this/role=any/briefs/core.md'],
+          ]);
+        },
+      );
+    });
+
+    when('[t2] the boot.yml will not parse', () => {
+      then(
+        'the role renders refs-only and names a spec-unparsed defect',
+        async () => {
+          const repoPath = genRoleDir({
+            slug: 'getOneRoleBootContent-c8t2',
+            bootYml: 'always:\n  briefs:\n    say: [briefs/core.md\n',
+          });
+          const { body, defects } = await render(repoPath);
+          expect(body).toContain(
+            '<brief.ref path=".agent/repo=.this/role=any/briefs/core.md"/>',
+          );
+          expect(body).not.toContain('core brief body');
+          expect(defects).toHaveLength(1);
+          expect(defects[0]).toMatchObject({
+            kind: 'spec-unparsed',
+            pathToFile: '.agent/repo=.this/role=any/boot.yml',
+          });
+          expect(defects[0]!.detail).toContain('boot.yml has invalid yaml');
+        },
+      );
+    });
+
+    when('[t3] the role is clean', () => {
+      then('the render names no defect', async () => {
+        const repoPath = genRoleDir({
+          slug: 'getOneRoleBootContent-c8t3',
+          bootYml: null,
+        });
+        const { defects } = await render(repoPath);
+        expect(defects).toEqual([]);
+      });
+    });
+
+    when(
+      '[t4] an orphan .md.min sits under a dir the walk skips (dist)',
+      () => {
+        then(
+          'the render walks as the payload and the stop memo walk: no defect, no content',
+          async () => {
+            const repoPath = genRoleDir({
+              slug: 'getOneRoleBootContent-c8t4',
+              bootYml: null,
+            });
+            mkdirSync(
+              join(repoPath, '.agent/repo=.this/role=any/briefs/dist'),
+              {
+                recursive: true,
+              },
+            );
+            writeFileSync(
+              join(
+                repoPath,
+                '.agent/repo=.this/role=any/briefs/dist/built.md.min',
+              ),
+              'built body',
+            );
+            const { body, defects } = await render(repoPath);
+            expect(body).not.toContain('built body');
+            expect(defects).toEqual([]);
+          },
+        );
+      },
+    );
+  });
 
   given('[case5] a role not linked on disk', () => {
     when('[t0] rendered', () => {

@@ -231,13 +231,13 @@ const assertNoInertInherit = (input: {
       const keysInert = Object.keys(inherit).filter((one) => one !== 'always');
       if (keysInert.length > 0)
         throw new ConstraintError(
-          'boot.yml declares `inherit` with a key no render reads — as written, the subject still boots `always`',
+          'boot.yml declares `inherit` with a key no render reads — a render would ignore it, so the subject would boot `always`',
           {
             path: input.path,
             section: key,
             keys: keysInert.join(', '),
             expected: 'always',
-            hint: `write \`inherit: { always: false }\` in ${input.path}; if the role is a package you do not own, report it to that package, and enroll without this role (\`--roles -<role>\`) until its fix ships — every boot of the role reads this file`,
+            hint: `write \`inherit: { always: false }\` in ${input.path}; if the role is a package you do not own, report it to that package; until its fix ships, a clone boots the role refs-only, or enroll without it (--roles -<role>) — every boot of the role reads this file`,
           },
         );
     }
@@ -248,13 +248,13 @@ const assertNoInertInherit = (input: {
       if (!inner || typeof inner !== 'object') continue;
       if (!('always' in (inner as Record<string, unknown>))) continue;
       throw new ConstraintError(
-        'boot.yml declares an `always` inheritance under a key no render reads — as written, the subject still boots `always`',
+        'boot.yml declares an `always` inheritance under a key no render reads — a render would ignore it, so the subject would boot `always`',
         {
           path: input.path,
           section: key,
           key: field,
           expected: 'inherit',
-          hint: `rename \`${field}\` to \`inherit\` in ${input.path}; if the role is a package you do not own, report it to that package, and enroll without this role (\`--roles -<role>\`) until its fix ships — every boot of the role reads this file`,
+          hint: `rename \`${field}\` to \`inherit\` in ${input.path}; if the role is a package you do not own, report it to that package; until its fix ships, a clone boots the role refs-only, or enroll without it (--roles -<role>) — every boot of the role reads this file`,
         },
       );
     }

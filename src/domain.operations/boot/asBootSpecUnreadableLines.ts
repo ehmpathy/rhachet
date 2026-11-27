@@ -22,12 +22,14 @@ export const asBootSpecUnreadableLines = (input: {
       ? (input.error.message.split('\n')[0] ?? '')
       : String(input.error);
 
+  // the fault may lie in the spec or in what it composes (a mod that names it), so the hint
+  //   sends the reader to the fault, never to the spec alone
   return [
     '',
-    '🟡 a boot spec could not be read — it is absent from the roster below',
+    '🟡 a boot spec could not be costed — it is absent from the roster below',
     `   ├─ spec  = ${relative(input.cwd, input.pathToSpec)}`,
     `   ├─ fault = ${fault}`,
-    '   └─ hint: repair the spec, or report it upstream where it is a linked role',
+    '   └─ hint  = repair what the fault names, or report it upstream where it is a linked role',
     '',
   ];
 };

@@ -1,0 +1,8 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`rhx enroll, a real brain is born past a content defect (acceptance, real haiku) given: [case1] a .this role with an orphan .md.min, and a real claude on PATH when: [t0] a haiku clone is enrolled with one prompt then: the receipt a live birth prints is locked 1`] = `
+"🟡 boot set aside 1 role content defect — the clone still boots; each row names its fix
+   ├─ .agent/repo=.this/role=any/briefs/lost.md.min
+   │  └─ an orphan .md.min, skipped — restore its .md source, or delete the .md.min
+   └─ no stop sweep is armed for this clone, so this receipt is the one notice"
+`;

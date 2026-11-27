@@ -208,21 +208,55 @@ quant
 "
 `;
 
-exports[`rhachet roles boot given: [case6] repo with orphan .md.min when: [t0] roles boot --repo .this --role any then: the refusal renders as snapshotted — on STDERR: stderr-orphan-min 1`] = `
+exports[`rhachet roles boot given: [case6.1] repo whose role boot.yml will not parse when: [t0] roles boot --repo .this --role broken then: the refusal is locked: stderr-spec-unparsed 1`] = `
 "
-✋ ConstraintError: orphan .md.min file(s) detected without .md source:
-  - /TMP_REPO/.agent/repo=.this/role=any/briefs/orphan.md.min
-
-each .md.min file must have a matched .md source file.
+✋ ConstraintError: boot.yml has invalid yaml
 
 {
-  "hint": "a .md.min is derived from its .md source — restore the absent .md, or delete the orphan .md.min",
-  "orphanPaths": [
-    "/TMP_REPO/.agent/repo=.this/role=any/briefs/orphan.md.min"
-  ]
+  "hint": "fix the yaml syntax at the line the error names, then re-run",
+  "path": "/TMP_REPO/.agent/repo=.this/role=broken/boot.yml",
+  "error": "Block collections are not allowed within flow collections at line 12, column 10:\\n\\n  say: { - briefs/**/*.md\\n         ^^\\n"
 }
 
-[args] roles,boot,--repo,.this,--role,any
+[args] roles,boot,--repo,.this,--role,broken
+
+"
+`;
+
+exports[`rhachet roles boot given: [case6] repo with orphan .md.min when: [t0] roles boot --repo .this --role any then: the payload of a role that holds an orphan is locked: stdout-orphan-min 1`] = `
+"<stats>
+quant
+  ├── files = 1
+  │   ├── briefs = 0
+  │   └── skills = 0
+  ├── chars = 57
+  └── tokens ≈ 15 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+<readme path=".agent/repo=.this/role=any/readme.md">
+# any role
+
+this role applies to any agent in this repo.
+
+</readme>
+
+<stats>
+quant
+  ├── files = 1
+  │   ├── briefs = 0
+  │   └── skills = 0
+  ├── chars = 57
+  └── tokens ≈ 15 / unlimited budget (< $0.01 at $3/mil)
+</stats>
+
+"
+`;
+
+exports[`rhachet roles boot given: [case6] repo with orphan .md.min when: [t0] roles boot --repo .this --role any then: the receipt of a role that holds an orphan is locked: stderr-orphan-min 1`] = `
+"🟡 boot set aside 1 role content defect — each role still boots; each row names its fix
+   ├─ .agent/repo=.this/role=any/briefs/orphan.md.min
+   │  └─ an orphan .md.min, skipped — restore its .md source, or delete the .md.min
+   └─ no stop sweep is armed in this repo, so no stop will hold on what it names
 
 "
 `;

@@ -1,26 +1,26 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`parseRoleBootYaml given: [case15] a subject that declares its \`always\` inheritance when: [t1] the inherit key is misspelled then: it throws, and names the key it read and the one it wanted 1`] = `
-"✋ ConstraintError: boot.yml declares an \`always\` inheritance under a key no render reads — as written, the subject still boots \`always\`
+"✋ ConstraintError: boot.yml declares an \`always\` inheritance under a key no render reads — a render would ignore it, so the subject would boot \`always\`
 
 {
   "path": "boot.yml",
   "section": "subject.101",
   "key": "inhert",
   "expected": "inherit",
-  "hint": "rename \`inhert\` to \`inherit\` in boot.yml; if the role is a package you do not own, report it to that package, and enroll without this role (\`--roles -<role>\`) until its fix ships — every boot of the role reads this file"
+  "hint": "rename \`inhert\` to \`inherit\` in boot.yml; if the role is a package you do not own, report it to that package; until its fix ships, a clone boots the role refs-only, or enroll without it (--roles -<role>) — every boot of the role reads this file"
 }"
 `;
 
 exports[`parseRoleBootYaml given: [case15] a subject that declares its \`always\` inheritance when: [t2] the inner always key is misspelled then: it throws rather than inherit in silence, and names the key 1`] = `
-"✋ ConstraintError: boot.yml declares \`inherit\` with a key no render reads — as written, the subject still boots \`always\`
+"✋ ConstraintError: boot.yml declares \`inherit\` with a key no render reads — a render would ignore it, so the subject would boot \`always\`
 
 {
   "path": "boot.yml",
   "section": "subject.101",
   "keys": "allways",
   "expected": "always",
-  "hint": "write \`inherit: { always: false }\` in boot.yml; if the role is a package you do not own, report it to that package, and enroll without this role (\`--roles -<role>\`) until its fix ships — every boot of the role reads this file"
+  "hint": "write \`inherit: { always: false }\` in boot.yml; if the role is a package you do not own, report it to that package; until its fix ships, a clone boots the role refs-only, or enroll without it (--roles -<role>) — every boot of the role reads this file"
 }"
 `;
 

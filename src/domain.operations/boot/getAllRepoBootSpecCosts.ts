@@ -7,6 +7,7 @@ import { getAllBootSpecSubjectCosts } from '@src/domain.operations/boot/getAllBo
 import { getAllRepoBootSpecPaths } from '@src/domain.operations/boot/getAllRepoBootSpecPaths';
 import { getOneBootSourceFromSpecPath } from '@src/domain.operations/boot/getOneBootSourceFromSpecPath';
 import { isBootSpecForeign } from '@src/domain.operations/boot/isBootSpecForeign';
+import { isRoleSpecUnparsedAtPath } from '@src/domain.operations/boot/isRoleSpecUnparsedAtPath';
 import type { BrainTokenCounter } from '@src/domain.operations/brainCost/getOneBrainTokenCounter';
 import { getOneBrainTokenCounter } from '@src/domain.operations/brainCost/getOneBrainTokenCounter';
 
@@ -106,6 +107,10 @@ const getOneBootSpecCost = async (
     };
   } catch (error) {
     if (!(error instanceof ConstraintError)) throw error;
+
+    // a role spec that will not parse is a content defect: the content readout names it, with
+    //   the parser's line, on every arm this sweep runs on, so the sweep says naught of it
+    if (isRoleSpecUnparsedAtPath({ pathToSpec: input.pathToSpec })) return null;
 
     for (const line of asBootSpecUnreadableLines({
       pathToSpec: input.pathToSpec,

@@ -16,6 +16,7 @@ const renderA: BrainDirBootRender = {
   agentsMdReset: false,
   bootMdCreated: false,
   bootMdChanged: false,
+  defects: [],
 };
 const renderC: BrainDirBootRender = {
   scope: { kind: 'actor', actorExid: 'cccccccc' },
@@ -25,6 +26,7 @@ const renderC: BrainDirBootRender = {
   agentsMdReset: true,
   bootMdCreated: false,
   bootMdChanged: false,
+  defects: [],
 };
 const failureB: BrainDirBootFailure = {
   scope: { kind: 'actor', actorExid: 'bbbbbbbb' },

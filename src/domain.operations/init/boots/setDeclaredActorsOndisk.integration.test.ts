@@ -2,6 +2,7 @@ import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genSampleRepoWithRoles } from '@src/.test/assets/genSampleRepoWithRoles';
 import { ContextCli } from '@src/domain.objects/ContextCli';
+import type { RoleContentDefect } from '@src/domain.objects/RoleContentDefect';
 import { findsertActorOndisk } from '@src/domain.operations/actor/enrolled/findsertActorOndisk';
 import { getActorOndiskDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDir';
 
@@ -62,7 +63,7 @@ describe('setDeclaredActorsOndisk', () => {
       );
 
       then('naught is re-derived, and no failure is collected', () => {
-        expect(result).toEqual({ rederived: [], failures: [] });
+        expect(result).toEqual({ rederived: [], failures: [], defects: [] });
       });
     });
   });
@@ -175,7 +176,7 @@ describe('setDeclaredActorsOndisk', () => {
         );
 
         then('no actor moves — the sync is idempotent', () => {
-          expect(result).toEqual({ rederived: [], failures: [] });
+          expect(result).toEqual({ rederived: [], failures: [], defects: [] });
         });
       });
     },
@@ -220,7 +221,7 @@ describe('setDeclaredActorsOndisk', () => {
         );
 
         then('no failure is collected, and naught is re-derived', () => {
-          expect(result).toEqual({ rederived: [], failures: [] });
+          expect(result).toEqual({ rederived: [], failures: [], defects: [] });
         });
 
         then(
@@ -234,6 +235,92 @@ describe('setDeclaredActorsOndisk', () => {
                 }),
               ].sort(),
             ).toEqual(['any', 'zeta']);
+          },
+        );
+      });
+    },
+  );
+
+  given(
+    '[case4] a stale peer whose declared role holds an orphan .md.min',
+    () => {
+      const scene = useBeforeAll(async () => {
+        const repoPath = genSampleRepoWithRoles({
+          slug: 'declared-actors-defect',
+          roles: ROLES_FIXTURE,
+        });
+        writeFileSync(
+          join(repoPath, 'package.json'),
+          JSON.stringify({ name: 'declared-actors-defect', private: true }),
+        );
+        writeFileSync(
+          join(repoPath, '.agent', 'actors.yml'),
+          [
+            "ambient: '@crew'",
+            'actor:',
+            '  - slug: crew',
+            '    brain: claude',
+            '    roles: [fixture/any]',
+            '  - slug: peer',
+            '    brain: claude',
+            '    roles: [fixture/omega]',
+            '',
+          ].join('\n'),
+        );
+        writeFileSync(
+          join(
+            repoPath,
+            '.agent',
+            'repo=fixture',
+            'role=omega',
+            'briefs',
+            'gone.md.min',
+          ),
+          '# gone\n',
+        );
+        await setSampleDeclaredActor({
+          repoPath,
+          exid: 'slug=peer',
+          roles: ['zeta'],
+        });
+        return { repoPath };
+      });
+
+      when('[t0] the declared actors sync', () => {
+        const result = useBeforeAll(async () =>
+          setDeclaredActorsOndisk(
+            {
+              repoPath: scene.repoPath,
+              refsLinked: ROLES_FIXTURE,
+              rolesAmbient: ['any'],
+            },
+            new ContextCli({ cwd: scene.repoPath, gitroot: scene.repoPath }),
+          ),
+        );
+
+        then('the peer still re-derives: a content defect fails naught', () => {
+          expect(result.failures).toEqual([]);
+          expect(
+            result.rederived.some(
+              (one: { actorExid: string }) => one.actorExid === 'slug=peer',
+            ),
+          ).toEqual(true);
+        });
+
+        then(
+          'the orphan is returned for the caller to name, never printed',
+          () => {
+            expect(
+              result.defects.map((one: RoleContentDefect) => ({
+                kind: one.kind,
+                pathToFile: one.pathToFile,
+              })),
+            ).toEqual([
+              {
+                kind: 'orphan-min',
+                pathToFile: '.agent/repo=fixture/role=omega/briefs/gone.md.min',
+              },
+            ]);
           },
         );
       });

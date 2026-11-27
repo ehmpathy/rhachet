@@ -3,9 +3,8 @@ import type { RoleBootSpec } from '@src/domain.objects/RoleBootSpec';
 import type { RoleDelta } from '@src/domain.objects/RoleDelta';
 import { assertRoleFocusDeclared } from '@src/domain.operations/boot/assertRoleFocusDeclared';
 import { getAllLinkedRoleRefs } from '@src/domain.operations/role/getAllLinkedRoleRefs';
-import { getOneRoleBootSpecFromRef } from '@src/domain.operations/role/getOneRoleBootSpecFromRef';
-import { parseRoleBootYaml } from '@src/domain.operations/role/parseRoleBootYaml';
-import { readOneBootSpecFile } from '@src/domain.operations/role/readOneBootSpecFile';
+import { getOneRoleBootSpecOrDefectFromRef } from '@src/domain.operations/role/getOneRoleBootSpecOrDefectFromRef';
+import { getOneRoleBootSpecOrFaultFromPath } from '@src/domain.operations/role/getOneRoleBootSpecOrFaultFromPath';
 import { getAllRoleFociOfDeltas } from '@src/domain.operations/roles/focus/getAllRoleFociOfDeltas';
 import { isRoleLinkRefOfRole } from '@src/domain.operations/roles/isRoleLinkRefOfRole';
 
@@ -37,17 +36,26 @@ export const assertInitRoleFociDeclared = async (
     const refsOfRole = refsLinked.filter((ref) =>
       isRoleLinkRefOfRole({ ref, role: entry.role }),
     );
-    const configs =
+    // a spec that will not parse is content: the render ignores the focus and names it, so it
+    //   is skipped here (`rule.forbid.content-checks-that-halt-enroll`)
+    const reads =
       refsOfRole.length > 0
-        ? refsOfRole.map((ref) =>
-            getOneRoleBootSpecFromRef({ ref, repoPath: context.gitroot }),
-          )
+        ? refsOfRole.map((ref) => {
+            const { spec, defect } = getOneRoleBootSpecOrDefectFromRef({
+              ref,
+              repoPath: context.gitroot,
+            });
+            return { spec, isFaulted: defect !== null };
+          })
         : [
             await getOneRoleBootSpecFromPackage(
               { specifier: entry.role },
               context,
             ),
           ];
+    const configs = reads
+      .filter((read) => !read.isFaulted)
+      .map((read) => read.spec);
     for (const config of configs)
       assertRoleFocusDeclared({
         slugRole: entry.role,
@@ -59,21 +67,22 @@ export const assertInitRoleFociDeclared = async (
 };
 
 /**
- * .what = the boot spec a role's package manifest declares, or null where it declares none
- * .why = a role not yet linked has no spec under `.agent/`; its package already names one
+ * .what = the boot spec a role's package manifest declares (null where it declares none), and
+ *         whether it will not parse
+ * .why = a role not yet linked has no spec under `.agent/`; its package already names one. a
+ *        package spec that will not parse is content the render names once it is linked, so the
+ *        focus check skips it rather than halt init
  */
 const getOneRoleBootSpecFromPackage = async (
   input: { specifier: string },
   context: ContextCli,
-): Promise<RoleBootSpec | null> => {
+): Promise<{ spec: RoleBootSpec | null; isFaulted: boolean }> => {
   const { found } = await getRolesFoundFromSlugs(
     { slugs: [input.specifier] },
     context,
   );
   const pathToSpec = found[0]?.role.boot?.uri ?? null;
-  if (pathToSpec === null) return null;
-  return parseRoleBootYaml({
-    content: readOneBootSpecFile({ pathToSpec }),
-    path: pathToSpec,
-  });
+  if (pathToSpec === null) return { spec: null, isFaulted: false };
+  const { spec, fault } = getOneRoleBootSpecOrFaultFromPath({ pathToSpec });
+  return { spec, isFaulted: fault !== null };
 };

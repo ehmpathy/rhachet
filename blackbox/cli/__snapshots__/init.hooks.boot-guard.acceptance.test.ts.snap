@@ -81,6 +81,64 @@ exports[`rhachet init --hooks, boot guard for .agent/repo=.this/role=any given: 
 "
 `;
 
+exports[`rhachet init --hooks, boot guard for .agent/repo=.this/role=any given: [case2.1] a repo whose budgeted role=any spec its author broke when: [t0] init --hooks then: the broken-carrier init is locked, on both streams: stderr-broken-carrier 1`] = `
+"🟡 boot set aside 1 role content defect — each role still boots; each row names its fix
+   ├─ .agent/repo=.this/role=any/boot.yml
+   │  ├─ refused as a boot spec, so the role boots refs-only — repair what the row below names
+   │  └─ boot.yml has invalid yaml — Flow sequence in block collection must be sufficiently indented and end with a ] at line 6, column 1
+   └─ a stop holds until each owned row is repaired
+"
+`;
+
+exports[`rhachet init --hooks, boot guard for .agent/repo=.this/role=any given: [case2.1] a repo whose budgeted role=any spec its author broke when: [t0] init --hooks then: the broken-carrier init is locked, on both streams: stdout-broken-carrier 1`] = `
+"🧠 brain://repo=ambient
+   ├─ moved
+   │  └─ .claude/settings.json → .agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+   └─ boot.md
+      └─ created — 1 role
+
+🔭 search for linked roles with hooks...
+   └─ .this/any
+
+🪝 apply hooks to brains...
+   └─ .this/any → anthropic/claude/code: +1
+
+🪝 hook dispatchers set
+   └─ anthropic/claude/code
+      ├─ 1 rule → 1 dispatcher, one per event
+      │  └─ Stop = 1 rule
+      └─ manifest = .claude/hooks.dispatch.manifest
+
+✨ hooks
+   └─ 1 created
+
+"
+`;
+
+exports[`rhachet init --hooks, boot guard for .agent/repo=.this/role=any given: [case2.1] a repo whose budgeted role=any spec its author broke when: [t1] the onStop hook fires then: the hold on the broken carrier is locked 1`] = `
+"🧢 roles cost --all --when hook.onStop
+   └─ ✋ ConstraintError: 1 role content defect, set aside at boot
+      └─ .agent/repo=.this/role=any/boot.yml
+         ├─ refused as a boot spec, so the role boots refs-only — repair what the row below names
+         └─ boot.yml has invalid yaml — Flow sequence in block collection must be sufficiently indented and end with a ] at line 6, column 1
+
+
+✋ ConstraintError: owned roles hold role content defects that a boot set aside
+
+{
+  "hint": "repair each file the readout names, then stop again",
+  "defects": [
+    ".agent/repo=.this/role=any/boot.yml (spec-unparsed)"
+  ]
+}
+
+[args] roles,cost,--all,--when,hook.onStop
+
+"
+`;
+
 exports[`rhachet init --hooks, boot guard for .agent/repo=.this/role=any given: [case2] a repo whose own role already declares a budget when: [t0] init --hooks then: the render matches its snapshot: stdout-owner-budget 1`] = `
 "🧠 brain://repo=ambient
    ├─ moved

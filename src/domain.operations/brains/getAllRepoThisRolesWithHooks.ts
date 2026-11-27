@@ -3,8 +3,8 @@ import { ConstraintError } from 'helpful-errors';
 import type { HasRepo } from '@src/domain.objects/HasRepo';
 import type { Role } from '@src/domain.objects/Role';
 import type { RoleHooksOnBrain } from '@src/domain.objects/RoleHooksOnBrain';
-import { getOneDeclaredBudgetForSpec } from '@src/domain.operations/boot/getOneDeclaredBudgetForSpec';
 import { getAllRoleModEntries } from '@src/domain.operations/role/getAllRoleModEntries';
+import { getOneRoleBootSpecOrFaultFromPath } from '@src/domain.operations/role/getOneRoleBootSpecOrFaultFromPath';
 
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -70,8 +70,9 @@ const REPO_THIS_CARRIER_SLUG_FOR_MODS = 'any';
  * .note = the sweep is ONE repo-wide check (`roles cost --all` sweeps every owned spec and every
  *   mod pin), so the hook is attached once, never once per role or per mod: to the first
  *   budgeted role in slug order, else to `role=any` where a mod dir alone arms it
- * .note = a `boot.yml` that fails to parse is returned as an error for that role, never thrown,
- *   so one bad file does not sink the sync of every other role
+ * .note = a `boot.yml` that fails to parse is a content defect: it arms the sweep (its budget is
+ *   unknown, not absent) and raises no error, so one bad file never sinks the sync nor turns off
+ *   the stop that names it. a spec that vanishes mid-read is still that role's error, never thrown
  */
 export const getAllRepoThisRolesWithHooks = (input: {
   gitroot: string;
@@ -110,17 +111,23 @@ export const getAllRepoThisRolesWithHooks = (input: {
     // probe the closed absence set; an unreadable path raises, never drops the gate
     if (!statSync(pathToBoot, { throwIfNoEntry: false })) continue;
 
-    // read the declared budget; a malformed spec is this role's error alone
-    const budget = (() => {
+    // read the spec once, through the render's lenient reader; a spec that vanished mid-read is
+    //   this role's error alone
+    const read = (() => {
       try {
-        return getOneDeclaredBudgetForSpec({ pathToSpec: pathToBoot });
+        return getOneRoleBootSpecOrFaultFromPath({ pathToSpec: pathToBoot });
       } catch (error) {
         if (!(error instanceof ConstraintError)) throw error;
         errors.push({ repoSlug: '.this', roleSlug, error });
         return null;
       }
     })();
-    if (budget === null) continue;
+    if (read === null) continue;
+
+    // a spec that will not parse arms the sweep: its budget is unknown, not absent, so a broken
+    //   carrier never retracts the arm its author declared. the stop then holds on the spec
+    //   itself (`rule.forbid.content-checks-that-halt-enroll`). a parsed spec arms by its budget
+    if (!read.fault && !read.spec?.budget) continue;
 
     // one carrier is enough; later budgeted roles are swept by the same `--all` check
     if (roles.length === 0) roles.push(asRepoThisRole({ roleSlug, roleDir }));

@@ -1,4 +1,4 @@
-import { ConstraintError } from 'helpful-errors';
+import { MalfunctionError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
 import { asBootCorpusWithCacheBoundary } from './asBootCorpusWithCacheBoundary';
@@ -87,8 +87,10 @@ describe('asBootCorpusWithCacheBoundary', () => {
   });
 
   given('[case4] a role body that holds the boundary on its own line', () => {
+    // the role render defangs a role file's copy (`asBootSayResourcesDefanged`), so a body
+    //   that still holds one is the render's own fault, caught by the count check
     when('[t0] the corpus is joined', () => {
-      then('it refuses with a ConstraintError, before any join', async () => {
+      then('it fails as a MalfunctionError on the boundary count', async () => {
         const offender = asContent({
           repo: '.this',
           role: 'any',
@@ -100,9 +102,9 @@ describe('asBootCorpusWithCacheBoundary', () => {
             local: [offender],
           }),
         );
-        expect(error).toBeInstanceOf(ConstraintError);
+        expect(error).toBeInstanceOf(MalfunctionError);
         expect(error.message).toContain(
-          'a role boot holds the cache boundary literal',
+          'the boot corpus holds the boundary a wrong number of times',
         );
       });
     });

@@ -14,6 +14,7 @@ const render: BrainDirBootRender = {
   agentsMdReset: false,
   bootMdCreated: true,
   bootMdChanged: true,
+  defects: [],
 };
 const symlink = {
   effect: 'CREATED' as const,

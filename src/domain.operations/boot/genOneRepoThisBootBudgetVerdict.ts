@@ -1,7 +1,13 @@
 import {
+  ROLE_CONTENT_DEFECT_KINDS,
+  type RoleContentDefect,
+} from '@src/domain.objects/RoleContentDefect';
+
+import {
   type BootSpecCost,
   getAllRepoBootSpecCosts,
 } from './getAllRepoBootSpecCosts';
+import { getAllRepoThisRoleContentDefects } from './getAllRepoThisRoleContentDefects';
 import { getAllSpecsOverBudgetOwned } from './getAllSpecsOverBudgetOwned';
 import { getOneRepoThisBootBudgetMemo } from './getOneRepoThisBootBudgetMemo';
 import {
@@ -11,10 +17,13 @@ import {
 import { setOneRepoThisBootBudgetMemo } from './setOneRepoThisBootBudgetMemo';
 
 /**
- * .what = the memo shape version — bump it when the cost of a spec may change for the same
- *   inputs, so a prior verdict is not reused across the change
+ * .what = the memo shape version — bump the `v` when the cost of a spec, or what a detector
+ *   finds, may change for the same inputs, so a prior verdict is not reused across the change
+ *   (v3: the render walk skips `dist`, `node_modules`, `.git`)
+ * .why = the content defect kinds join the version, so a new kind voids every memo written
+ *   before its check existed, with no hand bump
  */
-const MEMO_VERSION = 'v1';
+const MEMO_VERSION = ['v3', ...ROLE_CONTENT_DEFECT_KINDS].join('+');
 
 /**
  * .what = the owned `.agent/repo=.this` boot specs over their budget, memoized
@@ -27,10 +36,19 @@ const MEMO_VERSION = 'v1';
  *
  * .note = the verb is `gen` — a findsert of the memo: a match returns the prior verdict, a miss
  *   computes it and writes a clean one to the self-ignored `.agent/.cache`
+ *
+ * .note = clean means naught over budget AND no content defect in a `.this` role: a content
+ *   defect a birth set aside must hold every stop until a clone repairs it
+ *   (`rule.forbid.content-checks-that-halt-enroll`). `v2` voids every memo a sweep wrote before
+ *   the defects joined the verdict
  */
 export const genOneRepoThisBootBudgetVerdict = async (input: {
   cwd: string;
-}): Promise<{ over: BootSpecCost[]; memo: 'hit' | 'miss' }> => {
+}): Promise<{
+  over: BootSpecCost[];
+  defects: RoleContentDefect[];
+  memo: 'hit' | 'miss';
+}> => {
   const fingerprint = await getOneRepoThisBootFingerprint({
     cwd: input.cwd,
     version: MEMO_VERSION,
@@ -38,7 +56,11 @@ export const genOneRepoThisBootBudgetVerdict = async (input: {
 
   // a fingerprint match proves naught under `.this` changed since the last clean sweep
   const memo = getOneRepoThisBootBudgetMemo({ cwd: input.cwd });
-  if (memo?.fingerprint === fingerprint) return { over: [], memo: 'hit' };
+  if (memo?.fingerprint === fingerprint)
+    return { over: [], defects: [], memo: 'hit' };
+
+  // the content defects a birth sets aside in the owned roles
+  const defects = await getAllRepoThisRoleContentDefects({ cwd: input.cwd });
 
   // sweep the owned `.this` specs alone
   const { costs } = await getAllRepoBootSpecCosts({
@@ -49,7 +71,7 @@ export const genOneRepoThisBootBudgetVerdict = async (input: {
   const over = getAllSpecsOverBudgetOwned({ costs });
 
   // memoize a clean verdict only
-  if (over.length === 0)
+  if (over.length === 0 && defects.length === 0)
     setOneRepoThisBootBudgetMemo({ cwd: input.cwd, fingerprint });
-  return { over, memo: 'miss' };
+  return { over, defects, memo: 'miss' };
 };

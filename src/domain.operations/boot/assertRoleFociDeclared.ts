@@ -1,5 +1,5 @@
 import type { RoleLinkRefAtFocus } from '@src/domain.objects/RoleLinkRefAtFocus';
-import { getOneRoleBootSpecFromRef } from '@src/domain.operations/role/getOneRoleBootSpecFromRef';
+import { getOneRoleBootSpecOrDefectFromRef } from '@src/domain.operations/role/getOneRoleBootSpecOrDefectFromRef';
 import { isRoleSpecifierMatch } from '@src/domain.operations/roles/isRoleSpecifierMatch';
 
 import { assertRoleFocusDeclared } from './assertRoleFocusDeclared';
@@ -11,6 +11,9 @@ import { assertRoleFocusDeclared } from './assertRoleFocusDeclared';
  *        of those, so a typo leaves the repo as it found it
  *
  * .note = only a focused ref reads its spec; a whole role costs no read
+ * .note = the spec is read through the render's own lenient reader, once. a spec that will not
+ *         parse is content: the render ignores the focus, renders the role whole, and names the
+ *         defect (`rule.forbid.content-checks-that-halt-enroll`), so it is skipped here
  * .note = a focus the caller typed gets the typo hint; a focus it inherited from the ambient
  *         record (a bare enroll, a `-driver`) gets the recorded hint — the caller never typed
  *         it, so the fix is the record, never a new focus on this enroll
@@ -24,15 +27,20 @@ export const assertRoleFociDeclared = (input: {
 }): void =>
   input.refs
     .filter((ref) => ref.subjects !== null)
-    .forEach((ref) =>
+    .forEach((ref) => {
+      const { spec, defect } = getOneRoleBootSpecOrDefectFromRef({
+        ref,
+        repoPath: input.repoPath,
+      });
+      if (defect) return;
       assertRoleFocusDeclared({
         slugRole: ref.role,
         subjects: ref.subjects,
-        config: getOneRoleBootSpecFromRef({ ref, repoPath: input.repoPath }),
+        config: spec,
         focusFrom: input.rolesFocusTyped.some((role) =>
           isRoleSpecifierMatch({ left: role, right: ref.role }),
         )
           ? 'typed'
           : 'recorded',
-      }),
-    );
+      });
+    });

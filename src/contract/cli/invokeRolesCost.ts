@@ -11,24 +11,34 @@ import { asBootCostSweepSubjectLines } from '@src/domain.operations/boot/asBootC
 import { asBootCostSweepSummary } from '@src/domain.operations/boot/asBootCostSweepSummary';
 import { asBootSubjectFlagSuffix } from '@src/domain.operations/boot/asBootSubjectFlagSuffix';
 import { asBootSweepOverBudgetReadout } from '@src/domain.operations/boot/asBootSweepOverBudgetReadout';
+import { asRoleContentDefectHookReadout } from '@src/domain.operations/boot/asRoleContentDefectHookReadout';
+import { asRoleContentDefectHookWarnReply } from '@src/domain.operations/boot/asRoleContentDefectHookWarnReply';
+import { asRoleContentDefectReceiptLines } from '@src/domain.operations/boot/asRoleContentDefectReceiptLines';
+import { asRoleContentDefectRowTag } from '@src/domain.operations/boot/asRoleContentDefectRowTag';
+import { asRoleDirRelOfSpec } from '@src/domain.operations/boot/asRoleDirRelOfSpec';
 import type { BootSource } from '@src/domain.operations/boot/BootSource';
 import { calcBootPayloadTokens } from '@src/domain.operations/boot/calcBootPayloadTokens';
 import { genBootPayload } from '@src/domain.operations/boot/genBootPayload';
 import { genOneRepoThisBootBudgetVerdict } from '@src/domain.operations/boot/genOneRepoThisBootBudgetVerdict';
 import { getAllCostRows } from '@src/domain.operations/boot/getAllCostRows';
+import { getAllLinkedRoleContentDefects } from '@src/domain.operations/boot/getAllLinkedRoleContentDefects';
 import type { BootSpecCost } from '@src/domain.operations/boot/getAllRepoBootSpecCosts';
 import { getAllRepoBootSpecCosts } from '@src/domain.operations/boot/getAllRepoBootSpecCosts';
+import { getAllRepoThisRoleContentDefects } from '@src/domain.operations/boot/getAllRepoThisRoleContentDefects';
 import { getAllSpecsOverBudget } from '@src/domain.operations/boot/getAllSpecsOverBudget';
 import { getOneBootSource } from '@src/domain.operations/boot/getOneBootSource';
 import { getOneBrainTokenCounter } from '@src/domain.operations/brainCost/getOneBrainTokenCounter';
+import { isRepoStopSweepArmed } from '@src/domain.operations/brains/isRepoStopSweepArmed';
 import { asRoleModDriftHookReadout } from '@src/domain.operations/mods/asRoleModDriftHookReadout';
 import { genRoleModsUncostedReadout } from '@src/domain.operations/mods/genRoleModsUncostedReadout';
 import { getAllRoleModDriftsOfRepo } from '@src/domain.operations/mods/getAllRoleModDriftsOfRepo';
 import { getOneRoleModMarkForRoleDir } from '@src/domain.operations/mods/getOneRoleModMarkForRoleDir';
 import { getOneTokensColumnWidth } from '@src/utils/getOneTokensColumnWidth';
 
-import { dirname, relative } from 'node:path';
+import { dirname } from 'node:path';
 import { asFlagList } from './asFlagList';
+import { asRoleCostHookHoldLines } from './asRoleCostHookHoldLines';
+import { asRoleCostHookRefusal } from './asRoleCostHookRefusal';
 import { asSubjectFlagValues } from './asSubjectFlagValues';
 import {
   FLAGS_PER_PAYLOAD,
@@ -37,6 +47,7 @@ import {
 import { getAllSubjectSlugs } from './getAllSubjectSlugs';
 import { getOneBootSourceRequest } from './getOneBootSourceRequest';
 import { getOneRankLimit } from './getOneRankLimit';
+import { isRoleCostHookHeld } from './isRoleCostHookHeld';
 
 /**
  * .what = the boot source a cost report measures — a role default, or a declared manifest
@@ -97,41 +108,45 @@ const invokeRolesCostForHook = async (): Promise<void> => {
   const cwd = process.cwd();
   const invocation = 'roles cost --all --when hook.onStop';
 
-  // the two drifts the sweep holds a stop for: an owned boot past its cap, a mod pin past its role
-  const { over } = await genOneRepoThisBootBudgetVerdict({ cwd });
-  const { drifts } = getAllRoleModDriftsOfRepo(
-    {},
-    new ContextCli({ cwd, gitroot: cwd }),
-  );
-  if (over.length === 0 && drifts.length === 0) return;
+  // the drifts the sweep holds a stop for: an owned boot past its cap, an owned role whose
+  //   content a birth set aside, a mod pin past its role
+  const context = new ContextCli({ cwd, gitroot: cwd });
+  const { over, defects } = await genOneRepoThisBootBudgetVerdict({ cwd });
+  const { drifts } = getAllRoleModDriftsOfRepo({}, context);
 
-  // each readout is the human surface; both print, so one stop names every drift at once
-  if (over.length > 0)
-    console.error(
-      asBootSweepOverBudgetReadout({ invocation, over, cwd }).join('\n'),
-    );
-  if (drifts.length > 0)
-    console.error(asRoleModDriftHookReadout({ invocation, drifts }).join('\n'));
+  // a linked role's content defect is its supplier's; it warns on a stop this repo releases, and
+  //   never holds. a held stop names only what the clone can repair here, so the linked warn
+  //   waits for the stop that releases (vision case 6)
+  const isHeld = isRoleCostHookHeld({ over, defects, drifts });
+  if (!isHeld) {
+    const defectsLinked = await getAllLinkedRoleContentDefects({}, context);
+    if (defectsLinked.length > 0)
+      console.log(
+        asRoleContentDefectHookWarnReply({
+          invocation,
+          defects: defectsLinked,
+        }),
+      );
+    return;
+  }
 
-  // the error carries the same facts for a caller to branch on; a mod drift alone has its own
-  if (over.length === 0)
-    throw new ConstraintError(
-      'modded roles moved off the version their mods pin',
-      {
-        hint: 'review each mod against the installed release, then set its `of:` to the installed version',
-        modsDrifted: drifts.map((one) => one.pathToSpec),
-      },
-    );
-  throw new ConstraintError('boot specs exceed their declared budget', {
-    hint: 'trim a resource — catalogize a set, condense or ref a say entry, list one under `not` — or raise budget.tokens deliberately',
-    // `specsOver`, never `over` — the boot halt's `over` is a token COUNT, and one key name
-    // across the two refusals must hold one type
-    specsOver: over.map((one) => relative(cwd, one.pathToSpec)),
-    // named only when a mod drifted too, so a plain budget breach reads as it always has
-    ...(drifts.length > 0 && {
-      modsDrifted: drifts.map((one) => one.pathToSpec),
-    }),
-  });
+  // each readout is the human surface; all print under one root, so one stop names every
+  //   drift at once and the invocation heads the frame once
+  const readouts = [
+    ...(over.length > 0
+      ? [asBootSweepOverBudgetReadout({ invocation, over, cwd })]
+      : []),
+    ...(defects.length > 0
+      ? [asRoleContentDefectHookReadout({ invocation, defects })]
+      : []),
+    ...(drifts.length > 0
+      ? [asRoleModDriftHookReadout({ invocation, drifts })]
+      : []),
+  ];
+  console.error(asRoleCostHookHoldLines({ invocation, readouts }).join('\n'));
+
+  // the error carries the same facts for a caller to branch on
+  throw asRoleCostHookRefusal({ over, defects, drifts, cwd });
 };
 
 /**
@@ -158,6 +173,7 @@ const getAllTokensOfCosts = (input: { costs: BootSpecCost[] }): number[] =>
  */
 const invokeRolesCostForAll = async (): Promise<void> => {
   const cwd = process.cwd();
+  const context = new ContextCli({ cwd, gitroot: cwd });
   const { costs, globs } = await getAllRepoBootSpecCosts({
     cwd,
     globs: null,
@@ -174,7 +190,7 @@ const invokeRolesCostForAll = async (): Promise<void> => {
   //   a role the roster already priced is named by its row's mark, never a second time here
   const { lines: linesUncosted, withheld } = genRoleModsUncostedReadout(
     { roleDirsPriced: costs.map((one) => dirname(one.pathToSpec)) },
-    new ContextCli({ cwd, gitroot: cwd }),
+    context,
   );
   // the reach and ownership blocks each close on a blank line, so this one opens on none
   //   and closes on one, like its peers
@@ -183,11 +199,27 @@ const invokeRolesCostForAll = async (): Promise<void> => {
       (line) => console.log(line),
     );
 
+  // each content defect a boot sets aside, owned or linked, is marked and named; a report never
+  //   gates, so the arm still exits 0 (`rule.forbid.content-checks-that-halt-enroll`)
+  const defects = [
+    ...(await getAllRepoThisRoleContentDefects({ cwd })),
+    ...(await getAllLinkedRoleContentDefects({}, context)),
+  ];
+  const linesDefects = asRoleContentDefectReceiptLines(
+    { defects, for: 'human' },
+    { getIsSweepArmed: () => isRepoStopSweepArmed({ gitroot: cwd }) },
+  );
+  const printDefects = (): void =>
+    [...linesDefects, ...(linesDefects.length > 0 ? [''] : [])].forEach(
+      (line) => console.log(line),
+    );
+
   const over = getAllSpecsOverBudget({ costs });
   if (costs.length === 0) {
     console.log(asBootCostSweepSummary({ costs, over, withheld }));
     linesReach.forEach((line) => console.log(line));
     printUncosted();
+    printDefects();
     return;
   }
 
@@ -203,8 +235,14 @@ const invokeRolesCostForAll = async (): Promise<void> => {
     plan: getOneRoleModMarkForRoleDir({ roleDir: dirname(one.pathToSpec) }),
   }));
   marks.forEach(({ one, plan }) => {
-    // a modded role's row carries the mark of what its mod does
-    console.log(asBootCostSweepRow({ one, cwd, widthTokens, plan }));
+    // a modded role's row carries the mark of what its mod does; a defective one, a 🟡 tag
+    const tagDefects = asRoleContentDefectRowTag({
+      defects,
+      roleDir: asRoleDirRelOfSpec({ pathToSpec: one.pathToSpec, cwd }),
+    });
+    console.log(
+      `${asBootCostSweepRow({ one, cwd, widthTokens, plan })}${tagDefects}`,
+    );
 
     // each declared subject, as the focus a seat may enroll at (`role::subject`)
     asBootCostSweepSubjectLines({ one, widthTokens }).forEach((line) =>
@@ -224,6 +262,7 @@ const invokeRolesCostForAll = async (): Promise<void> => {
   }).forEach((line) => console.log(line));
 
   printUncosted();
+  printDefects();
 };
 
 /**
@@ -371,6 +410,18 @@ export const invokeRolesCost = ({ command }: { command: Command }): void => {
           limit: getOneRankLimit({ raw: opts.top, fallback: 10 }),
         }))
           console.log(line);
+
+        // name each content defect the render set aside, as the roster does; a report never
+        //   gates (`rule.forbid.content-checks-that-halt-enroll`). the report above already ends
+        //   on a blank line, so the receipt follows with no blank of its own, as on the roster
+        const linesDefects = asRoleContentDefectReceiptLines(
+          { defects: payload.defects, for: 'human' },
+          {
+            getIsSweepArmed: () =>
+              isRepoStopSweepArmed({ gitroot: process.cwd() }),
+          },
+        );
+        if (linesDefects.length > 0) console.log(linesDefects.join('\n'));
       },
     );
 };
