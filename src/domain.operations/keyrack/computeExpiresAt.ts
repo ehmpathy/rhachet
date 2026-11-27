@@ -55,6 +55,8 @@ export const computeExpiresAt = (input: {
   grantExpiresAt?: IsoTimeStamp;
 }): {
   expiresAt: IsoTimeStamp;
+  /** bounds 1 and 2 alone, with no grant clamp — the max a renew may never pass */
+  expiresAtMax: IsoTimeStamp;
   effectiveDurationMs: number;
   cappedByMaxDuration: boolean;
 } => {
@@ -88,6 +90,7 @@ export const computeExpiresAt = (input: {
 
   return {
     expiresAt,
+    expiresAtMax: asIsoTimeStamp(new Date(expiresAtFromDuration)),
     effectiveDurationMs: expiresAtMs - nowMs,
     cappedByMaxDuration,
   };

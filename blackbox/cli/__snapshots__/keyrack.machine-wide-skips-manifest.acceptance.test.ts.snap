@@ -117,16 +117,16 @@ exports[`keyrack machine-wide skips manifest given: [case1] a repo whose keyrack
   [
     "env",
     "expiresAt",
+    "expiresIn",
     "org",
     "slug",
-    "ttlLeftMs",
   ],
   [
     "env",
     "expiresAt",
+    "expiresIn",
     "org",
     "slug",
-    "ttlLeftMs",
   ],
 ]
 `;

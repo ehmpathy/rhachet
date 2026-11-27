@@ -1,3 +1,5 @@
+import { toMillisecondsSinceEpoch } from 'iso-time';
+
 import type { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
 import type { KeyrackKeyReach } from '@src/domain.objects/keyrack/KeyrackKeyReach';
 import { asKeyrackKeySlugAtReach } from '@src/domain.operations/keyrack/reach/asKeyrackKeySlugAtReach';
@@ -7,7 +9,7 @@ import { getAllKeyrackProbeAddresses } from '@src/domain.operations/keyrack/reac
  * .what = a cached grant stored in daemon memory with TTL
  * .why = tracks full grant info with source for audit and debug
  *
- * .note = uses KeyrackKeyGrant directly; ISO timestamp comparison is lexicographic
+ * .note = uses KeyrackKeyGrant directly; expiry is compared as an instant, never as text
  */
 export type CachedGrant = KeyrackKeyGrant;
 
@@ -23,6 +25,15 @@ export type CachedGrant = KeyrackKeyGrant;
  */
 export const createDaemonKeyStore = () => {
   const store = new Map<string, CachedGrant>();
+
+  /**
+   * .what = whether a grant has expired, compared as instants
+   * .why = `get` and `entries` share this one verdict, so status never lists a key that
+   *        get refuses. as text, a `.500Z` stamp sorts before its second's `Z`
+   */
+  const isExpired = (grant: CachedGrant): boolean =>
+    !!grant.expiresAt &&
+    Date.now() >= toMillisecondsSinceEpoch(grant.expiresAt);
 
   /**
    * .what = store a grant with TTL
@@ -61,11 +72,8 @@ export const createDaemonKeyStore = () => {
       const cachedGrant = store.get(address);
       if (!cachedGrant) return null;
 
-      // check TTL (ISO timestamps are lexicographically sortable)
-      if (!cachedGrant.expiresAt) return cachedGrant; // no expiration — always valid
-      const now = new Date().toISOString();
-      if (now >= cachedGrant.expiresAt) {
-        // expired — purge and return null
+      // check TTL; an expired grant is purged
+      if (isExpired(cachedGrant)) {
         store.delete(address);
         return null;
       }
@@ -95,13 +103,10 @@ export const createDaemonKeyStore = () => {
    * .note = if env provided, only returns grants with matched env
    */
   const entries = (input?: { env?: string }): CachedGrant[] => {
-    const now = new Date().toISOString();
     const result: CachedGrant[] = [];
 
     for (const [address, cachedGrant] of store.entries()) {
-      const isExpired = cachedGrant.expiresAt && now >= cachedGrant.expiresAt;
-
-      if (isExpired) {
+      if (isExpired(cachedGrant)) {
         // expired — purge
         store.delete(address);
       } else {

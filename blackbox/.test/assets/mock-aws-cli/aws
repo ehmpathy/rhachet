@@ -12,6 +12,10 @@ case "$1 $2" in
     echo "aws-cli/2.0.0-mock Python/3.9.0 Linux/5.0.0"
     ;;
   "sso login")
+    # MOCK_AWS_LOGIN_LOG → each browser login appends a line, so a test can prove none ran
+    if [[ -n "${MOCK_AWS_LOGIN_LOG:-}" ]]; then
+      echo "sso login $*" >> "$MOCK_AWS_LOGIN_LOG"
+    fi
     echo "Attempting to automatically open the SSO authorization page in your default browser."
     echo "If the browser does not open or you wish to use a different device to authorize this request, open the following URL:"
     echo ""
@@ -22,6 +26,10 @@ case "$1 $2" in
     echo "MOCK-CODE"
     echo ""
     echo "Successfully logged into Start URL: https://mock-portal.awsapps.com/start"
+    # MOCK_AWS_PORTAL_STATE_FILE → a login starts a fresh portal session, so it clears the state
+    if [[ -n "${MOCK_AWS_PORTAL_STATE_FILE:-}" ]]; then
+      rm -f "$MOCK_AWS_PORTAL_STATE_FILE"
+    fi
     # MOCK_AWS_IDENTITY_STAGES → count logins so sts can advance through stages
     # .note = one char appended per login; sts reads char count as the login index
     if [[ -n "${MOCK_AWS_IDENTITY_STAGES:-}" && -n "${MOCK_AWS_STATE_FILE:-}" ]]; then
@@ -44,6 +52,13 @@ case "$1 $2" in
     # MOCK_AWS_IDENTITY=bob → return bob's identity
     # MOCK_AWS_IDENTITY_BEFORE=bob + MOCK_AWS_IDENTITY_AFTER=alice → bob before re-auth, alice after
     # default → return generic mock identity
+    # MOCK_AWS_PORTAL_STATE_FILE=lapsed → the portal session ended, so the identity read fails
+
+    if [[ -n "${MOCK_AWS_PORTAL_STATE_FILE:-}" && -f "$MOCK_AWS_PORTAL_STATE_FILE" ]] \
+      && [[ "$(cat "$MOCK_AWS_PORTAL_STATE_FILE")" == "lapsed" ]]; then
+      echo "Error: the SSO token for this profile has expired." >&2
+      exit 1
+    fi
 
     # staged identity transitions (advance one stage per login)
     # MOCK_AWS_IDENTITY_STAGES="bob,bob,alice" → sts@login0=bob, @login1=bob, @login2=alice
@@ -93,11 +108,40 @@ case "$1 $2" in
     fi
     ;;
   "configure export-credentials")
+    # MOCK_AWS_PORTAL_STATE_FILE → its content sets the portal session state:
+    #   (absent or empty) live · lapsed (session ended, exit 255) · fault (a non-session error)
+    #   · noexpiry (live creds, but no AWS_CREDENTIAL_EXPIRATION line, as an old cli writes)
+    session_state=""
+    if [[ -n "${MOCK_AWS_PORTAL_STATE_FILE:-}" && -f "$MOCK_AWS_PORTAL_STATE_FILE" ]]; then
+      session_state="$(cat "$MOCK_AWS_PORTAL_STATE_FILE")"
+    fi
+    if [[ "$session_state" == "lapsed" ]]; then
+      echo "Error from sso: Token has expired and refresh failed" >&2
+      exit 255
+    fi
+    if [[ "$session_state" == "fault" ]]; then
+      echo "mock aws: connection reset by peer" >&2
+      exit 1
+    fi
+
+    # MOCK_AWS_CREDENTIAL_TTL_S → role creds expire that many seconds from now, so each
+    # call moves the expiry forward; absent → a fixed far-future expiry (epoch 4102444799,
+    # the last second of 2099)
+    # .why = the offset form (`%:z`) is the shape the real cli writes, so a consumer's
+    #        cast of it is exercised here too
+    expiration="$(date -u -d '@4102444799' '+%Y-%m-%dT%H:%M:%S%:z')"
+    if [[ -n "${MOCK_AWS_CREDENTIAL_TTL_S:-}" ]]; then
+      expiration="$(date -u -d "+${MOCK_AWS_CREDENTIAL_TTL_S} seconds" '+%Y-%m-%dT%H:%M:%S%:z')"
+    fi
+
     # returns env-no-export format credentials for sso profile
-    echo "AWS_ACCESS_KEY_ID=AKIAMOCKACCESSKEY123"
+    # .note = a mock id with no aws key prefix, so no secret scanner reads it as a key
+    echo "AWS_ACCESS_KEY_ID=MOCKACCESSKEYID00000"
     echo "AWS_SECRET_ACCESS_KEY=MockSecretAccessKey123456789"
     echo "AWS_SESSION_TOKEN=MockSessionToken123456789012345678901234567890"
-    echo "AWS_CREDENTIAL_EXPIRATION=2099-12-31T23:59:59Z"
+    if [[ "$session_state" != "noexpiry" ]]; then
+      echo "AWS_CREDENTIAL_EXPIRATION=${expiration}"
+    fi
     ;;
   "sso logout")
     ;;

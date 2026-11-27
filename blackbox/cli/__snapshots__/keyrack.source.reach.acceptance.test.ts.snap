@@ -30,19 +30,19 @@ exports[`keyrack source reach given: [case1] one slug held at two reaches at onc
     {
       "env": "test",
       "expiresAt": "__REDACTED__",
+      "expiresIn": "__REDACTED__",
       "org": "testorg",
       "slug": "testorg.test.API_KEY",
-      "ttlLeftMs": "__REDACTED__",
     },
     {
       "env": "test",
       "expiresAt": "__REDACTED__",
+      "expiresIn": "__REDACTED__",
       "org": "testorg",
       "reach": {
         "exid": "beav@ehmpathy.com",
       },
       "slug": "testorg.test.API_KEY",
-      "ttlLeftMs": "__REDACTED__",
     },
   ],
   "owner": null,

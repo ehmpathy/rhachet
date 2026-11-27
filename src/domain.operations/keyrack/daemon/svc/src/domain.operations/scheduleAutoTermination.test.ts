@@ -5,6 +5,7 @@ import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
 
 import { genDaemonActivityClock } from '../domain.objects/daemonActivityClock';
 import { createDaemonKeyStore } from '../domain.objects/daemonKeyStore';
+import { createDaemonRenewalRecord } from '../domain.objects/daemonRenewalRecord';
 import { scheduleAutoTermination } from './scheduleAutoTermination';
 
 /**
@@ -65,7 +66,11 @@ describe('scheduleAutoTermination', () => {
         const keyStore = createDaemonKeyStore();
         const activity = genDaemonActivityClock();
 
-        const intervalHandle = scheduleAutoTermination({ keyStore, activity });
+        const intervalHandle = scheduleAutoTermination({
+          keyStore,
+          activity,
+          renewalRecord: createDaemonRenewalRecord(),
+        });
 
         jest.advanceTimersByTime(intervalMs + 1);
 
@@ -87,7 +92,11 @@ describe('scheduleAutoTermination', () => {
         const keyStore = createDaemonKeyStore();
         const activity = genDaemonActivityClock();
 
-        const intervalHandle = scheduleAutoTermination({ keyStore, activity });
+        const intervalHandle = scheduleAutoTermination({
+          keyStore,
+          activity,
+          renewalRecord: createDaemonRenewalRecord(),
+        });
 
         // demand arrives just before the window would lapse
         jest.advanceTimersByTime(idleTimeoutMs - 1);
@@ -111,6 +120,7 @@ describe('scheduleAutoTermination', () => {
         const intervalHandle = scheduleAutoTermination({
           keyStore,
           activity: genDaemonActivityClock(),
+          renewalRecord: createDaemonRenewalRecord(),
         });
 
         jest.advanceTimersByTime(intervalMs + 1);
@@ -130,6 +140,7 @@ describe('scheduleAutoTermination', () => {
         const intervalHandle = scheduleAutoTermination({
           keyStore,
           activity: genDaemonActivityClock(),
+          renewalRecord: createDaemonRenewalRecord(),
         });
 
         // many idle windows pass with no demand at all
@@ -152,6 +163,7 @@ describe('scheduleAutoTermination', () => {
         const intervalHandle = scheduleAutoTermination({
           keyStore,
           activity: genDaemonActivityClock(),
+          renewalRecord: createDaemonRenewalRecord(),
         });
 
         // first check at t=1000: key still valid → survives on the key gate
@@ -175,7 +187,11 @@ describe('scheduleAutoTermination', () => {
 
         keyStore.set({ grant: genGrantValidFor({ validForMs: 1500 }) });
 
-        const intervalHandle = scheduleAutoTermination({ keyStore, activity });
+        const intervalHandle = scheduleAutoTermination({
+          keyStore,
+          activity,
+          renewalRecord: createDaemonRenewalRecord(),
+        });
 
         // first check at t=1000: key valid
         jest.advanceTimersByTime(intervalMs);
@@ -194,12 +210,71 @@ describe('scheduleAutoTermination', () => {
     });
   });
 
+  given('[case7] a renewal record outlives its grant', () => {
+    // .why = a lapsed renewal must stay visible until a human acts, and an sso grant that
+    // expired while the host slept is still owed a renew. either way the store is
+    // empty and demand is gone, yet the daemon still has purpose
+    when('[t0] the grant expired, no demand, and a renew entry is held', () => {
+      then('does not terminate', () => {
+        const keyStore = createDaemonKeyStore();
+        const renewalRecord = createDaemonRenewalRecord();
+        const grant = genGrantValidFor({ validForMs: 500 });
+        keyStore.set({ grant });
+        renewalRecord.set({
+          grant,
+          expiresAtMax: asIsoTimeStamp(new Date(Date.now() + 3_600_000)),
+        });
+
+        const intervalHandle = scheduleAutoTermination({
+          keyStore,
+          activity: genDaemonActivityClock(),
+          renewalRecord,
+        });
+
+        // many idle windows pass; the grant is long expired
+        jest.advanceTimersByTime(intervalMs * 20);
+
+        clearInterval(intervalHandle);
+        expect(keyStore.entries()).toEqual([]);
+        expect(exitCalled).toBe(false);
+      });
+    });
+
+    when('[t1] the renew entry is then dropped', () => {
+      then('terminates on the next idle check', () => {
+        const keyStore = createDaemonKeyStore();
+        const renewalRecord = createDaemonRenewalRecord();
+        const grant = genGrantValidFor({ validForMs: 500 });
+        renewalRecord.set({
+          grant,
+          expiresAtMax: asIsoTimeStamp(new Date(Date.now() + 3_600_000)),
+        });
+
+        const intervalHandle = scheduleAutoTermination({
+          keyStore,
+          activity: genDaemonActivityClock(),
+          renewalRecord,
+        });
+
+        jest.advanceTimersByTime(intervalMs * 3);
+        expect(exitCalled).toBe(false);
+
+        renewalRecord.del({ slug: grant.slug });
+        jest.advanceTimersByTime(intervalMs);
+
+        clearInterval(intervalHandle);
+        expect(exitCalled).toBe(true);
+      });
+    });
+  });
+
   given('[case4] interval handle', () => {
     when('[t0] scheduleAutoTermination is called', () => {
       then('returns clearable interval handle', () => {
         const intervalHandle = scheduleAutoTermination({
           keyStore: createDaemonKeyStore(),
           activity: genDaemonActivityClock(),
+          renewalRecord: createDaemonRenewalRecord(),
         });
 
         // should be clearable
@@ -220,7 +295,11 @@ describe('scheduleAutoTermination', () => {
         const keyStore = createDaemonKeyStore();
         const activity = genDaemonActivityClock();
 
-        const intervalHandle = scheduleAutoTermination({ keyStore, activity });
+        const intervalHandle = scheduleAutoTermination({
+          keyStore,
+          activity,
+          renewalRecord: createDaemonRenewalRecord(),
+        });
 
         // the wall clock lurches an hour into the past, well past the idle window
         jest.setSystemTime(new Date('2025-12-31T23:00:00.000Z'));
@@ -248,6 +327,7 @@ describe('scheduleAutoTermination', () => {
             scheduleAutoTermination({
               keyStore: createDaemonKeyStore(),
               activity: genDaemonActivityClock(),
+              renewalRecord: createDaemonRenewalRecord(),
             }),
           ).toThrow(
             /KEYRACK_DAEMON_IDLE_TIMEOUT_MS must be a positive integer/,
@@ -265,6 +345,7 @@ describe('scheduleAutoTermination', () => {
           scheduleAutoTermination({
             keyStore: createDaemonKeyStore(),
             activity: genDaemonActivityClock(),
+            renewalRecord: createDaemonRenewalRecord(),
           }),
         ).toThrow(
           /KEYRACK_DAEMON_TERMINATION_CHECK_MS must be a positive integer/,
@@ -280,6 +361,7 @@ describe('scheduleAutoTermination', () => {
         const intervalHandle = scheduleAutoTermination({
           keyStore: createDaemonKeyStore(),
           activity: genDaemonActivityClock(),
+          renewalRecord: createDaemonRenewalRecord(),
         });
         clearInterval(intervalHandle);
       });

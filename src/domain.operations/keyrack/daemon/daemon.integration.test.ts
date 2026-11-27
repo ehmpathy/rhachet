@@ -1,4 +1,4 @@
-import { asIsoTimeStamp } from 'iso-time';
+import { asIsoTimeStamp, toMilliseconds } from 'iso-time';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
@@ -91,6 +91,7 @@ describe('keyrack daemon integration', () => {
     when('[t0] UNLOCK command', () => {
       then('stores keys in daemon', async () => {
         const result = await daemonAccessUnlock({
+          renewals: [],
           keys: [
             new KeyrackKeyGrant({
               slug: 'TEST_KEY_1',
@@ -156,7 +157,7 @@ describe('keyrack daemon integration', () => {
 
         const key1 = result!.keys.find((k) => k.slug === 'TEST_KEY_1');
         expect(key1).toBeDefined();
-        expect(key1!.ttlLeftMs).toBeGreaterThan(0);
+        expect(toMilliseconds(key1!.expiresIn!)).toBeGreaterThan(0);
       });
     });
 
@@ -190,6 +191,7 @@ describe('keyrack daemon integration', () => {
       then('purges all keys', async () => {
         // first add a key back
         await daemonAccessUnlock({
+          renewals: [],
           keys: [
             new KeyrackKeyGrant({
               slug: 'TEST_KEY_3',
@@ -267,6 +269,7 @@ describe('keyrack daemon integration', () => {
       then('is not returned by GET', async () => {
         // unlock with already-expired TTL
         await daemonAccessUnlock({
+          renewals: [],
           keys: [
             new KeyrackKeyGrant({
               slug: 'EXPIRED_KEY',
@@ -316,6 +319,7 @@ describe('keyrack daemon integration', () => {
       then('relock --env sudo purges only sudo keys', async () => {
         // unlock keys with different envs
         await daemonAccessUnlock({
+          renewals: [],
           keys: [
             new KeyrackKeyGrant({
               slug: 'PROD_KEY',
@@ -399,6 +403,7 @@ describe('keyrack daemon integration', () => {
 
         // initial unlock
         await daemonAccessUnlock({
+          renewals: [],
           keys: [
             new KeyrackKeyGrant({
               slug: 'TTL_TEST_KEY',
@@ -417,6 +422,7 @@ describe('keyrack daemon integration', () => {
 
         // re-unlock with longer TTL
         await daemonAccessUnlock({
+          renewals: [],
           keys: [
             new KeyrackKeyGrant({
               slug: 'TTL_TEST_KEY',
@@ -439,7 +445,7 @@ describe('keyrack daemon integration', () => {
 
         expect(key).toBeDefined();
         expect(key!.expiresAt).toBe(newExpiresAt);
-        expect(key!.ttlLeftMs).toBeGreaterThan(60000); // should be > 1 minute
+        expect(toMilliseconds(key!.expiresIn!)).toBeGreaterThan(60000); // should be > 1 minute
       });
     });
   });
@@ -521,6 +527,7 @@ describe('keyrack daemon integration', () => {
         // unlock a key with short TTL (2000ms)
         // .note = 2000ms is more robust than 500ms for CI time variance
         await daemonAccessUnlock({
+          renewals: [],
           keys: [
             new KeyrackKeyGrant({
               slug: 'SHORT_LIVED_KEY',

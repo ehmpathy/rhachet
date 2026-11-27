@@ -1,9 +1,10 @@
-import { asIsoTimeStamp } from 'iso-time';
+import { asIsoTimeStamp, toMilliseconds } from 'iso-time';
 import { given, then, when } from 'test-fns';
 
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
-import type { DaemonStatusRow } from '@src/domain.operations/keyrack/daemon/sdk';
+import type { DaemonStatusKey } from '@src/domain.operations/keyrack/daemon/sdk';
 import { createDaemonKeyStore } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonKeyStore';
+import { createDaemonRenewalRecord } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonRenewalRecord';
 
 import { handleGetCommand } from './handleGetCommand';
 import { handleRelockCommand } from './handleRelockCommand';
@@ -44,7 +45,7 @@ describe('handleUnlockCommand', () => {
               }),
             ],
           },
-          { keyStore },
+          { keyStore, renewalRecord: createDaemonRenewalRecord() },
         );
 
         expect(result.unlocked).toEqual(['AWS_SSO_PREP', 'XAI_API_KEY']);
@@ -73,7 +74,7 @@ describe('handleUnlockCommand', () => {
               }),
             ],
           },
-          { keyStore },
+          { keyStore, renewalRecord: createDaemonRenewalRecord() },
         );
 
         const key = keyStore.get({ slug: 'SUDO_KEY' });
@@ -199,7 +200,10 @@ describe('handleStatusCommand', () => {
 
     when('[t0] status command is handled', () => {
       then('returns keys with TTL left', () => {
-        const result = handleStatusCommand({}, { keyStore, homeHash });
+        const result = handleStatusCommand(
+          {},
+          { keyStore, homeHash, renewalRecord: createDaemonRenewalRecord() },
+        );
 
         expect(result.keys.length).toBe(2);
 
@@ -209,13 +213,17 @@ describe('handleStatusCommand', () => {
         expect(key1?.expiresAt).toBe(expiresAt1);
         expect(key2?.expiresAt).toBe(expiresAt2);
 
-        // ttlLeftMs should be approximately correct (allow 100ms margin)
-        expect(key1?.ttlLeftMs).toBeGreaterThan(59000);
-        expect(key1?.ttlLeftMs).toBeLessThanOrEqual(60000);
+        // expiresIn should be approximately correct (allow a 1s margin)
+        const expiresInMs = toMilliseconds(key1!.expiresIn!);
+        expect(expiresInMs).toBeGreaterThan(59000);
+        expect(expiresInMs).toBeLessThanOrEqual(60000);
       });
 
       then('returns env and org with keys', () => {
-        const result = handleStatusCommand({}, { keyStore, homeHash });
+        const result = handleStatusCommand(
+          {},
+          { keyStore, homeHash, renewalRecord: createDaemonRenewalRecord() },
+        );
 
         const key1 = result.keys.find((k) => k.slug === 'KEY_1');
         const key2 = result.keys.find((k) => k.slug === 'KEY_2');
@@ -233,7 +241,10 @@ describe('handleStatusCommand', () => {
 
     when('[t0] status command is handled', () => {
       then('returns empty keys array', () => {
-        const result = handleStatusCommand({}, { keyStore, homeHash });
+        const result = handleStatusCommand(
+          {},
+          { keyStore, homeHash, renewalRecord: createDaemonRenewalRecord() },
+        );
         expect(result.keys).toEqual([]);
       });
     });
@@ -242,13 +253,13 @@ describe('handleStatusCommand', () => {
   /**
    * .what = the wire seam — the server's row must satisfy the client's declared row
    * .why = ⚠️ the daemon protocol is declared TWICE, in two files the compiler does not
-   *        link: the svc handler states what it sends, and `DaemonStatusRow` states what
+   *        link: the svc handler states what it sends, and `DaemonStatusKey` states what
    *        the sdk claims to receive. a divergence between them fails NO build and NO test
    *
    * .note = this seam has now drifted twice, in the same family, and each drift was found
    *         by a human read rather than by a check:
    *         - 2026-08-04 · `DaemonKeyRow.expiresAt` declared `number`, server sent a stamp
-   *         - 2026-08-06 · `DaemonStatusRow.expiresAt` declared `number`, the SAME defect,
+   *         - 2026-08-06 · `DaemonStatusKey.expiresAt` declared `number`, the SAME defect,
    *           in the sibling row, unrepaired by the first fix
    *         a fix that must be applied by hand at each twin is a fix that will be missed.
    *         this clamp is the generalization the first repair lacked
@@ -277,13 +288,13 @@ describe('handleStatusCommand', () => {
 
       // ⚠️ THE clamp, and it is the ASSIGNMENT rather than the expect. under
       //    `expiresAt: number` this line does not compile, because the server sends a stamp
-      then('the server rows are assignable to DaemonStatusRow', () => {
-        const rows: DaemonStatusRow[] = handleStatusCommand(
+      then('the server keys are assignable to DaemonStatusKey', () => {
+        const keys: DaemonStatusKey[] = handleStatusCommand(
           {},
-          { keyStore, homeHash },
+          { keyStore, homeHash, renewalRecord: createDaemonRenewalRecord() },
         ).keys;
 
-        expect(rows).toHaveLength(1);
+        expect(keys).toHaveLength(1);
       });
 
       // .why null rather than Infinity = the socket is JSON, and `JSON.stringify(Infinity)`
@@ -291,23 +302,28 @@ describe('handleStatusCommand', () => {
       //      both sides declared `number` — and `Math.round(null / 1000 / 60)` is `0`, which
       //      rendered a key that never expires as `expires in: 0m`
       then('a key with no expiry reports null, never Infinity', () => {
-        const row = handleStatusCommand({}, { keyStore, homeHash }).keys[0]!;
+        const key = handleStatusCommand(
+          {},
+          { keyStore, homeHash, renewalRecord: createDaemonRenewalRecord() },
+        ).keys[0]!;
 
-        expect(row.expiresAt).toEqual(null);
-        expect(row.ttlLeftMs).toEqual(null);
-        expect(row.ttlLeftMs).not.toEqual(Infinity);
+        expect(key.expiresAt).toEqual(null);
+        expect(key.expiresIn).toEqual(null);
       });
 
       // .note = the proof that the JSON claim above is a fact rather than a reasoned guess.
       //         a round-trip through the exact codec the socket uses
       //         (`handleKeyrackDaemonConnection` writes `JSON.stringify`,
       //         `sendKeyrackDaemonCommand` reads `JSON.parse`)
-      then('the row survives the socket codec unchanged', () => {
-        const row = handleStatusCommand({}, { keyStore, homeHash }).keys[0]!;
-        const overWire = JSON.parse(JSON.stringify(row)) as DaemonStatusRow;
+      then('the key survives the socket codec unchanged', () => {
+        const key = handleStatusCommand(
+          {},
+          { keyStore, homeHash, renewalRecord: createDaemonRenewalRecord() },
+        ).keys[0]!;
+        const overWire = JSON.parse(JSON.stringify(key)) as DaemonStatusKey;
 
-        expect(overWire.ttlLeftMs).toEqual(row.ttlLeftMs);
-        expect(overWire.expiresAt).toEqual(row.expiresAt);
+        expect(overWire.expiresIn).toEqual(key.expiresIn);
+        expect(overWire.expiresAt).toEqual(key.expiresAt);
       });
     });
   });
@@ -349,7 +365,10 @@ describe('handleRelockCommand', () => {
 
     when('[t0] relock command with specific slugs', () => {
       then('deletes only specified keys', () => {
-        const result = handleRelockCommand({ slugs: ['KEY_A'] }, { keyStore });
+        const result = handleRelockCommand(
+          { slugs: ['KEY_A'] },
+          { keyStore, renewalRecord: createDaemonRenewalRecord() },
+        );
 
         expect(result.relocked).toEqual(['KEY_A']);
         expect(keyStore.get({ slug: 'KEY_A' })).toBeNull();
@@ -359,7 +378,10 @@ describe('handleRelockCommand', () => {
 
     when('[t1] relock command without slugs', () => {
       then('clears all keys', () => {
-        const result = handleRelockCommand({}, { keyStore });
+        const result = handleRelockCommand(
+          {},
+          { keyStore, renewalRecord: createDaemonRenewalRecord() },
+        );
 
         expect(result.relocked.sort()).toEqual(['KEY_A', 'KEY_B']);
         expect(keyStore.size()).toBe(0);
@@ -368,7 +390,10 @@ describe('handleRelockCommand', () => {
 
     when('[t2] relock command with empty slugs array', () => {
       then('clears all keys', () => {
-        const result = handleRelockCommand({ slugs: [] }, { keyStore });
+        const result = handleRelockCommand(
+          { slugs: [] },
+          { keyStore, renewalRecord: createDaemonRenewalRecord() },
+        );
 
         expect(result.relocked.sort()).toEqual(['KEY_A', 'KEY_B']);
         expect(keyStore.size()).toBe(0);
@@ -424,7 +449,10 @@ describe('handleRelockCommand', () => {
 
     when('[t0] relock command with env filter', () => {
       then('deletes only keys with matched env', () => {
-        const result = handleRelockCommand({ env: 'sudo' }, { keyStore });
+        const result = handleRelockCommand(
+          { env: 'sudo' },
+          { keyStore, renewalRecord: createDaemonRenewalRecord() },
+        );
 
         expect(result.relocked).toEqual(['SUDO_KEY']);
         expect(keyStore.get({ slug: 'SUDO_KEY' })).toBeNull();
@@ -436,7 +464,10 @@ describe('handleRelockCommand', () => {
 
     when('[t1] relock command with env filter and no matched keys', () => {
       then('returns empty relocked array', () => {
-        const result = handleRelockCommand({ env: 'prep' }, { keyStore });
+        const result = handleRelockCommand(
+          { env: 'prep' },
+          { keyStore, renewalRecord: createDaemonRenewalRecord() },
+        );
 
         expect(result.relocked).toEqual([]);
         expect(keyStore.size()).toBe(3);
@@ -448,7 +479,7 @@ describe('handleRelockCommand', () => {
         // slugs should take priority over env filter
         const result = handleRelockCommand(
           { slugs: ['PROD_KEY'], env: 'sudo' },
-          { keyStore },
+          { keyStore, renewalRecord: createDaemonRenewalRecord() },
         );
 
         expect(result.relocked).toEqual(['PROD_KEY']);

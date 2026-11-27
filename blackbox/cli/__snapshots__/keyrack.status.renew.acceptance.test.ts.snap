@@ -1,0 +1,372 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t0] the key is unlocked while the portal session is live then: status --json matches snapshot 1`] = `
+[
+  {
+    "env": "test",
+    "expiresAt": "__REDACTED__",
+    "expiresIn": "__REDACTED__",
+    "org": "testorg",
+    "renewal": {
+      "count": {
+        "renewed": "__N__",
+      },
+      "error": null,
+      "status": "on",
+    },
+    "slug": "testorg.test.AWS_PROFILE",
+  },
+]
+`;
+
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t0] the key is unlocked while the portal session is live then: status stdout matches snapshot 1`] = `
+"
+🔐 keyrack status
+   ├─ owner: (default)
+   ├─ recipients:
+   │  └─ default (age)
+   ├─ daemon: active ✨
+   └─ testorg.test.AWS_PROFILE
+      ├─ env: test
+      ├─ org: testorg
+      ├─ expires in: __6-15__m
+      └─ renewal = on
+
+"
+`;
+
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t0] the key is unlocked while the portal session is live then: unlock stdout matches snapshot 1`] = `
+"
+🔓 keyrack unlock
+   └─ testorg.test.AWS_PROFILE
+      ├─ env: test
+      ├─ org: testorg
+      ├─ vault: aws.config
+      └─ expires in: __6-15__m
+
+"
+`;
+
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t1] the renew faults every tick then: status --json matches snapshot 1`] = `
+[
+  {
+    "env": "test",
+    "expiresAt": "__REDACTED__",
+    "expiresIn": "__REDACTED__",
+    "org": "testorg",
+    "renewal": {
+      "count": {
+        "renewed": "__N__",
+      },
+      "error": "💥 MalfunctionError: aws configure export-credentials failed with unexpected error
+
+{
+  "profileName": "testorg-test",
+  "hint": "read the cli stderr in the cause below; to see it outside keyrack: aws configure export-credentials --profile testorg-test",
+  "error": {
+    "code": 1,
+    "killed": false,
+    "signal": null,
+    "cmd": "aws configure export-credentials --profile testorg-test --format env-no-export",
+    "stdout": "",
+    "stderr": "mock aws: connection reset by peer\\n"
+  }
+}",
+      "status": "halted",
+    },
+    "slug": "testorg.test.AWS_PROFILE",
+  },
+]
+`;
+
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t1] the renew faults every tick then: status stdout matches snapshot 1`] = `
+"
+🔐 keyrack status
+   ├─ owner: (default)
+   ├─ recipients:
+   │  └─ default (age)
+   ├─ daemon: active ✨
+   └─ testorg.test.AWS_PROFILE
+      ├─ env: test
+      ├─ org: testorg
+      ├─ expires in: __6-15__m
+      └─ renewal = halted
+
+"
+`;
+
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t2] the human unlocks the key once the fault clears then: the cure unlock stdout matches snapshot 1`] = `
+"
+🔓 keyrack unlock
+   └─ testorg.test.AWS_PROFILE
+      ├─ env: test
+      ├─ org: testorg
+      ├─ vault: aws.config
+      └─ expires in: __6-15__m
+
+"
+`;
+
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t3] the portal session ends then: status --json matches snapshot 1`] = `
+[
+  {
+    "env": "test",
+    "expiresAt": "__REDACTED__",
+    "expiresIn": "__REDACTED__",
+    "org": "testorg",
+    "renewal": {
+      "count": {
+        "renewed": "__N__",
+      },
+      "error": null,
+      "status": "lapsed",
+    },
+    "slug": "testorg.test.AWS_PROFILE",
+  },
+]
+`;
+
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t3] the portal session ends then: status stdout matches snapshot 1`] = `
+"
+🔐 keyrack status
+   ├─ owner: (default)
+   ├─ recipients:
+   │  └─ default (age)
+   ├─ daemon: active ✨
+   └─ testorg.test.AWS_PROFILE
+      ├─ env: test
+      ├─ org: testorg
+      ├─ expires in: __6-15__m
+      └─ renewal = lapsed
+
+"
+`;
+
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t4] the grant expires while the portal session stays ended then: keyrack get matches snapshot 1`] = `
+{
+  "status": 2,
+  "stdout": {
+    "fix": "rhx keyrack unlock --env test --key AWS_PROFILE",
+    "message": "credential 'testorg.test.AWS_PROFILE' is locked. unlock it first.",
+    "slug": "testorg.test.AWS_PROFILE",
+    "status": "locked",
+  },
+}
+`;
+
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t4] the grant expires while the portal session stays ended then: status --json matches snapshot 1`] = `
+[
+  {
+    "env": "test",
+    "expiresAt": "__REDACTED__",
+    "expiresIn": {
+      "seconds": 0,
+    },
+    "org": "testorg",
+    "renewal": {
+      "count": {
+        "renewed": 0,
+      },
+      "error": null,
+      "status": "lapsed",
+    },
+    "slug": "testorg.test.AWS_PROFILE",
+  },
+]
+`;
+
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t4] the grant expires while the portal session stays ended then: status stdout matches snapshot 1`] = `
+"
+🔐 keyrack status
+   ├─ owner: (default)
+   ├─ recipients:
+   │  └─ default (age)
+   ├─ daemon: active ✨
+   └─ testorg.test.AWS_PROFILE
+      ├─ env: test
+      ├─ org: testorg
+      └─ expired
+
+"
+`;
+
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t5] the human unlocks the key after the lapse then: the cure unlock stdout matches snapshot 1`] = `
+"
+🔓 keyrack unlock testorg.test.AWS_PROFILE
+   ├─ with sso prior?
+   │  └─ ✗ clear, no prior session
+   └─ ✓ authenticated as alice@acme.com
+
+🔓 keyrack unlock
+   └─ testorg.test.AWS_PROFILE
+      ├─ env: test
+      ├─ org: testorg
+      ├─ vault: aws.config
+      └─ expires in: __6-15__m
+
+"
+`;
+
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t6] the key is unlocked with a duration shorter than its role creds then: status --json matches snapshot 1`] = `
+[
+  {
+    "env": "test",
+    "expiresAt": "__REDACTED__",
+    "expiresIn": "__REDACTED__",
+    "org": "testorg",
+    "renewal": {
+      "count": {
+        "renewed": 0,
+      },
+      "error": null,
+      "status": "off",
+    },
+    "slug": "testorg.test.AWS_PROFILE",
+  },
+]
+`;
+
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t6] the key is unlocked with a duration shorter than its role creds then: status stdout matches snapshot 1`] = `
+"
+🔐 keyrack status
+   ├─ owner: (default)
+   ├─ recipients:
+   │  └─ default (age)
+   ├─ daemon: active ✨
+   └─ testorg.test.AWS_PROFILE
+      ├─ env: test
+      ├─ org: testorg
+      ├─ expires in: __1-5__m
+      └─ renewal = off
+
+"
+`;
+
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t7] the human relocks the key then: the relock stdout matches snapshot 1`] = `
+"
+🔒 keyrack relock
+   └─ testorg.test.AWS_PROFILE: pruned 🔒
+
+"
+`;
+
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t8] the human relocks a key whose renewal lapsed then: the relock stdout matches snapshot 1`] = `
+"
+🔒 keyrack relock
+   └─ testorg.test.AWS_PROFILE: pruned 🔒
+
+"
+`;
+
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t12] the key is unlocked with role creds far from their expiry then: status --json matches snapshot 1`] = `
+[
+  {
+    "env": "test",
+    "expiresAt": "__REDACTED__",
+    "expiresIn": "__REDACTED__",
+    "org": "testorg",
+    "renewal": {
+      "count": {
+        "renewed": 0,
+      },
+      "error": null,
+      "status": "on",
+    },
+    "slug": "testorg.test.AWS_PROFILE",
+  },
+]
+`;
+
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t12] the key is unlocked with role creds far from their expiry then: status stdout matches snapshot 1`] = `
+"
+🔐 keyrack status
+   ├─ owner: (default)
+   ├─ recipients:
+   │  └─ default (age)
+   ├─ daemon: active ✨
+   └─ testorg.test.AWS_PROFILE
+      ├─ env: test
+      ├─ org: testorg
+      ├─ expires in: __16+__m
+      └─ renewal = on
+
+"
+`;
+
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t13] a consumer reads the key across its grant expiry then: the get past expiry matches snapshot 1`] = `
+{
+  "getPastExpiry": {
+    "grant": {
+      "env": "test",
+      "key": {
+        "grade": {
+          "duration": "ephemeral",
+          "protection": "reference",
+        },
+        "secret": "testorg-test",
+      },
+      "org": "testorg",
+      "slug": "testorg.test.AWS_PROFILE",
+      "source": {
+        "mech": "EPHEMERAL_VIA_AWS_SSO",
+        "vault": "aws.config",
+      },
+    },
+    "status": "granted",
+  },
+  "isRenewed": true,
+  "verdicts": [
+    "granted",
+    "granted",
+    "granted",
+  ],
+}
+`;
+
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t14] the renew faults in the daemon own env, and a daemon prune cures it then: the healthy-cli unlock stdout matches snapshot 1`] = `
+"
+🔓 keyrack unlock
+   └─ testorg.test.AWS_PROFILE
+      ├─ env: test
+      ├─ org: testorg
+      ├─ vault: aws.config
+      └─ expires in: __6-15__m
+
+"
+`;
+
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t14] the renew faults in the daemon own env, and a daemon prune cures it then: the prune and its unlock stdout match snapshot 1`] = `
+{
+  "pruned": "
+🔐 keyrack daemon prune
+   └─ pruned daemon for owner=default (pid: __PID__)
+
+",
+  "unlocked": "
+🔓 keyrack unlock
+   └─ testorg.test.AWS_PROFILE
+      ├─ env: test
+      ├─ org: testorg
+      ├─ vault: aws.config
+      └─ expires in: __6-15__m
+
+",
+}
+`;
+
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t15] the portal session ends while the key waits on a halt then: the fix stdout matches snapshot 1`] = `
+"
+🔓 keyrack unlock testorg.test.AWS_PROFILE
+   ├─ with sso prior?
+   │  └─ ✗ clear, no prior session
+   └─ ✓ authenticated as alice@acme.com
+
+🔓 keyrack unlock
+   └─ testorg.test.AWS_PROFILE
+      ├─ env: test
+      ├─ org: testorg
+      ├─ vault: aws.config
+      └─ expires in: __6-15__m
+
+"
+`;

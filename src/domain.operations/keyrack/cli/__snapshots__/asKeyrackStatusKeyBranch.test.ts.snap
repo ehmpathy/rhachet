@@ -36,3 +36,52 @@ exports[`asKeyrackStatusKeyBranch given: [case3] a key held with no expiry when:
   "      └─ expires in: never",
 ]
 `;
+
+exports[`asKeyrackStatusKeyBranch given: [case4] an sso key the daemon renews when: [t0] the renewal is on then: it renders the renewal-on shape 1`] = `
+[
+  "   └─ ahbode.camp.AWS_PROFILE",
+  "      ├─ env: camp",
+  "      ├─ org: ahbode",
+  "      ├─ expires in: 52m",
+  "      └─ renewal = on",
+]
+`;
+
+exports[`asKeyrackStatusKeyBranch given: [case4] an sso key the daemon renews when: [t2] the grant already expires at its max then: it renders the renewal-off shape 1`] = `
+[
+  "   └─ ahbode.camp.AWS_PROFILE",
+  "      ├─ env: camp",
+  "      ├─ org: ahbode",
+  "      ├─ expires in: 5m",
+  "      └─ renewal = off",
+]
+`;
+
+exports[`asKeyrackStatusKeyBranch given: [case5] an sso key whose renewal stopped when: [t0] the portal session lapsed, the grant still lives then: it renders the lapsed shape 1`] = `
+[
+  "   └─ ahbode.camp.AWS_PROFILE",
+  "      ├─ env: camp",
+  "      ├─ org: ahbode",
+  "      ├─ expires in: 8m",
+  "      └─ renewal = lapsed",
+]
+`;
+
+exports[`asKeyrackStatusKeyBranch given: [case5] an sso key whose renewal stopped when: [t1] the renewal lapsed and the grant has expired then: it renders the expired shape 1`] = `
+[
+  "   └─ ahbode.camp.AWS_PROFILE",
+  "      ├─ env: camp",
+  "      ├─ org: ahbode",
+  "      └─ expired",
+]
+`;
+
+exports[`asKeyrackStatusKeyBranch given: [case5] an sso key whose renewal stopped when: [t3] the renewal halted and the grant still lives then: it renders the halted shape 1`] = `
+[
+  "   └─ ahbode.camp.AWS_PROFILE",
+  "      ├─ env: camp",
+  "      ├─ org: ahbode",
+  "      ├─ expires in: 3m",
+  "      └─ renewal = halted",
+]
+`;

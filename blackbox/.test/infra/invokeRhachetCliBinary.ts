@@ -222,15 +222,15 @@ export const asPtySnapshotSafe = (output: string): string => {
 /**
  * .what = parse a `keyrack status --json` payload and blank the fields that vary per run
  * .why = a status payload carries THREE volatile fields, and every one of them will differ
- *        on the next run: a live `ttlLeftMs` countdown, a per-daemon `socketPath` hash, and
+ *        on the next run: a live `expiresIn` countdown, a per-daemon `socketPath` hash, and
  *        the wall-clock stamps. snapped raw, such a snapshot is green exactly once — on the
  *        run that wrote it — and red for everyone after, which is a flake shipped as a clamp
  *
  * .note = ⚠️ `--resnap` CANNOT catch this, and that is why the helper exists rather than a
  *         convention. resnap writes what it just saw, so an immediate re-run compares a
  *         volatile value against itself and passes. only a SECOND, independent run diverges
- * .note = `asSnapshotSafe` does not cover these. it strips iso stamps, but `ttlLeftMs` is a
- *         bare integer, and the socket lives under `/run/user/...`, which its path pattern
+ * .note = `asSnapshotSafe` does not cover these. it strips iso stamps, but `expiresIn` is a
+ *         duration object, and the socket lives under `/run/user/...`, which its path pattern
  *         (home / Users / runner-work) does not reach
  * .note = the redaction reads a PARSED OBJECT rather than scrubs a string, so a field rename
  *         cannot silently stop the redaction — an absent key shows up as a visible diff
@@ -242,7 +242,7 @@ export const asKeyrackStatusSnapshotSafe = (input: {
   parsed.socketPath = '__REDACTED__';
   for (const key of parsed.keys ?? []) {
     key.expiresAt = '__REDACTED__';
-    key.ttlLeftMs = '__REDACTED__';
+    key.expiresIn = '__REDACTED__';
   }
   for (const recipient of parsed.recipients ?? []) {
     recipient.addedAt = '__REDACTED__';

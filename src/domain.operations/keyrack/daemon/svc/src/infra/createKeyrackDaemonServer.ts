@@ -5,8 +5,11 @@ import {
   createDaemonKeyStore,
   type DaemonKeyStore,
 } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonKeyStore';
+import { createDaemonRenewalRecord } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonRenewalRecord';
+import { getOneGrantRenewal } from '@src/domain.operations/keyrack/daemon/svc/src/domain.operations/getOneGrantRenewal';
 import { handleKeyrackDaemonConnection } from '@src/domain.operations/keyrack/daemon/svc/src/domain.operations/handleKeyrackDaemonConnection';
 import { scheduleAutoTermination } from '@src/domain.operations/keyrack/daemon/svc/src/domain.operations/scheduleAutoTermination';
+import { scheduleDaemonRenewTick } from '@src/domain.operations/keyrack/daemon/svc/src/domain.operations/scheduleDaemonRenewTick';
 import { verifyCallerLoginSession } from '@src/domain.operations/keyrack/daemon/svc/src/domain.operations/verifyCallerLoginSession';
 import { delFileSync } from '@src/infra/filesystem/delFileSync';
 
@@ -36,13 +39,24 @@ export const createKeyrackDaemonServer = (input: {
   // create the key store
   const keyStore = createDaemonKeyStore();
 
+  // create the renewal record, which outlives each grant it renews
+  const renewalRecord = createDaemonRenewalRecord();
+
   // start the demand clock; born here so this function's signature stays fixed
   // .why = createKeyrackDaemonServer has 7 call sites (1 prod + 6 test); to take
   // the clock as an input would ripple the change into every one of them
   const activity = genDaemonActivityClock();
 
-  // schedule auto-termination when the daemon holds no keys and serves no demand
-  scheduleAutoTermination({ keyStore, activity });
+  // schedule auto-termination when the daemon holds no keys, no renewal record, and
+  // serves no demand
+  scheduleAutoTermination({ keyStore, activity, renewalRecord });
+
+  // renew each opted-in grant before it expires, via its mech adapter
+  const renewTick = scheduleDaemonRenewTick({
+    keyStore,
+    renewalRecord,
+    getOneRenewal: getOneGrantRenewal,
+  });
 
   // cleanup stale socket file if present
   delFileSync({ path: socketPath });
@@ -53,6 +67,7 @@ export const createKeyrackDaemonServer = (input: {
       { socket },
       {
         keyStore,
+        renewalRecord,
         homeHash,
         activity,
         // .why = injected rather than imported by the handler, so the handler's cost
@@ -74,6 +89,9 @@ export const createKeyrackDaemonServer = (input: {
 
     console.log(`[keyrack-daemon] server started at ${socketPath}`);
   });
+
+  // stop the renew tick once the server closes, so no tick outlives its store
+  server.on('close', () => clearInterval(renewTick));
 
   // handle server errors
   server.on('error', (err) => {

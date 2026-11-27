@@ -137,7 +137,7 @@ describe('keyrack source reach', () => {
       });
 
       // .note = `asKeyrackStatusSnapshotSafe`, NOT `asSnapshotSafe`. this payload carries a
-      //         live `ttlLeftMs` countdown and a per-daemon `socketPath` hash, and neither
+      //         live `expiresIn` countdown and a per-daemon `socketPath` hash, and neither
       //         is reached by the generic scrub — so a raw snap here is green on the run
       //         that writes it and red for every run after
       then('the reply is snapped', () => {

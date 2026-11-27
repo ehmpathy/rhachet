@@ -2,15 +2,18 @@ import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import { now } from 'iso-time';
 
 import { daoKeyrackInventory } from '@src/access/daos/daoKeyrackInventory';
+import type { KeyrackDaemonUnlockRenewal } from '@src/domain.objects/keyrack/KeyrackDaemonUnlockRenewal';
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
 import type { KeyrackKeyOmission } from '@src/domain.objects/keyrack/KeyrackKeyOmission';
 import type { KeyrackKeyReach } from '@src/domain.objects/keyrack/KeyrackKeyReach';
+import { getOneKeyrackMechAdapter } from '@src/domain.operations/keyrack/adapters/mechanisms/getOneKeyrackMechAdapter';
 import { asDurationMs } from '@src/domain.operations/keyrack/asDurationMs';
 import { asKeyrackFilterOrg } from '@src/domain.operations/keyrack/asKeyrackFilterOrg';
 import { asKeyrackKeyEnv } from '@src/domain.operations/keyrack/asKeyrackKeyEnv';
 import { asKeyrackKeyName } from '@src/domain.operations/keyrack/asKeyrackKeyName';
 import { asKeyrackKeyOrg } from '@src/domain.operations/keyrack/asKeyrackKeyOrg';
 import { asKeyrackRepoManifestForOrgFilter } from '@src/domain.operations/keyrack/asKeyrackRepoManifestForOrgFilter';
+import { asKeyrackDaemonRenewSkewWarn } from '@src/domain.operations/keyrack/cli/asKeyrackDaemonRenewSkewWarn';
 import { emitKeyrackDurationCapWarn } from '@src/domain.operations/keyrack/cli/emitKeyrackDurationCapWarn';
 import { computeExpiresAt } from '@src/domain.operations/keyrack/computeExpiresAt';
 import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath';
@@ -31,6 +34,7 @@ import { getAllKeyrackSlugsForUnlock } from '@src/domain.operations/keyrack/sess
 
 import { asKeyrackOmittedRow } from './asKeyrackOmittedRow';
 import { getAllKeyrackOmissionsExceptHeldAtReach } from './getAllKeyrackOmissionsExceptHeldAtReach';
+import { getAllKeyrackRenewalsUnfiled } from './getAllKeyrackRenewalsUnfiled';
 import { getAllKeyrackUnlockTargets } from './getAllKeyrackUnlockTargets';
 import { getOneKeyrackUnlockTargetDisposition } from './getOneKeyrackUnlockTargetDisposition';
 
@@ -162,14 +166,16 @@ export const unlockKeyrackKeys = async (
 
   // collect keys to unlock and track omitted
   // .note = omitted includes both "absent" (not in host manifest) and "lost" (in manifest but vault doesn't have it)
-  // .note = DELIBERATE MUTATION (rule.require.immutable-vars scoped-zone carve-out): these two are
-  //         loop accumulators for the per-slug pass below. the pass is async and has several
+  // .note = DELIBERATE MUTATION (rule.require.immutable-vars scoped-zone carve-out): the five
+  //         collections below (keysToUnlock, renewalsToSend, keysOmitted, addressesUnlocked,
+  //         slugsHeldAtReach) are loop accumulators for the per-slug pass below. the pass is async and has several
   //         early-`continue` classification branches (absent / remote / lost / errored / unlock), so
   //         a single functional reduce cannot express it without a regression of the narrative flow
   //         on a critical unlock path. the mutation stays confined to this one function's local
   //         scope — the arrays never escape as shared state — which is exactly the isolated-mutation
   //         zone the rule sanctions with this note
   const keysToUnlock: KeyrackKeyGrant[] = [];
+  const renewalsToSend: KeyrackDaemonUnlockRenewal[] = []; // keys the daemon may renew, each with its max expiry
   const keysOmitted: KeyrackKeyOmission[] = [];
   const addressesUnlocked = new Set<string>(); // dedupe by ADDRESS — see the .note below
   const slugsHeldAtReach = new Set<string>(); // slugs the rack holds at SOME reach
@@ -429,14 +435,21 @@ export const unlockKeyrackKeys = async (
       // maxDuration cap, and the credential's OWN life as the mech reports it (e17)
       // .note = the clock read happens HERE, in the orchestrator, and is handed in. a
       //         `compute*` may take no i/o, and a clock is i/o — see the purity note there
-      const { expiresAt, cappedByMaxDuration } = computeExpiresAt({
-        now: now(),
-        requestedDurationMs,
-        maxDurationMs: hostConfig.maxDuration
-          ? asDurationMs({ duration: hostConfig.maxDuration })
-          : null,
-        grantExpiresAt: grant.expiresAt,
-      });
+      // the per-key max, bound once so the grant expiry and the renewal max share one bound
+      const maxDurationMs = hostConfig.maxDuration
+        ? asDurationMs({ duration: hostConfig.maxDuration })
+        : null;
+      // one clock read per key, so a grant clipped to its max sits exactly at the renewal
+      // max; two reads ms apart would let the first renew read as an advance
+      const nowAtKey = now();
+      const { expiresAt, expiresAtMax, cappedByMaxDuration } = computeExpiresAt(
+        {
+          now: nowAtKey,
+          requestedDurationMs,
+          maxDurationMs,
+          grantExpiresAt: grant.expiresAt,
+        },
+      );
 
       // the cap is a policy the human did not ask for, so it is said out loud
       if (cappedByMaxDuration && hostConfig.maxDuration)
@@ -458,6 +471,21 @@ export const unlockKeyrackKeys = async (
         repoManifest?.org ??
         'unknown';
 
+      // opt a key into renew when its mech can renew it, held to the human's bound
+      // .why = the daemon renews such a grant before its upstream creds expire, but never
+      //        past min(requested duration, maxDuration) from now — `expiresAtMax`. the
+      //        stored `expiresAt` folds that bound into the upstream expiry, so the max must
+      //        cross the socket on its own
+      // .note = computed before either push, so a throw here leaves the key in neither list
+      //         rather than both unlocked and `errored`
+      const renewal = getOneKeyrackMechAdapter(grant.source.mech).renewForDaemon
+        ? {
+            slug: effectiveSlug,
+            ...asKeyrackKeyReachField({ reach: hostConfig.reach }),
+            expiresAtMax: expiresAtMax,
+          }
+        : null;
+
       // collect key for daemon (with duration-capped expiresAt)
       // .note = env=all fallback handled at daemon lookup time, not storage time
       keysToUnlock.push(
@@ -473,6 +501,8 @@ export const unlockKeyrackKeys = async (
           expiresAt,
         }),
       );
+
+      if (renewal) renewalsToSend.push(renewal);
     } catch (cause) {
       // allowlist boundary (rule.forbid.failhide): the per-key fault isolation exists ONLY for the
       // LIVE, OPERATIONAL faults a vault adapter raises as a classed domain error — a ConstraintError
@@ -518,10 +548,24 @@ export const unlockKeyrackKeys = async (
     // interactive prompt and immediately before its own daemonAccessUnlock
     await findsertKeyrackDaemon({ socketPath });
 
-    await daemonAccessUnlock({
+    const { renewable } = await daemonAccessUnlock({
       socketPath,
       keys: keysToUnlock,
+      renewals: renewalsToSend,
     });
+
+    // a daemon from a prior build files no renew; name it, or its keys die unnamed
+    const slugsUnfiled = getAllKeyrackRenewalsUnfiled({
+      renewalsSent: renewalsToSend,
+      renewable,
+    });
+    if (slugsUnfiled.length > 0)
+      console.warn(
+        asKeyrackDaemonRenewSkewWarn({
+          slugs: slugsUnfiled,
+          owner: input.owner ?? null,
+        }).join('\n'),
+      );
   }
 
   return { unlocked: keysToUnlock, omitted: keysOmittedTruly };

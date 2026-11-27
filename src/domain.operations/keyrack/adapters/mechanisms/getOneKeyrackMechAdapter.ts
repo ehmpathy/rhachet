@@ -10,6 +10,17 @@ import { mechAdapterGithubApp } from './mechAdapterGithubApp';
 import { mechAdapterReplica } from './mechAdapterReplica';
 
 /**
+ * .what = the aws sso adapter's set and get, with no renew path
+ * .why = github oidc rides the aws sso adapter until it has its own, but it has no
+ *        silent renew. an alias that kept `renewForDaemon` would opt every oidc key
+ *        into an sso renew that can only fault
+ * .note = the adapter minus its renew, by rest-spread, so a method the sso adapter gains
+ *         later reaches the alias with no hand copy
+ */
+const { renewForDaemon: _renewForDaemonDropped, ...mechAdapterAwsSsoForOidc } =
+  mechAdapterAwsSso;
+
+/**
  * .what = the one canonical mechanism → adapter map, plus its lookup
  * .why = the mech→adapter lookup was hand-copied per vault; a full (non-partial) Record
  *        gives one importable source AND compile-time exhaustiveness — a new
@@ -18,15 +29,17 @@ import { mechAdapterReplica } from './mechAdapterReplica';
  * .note = new names (PERMANENT_VIA_*, EPHEMERAL_VIA_*) map to the same adapters;
  *         the older aliases stay for backwards compat
  *
- * ⚠️ .adoption = NOT yet universally adopted. vaultAdapterAwsParams + genContextKeyrackGrantGet
+ * 🟡 .adoption = NOT yet universally adopted. vaultAdapterAwsParams + genContextKeyrackGrantGet
  *    consume this today (genContextKeyrackGrantGet's full-Record duplicate was migrated onto this
- *    source). the 6 peer vaults (os.secure / os.envvar / os.direct / os.daemon / github.secrets /
+ *    source), as do the unlock's renew opt-in (unlockKeyrackKeys) and the daemon's renew
+ *    dispatch (getOneGrantRenewal). the 6 peer vaults (os.secure / os.envvar / os.direct / os.daemon / github.secrets /
  *    1password) STILL hand-roll their own PARTIAL mech→adapter maps and were NOT migrated. so in
  *    this mid-migration state there are still multiple sources of truth: this canonical one, plus
  *    the 6 ad-hoc partial copies. do NOT assume the peer vaults route through here. the full
  *    migration (repoint the 6 peer-vault sites onto this map, then delete the ad-hoc copies) is a
  *    deliberate cross-vault follow-up, scoped OUT of the aws.params route that introduced this
- *    module. until that lands, treat this as authoritative for aws.params + the get-context ONLY.
+ *    module. until that lands, treat this as authoritative for aws.params, the get-context, and
+ *    the renew ONLY.
  */
 export const KEYRACK_MECH_ADAPTERS: Record<
   KeyrackGrantMechanism,
@@ -37,7 +50,7 @@ export const KEYRACK_MECH_ADAPTERS: Record<
   EPHEMERAL_VIA_SESSION: mechAdapterReplica, // os.daemon: passthrough, already in daemon
   EPHEMERAL_VIA_GITHUB_APP: mechAdapterGithubApp,
   EPHEMERAL_VIA_AWS_SSO: mechAdapterAwsSso,
-  EPHEMERAL_VIA_GITHUB_OIDC: mechAdapterAwsSso, // todo: dedicated oidc adapter
+  EPHEMERAL_VIA_GITHUB_OIDC: mechAdapterAwsSsoForOidc, // todo: dedicated oidc adapter
 };
 
 /**

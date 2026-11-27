@@ -1,41 +1,7 @@
-import { ConstraintError } from 'helpful-errors';
-
 import type { DaemonActivityClock } from '../domain.objects/daemonActivityClock';
 import type { DaemonKeyStore } from '../domain.objects/daemonKeyStore';
-
-/**
- * .what = read a millisecond duration from an env var, or fall back to a default
- * .why = an unparseable override is a silent catastrophe in this file. parseInt
- *        yields NaN, and NaN poisons both durations in opposite, invisible ways:
- *        setInterval(fn, NaN) fires as fast as the loop allows, and `idleMs < NaN`
- *        is always false, so the idle gate no longer holds and every daemon exits
- *        on its first tick. neither raises an error — the daemon simply stops to
- *        serve, and the operator sees a keyrack that forgets its keys instantly
- *
- * .note = caller-fixable (correct the env var) -> ConstraintError, not a server fault
- */
-const getOneDurationMs = (input: {
-  envVar: string;
-  fallbackMs: number;
-}): number => {
-  const raw = process.env[input.envVar];
-  if (!raw) return input.fallbackMs;
-
-  // the whole string must be digits, not merely start with them
-  // .why = parseInt is a *prefix* parse: '1.5px' yields 1, so a typo'd unit would
-  // silently become a 1ms interval — a busy loop — rather than raise. the shape is
-  // verified on the raw string so the leniency cannot reach the duration
-  if (!/^\d+$/.test(raw) || parseInt(raw, 10) <= 0)
-    throw new ConstraintError(
-      `${input.envVar} must be a positive integer of milliseconds`, // e.g. "900000"
-      {
-        [input.envVar]: raw,
-        hint: `set ${input.envVar} to a positive integer of milliseconds, digits only, e.g. "900000" — or unset it to fall back to ${input.fallbackMs}ms`,
-      },
-    );
-
-  return parseInt(raw, 10);
-};
+import type { DaemonRenewalRecord } from '../domain.objects/daemonRenewalRecord';
+import { getOneDurationMsFromEnv } from './getOneDurationMsFromEnv';
 
 /**
  * .what = periodically exit when the daemon holds no keys and has served no demand
@@ -55,15 +21,19 @@ export const scheduleAutoTermination = (input: {
   // exit — the defect this operation exists to fix, re-created from the inside.
   // Pick makes that a compile error rather than a code review's job
   activity: Pick<DaemonActivityClock, 'getLastAt'>;
+  // .why = the read half of the renewal record only: a held renew entry is purpose. an
+  // active one may be past expiry after a sleep, owed a renew on the next tick; a
+  // stopped one (lapsed or halted) must stay visible in status until a human acts
+  renewalRecord: Pick<DaemonRenewalRecord, 'size'>;
 }): NodeJS.Timeout => {
-  const { keyStore, activity } = input;
+  const { keyStore, activity, renewalRecord } = input;
 
   // env vars allow shorter interval + window for integration tests
-  const checkIntervalMs = getOneDurationMs({
+  const checkIntervalMs = getOneDurationMsFromEnv({
     envVar: 'KEYRACK_DAEMON_TERMINATION_CHECK_MS',
     fallbackMs: 15 * 60 * 1000, // 15min default
   });
-  const idleTimeoutMs = getOneDurationMs({
+  const idleTimeoutMs = getOneDurationMsFromEnv({
     envVar: 'KEYRACK_DAEMON_IDLE_TIMEOUT_MS',
     fallbackMs: 15 * 60 * 1000, // 15min default
   });
@@ -74,6 +44,9 @@ export const scheduleAutoTermination = (input: {
 
     // survive while live keys are held, whatever the query rate
     if (entries.length > 0) return;
+
+    // survive while a renewal record is held, live grant or not
+    if (renewalRecord.size() > 0) return;
 
     // survive while demand is recent; the clock starts at daemon start, so this also
     // grants a fresh daemon a full window of startup grace before it can idle out

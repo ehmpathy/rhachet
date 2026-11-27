@@ -1,14 +1,12 @@
-import { MalfunctionError } from 'helpful-errors';
-import { addDuration, asIsoTimeStamp, isIsoTimeStamp } from 'iso-time';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
+import { addDuration, asIsoTimeStamp } from 'iso-time';
 
 import type { KeyrackGrantMechanismAdapter } from '@src/domain.objects/keyrack';
 import { assertKeyrackReachAbsent } from '@src/domain.operations/keyrack/reach/assertKeyrackReachAbsent';
 
-import { exec, execSync } from 'node:child_process';
-import { promisify } from 'node:util';
+import { execSync } from 'node:child_process';
+import { getOneAwsSsoRoleCredentials } from './getOneAwsSsoRoleCredentials';
 import { setupAwsSsoWithGuide } from './setupAwsSsoWithGuide';
-
-const execAsync = promisify(exec);
 
 /**
  * .what = validate that profile name is a valid format
@@ -138,40 +136,14 @@ export const mechAdapterAwsSso: KeyrackGrantMechanismAdapter = {
     const profile = input.source;
 
     try {
-      // export credentials as json
-      const { stdout } = await execAsync(
-        `aws configure export-credentials --profile "${profile}" --format env-no-export`,
-      );
+      // read the role creds and their own expiry from the cli
+      const { credentials, expiresAt: expiresAtReported } =
+        await getOneAwsSsoRoleCredentials({ profileName: profile });
 
-      // parse the env output into json
-      const lines = stdout.trim().split('\n');
-      const credentials: Record<string, string> = {};
-
-      for (const line of lines) {
-        const match = line.match(/^([A-Z_]+)=(.*)$/);
-        if (match) {
-          const key = match[1];
-          const value = match[2];
-          if (key) credentials[key] = value ?? '';
-        }
-      }
-
-      if (
-        !credentials.AWS_ACCESS_KEY_ID ||
-        !credentials.AWS_SECRET_ACCESS_KEY
-      ) {
-        throw new MalfunctionError(
-          'aws sso export did not return expected credentials',
-          { stdout, credentials },
-        );
-      }
-
-      // use AWS_CREDENTIAL_EXPIRATION if available, else default to 55 min from now
-      const awsExpiration = credentials.AWS_CREDENTIAL_EXPIRATION;
+      // the cli's expiry when it names one, else 55 min from now
       const expiresAt =
-        awsExpiration && isIsoTimeStamp(awsExpiration)
-          ? awsExpiration
-          : addDuration(asIsoTimeStamp(new Date()), { minutes: 55 });
+        expiresAtReported ??
+        addDuration(asIsoTimeStamp(new Date()), { minutes: 55 });
 
       return { secret: JSON.stringify(credentials), expiresAt };
     } catch (error) {
@@ -182,5 +154,54 @@ export const mechAdapterAwsSso: KeyrackGrantMechanismAdapter = {
         error,
       });
     }
+  },
+
+  /**
+   * .what = renew an sso grant from the live portal session, silently
+   * .why = the role creds behind an sso grant end long before the portal session
+   *        behind them. the silent proof re-derives the role creds with no browser;
+   *        a lapsed portal answers `lapsed` at once
+   *
+   * .note = never reaches `aws sso login`. the browser path is unreachable from here by
+   *         construction, so a lapsed portal can never hang the host on a prompt
+   * .note = an sso grant's secret is its profile name: aws.config holds a reference,
+   *         never creds, and its get hands the profile name on as the secret. this mech
+   *         reads it there; the host never assumes a secret is a source
+   * .note = the proof import is lazy: a host that renews no sso grant never loads the
+   *         aws sdk (rule.require.thinnest-import-path)
+   * .note = an unknown error throws (a MalfunctionError from the proof or the export);
+   *         the host counts it as a fault, never as a lapse
+   */
+  renewForDaemon: async (input) => {
+    const profileName = input.grant.key.secret;
+
+    // refuse a source that is no profile name, before it reaches the aws cli's argv
+    // .note = a counted fault, so a grant that somehow holds one halts at the fault window
+    if (!isValidProfileName(profileName))
+      throw new ConstraintError('aws sso renew source is not a profile name', {
+        hint: 'the grant holds no aws profile name; unlock the key again from its aws.config vault',
+      });
+
+    // prove the portal session live, with no browser
+    const { getOneAwsSsoSessionProof } = await import(
+      './getOneAwsSsoSessionProof'
+    );
+    const proof = await getOneAwsSsoSessionProof({
+      profileName,
+      onInvalidLevel: 'debug',
+    });
+    if (!proof.live) return { status: 'lapsed' };
+
+    // the role creds' own expiry, from the read the proof already made
+    // .why = a guessed expiry would renew a key the cli never vouched for; fail loud
+    //        instead, so the gap is a counted fault that names itself
+    const { expiresAt } = proof.roleCredentials;
+    if (!expiresAt)
+      throw new MalfunctionError('aws sso renew returned no expiry', {
+        profileName,
+        hint: 'the aws cli named no AWS_CREDENTIAL_EXPIRATION; upgrade the aws cli to v2',
+      });
+
+    return { status: 'renewed', expiresAt };
   },
 };
