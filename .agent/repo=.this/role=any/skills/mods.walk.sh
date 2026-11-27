@@ -54,6 +54,10 @@ printf '#!/usr/bin/env bash\nif [ "$1" = "--version" ]; then echo "2.1.277 (Clau
 chmod 755 "$WALK/.stub-bin/claude"
 export PATH="$WALK/.stub-bin:$PATH"
 unset CLAUDE_CONFIG_DIR
+# the walk is evidence, so its bytes must not hang on the caller's home: enroll notes an absent
+#   claude login and an absent grove, so a box with either would print fewer lines than a box without
+mkdir -p "$WALK/.home"
+export HOME="$WALK/.home"
 # the walk is evidence, so its bytes must not hang on the caller's color env: a caller that sets
 #   FORCE_COLOR (a jest worker, some ci) would paint the stop hold, a NO_COLOR one would not
 export FORCE_COLOR=0 NO_COLOR=1

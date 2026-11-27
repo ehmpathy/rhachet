@@ -100,6 +100,8 @@ $ rhx enroll claude --roles surfer,lifeguard
       └─ role=surfer — ✋ ConstraintError: the mod of role=surfer is refused: it holds briefs/rule.require.surf-wux.md, a path the role does not hold, and no say or ref names it
          └─ fix = to shadow, move it to the held path; to add, say it in the mod boot.yml (briefs.say: [briefs/rule.require.surf-wux.md]) (did you mean: briefs/rule.require.surf-wax.md)
 
+ℹ no claude login at <repo>/.temp/mods.walk/<walk>/.home/.claude/.credentials.json — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at <repo>/.temp/mods.walk/<walk>/.home/.claude/settings.json — box defaults did not apply; create it to share them with every clone
 
 😶 clone enrolled
    ├─ 🎙️ rhx clone say @:<serial> --what "…"
@@ -174,6 +176,8 @@ $ rhx enroll claude --roles surfer,lifeguard
    │
    └─ a live clone keeps the boot it read at session start; re-enroll it to pick up the change
 
+ℹ no claude login at <repo>/.temp/mods.walk/<walk>/.home/.claude/.credentials.json — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at <repo>/.temp/mods.walk/<walk>/.home/.claude/settings.json — box defaults did not apply; create it to share them with every clone
 
 😶 clone enrolled
    ├─ 🎙️ rhx clone say @:<serial> --what "…"
