@@ -23,6 +23,7 @@ const genScene = async (input: { slug: string }) => {
   const { repoPath, home, brainDir } = genSampleHomeWithBrainDir({
     slug: input.slug,
     grove: GROVE_CONTENT,
+    keybindings: null,
   });
   writeFileSync(join(brainDir, 'settings.of.repo.json'), REPO_CONTENT);
   await setBrainDirSettingsLayout({ repoPath, brainDir, home });

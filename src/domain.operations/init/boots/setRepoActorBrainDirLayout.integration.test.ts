@@ -11,6 +11,7 @@ import {
   lstatSync,
   mkdirSync,
   readFileSync,
+  readlinkSync,
   realpathSync,
   writeFileSync,
 } from 'node:fs';
@@ -123,6 +124,44 @@ describe('setRepoActorBrainDirLayout', () => {
       });
     });
   });
+
+  given(
+    '[case1b] a fresh repo, on a box whose home holds a keybindings file',
+    () => {
+      const scene = useBeforeAll(async () => {
+        const { repoPath, home } = genScene({
+          slug: 'repo-layout-keybindings',
+        });
+        writeFileSync(
+          join(home, '.claude', 'keybindings.json'),
+          '{ "bindings": [] }\n',
+        );
+        process.env.HOME = home;
+        const result = await setRepoActorBrainDirLayout({ repoPath });
+        return { home, result };
+      });
+
+      when('[t0] the layout is set', () => {
+        then(
+          'the repo actor gets the keybindings arrows, as every actor does',
+          () => {
+            expect(
+              readlinkSync(
+                join(scene.result.repoActorBrainDir, 'keybindings.json'),
+              ),
+            ).toEqual(join('.home', '.claude', 'keybindings.json'));
+            expect(
+              realpathSync(
+                join(scene.result.repoActorBrainDir, 'keybindings.json'),
+              ),
+            ).toEqual(
+              realpathSync(join(scene.home, '.claude', 'keybindings.json')),
+            );
+          },
+        );
+      });
+    },
+  );
 
   given('[case2] a repo that holds a legacy repo actor dir', () => {
     const scene = useBeforeAll(async () => {

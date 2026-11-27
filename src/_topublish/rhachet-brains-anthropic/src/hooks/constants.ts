@@ -13,3 +13,16 @@ export const CLAUDE_SETTINGS_FILENAMES = {
   claude: 'settings.json',
   home: '.home/.claude/settings.json',
 } as const;
+
+/**
+ * .what = the file names of a brain dir's keybindings arrows
+ * .why = claude reads `keybindings.json` from its config dir, and a clone spawns with its actor's
+ *        brain dir as that dir; the arrows hand it the human's `~/.claude/keybindings.json`
+ * .note = `home` mirrors the settings `home`: the one name that names this box, under `.home/`
+ * .note = claude's file names, so the adapter owns them; only core's layout reads them, through
+ *   `claudeCodeSettings.ts`, so the package index does not export them
+ */
+export const CLAUDE_KEYBINDINGS_FILENAMES = {
+  claude: 'keybindings.json',
+  home: '.home/.claude/keybindings.json',
+} as const;
