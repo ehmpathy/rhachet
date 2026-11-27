@@ -36,10 +36,30 @@ const TEST_CASES = [
         genSwap({
           brain: 'claude-code',
           rules: 1,
-          rulesByEvent: [{ event: 'PreToolUse', rules: 1 }],
-          dispatchers: 1,
+          rulesByEvent: [
+            { event: 'SessionStart', rules: 0 },
+            { event: 'PreToolUse', rules: 1 },
+            { event: 'UserPromptSubmit', rules: 0 },
+            { event: 'Stop', rules: 0 },
+          ],
         }),
         genSwap({ brain: 'claude-code@actor', roleHooksTakenBack: 1 }),
+      ],
+    },
+  },
+  {
+    description: 'an empty manifest still names a dispatcher per event',
+    given: {
+      swaps: [
+        genSwap({
+          rules: 0,
+          rulesByEvent: [
+            { event: 'SessionStart', rules: 0 },
+            { event: 'PreToolUse', rules: 0 },
+            { event: 'UserPromptSubmit', rules: 0 },
+            { event: 'Stop', rules: 0 },
+          ],
+        }),
       ],
     },
   },

@@ -23,6 +23,15 @@ export const BRAIN_HOOK_EVENTS: BrainHookEvent[] = [
 ];
 
 /**
+ * .what = every claude event a manifest row can name, in one fixed order
+ * .why = each gets one dispatcher wire, rows or not, so a row added after a seat starts rides a
+ *   wire already in place
+ */
+export const HOOK_DISPATCH_EVENTS: string[] = BRAIN_HOOK_EVENTS.map(
+  (event) => CLAUDE_EVENT_OF_BRAIN_HOOK_EVENT[event],
+);
+
+/**
  * .what = the names the hook dispatcher is known by
  * .why = the sync writes them, the derive narrows them, and the dispatcher reads them; one
  *   declaration keeps the three in step
@@ -35,6 +44,9 @@ export const BRAIN_HOOK_EVENTS: BrainHookEvent[] = [
  *   trap defers; it sits below `timeoutMarginSeconds`, so the dispatcher reaps a hung rule and
  *   still returns its verdicts before claude kills the dispatcher. `bin/hooks.dispatch.sh` holds
  *   the same value as `__rhx_dispatch_grace`
+ * .note = `timeoutFloorSeconds` is the least rule timeout a wire covers; a wire's timeout is
+ *   `max(floor, slowest rule) + margin`, so a later row within the floor moves no wire, and an
+ *   event with no rows still holds a timeout. 60 s is the slowest rule any role declares today
  */
 export const HOOK_DISPATCH = {
   manifest: 'hooks.dispatch.manifest',
@@ -42,6 +54,7 @@ export const HOOK_DISPATCH = {
   bin: './node_modules/rhachet/bin/hooks.dispatch.sh',
   timeoutMarginSeconds: 5,
   timeoutGraceSeconds: 2,
+  timeoutFloorSeconds: 60,
 } as const;
 
 /**

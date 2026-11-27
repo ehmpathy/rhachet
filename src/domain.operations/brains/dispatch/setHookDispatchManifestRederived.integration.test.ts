@@ -60,7 +60,7 @@ describe('setHookDispatchManifestRederived', () => {
       });
 
       then('the row reads as the bash skill it was synced as', () => {
-        expect(result.rules.map((rule) => rule.kind)).toEqual(['rhx-skill']);
+        expect(result.rules?.map((rule) => rule.kind)).toEqual(['rhx-skill']);
       });
 
       then('the manifest is not rewritten', () => {
@@ -97,7 +97,7 @@ describe('setHookDispatchManifestRederived', () => {
         then(
           'the row runs the file as its own process, never sourced as bash',
           () => {
-            expect(result.rules.map((rule) => rule.kind)).toEqual(['exec']);
+            expect(result.rules?.map((rule) => rule.kind)).toEqual(['exec']);
           },
         );
 
@@ -164,9 +164,12 @@ describe('setHookDispatchManifestRederived', () => {
         }),
       );
 
-      then('there are no rules, and naught is written', () => {
-        expect(result.rules).toEqual([]);
-      });
+      then(
+        'rules read as null, apart from an empty manifest, and naught is written',
+        () => {
+          expect(result.rules).toEqual(null);
+        },
+      );
     });
   });
 });

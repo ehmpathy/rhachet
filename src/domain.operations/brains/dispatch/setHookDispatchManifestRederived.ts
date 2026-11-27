@@ -13,18 +13,19 @@ import { setHookDispatchManifest } from './setHookDispatchManifest';
  *   or its shebang changed; its row would keep a stale kind or path, and a bash rule turned node
  *   would be sourced as bash. a fresh derive after every sync keeps each row true to its file
  *
- * .note = an absent manifest holds no rules; naught is written
+ * .note = an absent manifest returns `rules: null`, apart from an empty one (`[]`), and naught is
+ *   written: the dispatcher step wires no event where no manifest is
  * .note = a manifest whose bytes already match is not rewritten, so a re-sync writes naught
  */
 export const setHookDispatchManifestRederived = async (input: {
   manifestPath: string;
   repoPath: string;
-}): Promise<{ rules: HookDispatchRule[] }> => {
+}): Promise<{ rules: HookDispatchRule[] | null }> => {
   // read the rules as last written
   const manifest = await getOneHookDispatchManifest({
     path: input.manifestPath,
   });
-  if (!manifest) return { rules: [] };
+  if (!manifest) return { rules: null };
 
   // derive each one again, from the hook it was declared as
   const rules = manifest.rules.map((rule) =>

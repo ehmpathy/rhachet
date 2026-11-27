@@ -1860,4 +1860,154 @@ describe('hook dispatcher (one process per claude event)', () => {
       });
     });
   });
+
+  given(
+    '[case2] a repo synced once, whose role then adds a row on a tool and an event no prior row named',
+    () => {
+      // the settings wire each event whole (`*`) at the first sync, so a row the role adds later
+      //   reaches every seat through the manifest alone: no settings write, no respawn
+      const asRoleRegistry = (input: { hooks: string }): string => `
+const getRoleRegistry = () => ({
+  slug: 'test',
+  readme: { uri: 'readme.md' },
+  roles: [
+    {
+      slug: 'tester',
+      name: 'Tester',
+      purpose: 'test role whose hooks grow after the first sync',
+      readme: { uri: 'roles/tester/readme.md' },
+      traits: [],
+      skills: { dirs: { uri: 'roles/tester/skills' }, refs: [] },
+      briefs: { dirs: { uri: 'roles/tester/briefs' } },
+      inits: { dirs: { uri: 'roles/tester/inits' } },
+      hooks: { onBrain: ${input.hooks} },
+    },
+  ],
+});
+module.exports = { getRoleRegistry };
+`;
+      const HOOKS_FIRST = `{
+        onTool: [{ command: 'echo "bash guard ran"', timeout: 'PT10S', filter: { what: 'Bash' } }],
+      }`;
+      const HOOKS_LATER = `{
+        onTool: [
+          { command: 'echo "bash guard ran"', timeout: 'PT10S', filter: { what: 'Bash' } },
+          { command: 'echo "agent guard ran"', timeout: 'PT10S', filter: { what: 'Agent' } },
+        ],
+        onTalk: [{ command: 'echo "talk guard ran"', timeout: 'PT10S' }],
+      }`;
+      const asPayloadOfTool = (tool: string): string =>
+        JSON.stringify({ session_id: 'abc', hook_event_name: 'PreToolUse', tool_name: tool, tool_input: {} });
+      const payloadTalk = JSON.stringify({ session_id: 'abc', hook_event_name: 'UserPromptSubmit', prompt: 'hi' });
+      const payloadStop = JSON.stringify({ session_id: 'abc', hook_event_name: 'Stop', stop_hook_active: false });
+
+      const scene = useBeforeAll(async () => {
+        const cwd = (await genTestTempRepo({ fixture: 'with-hook-dispatch' })).path;
+        mkdirSync(join(cwd, 'node_modules/.bin'), { recursive: true });
+        symlinkSync(join(REPO_ROOT, 'bin/rhx'), join(cwd, 'node_modules/.bin/rhx'));
+        symlinkSync(join(REPO_ROOT, 'bin/run'), join(cwd, 'node_modules/.bin/rhachet'));
+        symlinkSync(REPO_ROOT, join(cwd, 'node_modules/rhachet'));
+        const registryPath = join(cwd, 'node_modules/rhachet-roles-test/dist/index.js');
+        const settingsPath = join(cwd, '.claude/settings.of.repo.json');
+        const syncHooks = (input: { hooks: string; args: string[] }) => {
+          writeFileSync(registryPath, asRoleRegistry({ hooks: input.hooks }));
+          return invokeRhachetCliBinary({
+            args: input.args,
+            cwd,
+            env: { HOME: genTempDir({ slug: 'hooks-dispatch-later-home' }) },
+          });
+        };
+
+        // the first sync: one PreToolUse row on Bash, no row on any other event
+        const initFirst = syncHooks({ hooks: HOOKS_FIRST, args: ['init', '--roles', 'tester', '--hooks'] });
+        const settingsTextFirst = readFileSync(settingsPath, 'utf-8');
+        const settings = JSON.parse(settingsTextFirst);
+        const commandOf = (event: string): string => asHooksOfEvent({ settings, event })[0]!.command;
+        const dispatch = (event: string, payload: string) =>
+          runAsClaude({ cwd, command: commandOf(event), payload });
+
+        // before the later rows land: the wires hold, and do naught where no row fits
+        const before = {
+          agent: dispatch('PreToolUse', asPayloadOfTool('Agent')),
+          talk: dispatch('UserPromptSubmit', payloadTalk),
+          stop: dispatch('Stop', payloadStop),
+        };
+
+        // the later sync: the role adds an Agent row and a talk row
+        const initLater = syncHooks({ hooks: HOOKS_LATER, args: ['init', '--hooks'] });
+        const settingsTextLater = readFileSync(settingsPath, 'utf-8');
+
+        // after: the wires the first sync wrote run the later rows
+        const after = {
+          agent: dispatch('PreToolUse', asPayloadOfTool('Agent')),
+          bash: dispatch('PreToolUse', asPayloadOfTool('Bash')),
+          read: dispatch('PreToolUse', asPayloadOfTool('Read')),
+          talk: dispatch('UserPromptSubmit', payloadTalk),
+        };
+
+        // last: a corrupt manifest, met by a tool no row names
+        const manifestRel = commandOf('PreToolUse').split(' ')[2]!;
+        writeFileSync(join(cwd, manifestRel), 'not a manifest\n');
+        const corrupt = { agent: dispatch('PreToolUse', asPayloadOfTool('Agent')) };
+
+        return { initFirst, initLater, settings, settingsTextFirst, settingsTextLater, before, after, corrupt };
+      });
+
+      then('both syncs succeed', () => {
+        expect(scene.initFirst.status).toEqual(0);
+        expect(scene.initLater.status).toEqual(0);
+      });
+
+      then('the first sync wires every mapped event with one `*` dispatcher, rows or not', () => {
+        expect(
+          Object.entries(scene.settings.hooks).map(([event, entries]) => ({
+            event,
+            matchers: (entries as Array<{ matcher: string }>).map((entry) => entry.matcher),
+            dispatchers: asHooksOfEvent({ settings: scene.settings, event }).length,
+          })),
+        ).toEqual(
+          ['SessionStart', 'PreToolUse', 'UserPromptSubmit', 'Stop'].map((event) => ({
+            event,
+            matchers: ['*'],
+            dispatchers: 1,
+          })),
+        );
+      });
+
+      when('[t0] a tool and an event no row names yet are called (vision case=3, case=5)', () => {
+        then('each call exits 0 with no bytes: the wire is a no-op where no row fits', () => {
+          for (const call of [scene.before.agent, scene.before.talk, scene.before.stop]) {
+            expect(call).toEqual({ code: 0, stdout: '', stderr: '' });
+          }
+        });
+      });
+
+      when('[t1] the role adds an Agent row and a talk row, and the hooks sync again (vision case=1, case=2)', () => {
+        then('the settings are byte-equal: the later rows need no settings write', () => {
+          expect(scene.settingsTextLater).toEqual(scene.settingsTextFirst);
+        });
+
+        then('the wire the first sync wrote runs the new Agent row', () => {
+          expect(scene.after.agent).toEqual({ code: 0, stdout: 'agent guard ran\n', stderr: '' });
+        });
+
+        then('the wire the first sync wrote runs the new talk row', () => {
+          expect(scene.after.talk).toEqual({ code: 0, stdout: 'talk guard ran\n', stderr: '' });
+        });
+
+        then('each row still runs only on the tools its own matcher names (vision case=3 [t1])', () => {
+          expect(scene.after.bash).toEqual({ code: 0, stdout: 'bash guard ran\n', stderr: '' });
+          expect(scene.after.read).toEqual({ code: 0, stdout: '', stderr: '' });
+        });
+      });
+
+      when('[t2] the manifest turns corrupt, and a tool no row names is called (vision case=8)', () => {
+        then('the call fails closed, and names the fix', () => {
+          expect(scene.corrupt.agent.code).toEqual(2);
+          expect(scene.corrupt.agent.stderr).toContain('✋ ConstraintError');
+          expect(scene.corrupt.agent.stderr).toContain('rhx init --hooks');
+        });
+      });
+    },
+  );
 });

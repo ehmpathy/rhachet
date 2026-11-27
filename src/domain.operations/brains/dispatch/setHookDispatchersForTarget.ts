@@ -15,6 +15,8 @@ import { setHookDispatchManifestRederived } from './setHookDispatchManifestReder
  *
  * .note = each rule's file fields derive again first (`setHookDispatchManifestRederived`), so
  *   a moved file or a changed shebang reaches the row even when its declared hook is unchanged
+ * .note = a brain dir with no manifest gets no dispatcher, and loses any it held: a wire named at
+ *   an absent manifest would refuse every call
  * .note = a brain with no dispatch (any brain but claude code) is left to its own adapter
  * .note = a brain whose adapter refuses the write is returned in `errors`, as the per-rule sync
  *   returns a refused write per role × brain; the caller reports it, and the other brains still
@@ -54,7 +56,7 @@ export const setHookDispatchersForTarget = async (
       });
       swaps.push({
         brain,
-        rules: rules.length,
+        rules: rules?.length ?? 0,
         rulesByEvent: asRuleCountsByEvent({ rules }),
         manifestPathRel,
         ...swap,
@@ -75,7 +77,7 @@ export const setHookDispatchersForTarget = async (
 export interface HookDispatchSwap {
   brain: BrainSpecifier;
   rules: number;
-  /** each claude event's rule count, in the order the manifest first names the event */
+  /** each wired claude event's rule count, `0` where none; one leaf per dispatcher */
   rulesByEvent: Array<{ event: string; rules: number }>;
   manifestPathRel: string;
   dispatchers: number;

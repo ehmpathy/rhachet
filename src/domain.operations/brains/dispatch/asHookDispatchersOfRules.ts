@@ -1,21 +1,25 @@
 import type { HookDispatchRule } from '@src/domain.objects/HookDispatchRule';
 
 import { asHookDispatcherCommand } from './asHookDispatcherCommand';
-import { HOOK_DISPATCH, HOOK_DISPATCH_MATCHER_LIST } from './constants';
+import { HOOK_DISPATCH, HOOK_DISPATCH_EVENTS } from './constants';
 
 /**
- * .what = the one dispatcher hook per claude event a set of rules needs
- * .why = claude starts one process per event, and only for a tool some rule names
+ * .what = the one dispatcher hook per claude event a manifest needs
+ * .why = the wire holds naught the rows decide: every mapped event, matcher `*`, a timeout at the
+ *   floor. so a row added after a seat starts fires on its next event with no settings write, and
+ *   the manifest stays the one place that decides which rule runs on which tool
  *
- * .note = the matcher is the union of the rules' matchers: any `*` → `*`; else every token,
- *   joined by `|`. a union with a regex reads as a regex, a superset — the dispatcher still
- *   checks each rule's own matcher before it runs the rule
- * .note = the timeout sits above the slowest rule's by the margin, so claude never kills the
- *   dispatcher before the dispatcher kills a hung rule; every rule holds a timeout of at least 1s
- * .note = events come back in the order their first rule holds
+ * .note = `rules: null` means no manifest: no dispatchers, since a wire named at an absent manifest
+ *   would refuse every call. `rules: []` means an empty manifest: every event still gets its wire
+ * .note = the dispatcher checks each row's own matcher before it runs the row, so `*` here never
+ *   widens which tool a rule runs on
+ * .note = the timeout sits above the slowest rule's, and never below the floor, by the margin, so
+ *   claude never kills the dispatcher before the dispatcher kills a hung rule
+ * .note = events come back in `HOOK_DISPATCH_EVENTS` order; an event a row names beyond those (none
+ *   can be written by the sync today) follows, in the order its first row holds
  */
 export const asHookDispatchersOfRules = (input: {
-  rules: HookDispatchRule[];
+  rules: HookDispatchRule[] | null;
   manifestPathRel: string;
 }): Array<{
   event: string;
@@ -23,36 +27,27 @@ export const asHookDispatchersOfRules = (input: {
   timeoutSeconds: number;
   command: string;
 }> => {
-  const events = [...new Set(input.rules.map((rule) => rule.event))];
-  return events.map((event) => {
-    const rulesOfEvent = input.rules.filter((rule) => rule.event === event);
-    return {
-      event,
-      matcher: asMatcherUnion({
-        matchers: rulesOfEvent.map((rule) => rule.matcher),
-      }),
-      timeoutSeconds:
-        Math.max(...rulesOfEvent.map((rule) => rule.timeoutSeconds)) +
-        HOOK_DISPATCH.timeoutMarginSeconds,
-      command: asHookDispatcherCommand({
-        manifestPathRel: input.manifestPathRel,
-        event,
-      }),
-    };
-  });
-};
+  // no manifest, no wire
+  if (!input.rules) return [];
+  const rules = input.rules;
 
-/**
- * .what = one claude matcher that fits every tool any of the given matchers fit
- */
-const asMatcherUnion = (input: { matchers: string[] }): string => {
-  if (input.matchers.some((matcher) => matcher === '*' || matcher === ''))
-    return '*';
-  // an exact list splits into its names; a regex stays whole, as a group
-  const tokens = input.matchers.flatMap((matcher) =>
-    HOOK_DISPATCH_MATCHER_LIST.test(matcher)
-      ? matcher.split(/[|,]/)
-      : [`(${matcher})`],
-  );
-  return [...new Set(tokens)].join('|');
+  // every mapped event, then any event a row names beyond them
+  const events = [
+    ...new Set([...HOOK_DISPATCH_EVENTS, ...rules.map((rule) => rule.event)]),
+  ];
+  return events.map((event) => ({
+    event,
+    matcher: '*',
+    timeoutSeconds:
+      Math.max(
+        HOOK_DISPATCH.timeoutFloorSeconds,
+        ...rules
+          .filter((rule) => rule.event === event)
+          .map((rule) => rule.timeoutSeconds),
+      ) + HOOK_DISPATCH.timeoutMarginSeconds,
+    command: asHookDispatcherCommand({
+      manifestPathRel: input.manifestPathRel,
+      event,
+    }),
+  }));
 };
