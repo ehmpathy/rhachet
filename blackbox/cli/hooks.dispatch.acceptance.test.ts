@@ -1902,7 +1902,10 @@ module.exports = { getRoleRegistry };
           { command: 'echo "agent guard ran"', timeout: 'PT10S', filter: { what: 'Agent' } },
         ],
         onTalk: [{ command: 'echo "talk guard ran"', timeout: 'PT10S' }],
+        onStop: [{ command: 'echo "stop guard ran"', timeout: 'PT10S' }],
+        onBoot: [{ command: 'echo "boot guard ran"', timeout: 'PT10S' }],
       }`;
+      const payloadBoot = JSON.stringify({ session_id: 'abc', hook_event_name: 'SessionStart', source: 'startup' });
       const payloadTalk = JSON.stringify({ session_id: 'abc', hook_event_name: 'UserPromptSubmit', prompt: 'hi' });
       const payloadStop = JSON.stringify({ session_id: 'abc', hook_event_name: 'Stop', stop_hook_active: false });
 
@@ -1945,6 +1948,8 @@ module.exports = { getRoleRegistry };
           bash: dispatch('PreToolUse', asPayloadOfTool('Bash')),
           read: dispatch('PreToolUse', asPayloadOfTool('Read')),
           talk: dispatch('UserPromptSubmit', payloadTalk),
+          stop: dispatch('Stop', payloadStop),
+          boot: dispatch('SessionStart', payloadBoot),
         };
 
         // last: a corrupt manifest, met by a tool no row names
@@ -2006,7 +2011,7 @@ module.exports = { getRoleRegistry };
         });
       });
 
-      when('[t1] the role adds an Agent row and a talk row, and the hooks sync again (vision case=1, case=2)', () => {
+      when('[t1] the role adds an Agent row, a talk row, a stop row and a boot row, and the hooks sync again (vision case=1, case=2)', () => {
         then('the settings are byte-equal: the later rows need no settings write', () => {
           expect(scene.settingsTextLater).toEqual(scene.settingsTextFirst);
         });
@@ -2017,6 +2022,11 @@ module.exports = { getRoleRegistry };
 
         then('the wire the first sync wrote runs the new talk row', () => {
           expect(scene.after.talk).toEqual({ code: 0, stdout: 'talk guard ran\n', stderr: '' });
+        });
+
+        then('the wires the first sync wrote run the new stop and boot rows', () => {
+          expect(scene.after.stop).toEqual({ code: 0, stdout: 'stop guard ran\n', stderr: '' });
+          expect(scene.after.boot).toEqual({ code: 0, stdout: 'boot guard ran\n', stderr: '' });
         });
 
         then('each row still runs only on the tools its own matcher names (vision case=3 [t1])', () => {

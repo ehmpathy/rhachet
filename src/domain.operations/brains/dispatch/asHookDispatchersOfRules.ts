@@ -1,7 +1,8 @@
 import type { HookDispatchRule } from '@src/domain.objects/HookDispatchRule';
 
 import { asHookDispatcherCommand } from './asHookDispatcherCommand';
-import { HOOK_DISPATCH, HOOK_DISPATCH_EVENTS } from './constants';
+import { asHookDispatcherTimeoutSeconds } from './asHookDispatcherTimeoutSeconds';
+import { HOOK_DISPATCH_EVENTS } from './constants';
 
 /**
  * .what = the one dispatcher hook per claude event a manifest needs
@@ -35,13 +36,7 @@ export const asHookDispatchersOfRules = (input: {
   return HOOK_DISPATCH_EVENTS.map((event) => ({
     event,
     matcher: '*',
-    timeoutSeconds:
-      Math.max(
-        HOOK_DISPATCH.timeoutFloorSeconds,
-        ...rules
-          .filter((rule) => rule.event === event)
-          .map((rule) => rule.timeoutSeconds),
-      ) + HOOK_DISPATCH.timeoutMarginSeconds,
+    timeoutSeconds: asHookDispatcherTimeoutSeconds({ rules, event }),
     command: asHookDispatcherCommand({
       manifestPathRel: input.manifestPathRel,
       event,

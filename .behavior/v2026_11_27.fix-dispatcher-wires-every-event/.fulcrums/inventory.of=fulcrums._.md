@@ -8,5 +8,6 @@
 | F4 | a repo with no manifest stays wire-less, by an explicit guard | clean | ruled: holds (director, 2026-11-27) | 95% |
 | F5 | the acceptance tests under `blackbox/` sit inside the "only `src/**` and its tests" bound | clean | open: for the director | 85% |
 | F6 | the per-brain catch in `setHookDispatchersForTarget` stays as it is | clean | open: for the director | 92% |
+| F7 | a raised wire timeout goes unreported this round | clean | open: for the director | 85% |
 
 entries: `inventory.of=fulcrums.case=F$n-$slug.md`

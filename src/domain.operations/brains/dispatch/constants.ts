@@ -13,6 +13,22 @@ export const CLAUDE_EVENT_OF_BRAIN_HOOK_EVENT: Record<BrainHookEvent, string> =
   };
 
 /**
+ * .what = the payload key each wired event's matcher reads, or null where claude applies no matcher
+ * .why = `bin/hooks.dispatch.sh` runs every row of a keyless event, whatever its matcher; a record
+ *   over every `BrainHookEvent` makes a new event declare its key before it can be wired, and
+ *   `constants.manifest-parity.integration.test.ts` goes red the day the bash key table differs
+ */
+export const HOOK_DISPATCH_MATCHER_KEY_OF_BRAIN_HOOK_EVENT: Record<
+  BrainHookEvent,
+  string | null
+> = {
+  onBoot: 'source',
+  onTool: 'tool_name',
+  onTalk: null,
+  onStop: null,
+};
+
+/**
  * .what = every rhachet hook event, as a list typed without a cast
  */
 export const BRAIN_HOOK_EVENTS: BrainHookEvent[] = [
