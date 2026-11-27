@@ -161,8 +161,10 @@ describe('rhx upgrade — a repo with .agent/repo=.mods', () => {
         }),
       );
 
-      then('it exits 2: the brain dir sync refuses the boot the mod would break', () => {
-        expect(result.status).toEqual(2);
+      then('it exits 0: the mod is skipped, the role booted as published until cured (F01)', () => {
+        expect(result.status).toEqual(0);
+        expect(result.stdout).toContain('skipped, booted as published until cured');
+        expect(result.stderr).not.toContain('not written');
       });
 
       then('it names the mod that no longer applies, at the upgrade', () => {
@@ -177,8 +179,104 @@ describe('rhx upgrade — a repo with .agent/repo=.mods', () => {
         expect({ status: result.status, readout: asSnapshotSafe(readout) }).toMatchSnapshot();
       });
 
-      then('the refusal stderr matches its snapshot', () => {
+      then('the upgrade stderr matches its snapshot', () => {
         expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
+      });
+
+      then('the whole upgrade output matches its snapshot', () => {
+        expect({
+          stdout: asSnapshotSafe(result.stdout),
+          stderr: asSnapshotSafe(result.stderr),
+        }).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case3] a stray file under .agent/repo=.mods (C0), beside a sound mod', () => {
+    const repo = useBeforeAll(async () => {
+      const one = await genTestTempRepo({ fixture: 'with-mods' });
+      const linked = await invoke({ args: ['init', '--roles', 'surfer'], cwd: one.path });
+      if (linked.status !== 0)
+        throw new ConstraintError('init --roles surfer failed', {
+          stderr: linked.stderr,
+          hint: 'run `npm run build` so the fixture sees a fresh dist, then re-run',
+        });
+      await fs.writeFile(
+        path.join(one.path, '.agent', 'repo=.mods', 'notes.md'),
+        'a note the human left beside the mods\n',
+      );
+      return one;
+    });
+
+    when('[t0] `rhx upgrade --roles test/surfer --which local`', () => {
+      const result = useBeforeAll(async () =>
+        invoke({
+          args: ['upgrade', '--roles', 'test/surfer', '--which', 'local'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('it exits 0: a stray is named, never a halt (F01)', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('it names the stray where it lives, with its fix', () => {
+        expect(result.stdout).toContain('.agent/repo=.mods/notes.md');
+        expect(result.stdout).toContain('fix = ');
+      });
+
+      then('the whole upgrade output matches its snapshot', () => {
+        expect({
+          stdout: asSnapshotSafe(result.stdout),
+          stderr: asSnapshotSafe(result.stderr),
+        }).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case4] a modded role dir that holds a file no link made (C10)', () => {
+    const repo = useBeforeAll(async () => {
+      const one = await genTestTempRepo({ fixture: 'with-mods' });
+      const linked = await invoke({ args: ['init', '--roles', 'surfer'], cwd: one.path });
+      if (linked.status !== 0)
+        throw new ConstraintError('init --roles surfer failed', {
+          stderr: linked.stderr,
+          hint: 'run `npm run build` so the fixture sees a fresh dist, then re-run',
+        });
+      await fs.writeFile(
+        path.join(one.path, '.agent', 'repo=test', 'role=surfer', 'briefs', 'notes.md'),
+        'a note the human left inside the view\n',
+      );
+      return one;
+    });
+
+    when('[t0] `rhx upgrade --roles test/surfer --which local`', () => {
+      const result = useBeforeAll(async () =>
+        invoke({
+          args: ['upgrade', '--roles', 'test/surfer', '--which', 'local'],
+          cwd: repo.path,
+          logOnError: false,
+        }),
+      );
+
+      then('it exits 0: a view fault is named, never a halt (F01)', () => {
+        expect(result.status).toEqual(0);
+      });
+
+      then('it names the file no link made, by its repo path, with its fix', () => {
+        expect(result.stdout).toContain(
+          'holds a file no link made (.agent/repo=test/role=surfer/briefs/notes.md)',
+        );
+        expect(result.stdout).toContain('move the file out');
+      });
+
+      then('🔴 the file the human placed survives the upgrade', async () => {
+        const content = await fs.readFile(
+          path.join(repo.path, '.agent', 'repo=test', 'role=surfer', 'briefs', 'notes.md'),
+          'utf-8',
+        );
+        expect(content).toEqual('a note the human left inside the view\n');
       });
 
       then('the whole upgrade output matches its snapshot', () => {

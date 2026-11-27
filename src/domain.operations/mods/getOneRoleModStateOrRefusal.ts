@@ -1,7 +1,6 @@
-import { ConstraintError, MalfunctionError } from 'helpful-errors';
-
 import type { RoleLinkRef } from '@src/domain.objects/RoleLinkRef';
 
+import { asRoleModFaultOrNull } from './asRoleModFaultOrNull';
 import { getOneRoleModState } from './getOneRoleModState';
 
 /**
@@ -9,9 +8,10 @@ import { getOneRoleModState } from './getOneRoleModState';
  * .why = each sweep over the mods must go on past a bad mod (usecase 12), so the refusal is
  *        returned for the caller to place, never thrown past the walk
  *
- * .note = a ConstraintError is a refusal; so is a MalfunctionError, which a corrupt view
- *   record raises: it is a fault of that role's view alone, so it fails only the actors that
- *   carry the role, as the orphan arm of the sync already holds. any other fault throws
+ * .note = a refusal is a fault the mod gate admits (`asRoleModFaultOrNull`): a ConstraintError,
+ *   a MalfunctionError (a corrupt view record), or an fs errno on a path the mod holds. the gate,
+ *   the render, and the stop sweep read that one allowlist, so a fault one skips is a fault each
+ *   skips. any other throw escapes loud
  */
 export const getOneRoleModStateOrRefusal = (input: {
   cwd: string;
@@ -19,13 +19,12 @@ export const getOneRoleModStateOrRefusal = (input: {
   refsLinked: RoleLinkRef[];
 }):
   | { state: ReturnType<typeof getOneRoleModState>; refusal: null }
-  | { state: null; refusal: ConstraintError | MalfunctionError } => {
+  | { state: null; refusal: Error } => {
   try {
     return { state: getOneRoleModState(input), refusal: null };
   } catch (error: unknown) {
-    const isRefusal =
-      error instanceof ConstraintError || error instanceof MalfunctionError;
-    if (!isRefusal) throw error;
-    return { state: null, refusal: error };
+    const refusal = asRoleModFaultOrNull({ error });
+    if (!refusal) throw error;
+    return { state: null, refusal };
   }
 };

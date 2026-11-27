@@ -35,6 +35,10 @@ export const BRAIN_HOOK_EVENTS: BrainHookEvent[] = [
  *   trap defers; it sits below `timeoutMarginSeconds`, so the dispatcher reaps a hung rule and
  *   still returns its verdicts before claude kills the dispatcher. `bin/hooks.dispatch.sh` holds
  *   the same value as `__rhx_dispatch_grace`
+ * .note = `envStopHeld` is the var the dispatcher exports as `1` on a Stop claude already held
+ *   (`stop_hook_active`); a stop rule reads it to hold the first stop of a turn alone, so a fault
+ *   the brain cannot cure never loops the seat. `bin/hooks.dispatch.sh` exports the same name, and
+ *   `constants.manifest-parity.integration.test.ts` goes red the day the two differ
  */
 export const HOOK_DISPATCH = {
   manifest: 'hooks.dispatch.manifest',
@@ -42,6 +46,7 @@ export const HOOK_DISPATCH = {
   bin: './node_modules/rhachet/bin/hooks.dispatch.sh',
   timeoutMarginSeconds: 5,
   timeoutGraceSeconds: 2,
+  envStopHeld: 'RHACHET_HOOKS_STOP_HELD',
 } as const;
 
 /**

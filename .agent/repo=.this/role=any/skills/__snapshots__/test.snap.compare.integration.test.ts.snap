@@ -1,0 +1,59 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`test.snap.compare given: [case1] the help flag when: [t0] \`--help\` then: the help holds its shape 1`] = `
+".what = prove a set of jest snapshot files holds exactly the entries
+        one prior snapshot file held — no entry lost, added, or changed
+.why  = a split of one test file into several moves its snapshots into
+        new .snap files via a resnap. a resnap also rewrites what drifted,
+        so the move is only proven when the entries compare equal, byte
+        for byte, to the copy taken before the split
+usage:
+  rhx test.snap.compare --before .temp/clone.acceptance.snap.before \\
+    --after "blackbox/cli/__snapshots__/clone.acceptance.test.ts.snap blackbox/cli/__snapshots__/clone.list.acceptance.test.ts.snap"
+options:
+  --before  the prior .snap file, inside the repo (required)
+  --after   space-separated .snap files, inside the repo (required)
+guarantee:
+  - read only
+  - exit 0 = the entry sets are identical; exit 1 = they differ (the
+    differing keys are listed); exit 2 = bad args
+"
+`;
+
+exports[`test.snap.compare given: [case2] no --before or --after when: [t0] the skill runs with no args then: the refusal holds its shape 1`] = `
+"✋ ConstraintError: --before and --after are required
+   └─ see test.snap.compare --help
+"
+`;
+
+exports[`test.snap.compare given: [case3] an option the skill does not know when: [t0] the skill runs with \`--bogus\` then: the refusal holds its shape 1`] = `
+"✋ ConstraintError: unknown option: --bogus
+   └─ see test.snap.compare --help
+"
+`;
+
+exports[`test.snap.compare given: [case4] one snapshot file split into two, every entry moved unchanged when: [t0] the skill compares the before against both afters then: the report holds its shape 1`] = `
+"📸 snapshot compare
+   ├─ before: 2 entries
+   ├─ after:  2 entries
+   └─ ✅ identical
+"
+`;
+
+exports[`test.snap.compare given: [case5] a split whose resnap changed one entry when: [t0] the skill compares them then: the report holds its shape 1`] = `
+"📸 snapshot compare
+   ├─ before: 2 entries
+   ├─ after:  2 entries
+   └─ ✋ differ — the changed lines of each entry that moved:
+
+@@ -1 +1 @@
+-exports[\`surfer paddles out 1\`] = \`"paddle out past the break"\`;
++exports[\`surfer paddles out 1\`] = \`"paddle out, then wait for a set"\`;
+"
+`;
+
+exports[`test.snap.compare given: [case6] a --before file outside the repo when: [t0] the skill runs then: the refusal holds its shape 1`] = `
+"✋ ConstraintError: not a file inside the repo: <outside>/before.snap.fixture
+   └─ name a .snap file under this repo root
+"
+`;

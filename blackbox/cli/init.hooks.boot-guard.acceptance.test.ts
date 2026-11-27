@@ -174,6 +174,27 @@ describe('rhachet init --hooks, boot guard for .agent/repo=.this/role=any', () =
       });
     });
 
+    when('[t2.1] the hook fires again in the same turn, a held stop', () => {
+      // a held stop passes only a mod fault; a budget breach holds every stop, or the second
+      //   stop of a turn would let an over-budget boot through
+      const result = useThen('it runs', async () =>
+        invokeRhachetCliBinary({
+          args: HOOK_ARGS,
+          cwd: repo.path,
+          env: { RHACHET_HOOKS_STOP_HELD: '1' },
+          logOnError: false,
+        }),
+      );
+
+      then('exits with status 2: the breach holds the held stop too', () => {
+        expect(result.status).toEqual(2);
+        expect(result.stderr).toContain(
+          '✋ ConstraintError: 1 boot spec over budget',
+        );
+        expect(asSnapshotSafe(result.stderr)).toMatchSnapshot();
+      });
+    });
+
     when('[t3] init --hooks runs again', () => {
       const result = useThen('it succeeds', async () =>
         invokeRhachetCliBinary({ args: ['init', '--hooks'], cwd: repo.path }),

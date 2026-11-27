@@ -1,3 +1,4 @@
+import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { RoleLinkRef } from '@src/domain.objects/RoleLinkRef';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
 import { getOneRepoActorExid } from '@src/domain.operations/actor/enrolled/getOneRepoActorExid';
@@ -77,10 +78,13 @@ const BRAIN_DIR_GITIGNORE_LINES_RETIRED = [
  *         before the role inits, so there the link and the layout precede the render, and
  *         this op meets them already in place (`inventory.of=requirements.case=8`)
  */
-export const setRepoActorBrainDir = async (input: {
-  repoPath: string;
-  refsLinked: RoleLinkRef[];
-}): Promise<{
+export const setRepoActorBrainDir = async (
+  input: {
+    repoPath: string;
+    refsLinked: RoleLinkRef[];
+  },
+  context: ContextCli,
+): Promise<{
   render: BrainDirBootRender;
   symlink: Awaited<ReturnType<typeof setRepoActorBrainDirLayout>>['symlink'];
   settings: Awaited<ReturnType<typeof setRepoActorBrainDirLayout>>['settings'];
@@ -98,15 +102,18 @@ export const setRepoActorBrainDir = async (input: {
   // render the corpus, each ambient role at its recorded focus; a throw here stops the
   //   sync before the link
   const foci = getRepoAmbientRoleFoci({ repoPath: input.repoPath });
-  const render = await setBrainDirBoot({
-    brainDir: repoActorBrainDir,
-    roles: asRoleRefsAtFocus({ refs: input.refsLinked, foci }),
-    repoPath: input.repoPath,
-    scope: {
-      kind: 'repo',
-      actorExid: getOneRepoActorExid({ repoPath: input.repoPath }),
+  const render = await setBrainDirBoot(
+    {
+      brainDir: repoActorBrainDir,
+      roles: asRoleRefsAtFocus({ refs: input.refsLinked, foci }),
+      repoPath: input.repoPath,
+      scope: {
+        kind: 'repo',
+        actorExid: getOneRepoActorExid({ repoPath: input.repoPath }),
+      },
     },
-  });
+    context,
+  );
 
   // link <repo>/.claude to the rendered dir, and findsert the settings layout: the grove
   //   arrows and settings.of.repo.json; a real file at an arrow name is replaced, never merged

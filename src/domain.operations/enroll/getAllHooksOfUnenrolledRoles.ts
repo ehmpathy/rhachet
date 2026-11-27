@@ -1,4 +1,5 @@
 import type { ClaudeCodeSettings } from '@src/domain.operations/brains/claudeCodeSettings';
+import { isHookOfRepoModSweep } from '@src/domain.operations/mods/isHookOfRepoModSweep';
 
 import { isHookAuthorOfEnrolledRoles } from './isHookAuthorOfEnrolledRoles';
 
@@ -12,10 +13,13 @@ import { isHookAuthorOfEnrolledRoles } from './isHookAuthorOfEnrolledRoles';
  *   (their grove's) and names no role, so it is never reported
  * .note = a focus is stripped (`mechanic::flow` enrolls mechanic's hooks), and a pinned
  *   `repo/role` token enrolls that repo's role alone
+ * .note = a mod-armed stop sweep is the repo's, never a foreign role's: the actor narrow keeps it
+ *   on every actor (`isHookOfRepoModSweep`), so it is never reported
  */
 export const getAllHooksOfUnenrolledRoles = (input: {
   settings: ClaudeCodeSettings;
   roles: string[];
+  isArmedByMods: boolean;
 }): { event: string; author: string }[] =>
   Object.entries(input.settings.hooks ?? {}).flatMap(([event, entries]) =>
     (entries ?? []).flatMap((entry) =>
@@ -27,6 +31,14 @@ export const getAllHooksOfUnenrolledRoles = (input: {
           roles: input.roles,
         });
         if (isEnrolled !== false) return [];
+        if (
+          isHookOfRepoModSweep({
+            author,
+            command: hook.command,
+            isArmedByMods: input.isArmedByMods,
+          })
+        )
+          return [];
         return [{ event, author }];
       }),
     ),

@@ -1,4 +1,5 @@
 import type { ClaudeCodeSettings } from '@src/domain.operations/brains/claudeCodeSettings';
+import { isHookOfRepoModSweep } from '@src/domain.operations/mods/isHookOfRepoModSweep';
 
 import { isHookAuthorOfEnrolledRoles } from './isHookAuthorOfEnrolledRoles';
 
@@ -12,10 +13,13 @@ import { isHookAuthorOfEnrolledRoles } from './isHookAuthorOfEnrolledRoles';
  * .note = real hook structure: { matcher: "*", hooks: [{ author: "repo=X/role=Y", ... }] }
  * .note = inner hooks are matched by author field; entries with no match are dropped
  * .note = permissions and every non-hook key are retained via spread
+ * .note = a mod-armed stop sweep rides every actor (`isHookOfRepoModSweep`): a mod fault is the
+ *   repo's, so a seat that holds no `.this` role is told of it at its stop too
  */
 export const getSettingsForRoles = (input: {
   settings: ClaudeCodeSettings;
   roles: string[];
+  isArmedByMods: boolean;
 }): ClaudeCodeSettings => {
   const { settings, roles } = input;
 
@@ -40,7 +44,15 @@ export const getSettingsForRoles = (input: {
           // read it directly — no cast; the guard narrows it to string below
           const author = hook.author;
           if (!author) return false;
-          return isHookAuthorOfEnrolledRoles({ author, roles }) === true;
+          if (isHookAuthorOfEnrolledRoles({ author, roles }) === true)
+            return true;
+
+          // a mod-armed stop sweep rides every actor, whatever its roles
+          return isHookOfRepoModSweep({
+            author,
+            command: hook.command,
+            isArmedByMods: input.isArmedByMods,
+          });
         });
 
         // drop the entry entirely when no inner hook survived

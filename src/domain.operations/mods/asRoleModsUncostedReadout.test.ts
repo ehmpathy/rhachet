@@ -93,7 +93,7 @@ describe('asRoleModsUncostedReadout', () => {
       then('the mod is named by its slug, with the fix', () => {
         expect(lines).toEqual([
           '🧢 .agent/repo=.mods',
-          '   └─ [~] a mod over no linked role (rhx init --roles <repo>/<role>, or delete the mod)',
+          "   └─ [~] a mod over no linked role (rhx init --roles <repo>/<role>, or delete the mod with your human's ok)",
           '      └─ role=wavecaster',
         ]);
       });

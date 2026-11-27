@@ -18,6 +18,7 @@ import {
 import { join, relative } from 'node:path';
 import { assertRoleModdedViewFresh } from './assertRoleModdedViewFresh';
 import { getAllRoleModDriftsOfRepo } from './getAllRoleModDriftsOfRepo';
+import { getAllRoleModFaultsOfRepo } from './getAllRoleModFaultsOfRepo';
 import { getOneRoleModForRoleDir } from './getOneRoleModForRoleDir';
 import { syncRoleModdedViews } from './syncRoleModdedViews';
 
@@ -133,11 +134,7 @@ describe('syncRoleModdedViews', () => {
       });
 
       then('the pin of 1.39.5 against an install of 1.40.0 is a drift', () => {
-        const { drifts, refusals } = getAllRoleModDriftsOfRepo(
-          {},
-          scene.context,
-        );
-        expect(refusals).toEqual([]);
+        const { drifts } = getAllRoleModDriftsOfRepo({}, scene.context);
         expect(drifts).toHaveLength(1);
         expect(drifts[0]).toMatchObject({
           role: 'ehmpathy/mechanic',
@@ -145,6 +142,14 @@ describe('syncRoleModdedViews', () => {
           versionInstalled: '1.40.0',
         });
       });
+
+      then(
+        'the drift is no fault: the faults sweep finds naught to skip',
+        async () => {
+          const faults = await getAllRoleModFaultsOfRepo({}, scene.context);
+          expect(faults).toEqual([]);
+        },
+      );
     });
 
     when('[t1] the views are synced again', () => {
@@ -406,8 +411,10 @@ describe('syncRoleModdedViews', () => {
     });
 
     when('[t1] the mod changes again before a render', () => {
+      // the file no link made still sits in the view, so a render alone would be refused again
+      //   ([t0]); the boot names that file and the move that cures it, then the render ([t2])
       then(
-        'the boot names the render, never the refusal of a mod that moved',
+        'the boot names the file no link made and its whole fix, never the refusal of a mod that moved',
         async () => {
           putFile({
             path: join(scene.modDir, 'briefs', 'rule.require.tide-chart.md'),
@@ -434,17 +441,43 @@ describe('syncRoleModdedViews', () => {
             }),
           );
           expect(error).toBeInstanceOf(ConstraintError);
-          expect(error.message).toContain(
-            'the mod changed after the last render refused it',
-          );
+          expect(error.message).toContain('holds a file no link made');
+          expect(error.message).not.toContain('refused it');
+          expect(JSON.stringify(error)).toContain('notes.md');
+          expect(JSON.stringify(error)).toContain('move the file out');
           expect(JSON.stringify(error)).toContain('rhx init --hooks');
         },
       );
     });
 
-    when('[t2] the file is moved out, and the views are synced', () => {
+    when('[t1.1] the file is moved out, before a render', () => {
+      // the view is clean again, so the boot reads the refusal the last render recorded; the mod
+      //   moved since, so that refusal is stale, and the boot names the render that clears it
+      then(
+        'the boot names the mod that moved after the last render refused it, and the render that clears it',
+        async () => {
+          rmSync(join(scene.roleDir, 'briefs', 'notes.md'));
+          const error = await getError(async () =>
+            assertRoleModdedViewFresh({
+              cwd: scene.repo,
+              ref: REF,
+              getRefsLinked: () => [REF],
+            }),
+          );
+          expect(error).toBeInstanceOf(ConstraintError);
+          expect(error.message).toContain(
+            'the mod changed after the last render refused it',
+          );
+          expect(error.message).not.toContain('holds a file no link made');
+          expect(JSON.stringify(error)).toContain('rhx init --hooks');
+        },
+      );
+    });
+
+    when('[t2] the views are synced', () => {
       then('the view is rebuilt and fresh', async () => {
-        rmSync(join(scene.roleDir, 'briefs', 'notes.md'));
+        // the file left in [t1.1]; force keeps this step whole when it runs alone
+        rmSync(join(scene.roleDir, 'briefs', 'notes.md'), { force: true });
         const result = await syncRoleModdedViews({}, scene.context);
         expect(result.refusals).toEqual([]);
         expect(
@@ -700,7 +733,7 @@ describe('syncRoleModdedViews', () => {
           expect(error).toBeInstanceOf(ConstraintError);
           expect(error.message).toContain('names a role this repo owns');
           expect(error.message).toContain(
-            'edit .agent/repo=.this/role=surfer/ in place, and delete the mod',
+            "edit .agent/repo=.this/role=surfer/ in place, then delete the mod with your human's ok",
           );
         },
       );

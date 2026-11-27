@@ -161,27 +161,15 @@ exports[`rhx upgrade — a repo with .agent/repo=.mods given: [case2] a release 
       └─ fix = point the not at a held path, or delete the line
 
 ",
-  "status": 2,
+  "status": 0,
 }
 `;
 
-exports[`rhx upgrade — a repo with .agent/repo=.mods given: [case2] a release that drops the path a mod nots when: [t0] \`rhx upgrade --roles test/surfer --which local\` then: the refusal stderr matches its snapshot 1`] = `
-"✗ brain://repo=ambient/boot.md not written
-   ├─ ✋ ConstraintError: the mod of role=surfer is refused: its not \`briefs/rule.forbid.wipeouts.md\` matches no briefs file the role holds
-   ├─ mod = .agent/repo=.mods/role=surfer/
-   ├─ subject = briefs/rule.forbid.wipeouts.md
-   └─ fix = point the not at a held path, or delete the line
-"
-`;
+exports[`rhx upgrade — a repo with .agent/repo=.mods given: [case2] a release that drops the path a mod nots when: [t0] \`rhx upgrade --roles test/surfer --which local\` then: the upgrade stderr matches its snapshot 1`] = `""`;
 
 exports[`rhx upgrade — a repo with .agent/repo=.mods given: [case2] a release that drops the path a mod nots when: [t0] \`rhx upgrade --roles test/surfer --which local\` then: the whole upgrade output matches its snapshot 1`] = `
 {
-  "stderr": "✗ brain://repo=ambient/boot.md not written
-   ├─ ✋ ConstraintError: the mod of role=surfer is refused: its not \`briefs/rule.forbid.wipeouts.md\` matches no briefs file the role holds
-   ├─ mod = .agent/repo=.mods/role=surfer/
-   ├─ subject = briefs/rule.forbid.wipeouts.md
-   └─ fix = point the not at a held path, or delete the line
-",
+  "stderr": "",
   "stdout": "🫧 skip (local refs): rhachet-roles-test
 
 🔧 init 1 role(s)...
@@ -203,11 +191,137 @@ exports[`rhx upgrade — a repo with .agent/repo=.mods given: [case2] a release 
 ✨ 1 role(s) linked
 ✨ 1 role(s) initialized
 
+🧢 .agent/repo=.mods
+   └─ skipped, booted as published until cured
+      └─ role=surfer — ✋ ConstraintError: the mod of role=surfer is refused: its not \`briefs/rule.forbid.wipeouts.md\` matches no briefs file the role holds
+         └─ fix = point the not at a held path, or delete the line
+
+🔭 search for linked roles with hooks...
+   └─ .this/any
+
+🪝 apply hooks to brains...
+
+✨ hooks
+   └─ no changes needed
+
 
 
 🧢 a mod no longer applies
    └─ role=surfer — ✋ ConstraintError: the mod of role=surfer is refused: its not \`briefs/rule.forbid.wipeouts.md\` matches no briefs file the role holds
       └─ fix = point the not at a held path, or delete the line
+
+",
+}
+`;
+
+exports[`rhx upgrade — a repo with .agent/repo=.mods given: [case3] a stray file under .agent/repo=.mods (C0), beside a sound mod when: [t0] \`rhx upgrade --roles test/surfer --which local\` then: the whole upgrade output matches its snapshot 1`] = `
+{
+  "stderr": "",
+  "stdout": "🫧 skip (local refs): rhachet-roles-test
+
+🔧 init 1 role(s)...
+
+📚 link role repo=test/role=surfer
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=test/readme.md (updated)
+   │  ├─ ✓ .agent/repo=test/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=test/role=surfer/readme.md (updated)
+   │  ├─ ↻ .agent/repo=test/role=surfer/boot.yml (updated)
+   │  ├─ ↻ .agent/repo=test/role=surfer/briefs (updated)
+   │  └─ ↻ .agent/repo=test/role=surfer/skills (updated)
+   └─ stats
+      ├─ 4 brief(s)
+      └─ 2 skill(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+🧢 .agent/repo=.mods
+   └─ refused, with no linked role to carry it
+      └─ .agent/repo=.mods/notes.md — ✋ ConstraintError: a mods dir holds an entry that names no role
+         └─ fix = rename .agent/repo=.mods/notes.md to .agent/repo=.mods/role=<slug>, or move it out of .agent/repo=.mods/
+
+🔭 search for linked roles with hooks...
+   └─ .this/any
+
+🪝 apply hooks to brains...
+
+✨ hooks
+   └─ no changes needed
+
+
+
+🧢 the modded role moved
+   ├─ role    = test/surfer
+   ├─ mods    = 0.9.0   (declared in .agent/repo=.mods/role=surfer/boot.yml)
+   ├─ now     = 1.0.0
+   ├─ review each mod against the new release
+   │  ├─ [~] shadow briefs/rule.require.surf-wax.md
+   │  ├─ [+] add briefs/rule.require.reef-etiquette.md
+   │  └─ [-] not briefs/rule.forbid.wipeouts.md
+   └─ then set \`of: test/surfer@1.0.0\` in the mod boot.yml
+
+🧢 a mod no longer applies
+   └─ .agent/repo=.mods/notes.md — ✋ ConstraintError: a mods dir holds an entry that names no role
+      └─ fix = rename .agent/repo=.mods/notes.md to .agent/repo=.mods/role=<slug>, or move it out of .agent/repo=.mods/
+
+",
+}
+`;
+
+exports[`rhx upgrade — a repo with .agent/repo=.mods given: [case4] a modded role dir that holds a file no link made (C10) when: [t0] \`rhx upgrade --roles test/surfer --which local\` then: the whole upgrade output matches its snapshot 1`] = `
+{
+  "stderr": "",
+  "stdout": "🫧 skip (local refs): rhachet-roles-test
+
+🔧 init 1 role(s)...
+
+📚 link role repo=test/role=surfer
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=test/readme.md (updated)
+   │  ├─ ✓ .agent/repo=test/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=test/role=surfer/readme.md (updated)
+   │  ├─ ↻ .agent/repo=test/role=surfer/boot.yml (updated)
+   │  ├─ ✓ .agent/repo=test/role=surfer/briefs (unchanged)
+   │  └─ ↻ .agent/repo=test/role=surfer/skills (updated)
+   └─ stats
+      └─ 2 skill(s)
+
+✨ 1 role(s) linked
+✨ 1 role(s) initialized
+
+🧢 .agent/repo=.mods
+   └─ skipped, booted as published until cured
+      └─ role=surfer — ✋ ConstraintError: a linked role dir holds a file no link made (.agent/repo=test/role=surfer/briefs/notes.md)
+         └─ fix = move the file out (to .agent/repo=.mods/ if it is a mod), then run rhx init --hooks
+
+🔭 search for linked roles with hooks...
+   └─ .this/any
+
+🪝 apply hooks to brains...
+
+✨ hooks
+   └─ no changes needed
+
+
+
+🧢 the modded role moved
+   ├─ role    = test/surfer
+   ├─ mods    = 0.9.0   (declared in .agent/repo=.mods/role=surfer/boot.yml)
+   ├─ now     = 1.0.0
+   ├─ review each mod against the new release
+   │  ├─ [~] shadow briefs/rule.require.surf-wax.md
+   │  ├─ [+] add briefs/rule.require.reef-etiquette.md
+   │  └─ [-] not briefs/rule.forbid.wipeouts.md
+   └─ then set \`of: test/surfer@1.0.0\` in the mod boot.yml
+
+🧢 a mod no longer applies
+   └─ role=surfer — ✋ ConstraintError: a linked role dir holds a file no link made (.agent/repo=test/role=surfer/briefs/notes.md)
+      └─ fix = move the file out (to .agent/repo=.mods/ if it is a mod), then run rhx init --hooks
 
 ",
 }

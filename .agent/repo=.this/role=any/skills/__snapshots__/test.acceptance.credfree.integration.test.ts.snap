@@ -11,6 +11,7 @@ exports[`test.acceptance.credfree given: [case1] the help flag when: [t0] \`--he
 usage:
   rhx test.acceptance.credfree --scope 'focus\\.acceptance'
   rhx test.acceptance.credfree --scope 'init\\.focus' --resnap
+  rhx test.acceptance.credfree --what integration --scope 'enroll\\.mods\\.integration'
 options:
   --scope    jest path regex for the suites to run (required)
              🟡 it matches the ABSOLUTE path, worktree dir included: in
@@ -18,6 +19,11 @@ options:
              anchor it on the file name: 'keyrack\\.acceptance'.
              a scope that matches the repo root is refused, exit 2
   --resnap   write snapshots (default: verify only, under --ci)
+  --what     acceptance (default) | integration, as in git.repo.test.
+             integration runs the \`*.integration.test.ts\` suites under
+             this same lenient setup: for a blackbox suite that spawns
+             the cli and reads no key, which the strict integration
+             setup would halt
 guarantee:
   - builds when stale, then runs jest with the acceptance config
   - runs with CLAUDE_CONFIG_DIR unset, as ci does, so a clone's env
@@ -37,5 +43,11 @@ exports[`test.acceptance.credfree given: [case2] no --scope when: [t0] the skill
 "✋ ConstraintError: --scope is required
    ├─ e.g. rhx test.acceptance.credfree --scope 'init\\.focus\\.acceptance'
    └─ see rhx test.acceptance.credfree --help
+"
+`;
+
+exports[`test.acceptance.credfree given: [case4] a --what that names no tier when: [t0] the skill runs with --what unit then: the refusal holds its shape 1`] = `
+"✋ ConstraintError: --what must be acceptance or integration
+   └─ what = unit
 "
 `;

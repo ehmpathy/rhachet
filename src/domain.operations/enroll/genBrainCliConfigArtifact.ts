@@ -11,6 +11,7 @@ import {
   writeClaudeCodeSettings,
 } from '@src/domain.operations/brains/claudeCodeSettings';
 import { getAllHooksOfLinkedRolesForClaudeCode } from '@src/domain.operations/init/hooks/getAllHooksOfLinkedRolesForClaudeCode';
+import { isRepoSweepArmedByMods } from '@src/domain.operations/mods/isRepoSweepArmedByMods';
 import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 
 import { dirname, join } from 'node:path';
@@ -71,6 +72,9 @@ export const genBrainCliConfigArtifact = async (input: {
   });
   const isRepoActor = input.exid === getOneRepoActorExid({ repoPath });
 
+  // a mod-armed stop sweep rides every actor, so each narrow below keeps it
+  const isArmedByMods = isRepoSweepArmedByMods({ gitroot: repoPath });
+
   // under a manifest, the hooks come from the linked roles, never the repo actor's file: the
   //   repo actor there is narrowed to its own roles, so its file cannot serve a peer
   //   (inventory.of=requirements.case=9). with no manifest the repo actor's file holds the
@@ -92,6 +96,7 @@ export const genBrainCliConfigArtifact = async (input: {
       repoActorBrainDir,
       actorBrainDir,
       isRepoActor,
+      isArmedByMods,
       hooksOfLinkedRoles,
     });
   const withSourceHeld = () =>
@@ -123,6 +128,7 @@ const setActorSettingsRepoWithinLock = async (input: {
   repoActorBrainDir: string;
   actorBrainDir: string;
   isRepoActor: boolean;
+  isArmedByMods: boolean;
   hooksOfLinkedRoles: NonNullable<ClaudeCodeSettings['hooks']> | null;
 }): Promise<{ configPath: string }> => {
   const {
@@ -131,6 +137,7 @@ const setActorSettingsRepoWithinLock = async (input: {
     repoActorBrainDir,
     actorBrainDir,
     isRepoActor,
+    isArmedByMods,
     hooksOfLinkedRoles,
   } = input;
 
@@ -143,6 +150,7 @@ const setActorSettingsRepoWithinLock = async (input: {
     hooksOfLinkedRoles,
     roles: enrollment.roles,
     isRepoActor,
+    isArmedByMods,
   });
 
   // narrow the repo actor's dispatch manifest to this actor's roles, written before the
@@ -159,6 +167,7 @@ const setActorSettingsRepoWithinLock = async (input: {
           repoActorBrainDir,
           actorBrainDir,
           isRepoActor,
+          isArmedByMods,
         })
       : settingsNarrowedByAuthor;
 
@@ -212,20 +221,23 @@ const asSettingsNarrowedForActor = (input: {
   hooksOfLinkedRoles: NonNullable<ClaudeCodeSettings['hooks']> | null;
   roles: string[];
   isRepoActor: boolean;
+  isArmedByMods: boolean;
 }): ClaudeCodeSettings => {
-  // no manifest: main's path, byte for byte
+  // no manifest: main's path, plus the mod-armed sweep for every actor
   if (input.hooksOfLinkedRoles === null)
     return input.isRepoActor
       ? input.settingsSource
       : getSettingsForRoles({
           settings: input.settingsSource,
           roles: input.roles,
+          isArmedByMods: input.isArmedByMods,
         });
 
   // a manifest: narrow the linked roles' union to this actor's roles
   const narrowed = getSettingsForRoles({
     settings: { ...input.settingsSource, hooks: input.hooksOfLinkedRoles },
     roles: input.roles,
+    isArmedByMods: input.isArmedByMods,
   });
   if (!input.isRepoActor) return narrowed;
 

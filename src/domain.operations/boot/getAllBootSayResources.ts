@@ -71,6 +71,12 @@ export const getAllBootSayResources = (input: {
   pathToReadme: string | null;
   briefsSay: RoleBriefRef[];
   skillsSay: string[];
+
+  /**
+   * .what = the path a labeled file is read from
+   * .why = a skipped role boots its published files at their view paths, read where they live
+   */
+  asPathToRead: (path: string) => string;
 }): BootSayResource[] => [
   ...(input.pathToReadme
     ? [
@@ -79,7 +85,7 @@ export const getAllBootSayResources = (input: {
           pathToLabel: input.pathToReadme,
           content: readOneSayResource({
             path: input.pathToReadme,
-            read: (path) => readFileSync(path, 'utf-8'),
+            read: (path) => readFileSync(input.asPathToRead(path), 'utf-8'),
           }),
         },
       ]
@@ -91,7 +97,7 @@ export const getAllBootSayResources = (input: {
       pathToLabel: pathToRender,
       content: readOneSayResource({
         path: pathToRender,
-        read: (path) => readFileSync(path, 'utf-8'),
+        read: (path) => readFileSync(input.asPathToRead(path), 'utf-8'),
       }),
     };
   }),
@@ -100,7 +106,7 @@ export const getAllBootSayResources = (input: {
     pathToLabel: filepath,
     content: readOneSayResource({
       path: filepath,
-      read: (path) => extractSkillDocumentation(path),
+      read: (path) => extractSkillDocumentation(input.asPathToRead(path)),
     }),
   })),
 ];

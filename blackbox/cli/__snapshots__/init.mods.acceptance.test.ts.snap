@@ -38,6 +38,7 @@ exports[`rhx init — a repo with .agent/repo=.mods given: [case1] a sound mod o
 🧢 .agent/repo=.mods
    ├─ rendered
    │  └─ role=surfer
+   │
    └─ a live clone keeps the boot it read at session start; re-enroll it to pick up the change
 
 🧠 brain://repo=ambient
@@ -158,18 +159,6 @@ exports[`rhx init — a repo with .agent/repo=.mods given: [case1] a sound mod o
    │
    └─ the stop holds until each mod's \`of:\` names the installed version
 
-
-✋ ConstraintError: modded roles moved off the version their mods pin
-
-{
-  "hint": "review each mod against the installed release, then set its \`of:\` to the installed version",
-  "modsDrifted": [
-    ".agent/repo=.mods/role=surfer/boot.yml"
-  ]
-}
-
-[args] roles,cost,--all,--when,hook.onStop
-
 ",
   "stdout": "",
 }
@@ -196,13 +185,7 @@ exports[`rhx init — a repo with .agent/repo=.mods given: [case1] a sound mod o
 
 exports[`rhx init — a repo with .agent/repo=.mods given: [case2] a refused mod beside a role no mod names (usecase 12) when: [t0] init links the roles then: init stdout and stderr match their snapshot 1`] = `
 {
-  "stderr": "✗ brain://repo=ambient/boot.md not written
-   ├─ ✋ ConstraintError: the mod of role=surfer is refused: its not \`briefs/rule.forbid.wipeoutz.md\` matches no briefs file the role holds
-   ├─ mod = .agent/repo=.mods/role=surfer/
-   ├─ subject = briefs/rule.forbid.wipeoutz.md
-   ├─ did you mean = briefs/rule.forbid.wipeouts.md
-   └─ fix = point the not at a held path, or delete the line
-",
+  "stderr": "",
   "stdout": "
 🔧 init 2 role(s)...
 
@@ -237,8 +220,113 @@ exports[`rhx init — a repo with .agent/repo=.mods given: [case2] a refused mod
 ✨ 2 role(s) linked
 ✨ 2 role(s) initialized
 
+🧢 .agent/repo=.mods
+   └─ skipped, booted as published until cured
+      └─ role=surfer — ✋ ConstraintError: the mod of role=surfer is refused: its not \`briefs/rule.forbid.wipeoutz.md\` matches no briefs file the role holds
+         └─ fix = point the not at a held path, or delete the line (did you mean: briefs/rule.forbid.wipeouts.md)
+
+🧠 brain://repo=ambient
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+   └─ boot.md
+      └─ created — 2 roles
+
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
+
 ",
 }
+`;
+
+exports[`rhx init — a repo with .agent/repo=.mods given: [case2] a refused mod beside a role no mod names (usecase 12) when: [t0] init links the roles then: the repo actor boot.md matches its snapshot 1`] = `
+"<brief.say path="rhachet/intro">
+# rhachet
+
+you are enrolled via rhachet. your roles' briefs and skills follow.
+
+- \`rhx list\` — every skill your roles grant. check it before you improvise
+- \`rhx <skill> --help\` — how to call one
+- \`rhx init · roles · list · run · enroll · actor · clone · keyrack · ask · act · upgrade\` — the commands; \`rhx <command> --help\` for each
+
+entool: a tactic worth repeat becomes a skill — \`.agent/repo=.this/role=any/skills/<name>.sh\` — so the next clone runs it, never rediscovers it.
+
+</brief.say>
+
+<readme path=".agent/repo=test/role=lifeguard/readme.md">
+# lifeguard
+
+test role no mod names; it shows a refused mod of another role leaves this one's actors whole
+
+</readme>
+
+<brief.say path=".agent/repo=test/role=lifeguard/briefs/rule.require.whistle.md">
+# rule.require.whistle
+
+blow the whistle before a swimmer passes the flags
+
+</brief.say>
+
+<skill.say path=".agent/repo=test/role=lifeguard/skills/flags.raise.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = raise the swim flags
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<mod.skipped of="surfer">
+role surfer boots as published in this repo — its mod is skipped until it is cured
+mod = .agent/repo=.mods/role=surfer/
+✋ ConstraintError: the mod of role=surfer is refused: its not \`briefs/rule.forbid.wipeoutz.md\` matches no briefs file the role holds
+fix = point the not at a held path, or delete the line (did you mean: briefs/rule.forbid.wipeouts.md)
+</mod.skipped>
+
+<readme path=".agent/repo=test/role=surfer/readme.md">
+# surfer
+
+a test role, as published
+
+</readme>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/howto.paddle-out.md">
+published: paddle out past the break
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.forbid.wipeouts.md">
+published: a wipeout is forbidden
+
+</brief.say>
+
+<brief.say path=".agent/repo=test/role=surfer/briefs/rule.require.surf-wax.md.min">
+published (min): wax the board before each session
+
+</brief.say>
+
+<skill.say path=".agent/repo=test/role=surfer/skills/wax.board.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = wax the board
+#
+# .note = sources its peer by its own dir, so a mod that shadows the
+#         peer alone is what this skill reads
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+<skill.say path=".agent/repo=test/role=surfer/skills/wax.lib.sh">
+#!/usr/bin/env bash
+######################################################################
+# .what = the word a waxed board says; sourced by wax.board.sh
+######################################################################
+
+# [implementation hidden - use skill to execute]
+</skill.say>
+
+"
 `;
 
 exports[`rhx init — a repo with .agent/repo=.mods given: [case2] a refused mod beside a role no mod names (usecase 12) when: [t1] the typo is fixed, and init renders again then: init stdout and the repo actor boot.md match their snapshot 1`] = `
@@ -332,11 +420,8 @@ modded: wax the board, then wax the rails
   "stdout": "🧢 .agent/repo=.mods
    ├─ rendered
    │  └─ role=surfer
+   │
    └─ a live clone keeps the boot it read at session start; re-enroll it to pick up the change
-
-🧠 brain://repo=ambient
-   └─ boot.md
-      └─ created — 2 roles
 
 🔭 search for linked roles with hooks...
    └─ .this/any

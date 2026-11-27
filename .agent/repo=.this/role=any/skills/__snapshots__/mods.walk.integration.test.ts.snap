@@ -1,0 +1,242 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`mods.walk given: [case1] the help flag when: [t0] \`--help\` then: the help holds its shape 1`] = `
+".what = walk the mod-fault critical paths by hand, against the built
+        cli, in a scratch repo, and print each command with its real
+        output and exit code
+.why  = a snapshot proves a shape; a walk proves the experience. a
+        reviewer (or a 5.3 self review) can run this once and read the
+        whole journey a human meets: a faulty mod never blocks init or
+        enroll, the boot names the fault and its fix, the stop pesters
+        until cured, two faults count apart, and a corrupt view record
+        at a hand boot skips the mod rather than refuse the boot
+usage:
+  rhx mods.walk
+options:
+  --help, -h   show this help
+guarantee:
+  - builds a scratch repo from blackbox/.test/assets/with-mods under
+    .temp/mods.walk/ (gitignored), with a stub \`claude\` on PATH, so no
+    real brain spawns and the host repo is never touched
+  - runs this worktree's built cli (bin/run); run \`pnpm run build\` first
+  - prints \`$ <command>\`, its stdout + stderr, and \`exit=<code>\` per step
+  - exits 0 once the walk completes, whatever each step exits; the
+    exit codes ARE the evidence, printed for the reader to judge
+"
+`;
+
+exports[`mods.walk given: [case2] an option the skill does not know when: [t0] the skill runs with \`--bogus\` then: the refusal holds its shape 1`] = `
+"✋ ConstraintError: unknown option: --bogus
+"
+`;
+
+exports[`mods.walk given: [case3] the built cli when: [t0] the walk runs then: the walk holds its shape, per-run bytes masked 1`] = `
+"🦉 the walk
+   └─ scratch repo = .temp/mods.walk/<walk>
+
+══ path 1 — a mod file no say or ref names (C4), beside a sound mod
+
+── init with the fault in place
+$ rhx init --roles surfer lifeguard
+
+🔧 init 2 role(s)...
+
+📚 link role repo=test/role=surfer
+   ├─ links
+   │  ├─ + .agent/readme.md
+   │  ├─ + .agent/repo=.this/readme.md
+   │  ├─ + .agent/repo=test/readme.md
+   │  ├─ + .agent/repo=test/.gitignore
+   │  ├─ + .agent/repo=test/role=surfer/readme.md
+   │  ├─ + .agent/repo=test/role=surfer/boot.yml
+   │  ├─ + .agent/repo=test/role=surfer/briefs
+   │  └─ + .agent/repo=test/role=surfer/skills
+   └─ stats
+      ├─ 4 brief(s)
+      └─ 2 skill(s)
+
+📚 link role repo=test/role=lifeguard
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=test/readme.md (updated)
+   │  ├─ ✓ .agent/repo=test/.gitignore (unchanged)
+   │  ├─ + .agent/repo=test/role=lifeguard/readme.md
+   │  ├─ + .agent/repo=test/role=lifeguard/boot.yml
+   │  ├─ + .agent/repo=test/role=lifeguard/briefs
+   │  └─ + .agent/repo=test/role=lifeguard/skills
+   └─ stats
+      ├─ 1 brief(s)
+      └─ 1 skill(s)
+
+✨ 2 role(s) linked
+✨ 2 role(s) initialized
+
+🧢 .agent/repo=.mods
+   ├─ rendered
+   │  └─ role=lifeguard
+   ├─ skipped, booted as published until cured
+   │  └─ role=surfer — ✋ ConstraintError: the mod of role=surfer is refused: it holds briefs/rule.require.surf-wux.md, a path the role does not hold, and no say or ref names it
+   │     └─ fix = to shadow, move it to the held path; to add, say it in the mod boot.yml (briefs.say: [briefs/rule.require.surf-wux.md]) (did you mean: briefs/rule.require.surf-wax.md)
+   │
+   └─ a live clone keeps the boot it read at session start; re-enroll it to pick up the change
+
+🧠 brain://repo=ambient
+   ├─ linked
+   │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
+   └─ boot.md
+      └─ created — 2 roles
+
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
+
+exit=0
+
+── enroll a clone of both roles
+$ rhx enroll claude --roles surfer,lifeguard
+🧢 .agent/repo=.mods
+   └─ skipped, booted as published until cured
+      └─ role=surfer — ✋ ConstraintError: the mod of role=surfer is refused: it holds briefs/rule.require.surf-wux.md, a path the role does not hold, and no say or ref names it
+         └─ fix = to shadow, move it to the held path; to add, say it in the mod boot.yml (briefs.say: [briefs/rule.require.surf-wux.md]) (did you mean: briefs/rule.require.surf-wax.md)
+
+ℹ no claude login at <repo>/.temp/mods.walk/<walk>/.home/.claude/.credentials.json — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at <repo>/.temp/mods.walk/<walk>/.home/.claude/settings.json — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:<serial> --what "…"
+   └─ 🎧 rhx clone get @:<serial> --tail 50
+
+exit=0
+
+── the boot the enroll rendered
+$ awk '/<mods?\\.skipped/,/<\\/mods?\\.skipped>/' .agent/.actors/actor.via.repo=ambient/brain/.claude/boot.md
+<mod.skipped of="surfer">
+role surfer boots as published in this repo — its mod is skipped until it is cured
+mod = .agent/repo=.mods/role=surfer/
+✋ ConstraintError: the mod of role=surfer is refused: it holds briefs/rule.require.surf-wux.md, a path the role does not hold, and no say or ref names it
+fix = to shadow, move it to the held path; to add, say it in the mod boot.yml (briefs.say: [briefs/rule.require.surf-wux.md]) (did you mean: briefs/rule.require.surf-wax.md)
+</mod.skipped>
+$ grep -c 'modded: whistle twice, then wave' .agent/.actors/actor.via.repo=ambient/brain/.claude/boot.md   # the sound lifeguard mod
+1
+
+── a session stops
+$ rhx roles cost --all --when hook.onStop
+🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 mod fault, held at the first stop of each turn until cured
+   │  └─ role=surfer
+   │     ├─ ✋ ConstraintError: the mod of role=surfer is refused: it holds briefs/rule.require.surf-wux.md, a path the role does not hold, and no say or ref names it
+   │     └─ fix = to shadow, move it to the held path; to add, say it in the mod boot.yml (briefs.say: [briefs/rule.require.surf-wux.md]) (did you mean: briefs/rule.require.surf-wax.md)
+   │
+   └─ ask your human before you delete a mod
+
+exit=2
+
+══ path 2 — a second fault, the lifeguard mod loses its boot.yml (C1)
+
+── a session stops, two faults in the walk
+$ rhx roles cost --all --when hook.onStop
+🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 2 mod faults, held at the first stop of each turn until cured
+   │  ├─ role=lifeguard
+   │  │  ├─ ✋ ConstraintError: the mod of role=lifeguard is refused: it holds no boot.yml
+   │  │  └─ fix = add .agent/repo=.mods/role=lifeguard/boot.yml with \`of: <repo>/lifeguard\`
+   │  │
+   │  └─ role=surfer
+   │     ├─ ✋ ConstraintError: the mod of role=surfer is refused: it holds briefs/rule.require.surf-wux.md, a path the role does not hold, and no say or ref names it
+   │     └─ fix = to shadow, move it to the held path; to add, say it in the mod boot.yml (briefs.say: [briefs/rule.require.surf-wux.md]) (did you mean: briefs/rule.require.surf-wax.md)
+   │
+   └─ ask your human before you delete a mod
+
+exit=2
+
+══ path 3 — cure the C4 fault, then the C1 fault
+
+── a session stops, the C4 cured
+$ rhx roles cost --all --when hook.onStop
+🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 mod fault, held at the first stop of each turn until cured
+   │  └─ role=lifeguard
+   │     ├─ ✋ ConstraintError: the mod of role=lifeguard is refused: it holds no boot.yml
+   │     └─ fix = add .agent/repo=.mods/role=lifeguard/boot.yml with \`of: <repo>/lifeguard\`
+   │
+   └─ ask your human before you delete a mod
+
+exit=2
+
+── a session stops, both cured
+$ rhx roles cost --all --when hook.onStop
+exit=0
+
+── enroll again, both cured
+$ rhx enroll claude --roles surfer,lifeguard
+🧢 .agent/repo=.mods
+   ├─ rendered
+   │  └─ role=surfer
+   │
+   └─ a live clone keeps the boot it read at session start; re-enroll it to pick up the change
+
+ℹ no claude login at <repo>/.temp/mods.walk/<walk>/.home/.claude/.credentials.json — run /login inside the clone, or set ANTHROPIC_API_KEY
+ℹ no grove at <repo>/.temp/mods.walk/<walk>/.home/.claude/settings.json — box defaults did not apply; create it to share them with every clone
+
+😶 clone enrolled
+   ├─ 🎙️ rhx clone say @:<serial> --what "…"
+   └─ 🎧 rhx clone get @:<serial> --tail 50
+
+exit=0
+
+══ path 4 — a corrupt view record (C11), met by a hand roles boot
+
+── a hand boot of surfer (its notice block only)
+$ rhx roles boot --repo test --role surfer | awk '/<mod\\.skipped/,/<\\/mod\\.skipped>/'
+<mod.skipped of="surfer">
+role surfer boots as published in this repo — its mod is skipped until it is cured
+mod = .agent/repo=.mods/role=surfer/
+💥 MalfunctionError: the modded view record is unreadable
+fix = delete .agent/repo=test/role=surfer/.modded.json, then run rhx init --roles +test/surfer to re-link the role
+</mod.skipped>
+exit=0
+
+── the printed fix, step 1 — delete the record
+$ rm .agent/repo=test/role=surfer/.modded.json
+
+── the printed fix, step 2 — re-link the role
+$ rhx init --roles +test/surfer
+
+🔧 init roles (incremental)
+   └─ untouched (2)
+
+📚 link role repo=test/role=surfer
+   ├─ links
+   │  ├─ ✓ .agent/readme.md (unchanged)
+   │  ├─ ✓ .agent/repo=.this/readme.md (unchanged)
+   │  ├─ ↻ .agent/repo=test/readme.md (updated)
+   │  ├─ ✓ .agent/repo=test/.gitignore (unchanged)
+   │  ├─ ↻ .agent/repo=test/role=surfer/readme.md (updated)
+   │  ├─ ↻ .agent/repo=test/role=surfer/boot.yml (updated)
+   │  ├─ ↻ .agent/repo=test/role=surfer/briefs (updated)
+   │  └─ ↻ .agent/repo=test/role=surfer/skills (updated)
+   └─ stats
+      ├─ 4 brief(s)
+      └─ 2 skill(s)
+
+🧢 .agent/repo=.mods
+   ├─ rendered
+   │  └─ role=surfer
+   │
+   └─ a live clone keeps the boot it read at session start; re-enroll it to pick up the change
+
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
+
+exit=0
+
+── a hand boot of surfer, cured (its notice count, then a modded line)
+$ rhx roles boot --repo test --role surfer | grep -c '<mod.skipped'
+0
+$ rhx roles boot --repo test --role surfer | grep -c 'mind the reef'
+1
+exit=0
+"
+`;

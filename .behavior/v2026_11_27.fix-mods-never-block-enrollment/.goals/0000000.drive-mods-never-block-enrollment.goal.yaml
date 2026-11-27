@@ -1,0 +1,14 @@
+slug: 'drive-mods-never-block-enrollment'
+source: 'peer:human'
+status:
+  choice: 'inflight'
+  reason: 'start at 1.vision'
+why:
+  ask: 'hi, please drive'
+  purpose: 'the commander wants the bound route driven: a mod fault must never block enrollment'
+  benefit: 'the commander is never locked out of a director seat by a mod defect'
+what:
+  outcome: 'the route v2026_11_27.fix-mods-never-block-enrollment is driven through vision, execution, verification'
+how:
+  task: 'drive each stone: vision yield, then execution, then verification'
+  gate: 'rhx route.drive reports no next stone, every guard passed'

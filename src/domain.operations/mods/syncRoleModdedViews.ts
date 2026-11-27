@@ -1,18 +1,18 @@
-import { ConstraintError, MalfunctionError } from 'helpful-errors';
+import type { HelpfulError } from 'helpful-errors';
 
 import type { ContextCli } from '@src/domain.objects/ContextCli';
 import type { RoleLinkRef } from '@src/domain.objects/RoleLinkRef';
 import type { RoleModdedViewSource } from '@src/domain.objects/RoleModdedViewRecord';
+import { getAllRoleModEntries } from '@src/domain.operations/mods/getAllRoleModEntries';
 import { asRepoSlugKind } from '@src/domain.operations/role/asRepoSlugKind';
 import { asRoleDir } from '@src/domain.operations/role/asRoleDir';
 import { getAllLinkedRoleRefs } from '@src/domain.operations/role/getAllLinkedRoleRefs';
-import { getAllRoleModEntries } from '@src/domain.operations/role/getAllRoleModEntries';
 import { withRoleViewLock } from '@src/domain.operations/role/withRoleViewLock';
 
-import { asRoleModRefusalError } from './asRoleModRefusalError';
-import { asRoleModStrayEntryError } from './asRoleModStrayEntryError';
-import { assertRoleModNotsSpareHookSkills } from './assertRoleModNotsSpareHookSkills';
+import { asRoleModFaultOrNull } from './asRoleModFaultOrNull';
+import { assertRoleModAppliable } from './assertRoleModAppliable';
 import { delRoleKindDirSwapLeftovers } from './delRoleKindDirSwapLeftovers';
+import { getAllRoleModFaultsOfModsDir } from './getAllRoleModFaultsOfModsDir';
 import { getAllRoleViewSources } from './getAllRoleViewSources';
 import { getOneRoleModdedViewRecord } from './getOneRoleModdedViewRecord';
 import { getOneRoleModHookBasis } from './getOneRoleModHookBasis';
@@ -27,41 +27,6 @@ import { setRoleModdedViewRefusal } from './setRoleModdedViewRefusal';
 import { setRoleUnmoddedView } from './setRoleUnmoddedView';
 
 /**
- * .what = every hook command a linked role declares, on each brain event
- * .why = a `not` of a skill one of these invokes is refused (usecase 9)
- *
- * .note = only this role's package loads, and only once a stale view's mod nots a skill, so
- *   most renders pay naught; the narrow brains reader is a lazy import for the same reason
- *   (`rule.require.thinnest-import-path`)
- * .note = a package that fails to load is a refusal, never an empty list: with no hooks to
- *   read, a `not` of a hooked skill would pass and the hook would fail at its next event
- */
-const getAllRoleHookCommands = async (
-  input: { ref: RoleLinkRef },
-  context: ContextCli,
-): Promise<string[]> => {
-  const { getAllHookCommandsForRole } = await import(
-    '@src/domain.operations/brains/getAllHookCommandsForRole'
-  );
-  const { commands, error } = await getAllHookCommandsForRole({
-    ref: input.ref,
-    gitroot: context.gitroot,
-  });
-
-  // the hooks of a role whose package did not load cannot be read
-  if (error)
-    throw asRoleModRefusalError({
-      role: input.ref.role,
-      problem:
-        'its package did not load, so no hook can be checked against a not of a skill',
-      subject: error.message,
-      nearest: null,
-      fix: 'repair the install (pnpm install), or drop each not of a skills/ path',
-    });
-  return commands;
-};
-
-/**
  * .what = return a refused role to its published form, where its dir allows the swap
  * .why = a refused mod must not leave a half-applied view; a dir the swap itself refuses (a
  *        stray file) stays as it is, and its refusal joins the list
@@ -73,7 +38,7 @@ const setRoleUnmoddedViewOrRefusal = (
     sources: { briefs: RoleModdedViewSource[]; skills: RoleModdedViewSource[] };
   },
   context: ContextCli,
-): Array<{ role: string; error: ConstraintError }> => {
+): Array<{ role: string; error: HelpfulError }> => {
   try {
     setRoleUnmoddedView(
       { roleDir: input.roleDir, sources: input.sources },
@@ -81,8 +46,9 @@ const setRoleUnmoddedViewOrRefusal = (
     );
     return [];
   } catch (error: unknown) {
-    if (!(error instanceof ConstraintError)) throw error;
-    return [{ role: input.role, error }];
+    const fault = asRoleModFaultOrNull({ error });
+    if (!fault) throw error;
+    return [{ role: input.role, error: fault }];
   }
 };
 
@@ -100,41 +66,74 @@ const isRepoModded = (
   );
 
 /**
+ * .what = the linked roles a package supplies
+ * .why = only a package role has a modded view; a native role is never modded (F18)
+ */
+const getAllRefsOfPackages = (input: { refs: RoleLinkRef[] }): RoleLinkRef[] =>
+  input.refs.filter((ref) => asRepoSlugKind({ slug: ref.repo }) === 'package');
+
+/**
+ * .what = whether a linked role of the mod's slug will raise its refusal at boot
+ * .why = a package role raises it from its view record; a native role only where the mod names
+ *        it (F18). a refusal no role raises must be named by the render instead
+ */
+const isRoleModRefusalCarried = (input: {
+  cwd: string;
+  role: string;
+  refsLinked: RoleLinkRef[];
+}): boolean =>
+  input.refsLinked.some(
+    (ref) =>
+      ref.role === input.role &&
+      (asRepoSlugKind({ slug: ref.repo }) === 'package' ||
+        isRoleModPinnedToRef({ cwd: input.cwd, ref })),
+  );
+
+/**
  * .what = put every modded view on disk in step with `.agent/repo=.mods/`
  * .why = a mod changes the role dir itself (F8 b), so a render must materialize the view
  *        first; every render path calls this one sync (F13)
  *
  * .note = no mod dir and no view record → no write; an unmodded repo's layout is untouched
  * .note = a fresh view is left as it is; a render that changes naught rewrites no link
- * .note = each refusal is caught per role, so it fails only the actors that carry the role
- *   (usecase 12): the role is returned to its published form where it can be, the refusal
- *   is kept in the role's view record, and the boot of each such actor raises it again
- * .note = an entry of the mods dir that names no role holds no mod, so it blocks no render
- *   (usecase 12): it is returned as unplaced, with its fix, and the walk goes on. the stop
- *   sweep still holds the stop on it, so it is never forgotten
+ * .note = each refusal is caught per role, so it never stops the walk: the role is returned to
+ *   its published form where it can be, the refusal is kept in the role's view record, and the
+ *   boot of each actor that carries the role skips the mod and names the fault
+ * .note = an entry of the mods dir that names no role holds no mod, so it blocks no render:
+ *   it is returned as unplaced, with its fix, and the walk goes on. so is a mods path that
+ *   cannot be read. the stop sweep still holds the stop on each, so it is never forgotten
  */
 export const syncRoleModdedViews = async (
   _input: Record<string, never>,
   context: ContextCli,
 ): Promise<{
   refusals: Array<{ role: string; error: Error }>;
+  skipped: Array<{ role: string; error: Error }>;
   unplaced: Array<{ role: string; error: Error }>;
   changed: string[];
   reverted: string[];
 }> => {
-  // each mod dir, and each stray entry no render can apply, named with its fix
+  // each mod dir, each stray entry no render can apply, and a mods path that cannot be read,
+  //   each named with its fix
   const cwd = context.cwd;
-  const { modsDir, slugs: roleMods, strays } = getAllRoleModEntries({ cwd });
-  const unplacedOfStrays = strays.map((entry) => ({
-    role: entry,
-    error: asRoleModStrayEntryError({ modsDir, entry }),
-  }));
+  const {
+    modsDir,
+    slugs: roleMods,
+    strays,
+    fault,
+  } = getAllRoleModEntries({ cwd });
+  const unplacedOfRepo = getAllRoleModFaultsOfModsDir({
+    modsDir,
+    fault,
+    strays,
+  });
 
   // an unmodded repo, with no view left to revert, takes no lock and writes naught
   if (!isRepoModded({ roleMods }, context))
     return {
       refusals: [],
-      unplaced: unplacedOfStrays,
+      skipped: [],
+      unplaced: unplacedOfRepo,
       changed: [],
       reverted: [],
     };
@@ -143,7 +142,9 @@ export const syncRoleModdedViews = async (
   const synced = await withRoleViewLock({ cwd }, () =>
     syncRoleModdedViewsWithinLock({ roleMods }, context),
   );
-  return { ...synced, unplaced: [...unplacedOfStrays, ...synced.unplaced] };
+
+  // a refusal a role carries is a skip: that role boots as published until the mod is cured
+  return { ...synced, unplaced: [...unplacedOfRepo, ...synced.unplaced] };
 };
 
 /**
@@ -156,6 +157,7 @@ const syncRoleModdedViewsWithinLock = async (
   context: ContextCli,
 ): Promise<{
   refusals: Array<{ role: string; error: Error }>;
+  skipped: Array<{ role: string; error: Error }>;
   unplaced: Array<{ role: string; error: Error }>;
   changed: string[];
   reverted: string[];
@@ -163,21 +165,26 @@ const syncRoleModdedViewsWithinLock = async (
   const cwd = context.cwd;
   const roleMods = input.roleMods;
   const refsLinked = getAllLinkedRoleRefs({}, context);
-  const refsPackage = refsLinked.filter(
-    (ref) => asRepoSlugKind({ slug: ref.repo }) === 'package',
-  );
+  const refsPackage = getAllRefsOfPackages({ refs: refsLinked });
 
   // 🟡 .note = DELIBERATE MUTATION — refusals, targets and changed grow across the per-mod walk; each
   //   mod yields a target or a refusal, and the walk then unmods every other modded view
+  // .note = each refusal is placed where it is minted: a role carries it (a skip), or none does
+  //   (unplaced). a package role's view carries every refusal of its own arms
   const refusals: Array<{ role: string; error: Error }> = [];
+  const skipped: Array<{ role: string; error: Error }> = [];
   const unplaced: Array<{ role: string; error: Error }> = [];
   const targets: RoleLinkRef[] = [];
   const changed: string[] = [];
   const reverted: string[] = [];
+  const pushCarried = (ones: Array<{ role: string; error: Error }>): void => {
+    refusals.push(...ones);
+    skipped.push(...ones);
+  };
 
   // a swap cut short left its build or prior dir behind; under the lock, each is an orphan
   for (const ref of refsPackage)
-    refusals.push(...delRoleKindDirSwapLeftoversOrRefusal({ cwd, ref }));
+    pushCarried(delRoleKindDirSwapLeftoversOrRefusal({ cwd, ref }));
 
   for (const role of roleMods) {
     // the mod as it stands; a refusal before a target is known marks no role dir
@@ -186,23 +193,20 @@ const syncRoleModdedViewsWithinLock = async (
       role,
       refsLinked,
     });
-    if (refusal) refusals.push({ role, error: refusal });
 
-    // a refusal no boot raises is named by the render: a package role of its slug raises it
-    //   from its view record, and a native role only where the mod names it (F18)
-    const isRoleCarried = refsLinked.some(
-      (ref) =>
-        ref.role === role &&
-        (asRepoSlugKind({ slug: ref.repo }) === 'package' ||
-          isRoleModPinnedToRef({ cwd, ref })),
-    );
-    if (refusal && !isRoleCarried) unplaced.push({ role, error: refusal });
+    // a refusal a role carries is a skip; one no boot raises is named by the render
+    const isRoleCarried = isRoleModRefusalCarried({ cwd, role, refsLinked });
+    if (refusal && isRoleCarried) pushCarried([{ role, error: refusal }]);
+    if (refusal && !isRoleCarried) {
+      refusals.push({ role, error: refusal });
+      unplaced.push({ role, error: refusal });
+    }
     if (!state) continue;
     targets.push(state.target);
 
     // the mod applies to its view, or its refusal is kept in the view's record
     const applied = await setRoleModAppliedOrRefusal({ role, state }, context);
-    refusals.push(...applied.refusals);
+    pushCarried(applied.refusals);
     if (applied.isChanged) changed.push(role);
   }
 
@@ -212,11 +216,11 @@ const syncRoleModdedViewsWithinLock = async (
       { ref, targets, refusalsPrior: refusals },
       context,
     );
-    refusals.push(...orphan.refusals);
+    pushCarried(orphan.refusals);
     if (orphan.isReportedAsReverted) reverted.push(ref.role);
   }
 
-  return { refusals, unplaced, changed, reverted };
+  return { refusals, skipped, unplaced, changed, reverted };
 };
 
 /**
@@ -234,8 +238,9 @@ const delRoleKindDirSwapLeftoversOrRefusal = (input: {
     });
     return [];
   } catch (error: unknown) {
-    if (!(error instanceof ConstraintError)) throw error;
-    return [{ role: input.ref.role, error }];
+    const fault = asRoleModFaultOrNull({ error });
+    if (!fault) throw error;
+    return [{ role: input.ref.role, error: fault }];
   }
 };
 
@@ -313,16 +318,8 @@ const setRoleModAppliedOrRefusal = async (
     if (isRoleModdedViewFresh({ record, roleDir, links, hookBasis }))
       return { refusals: [], isChanged: false };
 
-    // a not of a skill a hook invokes is refused
-    if (hookBasis)
-      assertRoleModNotsSpareHookSkills({
-        ref: state.target,
-        nots: state.plan.nots,
-        hookCommands: await getAllRoleHookCommands(
-          { ref: state.target },
-          context,
-        ),
-      });
+    // a plan that cannot apply is refused, by the one check the stop sweep also reads
+    await assertRoleModAppliable({ state, hookBasis }, context);
 
     // the mod applies: the view becomes its links
     setRoleModdedView({ roleDir, sources: state.sources, links, hookBasis });
@@ -331,7 +328,10 @@ const setRoleModAppliedOrRefusal = async (
       isChanged: !isRoleModdedViewPlanSame({ record, links }),
     };
   } catch (error: unknown) {
-    if (!(error instanceof ConstraintError)) throw error;
+    // a fault the mod gate admits (a refusal, a corrupt record, an errno on a mod path) is this
+    //   role's alone; a code defect or an unclassed throw escapes loud
+    const fault = asRoleModFaultOrNull({ error });
+    if (!fault) throw error;
     const refusalsOfRevert = setRoleUnmoddedViewOrRefusal(
       { role, roleDir: state.roleDir, sources: state.sources },
       context,
@@ -339,11 +339,11 @@ const setRoleModAppliedOrRefusal = async (
     setRoleModdedViewRefusal({
       roleDir: state.roleDir,
       sources: state.sources,
-      error,
+      error: fault,
       paths: [...state.links.keys()],
     });
     return {
-      refusals: [{ role, error }, ...refusalsOfRevert],
+      refusals: [{ role, error: fault }, ...refusalsOfRevert],
       isChanged: false,
     };
   }
@@ -376,11 +376,11 @@ const setRoleOrphanViewReverted = (
       setRoleModdedViewRefusal({ roleDir, sources, error, paths: [] });
     return { refusals, isReverted: refusals.length === 0 };
   } catch (error: unknown) {
-    if (
-      !(error instanceof ConstraintError) &&
-      !(error instanceof MalfunctionError)
-    )
-      throw error;
-    return { refusals: [{ role: input.ref.role, error }], isReverted: false };
+    const fault = asRoleModFaultOrNull({ error });
+    if (!fault) throw error;
+    return {
+      refusals: [{ role: input.ref.role, error: fault }],
+      isReverted: false,
+    };
   }
 };

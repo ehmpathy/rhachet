@@ -1,0 +1,21 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asRoleModsSkippedBlockLines given: [case2] one stray when: [t0] the block is rendered then: the block matches its snapshot 1`] = `
+"<mods.skipped>
+1 mod fault no role carries; no role section can name it, so this block does, and the stop does until it is cured
+- .agent/repo=.mods/readme.md — ✋ ConstraintError: a mods dir holds an entry that names no role
+  fix = rename .agent/repo=.mods/readme.md to .agent/repo=.mods/role=<slug>, or move it out of .agent/repo=.mods/
+</mods.skipped>
+"
+`;
+
+exports[`asRoleModsSkippedBlockLines given: [case3] a stray and a mod of no linked role when: [t0] the block is rendered then: the block matches its snapshot 1`] = `
+"<mods.skipped>
+2 mod faults no role carries; no role section can name them, so this block does, and the stop does until each is cured
+- .agent/repo=.mods/readme.md — ✋ ConstraintError: a mods dir holds an entry that names no role
+  fix = rename .agent/repo=.mods/readme.md to .agent/repo=.mods/role=<slug>, or move it out of .agent/repo=.mods/
+- role=ghost — ✋ ConstraintError: the mod of role=ghost names a role no package links
+  fix = link the role, or delete .agent/repo=.mods/role=ghost
+</mods.skipped>
+"
+`;

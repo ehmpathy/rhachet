@@ -1,0 +1,24 @@
+# F17 — the skill lookup, the stray collision, and three coverage adds land here; the fault-shape reshape is its own PR
+
+- **fork**: five items found on one seam.
+  - (a) take every item in this diff
+  - (b) take each item below the dedicated-PR bar now, and plan the one reshape as its own PR
+- **taken**: (b).
+  - landed in this diff:
+    - the skill lookup skips a refused mod: `getAllRoleModNotsOfSkill` reads `getOneRoleModStateOrRefusal` and returns no not for a refused mod
+    - a stray entry beside a faulty mod of the same slug hides no fault: the stop sweep filters on the unplaced role slugs, never on fault names
+    - `enroll --output json` with a fault keeps stdout parseable and names the fault on stderr; an attended enroll names a fault's fix once; the stop sweep over 50 roles holds within 30s
+  - planned as its own PR, `refactor(mods): a mod fault carries one subject shape`:
+    - one `RoleModFault = { subject, error }` literal, one errno classifier, and a sync that returns `skipped` and `unplaced` only
+    - it reshapes the fault type that 32 files under `src/` read — the render, the sweep, five readouts, the sync, and two cli commands — each with its snapshots
+    - that is a core-contract reshape that ripples across many callers, the one bar `rule.forbid.deferrals-short-of-a-dedicated-pr` lets stand apart
+    - no defect rides with it: the collision it once cured is fixed above
+- **rework**: clean. Each landed item is local; the reshape builds on none of this diff's choices.
+- **confidence**: 85%.
+- **verdict**: ruled (b), on 5.3 r1 blocker.1.
+- **where**:
+  - `src/domain.operations/mods/getAllRoleModNotsOfSkill.ts` and its integration test, case2
+  - `src/domain.operations/mods/getAllRoleModFaultsOfRepo.ts` and its integration test, case3
+  - `blackbox/cli/enroll.mods.integration.test.ts` case14 and case15
+  - the planned PR: `.dream/v2026_11_27.repair.mod-faults-carry-one-subject-shape.md`
+- **raised by**: i006 r010 nitpicks 4, 5, 6 (enroll-impl-behavior-intent); i006 r011 nitpicks 1, 2, 3, 4 (enroll-impl-arch-defects); 5.3 r1 blocker.1 (repo-rules)

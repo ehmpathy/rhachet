@@ -1,6 +1,7 @@
-import { MalfunctionError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import { genTempDir, given, then, when } from 'test-fns';
 
+import { isRepoMutexHeldError } from '@src/infra/lock/asRepoMutexHeldError';
 import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 
 import { spawn } from 'node:child_process';
@@ -154,6 +155,13 @@ describe('withRepoMutex', () => {
             );
             expect(error?.message).toContain(path);
             expect(error?.constructor.name).toEqual('ConstraintError');
+
+            // a held lock is told apart from every other ConstraintError, so the mod gate
+            //   never skips a sound mod under it (`asRoleModFaultOrNull`)
+            expect(isRepoMutexHeldError({ error })).toEqual(true);
+            expect(
+              isRepoMutexHeldError({ error: new ConstraintError('a refusal') }),
+            ).toEqual(false);
 
             // the wait is announced once, so a two-minute wait never reads as a hang
             const written = errSpy.mock.calls.map((call) => String(call[0]));

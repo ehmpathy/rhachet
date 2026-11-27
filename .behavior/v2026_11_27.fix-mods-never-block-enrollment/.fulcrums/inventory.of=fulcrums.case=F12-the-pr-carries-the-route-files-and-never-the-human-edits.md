@@ -1,0 +1,29 @@
+# F12 — the PR carries the route's own files, each named in its body; the human's uncommitted edits stay out
+
+- **fork**: the worktree holds two kinds of change.
+  - The human's uncommitted edits, present before the route began:
+    - `package.json`
+    - `pnpm-lock.yaml`
+    - `.gitattributes`
+    - `.agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json`
+  - The route's own tool changes beside the gate:
+    - the C9 bun lookup probe and its walk fallback
+    - `test.snap.compare`
+    - `test.acceptance.credfree --what integration`
+    - the hook dispatcher's stop-held export
+  - The options:
+    - (a) commit every change as one diff
+    - (b) split the route's tool changes into another PR
+    - (c) the PR carries the route's own files, and its body names why each tool change belongs; the human's four files are never staged
+- **taken**: (c).
+  - The dispatch says to leave the four human files alone, and this route has no warrant to commit another author's edits.
+  - Each tool change serves the wish:
+    - the C9 fix is a fault class of the wish
+    - the probe and `test.snap.compare` are how its clamps and resnaps were verified
+    - the credfree arm runs the C0–C13 clamps (F07)
+    - the dispatcher export bounds the stop hold (F02)
+  - With (b), the wish's own clamps would land in a PR that does not hold the code they test.
+- **rework**: clean. A split is a re-stage of named paths, with no code change.
+- **confidence**: 85%
+- **where**: the PR diff, and its body
+- **raised by**: i004 r011 blocker.5 (enroll-impl-arch-defects), i004 r010 points 1, 2, 4 (enroll-impl-behavior-intent)

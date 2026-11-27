@@ -4,6 +4,7 @@ import { genContextCli } from '@src/domain.objects/ContextCli';
 import { asRoleModDriftReadout } from '@src/domain.operations/mods/asRoleModDriftReadout';
 import { asRoleModRefusalsUpgradeReadout } from '@src/domain.operations/mods/asRoleModRefusalsUpgradeReadout';
 import { getAllRoleModDriftsOfRepo } from '@src/domain.operations/mods/getAllRoleModDriftsOfRepo';
+import { getAllRoleModFaultsOfRepo } from '@src/domain.operations/mods/getAllRoleModFaultsOfRepo';
 import { getRoleDeltaTokens } from '@src/domain.operations/roles/deltas/getRoleDeltaTokens';
 import { assertUpgradeRoleSpecsUnfocused } from '@src/domain.operations/upgrade/assertUpgradeRoleSpecsUnfocused';
 import { execUpgrade } from '@src/domain.operations/upgrade/execUpgrade';
@@ -87,14 +88,17 @@ export const invokeUpgrade = ({ program }: { program: Command }): void => {
         console.log('');
 
         // a mod pinned to the version this upgrade moved off is named, to re-read (usecase 5)
-        //   a mod the new release refuses is named too; the upgrade landed, so it sets no exit
-        const { drifts, refusals } = getAllRoleModDriftsOfRepo({}, context);
+        const { drifts } = getAllRoleModDriftsOfRepo({}, context);
         for (const drift of drifts) {
           console.log('🧢 the modded role moved');
           console.log(asRoleModDriftReadout(drift).join('\n'));
           console.log('');
         }
-        const linesRefused = asRoleModRefusalsUpgradeReadout({ refusals });
+
+        // every mod fault the next stop holds on is named here too, from the stop's own sweep;
+        //   the upgrade landed, so it sets no exit
+        const faults = await getAllRoleModFaultsOfRepo({}, context);
+        const linesRefused = asRoleModRefusalsUpgradeReadout({ faults });
         if (linesRefused.length > 0) {
           console.log(linesRefused.join('\n'));
           console.log('');

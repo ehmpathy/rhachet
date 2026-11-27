@@ -220,21 +220,24 @@ const getOneDeclaredActorOutcome = async (
       repoPath: actor.repoPath,
     });
     if (!input.isRepoActor)
-      await setBrainDirBoot({
-        brainDir: getBrainOndiskDir({
-          actorDir: getActorOndiskDir({
-            repoPath: actor.repoPath,
-            exid: actor.exid,
+      await setBrainDirBoot(
+        {
+          brainDir: getBrainOndiskDir({
+            actorDir: getActorOndiskDir({
+              repoPath: actor.repoPath,
+              exid: actor.exid,
+            }),
           }),
-        }),
-        roles: asRoleRefsForEnrolledSlugs({
-          actorExid: actor.exid,
-          slugs: rolesNext,
-          refsLinked: input.refsLinked,
-        }),
-        repoPath: actor.repoPath,
-        scope: { kind: 'actor', actorExid: actor.exid },
-      });
+          roles: asRoleRefsForEnrolledSlugs({
+            actorExid: actor.exid,
+            slugs: rolesNext,
+            refsLinked: input.refsLinked,
+          }),
+          repoPath: actor.repoPath,
+          scope: { kind: 'actor', actorExid: actor.exid },
+        },
+        context,
+      );
     await setActorOndiskManifestRoles({ actor, roles: rolesNext });
     return {
       rederived: {

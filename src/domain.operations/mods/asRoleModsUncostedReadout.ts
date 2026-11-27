@@ -36,7 +36,7 @@ export const asRoleModsUncostedReadout = (input: {
       labels: asLabels(input.refsRefused),
     },
     {
-      mark: '[~] a mod over no linked role (rhx init --roles <repo>/<role>, or delete the mod)',
+      mark: "[~] a mod over no linked role (rhx init --roles <repo>/<role>, or delete the mod with your human's ok)",
       labels: input.slugsUnplaced.map((slug) => `role=${slug}`),
     },
     {

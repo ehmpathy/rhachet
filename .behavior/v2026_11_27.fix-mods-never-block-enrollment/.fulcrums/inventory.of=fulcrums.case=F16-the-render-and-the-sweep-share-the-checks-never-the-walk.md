@@ -1,0 +1,25 @@
+# F16 — the render and the stop sweep share each check, never one walk
+
+- **fork**:
+  - (a) extract one pure `getOneRoleModFaultOrNull({ role, refsLinked })`; the render adds freshness and apply on top; the sweep calls it bare
+  - (b) keep two walks, each built from the same shared checks
+- **taken**: (b).
+  - The checks that decide "is this mod faulty" are already single:
+    - `getOneRoleModStateOrRefusal` for the state
+    - `assertRoleModAppliable` for the hook and kind-dir checks
+    - the render and the sweep call both
+  - What differs is what each walk does with the answer:
+    - the render reads freshness and writes the view
+    - the sweep only names
+  - "carried" is not a second verdict on the fault. It decides only WHERE a fault is named:
+    - in a role section of boot.md, or at its tail
+    - the stop sweep names every fault, carried or not
+    - the render decides "carried" once, where the refusal is minted (the i005 repair of r11.2)
+  - The orphan-view dedupe keys on role plus message. Its two arms read one record, so a corrupt record yields the same error text twice. Two faults of one role with one message read the same to a human, and they share one cure.
+- **rework**: clean. One pure transformer and two call sites; no contract changes, and no readout changes.
+- **confidence**: 75%. The extraction is a sound shape. It is held back because it reshapes the render's async pipeline, and this route's wish is the gate.
+- **where**:
+  - `src/domain.operations/mods/syncRoleModdedViews.ts`: `isRoleModRefusalCarried`, `setRoleOrphanViewRevertedUnlessTarget`
+  - `src/domain.operations/mods/getAllRoleModFaultsOfRepo.ts`
+  - `src/domain.operations/mods/getAllRoleModFaultsUncarried.ts`
+- **raised by**: i005 r011 nitpick.2 (message half) and nitpick.3 (enroll-impl-arch-defects)

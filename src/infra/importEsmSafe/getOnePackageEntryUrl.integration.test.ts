@@ -1,4 +1,13 @@
-import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
+import {
+  genTempDir,
+  getError,
+  given,
+  then,
+  useBeforeAll,
+  when,
+} from 'test-fns';
+
+import { asErrnoCode } from '@src/infra/filesystem/asErrnoCode';
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -67,14 +76,18 @@ describe('getOnePackageEntryUrl', () => {
     });
 
     when('[t0] looked up', () => {
-      then('it throws, so the callers try/catch absorbs it', () => {
-        expect(() =>
-          getOnePackageEntryUrl({
-            packageName: 'rhachet-fixture-does-not-exist',
-            fromPackageJson: join(scene.workDir, 'package.json'),
-          }),
-        ).toThrow();
-      });
+      then(
+        'it throws the runtime error, MODULE_NOT_FOUND, once the walk finds none too',
+        async () => {
+          const error = await getError(() =>
+            getOnePackageEntryUrl({
+              packageName: 'rhachet-fixture-does-not-exist',
+              fromPackageJson: join(scene.workDir, 'package.json'),
+            }),
+          );
+          expect(asErrnoCode({ error })).toEqual('MODULE_NOT_FOUND');
+        },
+      );
     });
   });
 

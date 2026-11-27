@@ -52,6 +52,7 @@ describe('getAllHooksOfUnenrolledRoles', () => {
             getAllHooksOfUnenrolledRoles({
               settings,
               roles: ['mechanic', 'architect-ops'],
+              isArmedByMods: false,
             }),
           ).toEqual([
             { event: 'SessionStart', author: 'repo=bhrain/role=driver' },
@@ -70,6 +71,7 @@ describe('getAllHooksOfUnenrolledRoles', () => {
             getAllHooksOfUnenrolledRoles({
               settings,
               roles: ['driver', 'mechanic', 'architect'],
+              isArmedByMods: false,
             }),
           ).toEqual([
             { event: 'Stop', author: 'repo=ehmpathy/role=architect-ops' },
@@ -83,7 +85,11 @@ describe('getAllHooksOfUnenrolledRoles', () => {
     when('[t0] they are scanned', () => {
       then('naught is reported', () => {
         expect(
-          getAllHooksOfUnenrolledRoles({ settings: {}, roles: [] }),
+          getAllHooksOfUnenrolledRoles({
+            settings: {},
+            roles: [],
+            isArmedByMods: false,
+          }),
         ).toEqual([]);
       });
     });
@@ -96,9 +102,57 @@ describe('getAllHooksOfUnenrolledRoles', () => {
           getAllHooksOfUnenrolledRoles({
             settings,
             roles: ['mechanic::flow', 'driver', 'architect-ops'],
+            isArmedByMods: false,
           }),
         ).toEqual([]);
       });
     });
+  });
+
+  given('[case5] the stop sweep, carried by the `.this` role `any`', () => {
+    const settingsSweep: ClaudeCodeSettings = {
+      hooks: {
+        Stop: [
+          {
+            matcher: '*',
+            hooks: [
+              {
+                type: 'command',
+                command:
+                  './node_modules/.bin/rhachet roles cost --all --when hook.onStop',
+                author: 'repo=.this/role=any',
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    when('[t0] a mod arms it, and the clone holds no `.this` role', () => {
+      then('🔴 it is no leak: the sweep rides every actor', () => {
+        expect(
+          getAllHooksOfUnenrolledRoles({
+            settings: settingsSweep,
+            roles: ['surfer'],
+            isArmedByMods: true,
+          }),
+        ).toEqual([]);
+      });
+    });
+
+    when(
+      '[t1] only a budget arms it, and the clone holds no `.this` role',
+      () => {
+        then('it is reported, as any foreign role hook', () => {
+          expect(
+            getAllHooksOfUnenrolledRoles({
+              settings: settingsSweep,
+              roles: ['surfer'],
+              isArmedByMods: false,
+            }),
+          ).toEqual([{ event: 'Stop', author: 'repo=.this/role=any' }]);
+        });
+      },
+    );
   });
 });

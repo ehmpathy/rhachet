@@ -33,6 +33,7 @@ export const setActorHookDispatchManifestDerived = async (input: {
   repoActorBrainDir: string;
   actorBrainDir: string;
   isRepoActor: boolean;
+  isArmedByMods: boolean;
 }): Promise<ClaudeCodeSettings> => {
   if (input.isRepoActor) return input.settings;
 
@@ -62,6 +63,7 @@ export const setActorHookDispatchManifestDerived = async (input: {
   const rules = asHookDispatchRulesForRoles({
     rules: source.rules,
     roles: input.roles,
+    isArmedByMods: input.isArmedByMods,
   });
   const manifestPath = getHookDispatchManifestPathOfBrainDir({
     brainDir: input.actorBrainDir,

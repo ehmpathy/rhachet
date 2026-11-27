@@ -81,6 +81,7 @@ export const syncAndReportBrainDirBoots = async (
     symlink,
     modsChanged,
     modsReverted,
+    modsSkipped,
     modsUnplaced,
   } = await syncBootsForBrainDirs(
     { repoPath: input.repoPath, symlinkPrior: input.symlinkPrior },
@@ -88,10 +89,12 @@ export const syncAndReportBrainDirBoots = async (
   );
 
   // a rewritten modded view reaches a live clone only on re-enroll; say so, once (usecase 8).
-  //   a mod no linked role carries is named here, since no boot raises it (usecase 6)
+  //   each skipped mod is named with its fix, and so is a mod no linked role carries; the init
+  //   never exits 2 on one (F01), since it runs inside every install
   const linesMods = asRoleModViewsChangedReadout({
     roles: modsChanged,
     reverted: modsReverted,
+    skipped: modsSkipped,
     unplaced: modsUnplaced,
   });
   if (linesMods.length > 0) {

@@ -4,6 +4,7 @@ import { RoleModdedViewRecord } from '@src/domain.objects/RoleModdedViewRecord';
 import { getFileContentOrNull } from '@src/infra/filesystem/getFileContentOrNull';
 
 import { basename, dirname } from 'node:path';
+import { asRepoRelPathOfAgentPath } from './asRepoRelPathOfAgentPath';
 import { asRoleModdedViewRecordPath } from './asRoleModdedViewRecordPath';
 
 /**
@@ -115,6 +116,6 @@ const asRecordUnreadableError = (input: {
   return new MalfunctionError('the modded view record is unreadable', {
     path: input.path,
     problem: input.problem,
-    fix: `delete ${input.path}, then run rhx init --roles +${repo}/${role} to re-link the role`,
+    fix: `delete ${asRepoRelPathOfAgentPath({ path: input.path })}, then run rhx init --roles +${repo}/${role} to re-link the role`,
   });
 };

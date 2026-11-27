@@ -13,17 +13,17 @@ import { getAllBootSayResources } from '@src/domain.operations/boot/getAllBootSa
 import { getAllBriefCandidateFiles } from '@src/domain.operations/boot/getAllBriefCandidateFiles';
 import { getAllDeclaredSubjectSlugs } from '@src/domain.operations/boot/getAllDeclaredSubjectSlugs';
 import { getAllFilesOncePerRealPath } from '@src/domain.operations/boot/getAllFilesOncePerRealPath';
+import { getAllRoleFilesToRead } from '@src/domain.operations/boot/getAllRoleFilesToRead';
 import { getOneBootConfigForSource } from '@src/domain.operations/boot/getOneBootConfigForSource';
 import { asRoleDirCoordinates } from '@src/domain.operations/mods/asRoleDirCoordinates';
 import { getOneRoleModForRoleDir } from '@src/domain.operations/mods/getOneRoleModForRoleDir';
-import { withRoleModReadConfirmed } from '@src/domain.operations/mods/withRoleModReadConfirmed';
+import { getOneRoleModVerdict } from '@src/domain.operations/mods/getOneRoleModVerdict';
 import { assertZeroOrphanMinifiedBriefs } from '@src/domain.operations/role/briefs/assertZeroOrphanMinifiedBriefs';
 import {
   BOOT_WALK_DIRS_SKIPPED,
   BRIEF_DIR_BLOCKLIST,
 } from '@src/domain.operations/role/briefs/constants';
 import { getRoleBriefRefs } from '@src/domain.operations/role/briefs/getRoleBriefRefs';
-import { getAllFilesFromDir } from '@src/infra/filesystem/getAllFilesFromDir';
 
 import { sep } from 'node:path';
 
@@ -167,6 +167,15 @@ const getAllSkillFilesFromFiles = (input: {
   input.allFiles.filter((file) => file.startsWith(`${input.dirSkills}${sep}`));
 
 /**
+ * .what = the subject slugs less the one dropped
+ * .why = a roster prices each subject by the payload rendered without it
+ */
+const getAllSlugsLessOne = (input: {
+  slugs: string[];
+  drop: string;
+}): string[] => input.slugs.filter((slug) => slug !== input.drop);
+
+/**
  * .what = assembles a boot's payload from its source, without emit
  * .why = requirement 2 demands the budget be measured BEFORE a byte is emitted, and
  *        requirement 9 demands the same measurement at two gates that emit naught at all.
@@ -182,15 +191,17 @@ export const genBootPayload = async (input: {
 }): Promise<BootPayload | null> => {
   const { source, subjects } = input;
 
-  // a modded role boots its view only once that view is proven fresh (F8, F14), and the proof
-  //   precedes the walk, so no file read before it can come from a view mid-render. a read that
-  //   refuses is confirmed under the role view lock, so a render mid-swap never fails it
-  const mod = await withRoleModReadConfirmed(
-    {
-      cwd: asRoleDirCoordinates({ roleDir: source.rootDir })?.cwd ?? null,
-    },
-    () => getOneRoleModForRoleDir({ roleDir: source.rootDir }),
+  // the mod gate: a modded role boots its view only once that view is proven fresh (F8, F14),
+  //   and the proof precedes the walk, so no file read before it can come from a view
+  //   mid-render. a mod fault never stops the boot: the role boots as published, and names it
+  //   a dir outside `.agent/repo=*\/role=*` has no coordinates, so no mod reaches it
+  const coordinatesOfRole = asRoleDirCoordinates({ roleDir: source.rootDir });
+  const cwdOfRole = coordinatesOfRole?.cwd ?? null;
+  const verdict = await getOneRoleModVerdict(
+    { cwd: cwdOfRole },
+    { read: () => getOneRoleModForRoleDir({ roleDir: source.rootDir }) },
   );
+  const mod = verdict.verdict === 'modded' ? verdict : null;
 
   // recursively read all files, then filter to readme, briefs, and skills
   //
@@ -201,14 +212,16 @@ export const genBootPayload = async (input: {
   //
   // .note = the walk never enters `node_modules`, `.git`, or `dist` — trees no boot cites,
   //   whose size has no bound, and which a symlinked package graph can re-enter by many routes
-  const allFiles = getAllFilesOncePerRealPath({
-    files: [
-      ...getAllFilesFromDir(
-        { dir: source.rootDir },
-        { skipDirNames: BOOT_WALK_DIRS_SKIPPED },
-      ),
-    ].sort(),
+  //
+  // .note = a skipped mod is skipped whole, so the role boots its published files, whatever
+  //   the view on disk still links (F03)
+  const filesToRead = getAllRoleFilesToRead({
+    roleDir: source.rootDir,
+    cwdOfSkippedMod: verdict.verdict === 'skipped' ? cwdOfRole : null,
+    skipDirNames: BOOT_WALK_DIRS_SKIPPED,
   });
+  const allFiles = getAllFilesOncePerRealPath({ files: filesToRead.files });
+  const { asPathToRead } = filesToRead;
 
   const readmeFile = getOneReadmeFromFiles({
     allFiles,
@@ -272,6 +285,7 @@ export const genBootPayload = async (input: {
     pathToReadme: readmeFile ?? null,
     briefsSay: bootPlan.briefs.say,
     skillsSay: bootPlan.skills.say,
+    asPathToRead,
   });
 
   // only say resources carry chars; a ref emits its path and never its content
@@ -310,6 +324,10 @@ export const genBootPayload = async (input: {
     bootPlan,
     label: source.label,
     mod,
+    skipped:
+      verdict.verdict === 'skipped' && coordinatesOfRole
+        ? { role: coordinatesOfRole.role, error: verdict.error }
+        : null,
   });
 
   // 🔴 DERIVED, never assembled beside the batches
@@ -344,7 +362,7 @@ export const genBootPayload = async (input: {
           // ⚠️ `[]` is NOT read as "no selection" downstream — `computeBootPlan` takes
           //   `input.subjects ?? every slug`, and `[] ?? x` is `[]`. so a roster of one
           //   prices its drop as the always-only payload, which is the truth
-          subjects: inScope.filter((slug) => slug !== drop.slug),
+          subjects: getAllSlugsLessOne({ slugs: inScope, drop: drop.slug }),
         }),
     };
   };

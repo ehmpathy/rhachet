@@ -1,5 +1,5 @@
 import { ConstraintError } from 'helpful-errors';
-import { getError } from 'test-fns';
+import { getError, given, then, when } from 'test-fns';
 
 import { genSampleHookDispatchRule } from '@src/.test/assets/genSampleHookDispatchRule';
 
@@ -70,6 +70,7 @@ describe('asHookDispatchRulesForRoles', () => {
       const rules = asHookDispatchRulesForRoles({
         rules: RULES,
         roles: [...thisCase.roles],
+        isArmedByMods: false,
       });
       expect(rules).toEqual(thisCase.expected);
     }),
@@ -77,21 +78,102 @@ describe('asHookDispatchRulesForRoles', () => {
 
   test('yields no rules from no rules', () => {
     expect(
-      asHookDispatchRulesForRoles({ rules: [], roles: ['tester'] }),
+      asHookDispatchRulesForRoles({
+        rules: [],
+        roles: ['tester'],
+        isArmedByMods: false,
+      }),
     ).toEqual([]);
   });
 
   test('does not mutate the input rules', () => {
     const rules = [...RULES];
-    asHookDispatchRulesForRoles({ rules, roles: ['tester'] });
+    asHookDispatchRulesForRoles({
+      rules,
+      roles: ['tester'],
+      isArmedByMods: false,
+    });
     expect(rules).toEqual(RULES);
   });
 
   test('refuses a role token with one colon, with a hint', async () => {
     const error = await getError(async () =>
-      asHookDispatchRulesForRoles({ rules: RULES, roles: ['tester:flow'] }),
+      asHookDispatchRulesForRoles({
+        rules: RULES,
+        roles: ['tester:flow'],
+        isArmedByMods: false,
+      }),
     );
     expect(error).toBeInstanceOf(ConstraintError);
     expect(error.message).toContain('one colon');
+  });
+
+  given(
+    '[case1] the framework-owned stop sweep, carried by a `.this` role',
+    () => {
+      const RULE_SWEEP = genRule({
+        event: 'Stop',
+        author: 'repo=.this/role=any',
+        command:
+          './node_modules/.bin/rhachet roles cost --all --when hook.onStop',
+      });
+      const RULE_THIS_OTHER = genRule({
+        author: 'repo=.this/role=any',
+        command: 'echo this-any',
+      });
+      const RULES_WITH_SWEEP = [RULE_TESTER, RULE_SWEEP, RULE_THIS_OTHER];
+
+      when(
+        '[t0] the mods arm the sweep, and the actor holds no `.this` role',
+        () => {
+          then(
+            '🔴 the sweep rides the actor anyway, and no other `.this` rule does',
+            () => {
+              expect(
+                asHookDispatchRulesForRoles({
+                  rules: RULES_WITH_SWEEP,
+                  roles: ['tester'],
+                  isArmedByMods: true,
+                }),
+              ).toEqual([RULE_TESTER, RULE_SWEEP]);
+            },
+          );
+        },
+      );
+
+      when('[t1] no mod arms the sweep', () => {
+        then('the sweep rides the holders of its carrier alone', () => {
+          expect(
+            asHookDispatchRulesForRoles({
+              rules: RULES_WITH_SWEEP,
+              roles: ['tester'],
+              isArmedByMods: false,
+            }),
+          ).toEqual([RULE_TESTER]);
+        });
+      });
+    },
+  );
+
+  given('[case2] a role that declares the sweep command by hand', () => {
+    const RULE_FOREIGN_SWEEP = genRule({
+      author: 'repo=demo/role=builder',
+      command: 'npx rhachet roles cost --all --when hook.onStop',
+    });
+
+    when('[t0] the mods arm the sweep, and the actor lacks that role', () => {
+      then(
+        "the rule is narrowed as its role's own, never carried as the sweep",
+        () => {
+          expect(
+            asHookDispatchRulesForRoles({
+              rules: [RULE_FOREIGN_SWEEP],
+              roles: ['tester'],
+              isArmedByMods: true,
+            }),
+          ).toEqual([]);
+        },
+      );
+    });
   });
 });

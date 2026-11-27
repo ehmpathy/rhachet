@@ -6,6 +6,7 @@ import type { BootPlan } from '@src/domain.operations/boot/computeBootPlan';
 import type { BootSayResource } from '@src/domain.operations/boot/getAllBootSayResources';
 import { asRoleModAttr } from '@src/domain.operations/mods/asRoleModAttr';
 import { asRoleModNoticeLines } from '@src/domain.operations/mods/asRoleModNoticeLines';
+import { asRoleModSkippedNoticeLines } from '@src/domain.operations/mods/asRoleModSkippedNoticeLines';
 
 import { relative } from 'node:path';
 
@@ -150,6 +151,9 @@ export const asBootPayloadBatches = (input: {
   bootPlan: BootPlan;
   label: BootSource['label'];
   mod: BootPayloadMod;
+
+  // the mod fault that skipped this role's mod; null where no mod of it is skipped
+  skipped: { role: string; error: Error } | null;
 }): BootBatch[] => [
   ...(input.mod
     ? [
@@ -160,6 +164,15 @@ export const asBootPayloadBatches = (input: {
             of: input.mod.ofLabel,
             plan: input.mod.plan,
           }),
+        },
+      ]
+    : []),
+  ...(input.skipped
+    ? [
+        {
+          slug: 'mod.skipped',
+          kind: 'say' as const,
+          lines: asRoleModSkippedNoticeLines(input.skipped),
         },
       ]
     : []),

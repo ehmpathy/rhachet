@@ -8,6 +8,7 @@ import {
 
 import { join } from 'node:path';
 import { getAllRoleModDriftsOfRepo } from './getAllRoleModDriftsOfRepo';
+import { getAllRoleModFaultsOfRepo } from './getAllRoleModFaultsOfRepo';
 
 describe('getAllRoleModDriftsOfRepo', () => {
   given('[case1] a sound mod pinned to a version the upgrade moved off', () => {
@@ -16,7 +17,11 @@ describe('getAllRoleModDriftsOfRepo', () => {
         slug: 'mods-drifts-repo-sound',
         withMod: true,
       });
-      return { ...repo, result: getAllRoleModDriftsOfRepo({}, repo.context) };
+      return {
+        ...repo,
+        result: getAllRoleModDriftsOfRepo({}, repo.context),
+        faults: await getAllRoleModFaultsOfRepo({}, repo.context),
+      };
     });
 
     when('[t0] the drifts are read', () => {
@@ -26,8 +31,8 @@ describe('getAllRoleModDriftsOfRepo', () => {
         ]);
       });
 
-      then('no refusal is named', () => {
-        expect(scene.result.refusals).toEqual([]);
+      then('the fault sweep the upgrade reads names no fault', () => {
+        expect(scene.faults).toEqual([]);
       });
     });
   });
@@ -50,22 +55,25 @@ describe('getAllRoleModDriftsOfRepo', () => {
             '',
           ].join('\n'),
         });
-        return { ...repo, result: getAllRoleModDriftsOfRepo({}, repo.context) };
+        return {
+          ...repo,
+          result: getAllRoleModDriftsOfRepo({}, repo.context),
+          faults: await getAllRoleModFaultsOfRepo({}, repo.context),
+        };
       });
 
       when('[t0] the drifts are read', () => {
-        then('the refusal is surfaced for its role, never dropped', () => {
-          expect(scene.result.refusals.map((one) => one.role)).toEqual([
-            'mechanic',
-          ]);
-          expect(scene.result.refusals[0]?.error).toBeInstanceOf(
-            ConstraintError,
-          );
-        });
-
         then('a refused mod is no drift', () => {
           expect(scene.result.drifts).toEqual([]);
         });
+
+        then(
+          'the fault sweep the upgrade reads names it for its role, never dropped',
+          () => {
+            expect(scene.faults.map((one) => one.role)).toEqual(['mechanic']);
+            expect(scene.faults[0]?.error).toBeInstanceOf(ConstraintError);
+          },
+        );
       });
     },
   );
@@ -80,7 +88,11 @@ describe('getAllRoleModDriftsOfRepo', () => {
         path: join(repo.repo, '.agent', 'repo=.mods', 'readme.md'),
         content: 'notes',
       });
-      return { ...repo, result: getAllRoleModDriftsOfRepo({}, repo.context) };
+      return {
+        ...repo,
+        result: getAllRoleModDriftsOfRepo({}, repo.context),
+        faults: await getAllRoleModFaultsOfRepo({}, repo.context),
+      };
     });
 
     when('[t0] the drifts are read', () => {
@@ -90,11 +102,9 @@ describe('getAllRoleModDriftsOfRepo', () => {
         ]);
       });
 
-      then('the stray entry is named as a refusal of the mods dir', () => {
-        expect(scene.result.refusals.map((one) => one.role)).toEqual([null]);
-        expect(scene.result.refusals[0]?.error.message).toContain(
-          'names no role',
-        );
+      then('the fault sweep the upgrade reads names the stray entry', () => {
+        expect(scene.faults).toHaveLength(1);
+        expect(scene.faults[0]?.error.message).toContain('names no role');
       });
     });
   });

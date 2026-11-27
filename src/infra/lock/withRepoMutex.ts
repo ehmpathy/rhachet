@@ -1,4 +1,3 @@
-import { ConstraintError } from 'helpful-errors';
 import type { SimpleOnDiskCache } from 'simple-on-disk-cache';
 
 import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
@@ -10,6 +9,7 @@ import {
   relative,
   resolve,
 } from 'node:path';
+import { asRepoMutexHeldError } from './asRepoMutexHeldError';
 import { emitRepoMutexWaitNotice } from './emitRepoMutexWaitNotice';
 
 /**
@@ -197,12 +197,7 @@ export const withRepoMutex = async <T>(
     return await guarded(undefined);
   } catch (error) {
     if (!isAcquired && error instanceof SimpleMutexAcquireTimeoutError)
-      throw new ConstraintError('another rhx process holds this file', {
-        path: input.path,
-        waitMs,
-        hint: 'wait for the other rhx init / enroll to finish, then retry. a hold left by a killed rhx lapses on its own within five minutes',
-        cause: error,
-      });
+      throw asRepoMutexHeldError({ path: input.path, waitMs, cause: error });
     throw error;
   }
 };

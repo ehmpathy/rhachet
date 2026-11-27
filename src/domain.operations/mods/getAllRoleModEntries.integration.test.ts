@@ -1,6 +1,7 @@
+import { ConstraintError } from 'helpful-errors';
 import { genTempDir, given, then, when } from 'test-fns';
 
-import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { getAllRoleModEntries } from './getAllRoleModEntries';
 
@@ -72,6 +73,55 @@ describe('getAllRoleModEntries', () => {
       then('the mods dir is named, for the caller to cite', () => {
         expect(modsDir).toEqual(join(cwd, '.agent', 'repo=.mods'));
       });
+    });
+  });
+
+  given('[case3] a file where the mods dir belongs (C13, ENOTDIR)', () => {
+    const cwd = realpathSync(genTempDir({ slug: 'mod-entries-enotdir' }));
+    mkdirSync(join(cwd, '.agent'), { recursive: true });
+    writeFileSync(join(cwd, '.agent', 'repo=.mods'), 'not a dir\n');
+
+    when('[t0] the entries are read', () => {
+      then(
+        'the fault is returned, never thrown, with the move that cures it',
+        () => {
+          const { slugs, strays, fault } = getAllRoleModEntries({ cwd });
+          expect(slugs).toEqual([]);
+          expect(strays).toEqual([]);
+          expect(fault).toBeInstanceOf(ConstraintError);
+          expect(fault?.message).toContain('the mods path cannot be read');
+          expect(JSON.stringify(fault)).toContain('ENOTDIR');
+          expect(JSON.stringify(fault)).toContain('move the file aside');
+        },
+      );
+    });
+  });
+
+  given('[case4] a mods dir with no read access (C13, EACCES)', () => {
+    const cwd = realpathSync(genTempDir({ slug: 'mod-entries-eacces' }));
+    const modsDir = join(cwd, '.agent', 'repo=.mods');
+    mkdirSync(join(modsDir, 'role=surfer'), { recursive: true });
+    beforeAll(() => chmodSync(modsDir, 0o000));
+    afterAll(() => chmodSync(modsDir, 0o755));
+
+    when('[t0] the entries are read', () => {
+      then(
+        'the fault is returned, never thrown, with the grant that cures it',
+        () => {
+          // a root process reads through any mode, so this case cannot observe EACCES as root
+          if (process.getuid?.() === 0)
+            throw new ConstraintError('this case needs a non-root user', {
+              hint: 'run the suite as a non-root user, as ci does',
+            });
+          const { slugs, fault } = getAllRoleModEntries({ cwd });
+          expect(slugs).toEqual([]);
+          expect(fault).toBeInstanceOf(ConstraintError);
+          expect(JSON.stringify(fault)).toContain('EACCES');
+          expect(JSON.stringify(fault)).toContain(
+            'chmod u+rx .agent/repo=.mods',
+          );
+        },
+      );
     });
   });
 });

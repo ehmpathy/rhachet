@@ -1,4 +1,5 @@
 import type { ContextCli } from '@src/domain.objects/ContextCli';
+import { getOneFileNotLinkUnder } from '@src/infra/filesystem/getOneFileNotLinkUnder';
 
 import {
   chmodSync,
@@ -69,10 +70,15 @@ const setDirectoryReadonlyExecutable = (input: { dirPath: string }): void => {
 };
 
 /**
- * .what = remove path if it exists (symlink, file, or directory)
- * .why = upsert semantics - always succeed even if target already exists, including broken symlinks
+ * .what = remove path if it exists (a symlink, or a dir of links), else keep it
+ * .why = upsert semantics - always succeed even if target already exists, a broken symlink too
+ *
+ * 🔴 .note = a regular file at or under the path is content no link made, which a human placed;
+ *   it is kept, never removed. the render then names it as a fault of the view, with its fix
  */
-const clearPath = (input: { targetPath: string }): 'updated' | 'created' => {
+const clearPath = (input: {
+  targetPath: string;
+}): 'updated' | 'created' | 'kept' => {
   const { targetPath } = input;
   const lstats = (() => {
     try {
@@ -84,6 +90,7 @@ const clearPath = (input: { targetPath: string }): 'updated' | 'created' => {
   })();
 
   if (!lstats) return 'created';
+  if (getOneFileNotLinkUnder({ path: targetPath })) return 'kept';
 
   try {
     unlinkSync(targetPath);
@@ -107,6 +114,13 @@ const linkSourceToTarget = (
   const { sourcePath, targetPath } = input;
   const relativeTargetPath = relative(process.cwd(), targetPath);
   const action = clearPath({ targetPath });
+
+  // a kept path holds a human's file; it is left as is, and no link replaces it
+  if (action === 'kept')
+    return {
+      fileCount: 0,
+      result: { path: relativeTargetPath, status: 'unchanged' },
+    };
 
   // create parent directory if needed
   const targetParent = resolve(targetPath, '..');
@@ -178,7 +192,7 @@ export const symlinkResourceDirectories = (
     for (const entry of readdirSync(targetDir)) {
       if (expectedNames.has(entry)) continue;
       const entryPath = resolve(targetDir, entry);
-      clearPath({ targetPath: entryPath });
+      if (clearPath({ targetPath: entryPath }) === 'kept') continue;
       results.push({
         path: relative(process.cwd(), entryPath),
         status: 'removed',

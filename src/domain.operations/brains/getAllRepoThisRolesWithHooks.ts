@@ -4,7 +4,9 @@ import type { HasRepo } from '@src/domain.objects/HasRepo';
 import type { Role } from '@src/domain.objects/Role';
 import type { RoleHooksOnBrain } from '@src/domain.objects/RoleHooksOnBrain';
 import { getOneDeclaredBudgetForSpec } from '@src/domain.operations/boot/getOneDeclaredBudgetForSpec';
-import { getAllRoleModEntries } from '@src/domain.operations/role/getAllRoleModEntries';
+import { isRepoSweepArmedByMods } from '@src/domain.operations/mods/isRepoSweepArmedByMods';
+import { PREFIX_ROLE_DIR } from '@src/domain.operations/role/constants';
+import { isErrnoEnoent } from '@src/infra/filesystem/isErrnoEnoent';
 
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -63,6 +65,32 @@ const asRepoThisRole = (input: {
 const REPO_THIS_CARRIER_SLUG_FOR_MODS = 'any';
 
 /**
+ * .what = the `role=*` dir names under a dir, sorted; none where the dir is absent
+ * .why = the carrier is a function of the SET of dirs, never of readdir order
+ *
+ * .note = the read IS the check. a separate `existsSync` would open a window where a dir that
+ *   vanished after the check escapes as a raw `ENOENT`; here the vanish lands on the same
+ *   branch as an absent dir. every other errno throws unchanged
+ */
+const getAllRoleDirNames = (input: { dir: string }): string[] => {
+  const names = ((): string[] => {
+    try {
+      return readdirSync(input.dir);
+    } catch (error) {
+      if (isErrnoEnoent(error)) return [];
+      throw error;
+    }
+  })();
+  return names.filter((name) => name.startsWith(PREFIX_ROLE_DIR)).sort();
+};
+
+/**
+ * .what = the role slug a `role=<slug>` dir name holds
+ */
+const asRoleSlugOfDirName = (input: { name: string }): string =>
+  input.name.slice(PREFIX_ROLE_DIR.length);
+
+/**
  * .what = the `.this` role that carries the framework-owned stop sweep, where any `.this`
  *         role's `boot.yml` declares a budget, or any role is modded
  * .why = the hook sync relays it under `repo=.this/role=$slug`, as it relays a supplier's hooks
@@ -78,24 +106,17 @@ export const getAllRepoThisRolesWithHooks = (input: {
 }): {
   roles: HasRepo<Role>[];
   errors: Array<{ repoSlug: string; roleSlug: string; error: Error }>;
+
+  /**
+   * whether the mods dir arms the sweep; a mod fault is the repo's, so the caller relays the
+   *   sweep to every actor, not only to the holders of its carrier role
+   */
+  isArmedByMods: boolean;
 } => {
   const repoThisDir = join(input.gitroot, '.agent', 'repo=.this');
 
   // list the role dirs; an absent `.this` dir declares no role
-  //
-  // .note = the read IS the check. a separate `existsSync` would open a window where a dir
-  //   that vanished after the check escapes as a raw `ENOENT`; here the vanish lands on the
-  //   same branch as an absent dir. every other errno throws unchanged
-  const roleDirNames = ((): string[] => {
-    try {
-      return readdirSync(repoThisDir);
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException)?.code === 'ENOENT') return [];
-      throw error;
-    }
-  })()
-    .filter((name) => name.startsWith('role='))
-    .sort(); // the carrier is a function of the SET of dirs, never of readdir order
+  const roleDirNames = getAllRoleDirNames({ dir: repoThisDir });
 
   // ⚠️ .note = deliberate mutation — two accumulators, scoped to this function
   const roles: HasRepo<Role>[] = [];
@@ -103,7 +124,7 @@ export const getAllRepoThisRolesWithHooks = (input: {
     [];
 
   for (const roleDirName of roleDirNames) {
-    const roleSlug = roleDirName.replace('role=', '');
+    const roleSlug = asRoleSlugOfDirName({ name: roleDirName });
     const roleDir = join(repoThisDir, roleDirName);
     const pathToBoot = join(roleDir, 'boot.yml');
 
@@ -126,9 +147,10 @@ export const getAllRepoThisRolesWithHooks = (input: {
     if (roles.length === 0) roles.push(asRepoThisRole({ roleSlug, roleDir }));
   }
 
-  // a mod pin drifts like a budget, so a mod dir arms the same one sweep where no budget did
-  const isModded =
-    getAllRoleModEntries({ cwd: input.gitroot }).slugs.length > 0;
+  // a mod pin drifts like a budget, so a mod dir arms the same one sweep where no budget did. a
+  //   stray entry or an unreadable mods path arms it too: the sweep names every mod fault, and
+  //   a fault no role carries has no other surface that repeats it
+  const isModded = isRepoSweepArmedByMods({ gitroot: input.gitroot });
   if (roles.length === 0 && isModded)
     roles.push(
       asRepoThisRole({
@@ -137,5 +159,5 @@ export const getAllRepoThisRolesWithHooks = (input: {
       }),
     );
 
-  return { roles, errors };
+  return { roles, errors, isArmedByMods: isModded };
 };

@@ -1,0 +1,31 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asTreesUnderOneRoot given: [case2] two trees under one root when: [t0] they are joined then: the joined tree matches its snapshot 1`] = `
+"🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 modded role moved off the version its mod pins
+   │  └─ test/surfer
+   │
+   ├─ the stop holds until each mod's \`of:\` names the installed version
+   │
+   ├─ ✋ ConstraintError: 1 mod fault, held at the first stop of each turn until cured
+   │  └─ role=surfer
+   │
+   └─ the first stop of each turn holds until each mod is cured
+"
+`;
+
+exports[`asTreesUnderOneRoot given: [case3] a first tree whose last branch has children when: [t0] it is joined above another then: the joined tree matches its snapshot 1`] = `
+"🧢 roles cost --all --when hook.onStop
+   ├─ ✋ ConstraintError: 1 boot spec over budget
+   │  └─ boot.yml (9k / 8k tokens)
+   │
+   ├─ fix — two strategies, cheapest first
+   │  ├─ catalogize a set
+   │  └─ condense a say entry
+   │
+   ├─ ✋ ConstraintError: 1 mod fault, held at the first stop of each turn until cured
+   │  └─ role=surfer
+   │
+   └─ the first stop of each turn holds until each mod is cured
+"
+`;

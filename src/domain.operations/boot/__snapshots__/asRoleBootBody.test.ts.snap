@@ -33,3 +33,18 @@ mind the reef
 
 "
 `;
+
+exports[`asRoleBootBody given: [case6] a role whose mod is skipped when: [t0] the fault carries a fix then: the body matches its snapshot 1`] = `
+"<mod.skipped of="surfer">
+role surfer boots as published in this repo — its mod is skipped until it is cured
+mod = .agent/repo=.mods/role=surfer/
+✋ ConstraintError: the mod names a role at another version
+fix = set of: to ehmpathy/surfer@1.2.3
+</mod.skipped>
+
+<brief.say path=".agent/repo=ehmpathy/role=surfer/briefs/wave.md">
+ride it
+</brief.say>
+
+"
+`;

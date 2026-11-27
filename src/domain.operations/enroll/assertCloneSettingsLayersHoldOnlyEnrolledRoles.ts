@@ -5,6 +5,7 @@ import type { ClaudeCodeSettings } from '@src/domain.operations/brains/claudeCod
 import { asHookDispatchRulesFromManifestText } from '@src/domain.operations/brains/dispatch/asHookDispatchRulesFromManifestText';
 import { asManifestPathOfHookDispatcherCommand } from '@src/domain.operations/brains/dispatch/asManifestPathOfHookDispatcherCommand';
 import { HOOK_DISPATCH } from '@src/domain.operations/brains/dispatch/constants';
+import { isRepoSweepArmedByMods } from '@src/domain.operations/mods/isRepoSweepArmedByMods';
 
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { isAbsolute, join, sep } from 'node:path';
@@ -35,13 +36,21 @@ export const assertCloneSettingsLayersHoldOnlyEnrolledRoles = (input: {
   roles: string[];
   home: string;
 }): void => {
+  // a mod-armed stop sweep rides every actor by design, so it is no leak
+  const isArmedByMods = isRepoSweepArmedByMods({ gitroot: input.cwd });
+
   // gather every hook a non-enrolled role authored, across every layer claude will read
   const leaks = getAllBrainCliSettingsLayers({
     args: input.args,
     brainDir: input.brainDir,
     cwd: input.cwd,
   }).flatMap((layer) =>
-    getAllLeaksOfLayer({ layer, roles: input.roles, cwd: input.cwd }),
+    getAllLeaksOfLayer({
+      layer,
+      roles: input.roles,
+      cwd: input.cwd,
+      isArmedByMods,
+    }),
   );
   if (leaks.length === 0) return;
 
@@ -81,6 +90,7 @@ const getAllLeaksOfLayer = (input: {
   layer: BrainCliSettingsLayer;
   roles: string[];
   cwd: string;
+  isArmedByMods: boolean;
 }): Array<{
   event: string;
   author: string;
@@ -106,6 +116,7 @@ const getAllLeaksOfLayer = (input: {
     getAllHooksOfUnenrolledRoles({
       settings: each.settings,
       roles: input.roles,
+      isArmedByMods: input.isArmedByMods,
     }).map((hook) => ({
       ...hook,
       source: input.layer.source,

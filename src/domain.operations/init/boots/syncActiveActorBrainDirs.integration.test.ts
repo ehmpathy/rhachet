@@ -5,6 +5,7 @@ import { getUuid } from 'uuid-fns';
 import { genSampleActorWithClone } from '@src/.test/assets/genSampleActorWithClone';
 import { genSampleCloneOndisk } from '@src/.test/assets/genSampleCloneOndisk';
 import { genSampleRepoWithRoles } from '@src/.test/assets/genSampleRepoWithRoles';
+import { ContextCli } from '@src/domain.objects/ContextCli';
 import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
 import { getOneRepoActorOndiskDir } from '@src/domain.operations/actor/enrolled/getOneRepoActorOndiskDir';
 
@@ -14,6 +15,17 @@ import { syncActiveActorBrainDirs } from './syncActiveActorBrainDirs';
 
 // a git repo with synthetic roles linked under `.agent/`
 const genRepoWithRoles = genSampleRepoWithRoles;
+
+/**
+ * .what = sweep the active actors' brain dirs, with the context of the repo, as the init sync does
+ */
+const syncActiveActorBrainDirsOfRepo = (
+  input: Parameters<typeof syncActiveActorBrainDirs>[0],
+) =>
+  syncActiveActorBrainDirs(
+    input,
+    new ContextCli({ cwd: input.repoPath, gitroot: input.repoPath }),
+  );
 
 const REFS_LINKED = [
   { repo: '.this', role: 'any' },
@@ -56,7 +68,7 @@ describe('syncActiveActorBrainDirs', () => {
       mkdirSync(join(slugBootMdPath, '..'), { recursive: true });
       writeFileSync(slugBootMdPath, 'slug corpus\n');
 
-      const result = await syncActiveActorBrainDirs({
+      const result = await syncActiveActorBrainDirsOfRepo({
         repoPath,
         refsLinked: REFS_LINKED,
       });
@@ -127,7 +139,7 @@ describe('syncActiveActorBrainDirs', () => {
           join(scene.zeta.brainDir, 'boot.md'),
           'utf8',
         );
-        const result = await syncActiveActorBrainDirs({
+        const result = await syncActiveActorBrainDirsOfRepo({
           repoPath: scene.repoPath,
           refsLinked: [...REFS_LINKED, { repo: 'fixture', role: 'wide' }],
         });
@@ -170,7 +182,7 @@ describe('syncActiveActorBrainDirs', () => {
         roles: ['zeta'],
         live: true,
       });
-      const result = await syncActiveActorBrainDirs({
+      const result = await syncActiveActorBrainDirsOfRepo({
         repoPath,
         refsLinked: REFS_LINKED,
       });
@@ -203,7 +215,7 @@ describe('syncActiveActorBrainDirs', () => {
         slug: 'sync-active-actors-none',
         roles: REFS_LINKED,
       });
-      const result = await syncActiveActorBrainDirs({
+      const result = await syncActiveActorBrainDirsOfRepo({
         repoPath,
         refsLinked: REFS_LINKED,
       });
@@ -242,7 +254,7 @@ describe('syncActiveActorBrainDirs', () => {
         roles: ['omega'],
         live: true,
       });
-      const result = await syncActiveActorBrainDirs({
+      const result = await syncActiveActorBrainDirsOfRepo({
         repoPath,
         refsLinked: REFS_LINKED,
       });
@@ -290,7 +302,7 @@ describe('syncActiveActorBrainDirs', () => {
       const actorDir = join(repoPath, '.agent/.actors/actor.via.hash=deadbeef');
       mkdirSync(actorDir, { recursive: true });
       writeFileSync(join(actorDir, 'actor.json'), '{ not json');
-      const result = await syncActiveActorBrainDirs({
+      const result = await syncActiveActorBrainDirsOfRepo({
         repoPath,
         refsLinked: REFS_LINKED,
       });
