@@ -1,6 +1,6 @@
 import { getError, given, then, when } from 'test-fns';
 
-import { withTempHome } from '@src/.test/infra/withTempHome';
+import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
 
 import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -12,10 +12,15 @@ const TEST_SSH_PRIKEY_PATH = join(TEST_SSH_KEY_DIR, 'test_key_ed25519');
 const TEST_SSH_PUBKEY_PATH = join(TEST_SSH_KEY_DIR, 'test_key_ed25519.pub');
 
 describe('initKeyrack', () => {
-  const tempHome = withTempHome({ name: 'initKeyrack' });
+  const tempHome = { path: genTempDirPhysical({ slug: 'home-initKeyrack' }) };
+  const homeOriginal = process.env.HOME;
 
-  beforeAll(() => tempHome.setup());
-  afterAll(() => tempHome.teardown());
+  beforeAll(() => {
+    process.env.HOME = tempHome.path;
+  });
+  afterAll(() => {
+    process.env.HOME = homeOriginal;
+  });
 
   beforeEach(() => {
     // clear session identity between tests
@@ -124,15 +129,17 @@ describe('initKeyrack', () => {
     when('[t0] initKeyrack called without pubkey and no default key', () => {
       then('throws helpful error', async () => {
         // use a fresh temp home with no ssh keys
-        const emptyHome = withTempHome({ name: 'initKeyrack-empty' });
-        emptyHome.setup();
+        const emptyHome = genTempDirPhysical({
+          slug: 'home-initKeyrack-empty',
+        });
+        process.env.HOME = emptyHome;
 
         try {
           const error = await getError(initKeyrack({ owner: 'test-no-key' }));
           expect(error).toBeDefined();
           expect(error?.message).toContain('no ed25519 key found');
         } finally {
-          emptyHome.teardown();
+          process.env.HOME = tempHome.path;
         }
       });
     });

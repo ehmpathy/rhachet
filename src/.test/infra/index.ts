@@ -1,7 +1,14 @@
+export {
+  genTempDirPhysical,
+  isCwdInsideRepoRoot,
+  TEST_REPO_ROOT,
+} from './genTempDirPhysical';
 export { genTestTempDir } from './genTestTempDir';
+export { genTestTempDirNonRepo } from './genTestTempDirNonRepo';
+export { setAutopruneForRun } from './setAutopruneForRun';
+export { setTempDirReclaimOnInterrupt } from './setTempDirReclaimOnInterrupt';
 export { setTestTempAsset } from './setTestTempAsset';
 export { invokeRhachetCli, invokeRhachetRun } from './invokeRhachetCli';
-export { withTempHome } from './withTempHome';
 export {
   TEST_SSH_KEY_PATH,
   TEST_SSH_PUBKEY_PATH,

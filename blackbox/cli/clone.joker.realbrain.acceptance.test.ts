@@ -11,6 +11,7 @@ import {
   setRealClaudeFirstRunAccepted,
 } from '@/blackbox/.test/infra/enrollCloneHarness';
 import { invokeRhachetCliBinaryAsync } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
 // the ONE owner of the short-serial projection — same read as its `clone.acceptance`
 // twin, so the two suites cannot drift apart on the form they each assert
 import { asCloneSerialHuman } from '@src/domain.operations/clone/asCloneSerialHuman';
@@ -34,10 +35,10 @@ jest.setTimeout(300000);
  *     conversation proves the SESSION persists — turn 2's "another one" only makes
  *     sense if turn 1's context survived, and turn 5's question proves it is a real
  *     brain, not a joke-echo
- *   - real brain, no stub: `rule.forbid.acceptance.mocks` +
- *     `rule.forbid.faked-or-quarantined-acceptance` — acceptance proves the REAL
- *     external contract. an absent brain/credential FAILS LOUD (ConstraintError,
- *     exit 2), never a skip
+ *   - real brain, no stub: `rule.forbid.acceptance.mocks` — acceptance proves the REAL
+ *     external contract. costly, so it runs only on `BRAIN_LIVE_SCOPE=all`
+ *     (`rule.require.live-brain-tests-run-on-a-named-flag`); when run, an absent
+ *     brain/credential FAILS LOUD (ConstraintError, exit 2), never a skip
  *   - LLM prose is nondeterministic, so each turn asks the brain to emit a
  *     deterministic MARKER line; `get` is polled for that marker, and only the
  *     brain-independent structure (the `delivered` tree) is snapshotted
@@ -59,7 +60,8 @@ const promptFor = (turn: number, ask: string): string =>
     turn,
   )}`;
 
-describe('rhx clone — a 5-turn conversation with a real @:joker (real acceptance)', () => {
+// a live brain spends real money per run: gated, so it runs only on `BRAIN_LIVE_SCOPE=all`
+describeBrainLiveOnDemand('rhx clone — a 5-turn conversation with a real @:joker (real acceptance)', () => {
   given('[case1] a real claude enrolled as @:joker through a real pty', () => {
     const scene = useBeforeAll(async () => {
       // the loud gate — throws ConstraintError (exit 2) when the real brain or its

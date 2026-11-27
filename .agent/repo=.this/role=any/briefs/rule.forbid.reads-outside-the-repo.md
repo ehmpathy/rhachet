@@ -58,11 +58,18 @@ this rule and this rule wins.
 
 ## .the one exception
 
-there is none. if a genuine need arises, **ask** rather than read.
+one, granted by the human, and named so it reads as sanctioned rather than as a violation:
+
+| exception | path | why | bound |
+|---|---|---|---|
+| the temp-dir leak clamp | the contained temp dir `genTempDir` writes to (`/tmp/test-fns/{scope}/.temp/` today) | the clamp must prove a test run leaves zero dirs behind, and those dirs live there — no in-repo read can observe them | a count of entries, never their contents, and never a removal. the clamp's own leak-on-purpose dirs go to test-fns' run-stamped reclaim, never to a delete of its own. the path is **derived** from the allocator, never hardcoded |
+
+granted in behavior `v2026_08_30.fix-test-tempdir-leak`. a new exception needs the same: the human
+asks or grants it, and it lands in this table. otherwise, **ask** rather than read.
 
 ## .enforcement
 
-- a read of any path outside the repo = **blocker**
+- a read of any path outside the repo, not named in `.the one exception` = **blocker**
 - a host-capacity check (loadavg, free, swap) used to gate a test run = **blocker** —
   scope the run instead
 

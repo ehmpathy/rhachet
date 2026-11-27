@@ -1,11 +1,10 @@
-import * as os from 'os';
-import * as path from 'path';
 import { given, then, when } from 'test-fns';
 
 import { getBrainHooks } from './getBrainHooks';
 
 describe('getBrainHooks', () => {
-  const repoPath = path.join(os.tmpdir(), 'test-repo');
+  // a path string only: the factory never touches the disk, so no dir is made (a unit test)
+  const repoPath = '/fake/test-repo';
 
   given('[case1] supported brain specifier', () => {
     when('[t0] brain is "opencode"', () => {

@@ -1,14 +1,16 @@
 import * as fs from 'fs/promises';
-import * as os from 'os';
 import * as path from 'path';
-import { given, then, useBeforeAll, when } from 'test-fns';
+import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
 import { getFile } from './getFile';
 
 describe('getFile', () => {
   given('[case1] file found', () => {
     const scene = useBeforeAll(async () => {
-      const filePath = path.join(os.tmpdir(), `getfile-test-${Date.now()}.txt`);
+      const filePath = path.join(
+        genTempDir({ slug: 'getfile-test' }),
+        'file.txt',
+      );
       await fs.writeFile(filePath, 'hello world', 'utf-8');
       return { filePath };
     });

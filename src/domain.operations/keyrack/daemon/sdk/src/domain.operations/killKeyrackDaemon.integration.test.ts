@@ -51,6 +51,7 @@ describe('killKeyrackDaemon', () => {
       // a short /tmp path, not a nested temp dir
       // .why = a unix socket path is capped near 108 bytes, so a deep fixture dir
       // would push the daemon's own filename past the limit
+      // .tempdir.exempt = unix socket path cap (~108 bytes); removed by this file's afterEach
       runtimeDirTest = mkdtempSync('/tmp/kkd-');
       process.env['XDG_RUNTIME_DIR'] = runtimeDirTest;
     });

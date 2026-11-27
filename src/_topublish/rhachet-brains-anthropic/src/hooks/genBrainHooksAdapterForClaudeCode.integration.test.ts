@@ -1,7 +1,6 @@
 import * as fs from 'fs/promises';
-import * as os from 'os';
 import * as path from 'path';
-import { given, then, useBeforeAll, when } from 'test-fns';
+import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
 import type { BrainHook } from '@src/domain.objects/BrainHook';
 
@@ -10,8 +9,7 @@ import { genBrainHooksAdapterForClaudeCode } from './genBrainHooksAdapterForClau
 describe('genBrainHooksAdapterForClaudeCode', () => {
   given('[case1] empty repo (no .claude/settings.json)', () => {
     const repo = useBeforeAll(async () => {
-      const dir = path.join(os.tmpdir(), `claude-test-${Date.now()}`);
-      await fs.mkdir(dir, { recursive: true });
+      const dir = genTempDir({ slug: 'claude-test' });
       return { path: dir };
     });
 
@@ -72,8 +70,7 @@ describe('genBrainHooksAdapterForClaudeCode', () => {
 
   given('[case2] repo with hooks', () => {
     const repo = useBeforeAll(async () => {
-      const dir = path.join(os.tmpdir(), `claude-test-${Date.now()}`);
-      await fs.mkdir(dir, { recursive: true });
+      const dir = genTempDir({ slug: 'claude-test' });
 
       // create initial hooks
       const adapter = genBrainHooksAdapterForClaudeCode({ repoPath: dir });
@@ -172,8 +169,7 @@ describe('genBrainHooksAdapterForClaudeCode', () => {
 
   given('[case3] get.one', () => {
     const repo = useBeforeAll(async () => {
-      const dir = path.join(os.tmpdir(), `claude-test-${Date.now()}`);
-      await fs.mkdir(dir, { recursive: true });
+      const dir = genTempDir({ slug: 'claude-test' });
 
       const adapter = genBrainHooksAdapterForClaudeCode({ repoPath: dir });
       await adapter.dao.set.upsert({
@@ -236,8 +232,7 @@ describe('genBrainHooksAdapterForClaudeCode', () => {
 
   given('[case4] hook with filter', () => {
     const repo = useBeforeAll(async () => {
-      const dir = path.join(os.tmpdir(), `claude-test-${Date.now()}`);
-      await fs.mkdir(dir, { recursive: true });
+      const dir = genTempDir({ slug: 'claude-test' });
       return { path: dir };
     });
 
@@ -281,8 +276,7 @@ describe('genBrainHooksAdapterForClaudeCode', () => {
 
   given('[case5] findsert idempotency', () => {
     const repo = useBeforeAll(async () => {
-      const dir = path.join(os.tmpdir(), `claude-test-${Date.now()}`);
-      await fs.mkdir(dir, { recursive: true });
+      const dir = genTempDir({ slug: 'claude-test' });
       return { path: dir };
     });
 
@@ -313,8 +307,7 @@ describe('genBrainHooksAdapterForClaudeCode', () => {
 
   given('[case6] del onTalk hook', () => {
     const repo = useBeforeAll(async () => {
-      const dir = path.join(os.tmpdir(), `claude-test-${Date.now()}`);
-      await fs.mkdir(dir, { recursive: true });
+      const dir = genTempDir({ slug: 'claude-test' });
 
       // create onTalk hook
       const adapter = genBrainHooksAdapterForClaudeCode({ repoPath: dir });
@@ -368,8 +361,7 @@ describe('genBrainHooksAdapterForClaudeCode', () => {
     '[case7] an onTool hook whose filter.when moves from before to after',
     () => {
       const repo = useBeforeAll(async () => {
-        const dir = path.join(os.tmpdir(), `claude-test-${Date.now()}`);
-        await fs.mkdir(dir, { recursive: true });
+        const dir = genTempDir({ slug: 'claude-test' });
         return { path: dir };
       });
       const hookBefore: BrainHook = {

@@ -1,29 +1,38 @@
 import { given, then, when } from 'test-fns';
 
-import { withTempHome } from '@src/.test/infra/withTempHome';
+import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
 
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { genContextKeyrackGrantGet } from './genContextKeyrackGrantGet';
 import { getKeyrackKeyGrant } from './getKeyrackKeyGrant';
 
-// mock daemon interactions to avoid socket access in integration tests
+/**
+ * .mock = the keyrack daemon sdk (`./daemon/sdk`), as a daemon with no key cached
+ * .why = this suite proves the vault read path a grant falls back to; a live daemon would
+ *        answer from its own cache first, and leave that path unexercised
+ * .real = `daemon/daemon.integration.test.ts` drives the daemon sdk against a real daemon,
+ *         over a real socket
+ */
 jest.mock('./daemon/sdk', () => ({
   daemonAccessGet: jest.fn().mockResolvedValue(null),
 }));
 
 describe('getKeyrackKeyGrant.integration', () => {
-  const tempHome = withTempHome({ name: 'getKeyrackKeyGrant' });
+  const tempHome = {
+    path: genTempDirPhysical({ slug: 'home-getKeyrackKeyGrant' }),
+  };
+  const homeOriginal = process.env.HOME;
   const testDir = resolve(__dirname, './.temp/getKeyrackKeyGrant');
 
   beforeAll(async () => {
-    tempHome.setup();
+    process.env.HOME = tempHome.path;
     rmSync(testDir, { recursive: true, force: true });
     mkdirSync(testDir, { recursive: true });
   });
 
   afterAll(() => {
-    tempHome.teardown();
+    process.env.HOME = homeOriginal;
     rmSync(testDir, { recursive: true, force: true });
   });
 

@@ -1,6 +1,7 @@
 import { asIsoTimeStamp } from 'iso-time';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
+import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
 
 import {
@@ -12,6 +13,7 @@ import {
   unlinkSync,
 } from 'node:fs';
 import { connect } from 'node:net';
+import { join } from 'node:path';
 import {
   daemonAccessGet,
   daemonAccessRelock,
@@ -586,15 +588,15 @@ describe('keyrack daemon integration', () => {
 
   given('[case8] pruneKeyrackDaemon', () => {
     // override XDG_RUNTIME_DIR and HOME to control socket paths
+    // .tempdir.exempt = unix socket path cap (~108 bytes); removed by this file's afterAll
     const testRuntimeDir = `/tmp/keyrack-prune-test-${process.pid}`;
-    const testHomeDir = `/tmp/keyrack-prune-home-${process.pid}`;
+    const testHomeDir = genTempDirPhysical({ slug: 'keyrack-prune-home' });
     const originalXdgRuntimeDir = process.env['XDG_RUNTIME_DIR'];
     const originalHome = process.env['HOME'];
 
     beforeAll(() => {
       // create test directories
       if (!existsSync(testRuntimeDir)) mkdirSync(testRuntimeDir);
-      if (!existsSync(testHomeDir)) mkdirSync(testHomeDir);
       // override env
       process.env['XDG_RUNTIME_DIR'] = testRuntimeDir;
       process.env['HOME'] = testHomeDir;
@@ -615,8 +617,6 @@ describe('keyrack daemon integration', () => {
       // cleanup test directories
       if (existsSync(testRuntimeDir))
         rmSync(testRuntimeDir, { recursive: true, force: true });
-      if (existsSync(testHomeDir))
-        rmSync(testHomeDir, { recursive: true, force: true });
     });
 
     when('[t0] prune with no daemon active', () => {
@@ -762,31 +762,60 @@ describe('keyrack daemon integration', () => {
 
         // three daemons, each born under a HOME of its own
         const spawned: { socketPath: string; pid: number }[] = [];
-        for (const suffix of ['a', 'b', 'c']) {
-          const homeOther = `${homeOriginal}-${suffix}`;
-          if (!existsSync(homeOther)) mkdirSync(homeOther);
-          process.env['HOME'] = homeOther;
-          const socketPath = getKeyrackDaemonSocketPath({ owner: null });
-          spawnKeyrackDaemonBackground({ socketPath });
+        // .note = deliberate mutation of HOME per daemon; the finally restores it even if a poll
+        //         throws, so no later case in this file inherits a foreign HOME
+        try {
+          for (const suffix of ['a', 'b', 'c']) {
+            // INSIDE the allocated home, never beside it: a dir beside it would be one no run
+            // stamped, so no teardown would ever reclaim it
+            const homeOther = join(homeOriginal, `home-${suffix}`);
+            if (!existsSync(homeOther)) mkdirSync(homeOther);
+            process.env['HOME'] = homeOther;
+            const socketPath = getKeyrackDaemonSocketPath({ owner: null });
+            spawnKeyrackDaemonBackground({ socketPath });
 
-          let reachable = false;
-          for (let i = 0; i < DAEMON_REACHABLE_POLL_LIMIT && !reachable; i++) {
-            reachable = await isDaemonReachable({ socketPath });
-            if (!reachable) await sleep(100);
+            let reachable = false;
+            for (
+              let i = 0;
+              i < DAEMON_REACHABLE_POLL_LIMIT && !reachable;
+              i++
+            ) {
+              reachable = await isDaemonReachable({ socketPath });
+              if (!reachable) await sleep(100);
+            }
+            expect(reachable).toBe(true);
+
+            const pidPath = socketPath.replace(/\.sock$/, '.pid');
+            spawned.push({
+              socketPath,
+              pid: parseInt(readFileSync(pidPath, 'utf-8'), 10),
+            });
           }
-          expect(reachable).toBe(true);
-
-          const pidPath = socketPath.replace(/\.sock$/, '.pid');
-          spawned.push({
-            socketPath,
-            pid: parseInt(readFileSync(pidPath, 'utf-8'), 10),
-          });
+        } catch (error) {
+          // a poll that throws mid-loop must not leak the daemons already up: reap them, then
+          // rethrow so the failure still names its own cause
+          for (const one of spawned) {
+            try {
+              process.kill(one.pid, 'SIGTERM');
+            } catch (killError) {
+              // ESRCH = already gone; any other fault rides along with the cause
+              if ((killError as NodeJS.ErrnoException).code !== 'ESRCH')
+                console.error(
+                  '💥 MalfunctionError: could not reap a test daemon',
+                  {
+                    pid: one.pid,
+                    code: (killError as NodeJS.ErrnoException).code,
+                  },
+                );
+            }
+          }
+          throw error;
+        } finally {
+          // the pruner runs under the ORIGINAL home, so its own homeHash matches
+          // none of the three — exactly the position a human is in when the backlog
+          // was minted by test runs that each set their own HOME
+          process.env['HOME'] = homeOriginal;
         }
-
-        // the pruner runs under the ORIGINAL home, so its own homeHash matches
-        // none of the three — exactly the position a human is in when the backlog
-        // was minted by test runs that each set their own HOME
-        process.env['HOME'] = homeOriginal;
         expect(new Set(spawned.map((one) => one.socketPath)).size).toBe(3);
 
         // the runtime dir is this pid's own, so the three spawned are the whole total
@@ -811,6 +840,7 @@ describe('keyrack daemon integration', () => {
     // a grain a test can observe.
     jest.setTimeout(60000);
 
+    // .tempdir.exempt = unix socket path cap (~108 bytes); removed by this file's afterAll
     const testRuntimeDir = `/tmp/keyrack-accum-test-${process.pid}`;
     const daemonPidsSpawned: number[] = [];
 

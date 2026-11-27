@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { genTempDir, getError, given, then, when } from 'test-fns';
 
 import { genMockContextConfigOfUsage } from '@src/.test/genMockContextConfigOfUsage';
+import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
 import { Role } from '@src/domain.objects/Role';
 import { RoleRegistry } from '@src/domain.objects/RoleRegistry';
 
@@ -621,7 +622,7 @@ describe('invokeRolesLink (integration)', () => {
 
     when('source directories are outside gitroot (external package)', () => {
       // create a role with sources in /tmp (outside gitroot)
-      const tmpSourceDir = resolve('/tmp', `rhachet-test-${Date.now()}`);
+      const tmpSourceDir = genTempDirPhysical({ slug: 'roles-link-external' });
       const externalBriefsDir = resolve(tmpSourceDir, 'external-briefs');
       const externalSkillsDir = resolve(tmpSourceDir, 'external-skills');
       const externalReadmePath = resolve(tmpSourceDir, 'readme.md');
@@ -646,9 +647,8 @@ describe('invokeRolesLink (integration)', () => {
       });
 
       afterAll(() => {
-        // cleanup: make writable then remove
+        // make writable, so the run's teardown (test-fns autoprune) can reclaim it
         makeDirectoryWritable(tmpSourceDir);
-        rmSync(tmpSourceDir, { recursive: true, force: true });
       });
 
       const externalRole = new Role({

@@ -1,8 +1,9 @@
 import { getError, given, then, useBeforeAll, when } from 'test-fns';
 
 import { genSampleRepoWithRoles } from '@src/.test/assets/genSampleRepoWithRoles';
+import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
 import { getOneIsPathIgnoredByGit } from '@src/.test/infra/getOneIsPathIgnoredByGit';
-import { withTempHome } from '@src/.test/infra/withTempHome';
+import { setProcessEnvVar } from '@src/.test/infra/setProcessEnvVar';
 
 import {
   existsSync,
@@ -245,13 +246,17 @@ describe('setRepoActorBrainDir', () => {
     '[case3] a box with a grove, and a grove arrow a prior release pointed at one home',
     () => {
       // a temp home with a grove, so the layout links the grove on any host
-      const home = withTempHome({ name: 'setRepoActorBrainDir-case3' });
+      //   via genTempDirPhysical, so the run that made it reclaims it
+      const home = {
+        path: genTempDirPhysical({ slug: 'home-setRepoActorBrainDir-case3' }),
+      };
+      const homeOriginal = process.env.HOME;
       beforeAll(() => {
-        home.setup();
+        process.env.HOME = home.path;
         mkdirSync(join(home.path, '.claude'), { recursive: true });
         writeFileSync(join(home.path, '.claude', 'settings.json'), '{}\n');
       });
-      afterAll(() => home.teardown());
+      afterAll(() => setProcessEnvVar({ name: 'HOME', value: homeOriginal }));
 
       const scene = useBeforeAll(async () => {
         const repoPath = genRepoWithRoles({

@@ -1,25 +1,23 @@
 import { ConstraintError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
+import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
 import {
   RoleBootSpecSimplified,
   RoleBootSpecSubjected,
 } from '@src/domain.objects/RoleBootSpec';
 import type { RoleBriefRef } from '@src/domain.operations/role/briefs/getRoleBriefRefs';
 
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { computeBootPlan } from './computeBootPlan';
 
 describe('computeBootPlan', () => {
   // create a temp directory with test files for each suite
-  const tempDir = join(tmpdir(), 'computeBootPlan-test');
+  const tempDir = genTempDirPhysical({ slug: 'computeBootPlan-test' });
 
   beforeAll(() => {
     // create temp directory structure
-    if (existsSync(tempDir)) rmSync(tempDir, { recursive: true });
-    mkdirSync(tempDir, { recursive: true });
     mkdirSync(join(tempDir, 'briefs'), { recursive: true });
     mkdirSync(join(tempDir, 'briefs', 'practices'), { recursive: true });
     mkdirSync(join(tempDir, 'skills'), { recursive: true });
@@ -31,11 +29,6 @@ describe('computeBootPlan', () => {
     writeFileSync(join(tempDir, 'briefs', 'practices', 'rule2.md'), 'rule2');
     writeFileSync(join(tempDir, 'skills', 'commit.sh'), 'commit');
     writeFileSync(join(tempDir, 'skills', 'lint.sh'), 'lint');
-  });
-
-  afterAll(() => {
-    // cleanup temp directory
-    if (existsSync(tempDir)) rmSync(tempDir, { recursive: true });
   });
 
   // helper to get brief refs (no minified variants in this test)

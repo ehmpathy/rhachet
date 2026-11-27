@@ -34,6 +34,9 @@ export const genTestTempDir = (input: {
 
     teardown: () => {
       process.chdir(originalCwd);
+      // remove the dir too: a teardown that only restored the cwd left the dir on disk until
+      // the next run's setup — and forever, if no next run came
+      rmSync(testDir, { recursive: true, force: true });
     },
 
     rm: (relativePath: string) => {

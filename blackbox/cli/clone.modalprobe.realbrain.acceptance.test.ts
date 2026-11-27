@@ -11,6 +11,7 @@ import {
   setRealClaudeFirstRunAccepted,
 } from '@/blackbox/.test/infra/enrollCloneHarness';
 import { invokeRhachetCliBinaryAsync } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
+import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
 
 /**
  * .what = the Q8 measurement (fulcrum F11), taken through the REAL product surface. F11
@@ -29,8 +30,9 @@ import { invokeRhachetCliBinaryAsync } from '@/blackbox/.test/infra/invokeRhache
  *     verdict CONFIRMS the deaf-clone hazard; an `enqueued`/`released` verdict shows the
  *     over-match does not fire in practice (the reply scrolled out of the live viewport window,
  *     or the real render carries no marker shape).
- *   - credential-gated + costly, so it gates LOUD (a ConstraintError, exit 2) and NEVER skips,
- *     the same contract its peer realbrain clamps carry (`rule.forbid.faked-or-quarantined-acceptance`).
+ *   - costly, so it runs only on the named flag `BRAIN_LIVE_SCOPE=all`
+ *     (`rule.require.live-brain-tests-run-on-a-named-flag`); when run, an absent brain or
+ *     credential still fails LOUD (a ConstraintError, exit 2), never a skip.
  */
 
 // a real-brain tier needs a wall-clock far above the default: two cold-boot turns of real LLM
@@ -89,7 +91,7 @@ const asCloneSayJsonSnapshotSafe = (input: {
   );
 };
 
-describe('rhx clone say modal-over-match probe vs a REAL claude (real acceptance)', () => {
+describeBrainLiveOnDemand('rhx clone say modal-over-match probe vs a REAL claude (real acceptance)', () => {
   given('[case1] a real claude that just rendered a numbered-list reply', () => {
     const scene = useBeforeAll(async () => {
       const { binDir } = getRealClaudeOrThrow();

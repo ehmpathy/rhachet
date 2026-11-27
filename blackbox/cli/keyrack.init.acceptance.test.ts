@@ -1,11 +1,10 @@
-import { execSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { genTestTempRepo } from '@/blackbox/.test/infra/genTestTempRepo';
+import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
 import {
   asSnapshotSafe,
   invokeRhachetCliBinary,
@@ -303,14 +302,11 @@ describe('keyrack init', () => {
   given('[case6] keyrack init without ssh key', () => {
     const scene = useBeforeAll(async () => {
       // create a temp dir with NO .ssh/ directory at all
-      const dir = mkdtempSync(join(tmpdir(), 'rhachet-test-nokey-'));
-      mkdirSync(join(dir, '.rhachet', 'keyrack'), { recursive: true });
-      execSync('git init', { cwd: dir, stdio: 'ignore' });
-      execSync('git config user.email "test@example.com"', {
-        cwd: dir,
-        stdio: 'ignore',
+      const dir = genTempDirPhysical({
+        slug: 'rhachet-test-nokey',
+        git: { commits: { init: false } },
       });
-      execSync('git config user.name "Test"', { cwd: dir, stdio: 'ignore' });
+      mkdirSync(join(dir, '.rhachet', 'keyrack'), { recursive: true });
       return { path: dir };
     });
 

@@ -1,8 +1,8 @@
 import * as fs from 'fs/promises';
-import * as os from 'os';
 import * as path from 'path';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
+import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
 import { genBrainHooksAdapterForClaudeCode } from '@src/_topublish/rhachet-brains-anthropic/src';
 import { BrainHook } from '@src/domain.objects/BrainHook';
 
@@ -12,10 +12,7 @@ describe('pruneOrphanedRoleHooksFromOneBrain', () => {
   given('[case1] orphaned hook exists, symlink does not exist', () => {
     const scene = useBeforeAll(async () => {
       // create temp repo
-      const repoPath = path.join(
-        os.tmpdir(),
-        `prune-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      );
+      const repoPath = genTempDirPhysical({ slug: 'prune-test' });
       await fs.mkdir(path.join(repoPath, '.claude'), { recursive: true });
       await fs.mkdir(path.join(repoPath, '.agent'), { recursive: true });
 
@@ -85,10 +82,7 @@ describe('pruneOrphanedRoleHooksFromOneBrain', () => {
   given('[case2] no hooks to prune', () => {
     const scene = useBeforeAll(async () => {
       // create temp repo
-      const repoPath = path.join(
-        os.tmpdir(),
-        `prune-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      );
+      const repoPath = genTempDirPhysical({ slug: 'prune-test' });
       await fs.mkdir(path.join(repoPath, '.claude'), { recursive: true });
       await fs.mkdir(path.join(repoPath, '.agent'), { recursive: true });
 
@@ -117,10 +111,7 @@ describe('pruneOrphanedRoleHooksFromOneBrain', () => {
   given('[case3] non-rhachet hooks are ignored', () => {
     const scene = useBeforeAll(async () => {
       // create temp repo
-      const repoPath = path.join(
-        os.tmpdir(),
-        `prune-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      );
+      const repoPath = genTempDirPhysical({ slug: 'prune-test' });
       await fs.mkdir(path.join(repoPath, '.claude'), { recursive: true });
       await fs.mkdir(path.join(repoPath, '.agent'), { recursive: true });
 

@@ -1,15 +1,9 @@
 import { given, then, useBeforeAll, when } from 'test-fns';
-import { getUuid } from 'uuid-fns';
+
+import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
 
 import { execSync } from 'node:child_process';
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
-import { tmpdir } from 'node:os';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 describe('invokeRepoCompile.integration', () => {
@@ -28,9 +22,11 @@ describe('invokeRepoCompile.integration', () => {
       keyrackUri?: string;
     }>;
     files: Array<{ path: string; content: string }>;
-  }): Promise<{ rootDir: string; cleanup: () => void }> => {
-    const rootDir = join(tmpdir(), `test-${getUuid()}`);
-    mkdirSync(rootDir, { recursive: true });
+  }): Promise<{ rootDir: string }> => {
+    const rootDir = genTempDirPhysical({
+      slug: 'repo-compile',
+      git: { commits: { init: false } },
+    });
 
     // create package.json
     const packageJson = {
@@ -88,13 +84,7 @@ module.exports = {
     // create dist dir
     mkdirSync(join(rootDir, 'dist'), { recursive: true });
 
-    // init git repo (required by invokeRepoCompile)
-    execSync('git init', { cwd: rootDir, stdio: 'ignore' });
-
-    return {
-      rootDir,
-      cleanup: () => rmSync(rootDir, { recursive: true, force: true }),
-    };
+    return { rootDir };
   };
 
   /**
@@ -171,8 +161,6 @@ module.exports = {
       }),
     );
 
-    afterAll(() => pkg.cleanup());
-
     when('[t0] repo compile is invoked', () => {
       const result = useBeforeAll(async () =>
         invokeRepoCompile({
@@ -219,8 +207,6 @@ module.exports = {
       }),
     );
 
-    afterAll(() => pkg.cleanup());
-
     when('[t1] repo compile is invoked', () => {
       const result = useBeforeAll(async () =>
         invokeRepoCompile({
@@ -260,8 +246,6 @@ module.exports = {
       }),
     );
 
-    afterAll(() => pkg.cleanup());
-
     when('[t2] repo compile is invoked', () => {
       const result = useBeforeAll(async () =>
         invokeRepoCompile({
@@ -299,8 +283,6 @@ module.exports = {
         ],
       }),
     );
-
-    afterAll(() => pkg.cleanup());
 
     when('[t3] repo compile is invoked', () => {
       const result = useBeforeAll(async () =>
@@ -342,8 +324,6 @@ module.exports = {
       }),
     );
 
-    afterAll(() => pkg.cleanup());
-
     when('[t4] repo compile is invoked', () => {
       const result = useBeforeAll(async () =>
         invokeRepoCompile({
@@ -381,8 +361,6 @@ module.exports = {
         ],
       }),
     );
-
-    afterAll(() => pkg.cleanup());
 
     when('[t5] repo compile is invoked with --include', () => {
       const result = useBeforeAll(async () =>
@@ -427,8 +405,6 @@ module.exports = {
       }),
     );
 
-    afterAll(() => pkg.cleanup());
-
     when('[t6] repo compile is invoked with --exclude', () => {
       const result = useBeforeAll(async () =>
         invokeRepoCompile({
@@ -464,8 +440,6 @@ module.exports = {
       }),
     );
 
-    afterAll(() => pkg.cleanup());
-
     when('[t7] repo compile is invoked with nonexistent --from', () => {
       const result = useBeforeAll(async () =>
         invokeRepoCompile({
@@ -488,8 +462,10 @@ module.exports = {
 
   given('[case9] not a rhachet-roles-* package', () => {
     const pkg = useBeforeAll(async () => {
-      const rootDir = join(tmpdir(), `test-${getUuid()}`);
-      mkdirSync(rootDir, { recursive: true });
+      const rootDir = genTempDirPhysical({
+        slug: 'repo-compile',
+        git: { commits: { init: false } },
+      });
 
       // create package.json with wrong name
       writeFileSync(
@@ -501,15 +477,9 @@ module.exports = {
         ),
       );
       mkdirSync(join(rootDir, 'src'), { recursive: true });
-      execSync('git init', { cwd: rootDir, stdio: 'ignore' });
 
-      return {
-        rootDir,
-        cleanup: () => rmSync(rootDir, { recursive: true, force: true }),
-      };
+      return { rootDir };
     });
-
-    afterAll(() => pkg.cleanup());
 
     when('[t8] repo compile is invoked', () => {
       const result = useBeforeAll(async () =>
@@ -553,8 +523,6 @@ module.exports = {
         ],
       }),
     );
-
-    afterAll(() => pkg.cleanup());
 
     when('[t9] repo compile is invoked', () => {
       const result = useBeforeAll(async () =>
@@ -605,8 +573,6 @@ module.exports = {
       }),
     );
 
-    afterAll(() => pkg.cleanup());
-
     when('[t10] repo compile is invoked', () => {
       const result = useBeforeAll(async () =>
         invokeRepoCompile({
@@ -650,8 +616,6 @@ module.exports = {
       }),
     );
 
-    afterAll(() => pkg.cleanup());
-
     when('[t11] repo compile is invoked', () => {
       const result = useBeforeAll(async () =>
         invokeRepoCompile({
@@ -692,8 +656,6 @@ module.exports = {
         ],
       }),
     );
-
-    afterAll(() => pkg.cleanup());
 
     when('[t12] repo compile is invoked', () => {
       const result = useBeforeAll(async () =>
@@ -892,8 +854,6 @@ module.exports = {
           ],
         }),
       );
-
-      afterAll(() => pkg.cleanup());
 
       when(
         '[t13] repo compile with --include *.test.md *.test.sh and --exclude *.wip.md',

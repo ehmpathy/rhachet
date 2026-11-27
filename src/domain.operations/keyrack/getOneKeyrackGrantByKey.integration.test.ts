@@ -1,6 +1,6 @@
 import { given, then, useThen, when } from 'test-fns';
 
-import { withTempHome } from '@src/.test/infra/withTempHome';
+import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
 import { KeyrackRepoManifest } from '@src/domain.objects/keyrack';
 
 import type { ContextKeyrackGrantGet } from './genContextKeyrackGrantGet';
@@ -13,12 +13,19 @@ import { getOneKeyrackGrantByKey } from './getOneKeyrackGrantByKey';
  *        path no live daemon holds — the probe is real and honestly answers "no daemon"
  */
 describe('getOneKeyrackGrantByKey.integration', () => {
-  const tempHome = withTempHome({
-    name: 'getOneKeyrackGrantByKey-integration',
-  });
+  const tempHome = {
+    path: genTempDirPhysical({
+      slug: 'home-getOneKeyrackGrantByKey-integration',
+    }),
+  };
+  const homeOriginal = process.env.HOME;
 
-  beforeAll(() => tempHome.setup());
-  afterAll(() => tempHome.teardown());
+  beforeAll(() => {
+    process.env.HOME = tempHome.path;
+  });
+  afterAll(() => {
+    process.env.HOME = homeOriginal;
+  });
 
   // the grant context, with no vault reach: the daemon probe is the one boundary here
   const genContext = (manifest: KeyrackRepoManifest): ContextKeyrackGrantGet =>

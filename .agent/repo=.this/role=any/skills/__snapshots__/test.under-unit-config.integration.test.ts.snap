@@ -1,0 +1,116 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`test.under-unit-config given: [case1] a caller asks for help when: [t0] --help is passed then: it exits 0 and renders the usage 1`] = `
+"rhx test.under-unit-config — run test files under the unit jest config
+   ├─ usage = rhx test.under-unit-config --file <path> [--file <path> ...] [--name '<regex>'] [--force-exit] [--resnap]
+   ├─ options
+   │  ├─ --file <path>   a test file to run, relative to the repo root (repeatable)
+   │  ├─ --name <regex>  run only the tests whose name matches (jest -t)
+   │  ├─ --force-exit    exit once the tests report, even if a handle is still open
+   │  ├─ --resnap        rewrite the snapshots of the files named (jest -u)
+   │  └─ --help, -h      show this help
+   └─ example = rhx test.under-unit-config --file src/.test/infra/genTempDirPhysical.integration.test.ts
+"
+`;
+
+exports[`test.under-unit-config given: [case1b] a caller goes through the real \`rhx\` dispatcher when: [t0] a refusal is provoked via \`npx rhx\` then: rhx dispatches to the skill, and the refusal echoes the call as typed 1`] = `
+"
+🪨 run solid skill repo=.this/role=any/skill=test.under-unit-config
+   └─ ✋ blocked by constraints
+
+✋ ConstraintError: not a file (a test file is owed, not a dir): src/.test/infra
+   ├─ ran = rhx test.under-unit-config --file src/.test/infra
+   └─ see = rhx test.under-unit-config --help
+"
+`;
+
+exports[`test.under-unit-config given: [case2] a caller makes a fixable mistake when: [t0] no --file is passed then: it refuses with exit 2, the class, and a pointer to help 1`] = `
+"✋ ConstraintError: at least one --file is required
+   ├─ ran = rhx test.under-unit-config
+   └─ see = rhx test.under-unit-config --help
+"
+`;
+
+exports[`test.under-unit-config given: [case2] a caller makes a fixable mistake when: [t1] an unknown option is passed then: it refuses with exit 2, the class, and a pointer to help 1`] = `
+"✋ ConstraintError: unknown option: --fiel
+   ├─ ran = rhx test.under-unit-config --fiel x.test.ts
+   └─ see = rhx test.under-unit-config --help
+"
+`;
+
+exports[`test.under-unit-config given: [case2] a caller makes a fixable mistake when: [t2] --file is passed with no value then: it refuses with exit 2, the class, and a pointer to help 1`] = `
+"✋ ConstraintError: --file needs a value
+   ├─ ran = rhx test.under-unit-config --file
+   └─ see = rhx test.under-unit-config --help
+"
+`;
+
+exports[`test.under-unit-config given: [case2] a caller makes a fixable mistake when: [t3] a --file that does not exist is passed then: it refuses with exit 2, the class, and a pointer to help 1`] = `
+"✋ ConstraintError: no such file, relative to the repo root: src/absent.integration.test.ts
+   ├─ ran = rhx test.under-unit-config --file src/absent.integration.test.ts
+   └─ see = rhx test.under-unit-config --help
+"
+`;
+
+exports[`test.under-unit-config given: [case2] a caller makes a fixable mistake when: [t4] a flag is handed where --file wants its value then: it refuses as an absent value, never as an unknown option 1`] = `
+"✋ ConstraintError: --file needs a value
+   ├─ ran = rhx test.under-unit-config --file --name foo
+   └─ see = rhx test.under-unit-config --help
+"
+`;
+
+exports[`test.under-unit-config given: [case2] a caller makes a fixable mistake when: [t5] a --file names a dir, not a file then: it refuses as the wrong shape, never as an absent path 1`] = `
+"✋ ConstraintError: not a file (a test file is owed, not a dir): src/.test/infra
+   ├─ ran = rhx test.under-unit-config --file src/.test/infra
+   └─ see = rhx test.under-unit-config --help
+"
+`;
+
+exports[`test.under-unit-config given: [case2] a caller makes a fixable mistake when: [t6] a --file is an absolute path then: it refuses and names the repo-root-relative form it wants 1`] = `
+"✋ ConstraintError: --file takes a path relative to the repo root, not an absolute one: /abs/x.test.ts
+   ├─ ran = rhx test.under-unit-config --file /abs/x.test.ts
+   └─ see = rhx test.under-unit-config --help
+"
+`;
+
+exports[`test.under-unit-config given: [case3] the dispatcher passes its own args through when: [t1] a dispatcher arg arrives with no value then: it refuses with exit 2, the class, and a pointer to help 1`] = `
+"✋ ConstraintError: --repo needs a value
+   ├─ ran = rhx test.under-unit-config --repo
+   └─ see = rhx test.under-unit-config --help
+"
+`;
+
+exports[`test.under-unit-config given: [case4] a caller stands in a subdirectory of the repo when: [t0] a repo-root-relative --file is passed then: the run's report envelope renders as snapshotted 1`] = `
+"Test Suites: 1 passed, 1 total
+Tests:       3 passed, 3 total
+Snapshots:   0 total
+Ran all test suites."
+`;
+
+exports[`test.under-unit-config given: [case5] a caller filters by test name when: [t0] --name matches only some of the tests in the file then: only the matched tests run; the rest are skipped 1`] = `
+"Test Suites: 1 passed, 1 total
+Tests:       1 skipped, 2 passed, 3 total
+Snapshots:   0 total
+Ran all test suites with tests matching "alpha"."
+`;
+
+exports[`test.under-unit-config given: [case6] a caller opts out of the open-handle wait when: [t0] --force-exit is passed then: the flag is accepted, and the tests run 1`] = `
+"Test Suites: 1 passed, 1 total
+Tests:       3 passed, 3 total
+Snapshots:   0 total
+Ran all test suites."
+`;
+
+exports[`test.under-unit-config given: [case7] the repo has no installed deps when: [t0] the skill runs from a checkout with no node_modules then: it refuses with exit 2 and names the install, never a bare shell fault 1`] = `
+"✋ ConstraintError: no jest bin at node_modules/.bin/jest; install the repo deps first (pnpm install)
+   ├─ ran = rhx test.under-unit-config --file x.test.ts
+   └─ see = rhx test.under-unit-config --help
+"
+`;
+
+exports[`test.under-unit-config given: [case8] a caller rewrites the snapshots of the files named when: [t0] --resnap is passed then: the flag is accepted, and the tests run 1`] = `
+"Test Suites: 1 passed, 1 total
+Tests:       3 passed, 3 total
+Snapshots:   0 total
+Ran all test suites."
+`;

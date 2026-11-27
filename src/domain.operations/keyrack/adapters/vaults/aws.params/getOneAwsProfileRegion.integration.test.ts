@@ -1,7 +1,8 @@
 import { given, then, useBeforeAll, when } from 'test-fns';
 
-import { mkdtempSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
+
+import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { getOneAwsProfileRegion } from './getOneAwsProfileRegion';
 
@@ -13,7 +14,7 @@ import { getOneAwsProfileRegion } from './getOneAwsProfileRegion';
  */
 describe('getOneAwsProfileRegion', () => {
   const scene = useBeforeAll(async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'aws-config-region-'));
+    const dir = genTempDirPhysical({ slug: 'aws-config-region' });
     const configPath = join(dir, 'config');
     writeFileSync(
       configPath,

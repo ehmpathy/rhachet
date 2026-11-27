@@ -1,7 +1,7 @@
 import { given, then, useBeforeAll, when } from 'test-fns';
 
+import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
 import { genTestTempDir } from '@src/.test/infra/genTestTempDir';
-import { withTempHome } from '@src/.test/infra/withTempHome';
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -21,20 +21,23 @@ import { genContextKeyrackGrantGet } from './genContextKeyrackGrantGet';
  *         special-cased `extends` would pass a one-mode clamp and still be the wrong fix
  */
 describe('genContextKeyrackGrantGet.integration', () => {
-  const tempHome = withTempHome({ name: 'genContextKeyrackGrantGet' });
+  const tempHome = {
+    path: genTempDirPhysical({ slug: 'home-genContextKeyrackGrantGet' }),
+  };
+  const homeOriginal = process.env.HOME;
   const testDir = genTestTempDir({
     base: __dirname,
     name: 'genContextKeyrackGrantGet',
   });
 
   beforeAll(() => {
-    tempHome.setup();
+    process.env.HOME = tempHome.path;
     testDir.setup();
   });
 
   afterAll(() => {
     testDir.teardown();
-    tempHome.teardown();
+    process.env.HOME = homeOriginal;
   });
 
   given('[case1] a repo manifest whose `extends` target is absent', () => {

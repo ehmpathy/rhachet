@@ -1,6 +1,9 @@
-import { mkdtempSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+
+import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
+
+import { asTestKeyBegin } from './asTestKeyText';
 
 /**
  * .what = write a throwaway pem file to a temp dir and return its path + content
@@ -12,8 +15,9 @@ import { join } from 'node:path';
 export const genTempPemFile = (input?: {
   content?: string;
 }): { path: string; content: string } => {
-  const content = input?.content ?? '-----BEGIN RSA PRIVATE KEY-----\nfake-pem\n';
-  const dir = mkdtempSync(join(tmpdir(), 'pem-fixture-'));
+  const content =
+    input?.content ?? `${asTestKeyBegin({ kind: 'RSA' })}\nfake-pem\n`;
+  const dir = genTempDirPhysical({ slug: 'pem-fixture' });
   const path = join(dir, 'app.pem');
   writeFileSync(path, content, 'utf-8');
   return { path, content };

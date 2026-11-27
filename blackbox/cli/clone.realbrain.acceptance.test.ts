@@ -10,6 +10,7 @@ import {
   setupEnrollFixture,
   setRealClaudeFirstRunAccepted,
 } from '@/blackbox/.test/infra/enrollCloneHarness';
+import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnDemand';
 
 /**
  * .what = the real-brain tier of the socket proof — the reach round-trip (enroll →
@@ -20,11 +21,11 @@ import {
  * .why =
  *   - `rule.forbid.acceptance.mocks` + the wish's paramount priority: the socket is
  *     not "delivered" until it is proven against a real brain, never only a stub
- *   - `rule.forbid.faked-or-quarantined-acceptance`: this real-brain proof lives in
- *     the ONE acceptance suite (jest.acceptance.config), NOT a separate real-only
- *     gate. it is credential-gated and COSTLY (a real token spend + LLM boot latency
- *     + nondeterministic replies), so it gates LOUD when the brain/credential is
- *     absent — a ConstraintError (exit 2) naming the fix — and NEVER skips
+ *   - it is COSTLY (a real token spend + LLM boot latency + nondeterministic replies), so
+ *     it runs only on the named flag `BRAIN_LIVE_SCOPE=all`
+ *     (`rule.require.live-brain-tests-run-on-a-named-flag`); off it, the suite is skipped
+ *     by name with a todo row that names the flag. when run, an absent brain/credential
+ *     still fails LOUD — a ConstraintError (exit 2) that names the fix — never a skip
  *   - the gate + trust pre-accept + enroll + say/poll are all shared harness fixtures,
  *     per `rule.require.shared-test-fixtures` (one home for the real-tier setup, reused
  *     by this bare-enroll reach and the multi-turn joker conversation)
@@ -40,7 +41,7 @@ jest.setTimeout(300000);
 // verbatim, so `get` can match it deterministically despite LLM nondeterminism
 const REACH_SENTINEL = 'RHACHET-REACH-OK';
 
-describe('rhx clone reach vs a REAL claude (real acceptance)', () => {
+describeBrainLiveOnDemand('rhx clone reach vs a REAL claude (real acceptance)', () => {
   given('[case1] a real, authenticated claude on PATH', () => {
     const scene = useBeforeAll(async () => {
       // the loud gate — throws a ConstraintError (exit 2) when the real brain or its

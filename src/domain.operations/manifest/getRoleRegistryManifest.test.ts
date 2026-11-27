@@ -1,16 +1,16 @@
 import { ConstraintError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
+import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
 import { RoleRegistryManifest } from '@src/domain.objects/RoleRegistryManifest';
 
 import * as fs from 'node:fs';
-import * as os from 'node:os';
 import * as path from 'node:path';
 import { getRoleRegistryManifest } from './getRoleRegistryManifest';
 
 describe('getRoleRegistryManifest', () => {
   given('[case1] valid manifest file', () => {
-    const tempDir = path.join(os.tmpdir(), `rhachet-test-${Date.now()}`);
+    const tempDir = genTempDirPhysical({ slug: 'rhachet-test-valid' });
     const validManifest = `
 slug: ehmpathy
 readme: README.md
@@ -28,14 +28,8 @@ roles:
 `;
 
     beforeAll(() => {
-      fs.mkdirSync(tempDir, { recursive: true });
       fs.writeFileSync(path.join(tempDir, 'rhachet.repo.yml'), validManifest);
     });
-
-    afterAll(() => {
-      fs.rmSync(tempDir, { recursive: true, force: true });
-    });
-
     when('[t0] manifest is read', () => {
       then('returns a RoleRegistryManifest instance', () => {
         const result = getRoleRegistryManifest({ packageRoot: tempDir });
@@ -72,7 +66,7 @@ roles:
   });
 
   given('[case2] manifest with multiple roles', () => {
-    const tempDir = path.join(os.tmpdir(), `rhachet-test-${Date.now()}-multi`);
+    const tempDir = genTempDirPhysical({ slug: 'rhachet-test-multi' });
     const multiRoleManifest = `
 slug: bhuild
 readme: README.md
@@ -94,17 +88,11 @@ roles:
 `;
 
     beforeAll(() => {
-      fs.mkdirSync(tempDir, { recursive: true });
       fs.writeFileSync(
         path.join(tempDir, 'rhachet.repo.yml'),
         multiRoleManifest,
       );
     });
-
-    afterAll(() => {
-      fs.rmSync(tempDir, { recursive: true, force: true });
-    });
-
     when('[t0] manifest is read', () => {
       then('roles array has two roles', () => {
         const result = getRoleRegistryManifest({ packageRoot: tempDir });
@@ -127,15 +115,7 @@ roles:
   });
 
   given('[case3] manifest file does not exist', () => {
-    const tempDir = path.join(os.tmpdir(), `rhachet-test-${Date.now()}-absent`);
-
-    beforeAll(() => {
-      fs.mkdirSync(tempDir, { recursive: true });
-    });
-
-    afterAll(() => {
-      fs.rmSync(tempDir, { recursive: true, force: true });
-    });
+    const tempDir = genTempDirPhysical({ slug: 'rhachet-test-absent' });
 
     when('[t0] getRoleRegistryManifest is called', () => {
       then('throws ConstraintError with "not found" message', async () => {
@@ -149,10 +129,7 @@ roles:
   });
 
   given('[case4] manifest file has invalid yaml', () => {
-    const tempDir = path.join(
-      os.tmpdir(),
-      `rhachet-test-${Date.now()}-badyaml`,
-    );
+    const tempDir = genTempDirPhysical({ slug: 'rhachet-test-badyaml' });
     const invalidYaml = `
 slug: ehmpathy
 readme: README.md
@@ -163,14 +140,8 @@ roles:
 `;
 
     beforeAll(() => {
-      fs.mkdirSync(tempDir, { recursive: true });
       fs.writeFileSync(path.join(tempDir, 'rhachet.repo.yml'), invalidYaml);
     });
-
-    afterAll(() => {
-      fs.rmSync(tempDir, { recursive: true, force: true });
-    });
-
     when('[t0] getRoleRegistryManifest is called', () => {
       then('throws ConstraintError with "invalid yaml" message', async () => {
         const error = await getError(() =>
@@ -183,10 +154,7 @@ roles:
   });
 
   given('[case5] manifest file has invalid schema', () => {
-    const tempDir = path.join(
-      os.tmpdir(),
-      `rhachet-test-${Date.now()}-badschema`,
-    );
+    const tempDir = genTempDirPhysical({ slug: 'rhachet-test-badschema' });
     const invalidSchema = `
 slug: ehmpathy
 readme: README.md
@@ -196,14 +164,8 @@ roles:
 `;
 
     beforeAll(() => {
-      fs.mkdirSync(tempDir, { recursive: true });
       fs.writeFileSync(path.join(tempDir, 'rhachet.repo.yml'), invalidSchema);
     });
-
-    afterAll(() => {
-      fs.rmSync(tempDir, { recursive: true, force: true });
-    });
-
     when('[t0] getRoleRegistryManifest is called', () => {
       then('throws ConstraintError with "invalid schema" message', async () => {
         const error = await getError(() =>
@@ -216,10 +178,7 @@ roles:
   });
 
   given('[case6] manifest with optional inits omitted', () => {
-    const tempDir = path.join(
-      os.tmpdir(),
-      `rhachet-test-${Date.now()}-noinits`,
-    );
+    const tempDir = genTempDirPhysical({ slug: 'rhachet-test-noinits' });
     const noInitsManifest = `
 slug: minimal
 readme: README.md
@@ -233,14 +192,8 @@ roles:
 `;
 
     beforeAll(() => {
-      fs.mkdirSync(tempDir, { recursive: true });
       fs.writeFileSync(path.join(tempDir, 'rhachet.repo.yml'), noInitsManifest);
     });
-
-    afterAll(() => {
-      fs.rmSync(tempDir, { recursive: true, force: true });
-    });
-
     when('[t0] manifest is read', () => {
       then('role.inits is undefined', () => {
         const result = getRoleRegistryManifest({ packageRoot: tempDir });

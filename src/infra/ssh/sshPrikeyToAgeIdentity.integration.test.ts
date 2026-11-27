@@ -1,8 +1,10 @@
 import { ConstraintError } from 'helpful-errors';
 import { getError, given, then, when } from 'test-fns';
 
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { asTestKeyText } from '@src/.test/assets/asTestKeyText';
+import { genTempDirPhysical } from '@src/.test/infra/genTempDirPhysical';
+
+import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   isAgeCLIAvailable,
@@ -14,25 +16,23 @@ describe('sshPrikeyToAgeIdentity.integration', () => {
   given('[case1] a passphrase-protected ed25519 key', () => {
     // this key has cipher aes256-ctr (passphrase-protected)
     // note: truncated for test; openssh format header is sufficient for cipher detection
-    const protectedKeyContent = `-----BEGIN OPENSSH PRIVATE KEY-----
-b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABBK7kJnHF
-VQRnJ5lHRSAWBuAAAAEAAAAAEAAAAzAAAAC3NzaC1lZDI1NTE5AAAAIDVmNE1qNNE1RG9y
-bXVDc3JZb3VyLWZha2Uta2V5AAAA
------END OPENSSH PRIVATE KEY-----`;
+    const protectedKeyContent = asTestKeyText({
+      kind: 'OPENSSH',
+      body: [
+        'b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABBK7kJnHF',
+        'VQRnJ5lHRSAWBuAAAAEAAAAAEAAAAzAAAAC3NzaC1lZDI1NTE5AAAAIDVmNE1qNNE1RG9y',
+        'bXVDc3JZb3VyLWZha2Uta2V5AAAA',
+      ],
+    });
 
     let tempDir: string;
     let keyPath: string;
 
     beforeEach(() => {
       // create temp dir with passphrase-protected key
-      tempDir = mkdtempSync(join(tmpdir(), 'keyrack-ssh-test-'));
+      tempDir = genTempDirPhysical({ slug: 'keyrack-ssh' });
       keyPath = join(tempDir, 'id_ed25519_protected');
       writeFileSync(keyPath, protectedKeyContent, { mode: 0o600 });
-    });
-
-    afterEach(() => {
-      if (existsSync(tempDir))
-        rmSync(tempDir, { recursive: true, force: true });
     });
 
     when('[t0] age CLI is available on PATH', () => {
@@ -140,27 +140,25 @@ bXVDc3JZb3VyLWZha2Uta2V5AAAA
 
   given('[case2] an unencrypted ed25519 key', () => {
     // this key has cipher 'none' (no passphrase)
-    const unencryptedKeyContent = `-----BEGIN OPENSSH PRIVATE KEY-----
-b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
-QyNTUxOQAAACBdlTBLJjO8LlO24fqXxqfFHJ95QcFpQ4hJWWXLUG1xIwAAAJjBLCW1wSwl
-tQAAAAtzc2gtZWQyNTUxOQAAACBdlTBLJjO8LlO24fqXxqfFHJ95QcFpQ4hJWWXLUG1xIw
-AAAEBH8OVWuHCPSFQjJ7oLvNqjZMpR1mQKwJkHZPqNkfJvp12VMEsmM7wuU7bh+pfGp8Uc
-n3lBwWlDiElZZctQbXEjAAAAEXRlc3RAZXhhbXBsZS5sb2NhbAECAwQF
------END OPENSSH PRIVATE KEY-----`;
+    const unencryptedKeyContent = asTestKeyText({
+      kind: 'OPENSSH',
+      body: [
+        'b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW',
+        'QyNTUxOQAAACBdlTBLJjO8LlO24fqXxqfFHJ95QcFpQ4hJWWXLUG1xIwAAAJjBLCW1wSwl',
+        'tQAAAAtzc2gtZWQyNTUxOQAAACBdlTBLJjO8LlO24fqXxqfFHJ95QcFpQ4hJWWXLUG1xIw',
+        'AAAEBH8OVWuHCPSFQjJ7oLvNqjZMpR1mQKwJkHZPqNkfJvp12VMEsmM7wuU7bh+pfGp8Uc',
+        'n3lBwWlDiElZZctQbXEjAAAAEXRlc3RAZXhhbXBsZS5sb2NhbAECAwQF',
+      ],
+    });
 
     let tempDir: string;
     let keyPath: string;
 
     beforeEach(() => {
       // create temp dir with unencrypted key
-      tempDir = mkdtempSync(join(tmpdir(), 'keyrack-ssh-test-'));
+      tempDir = genTempDirPhysical({ slug: 'keyrack-ssh' });
       keyPath = join(tempDir, 'id_ed25519_unencrypted');
       writeFileSync(keyPath, unencryptedKeyContent, { mode: 0o600 });
-    });
-
-    afterEach(() => {
-      if (existsSync(tempDir))
-        rmSync(tempDir, { recursive: true, force: true });
     });
 
     when('[t0] age CLI is NOT on PATH', () => {
