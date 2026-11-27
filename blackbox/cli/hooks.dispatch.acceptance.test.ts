@@ -1081,7 +1081,7 @@ describe('hook dispatcher (one process per claude event)', () => {
       });
     });
 
-    when('[t34] rows whose matchers are a comma list, a bar list, and empty, under one `*` wire (vision case=3)', () => {
+    when('[t38] rows whose matchers are a comma list, a bar list, and empty, under one `*` wire (vision case=3)', () => {
       // the wire no longer narrows by matcher, so each row's own matcher is the one bound on its tools
       const manifest = asManifestOfCommands({
         rows: [
@@ -2288,6 +2288,15 @@ module.exports = { getRoleRegistry };
         then('the clone still stops quietly: its manifest holds no stop row', () => {
           expect(scene.after.stop).toEqual({ code: 0, stdout: '', stderr: '' });
         });
+
+        then('the later sync a human reads, the actor pass included, matches the snapshot', () => {
+          expect(
+            scene.initLater.stdout
+              .split(scene.cwd)
+              .join('$CWD')
+              .replace(/hash=[0-9a-f]+/g, 'hash=__HEX__'),
+          ).toMatchSnapshot();
+        });
       });
     },
   );
@@ -2355,8 +2364,11 @@ module.exports = { getRoleRegistry };
         });
       });
 
-      then('the settings a human reads match the snapshot', () => {
-        expect(JSON.stringify(scene.settings.hooks, null, 2)).toMatchSnapshot();
+      then('the settings a human reads match the snapshot, each timeout in seconds as claude reads it', () => {
+        // this fixture's test brain writes `{ seconds }`; the claude adapter writes the bare number
+        const asSeconds = (_key: string, value: unknown): unknown =>
+          value && typeof value === 'object' && 'seconds' in value ? (value as { seconds: number }).seconds : value;
+        expect(JSON.stringify(scene.settings.hooks, asSeconds, 2)).toMatchSnapshot();
       });
 
       then('the init a human reads matches the snapshot', () => {
@@ -2622,7 +2634,12 @@ module.exports = { getRoleRegistry };
 
       then('the syncs a human reads match the snapshot', () => {
         expect(
-          ['=== the role drops its last row ===', scene.initEmptied.stdout, '=== the role adds a row back ===', scene.initBack.stdout].join('\n'),
+          [
+            '=== the role drops its last row ===',
+            scene.initEmptied.stdout.trim(),
+            '=== the role adds a row back ===',
+            scene.initBack.stdout.trim(),
+          ].join('\n'),
         ).toMatchSnapshot();
       });
     });

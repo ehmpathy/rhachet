@@ -25,7 +25,7 @@ export const asHookDispatchSwapLines = (input: {
       const stem = isLast ? '      ' : '   │  ';
       const rows: Array<{ text: string; children: string[] }> = [
         {
-          text: `${swap.rules} ${asNoun({ count: swap.rules, noun: 'rule' })} → ${swap.dispatchers} ${asNoun({ count: swap.dispatchers, noun: 'dispatcher' })}, one per event`,
+          text: `${swap.rules} ${asNoun({ count: swap.rules, noun: 'rule' })} → ${swap.dispatchers} ${asNoun({ count: swap.dispatchers, noun: 'dispatcher' })}${swap.dispatchers > 0 ? ', one per event' : ''}`,
           children: swap.rulesByEvent.map(
             (each) =>
               `${each.event} = ${each.rules} ${asNoun({ count: each.rules, noun: 'rule' })}`,

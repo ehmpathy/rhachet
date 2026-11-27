@@ -3,7 +3,7 @@
 exports[`asHookDispatchSwapLines a brain whose manifest is gone names zero dispatchers, its wires taken back 1`] = `
 "🪝 hook dispatchers set
    └─ claude-code
-      ├─ 0 rules → 0 dispatchers, one per event
+      ├─ 0 rules → 0 dispatchers
       └─ manifest = .claude/hooks.dispatch.manifest"
 `;
 

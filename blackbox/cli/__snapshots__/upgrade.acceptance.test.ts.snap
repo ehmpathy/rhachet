@@ -190,3 +190,14 @@ exports[`rhachet upgrade given: [case18] a linked role whose hooks an older rhac
       ├─ 3 role hooks moved from the settings into the manifest
       └─ manifest = .claude/hooks.dispatch.manifest"
 `;
+
+exports[`rhachet upgrade given: [case19] a linked role whose PreToolUse wire an older rhachet narrowed to the union of its row matchers when: [t0] rhachet upgrade --roles test/tester --which local then: the swap report matches the snapshot 1`] = `
+"🪝 hook dispatchers set
+   └─ anthropic/claude/code
+      ├─ 3 rules → 4 dispatchers, one per event
+      │  ├─ SessionStart = 2 rules
+      │  ├─ PreToolUse = 1 rule
+      │  ├─ UserPromptSubmit = 0 rules
+      │  └─ Stop = 0 rules
+      └─ manifest = .claude/hooks.dispatch.manifest"
+`;

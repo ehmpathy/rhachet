@@ -392,6 +392,23 @@ exit = 0
 (empty)"
 `;
 
+exports[`hook dispatcher (one process per claude event) given: [case3] an enrolled clone actor, whose role then adds a row on a tool no prior row named when: [t1] the role adds an Agent row, and the hooks sync again then: the later sync a human reads, the actor pass included, matches the snapshot 1`] = `
+"🔭 search for linked roles with hooks...
+   ├─ test/helper
+   └─ test/tester
+
+🪝 apply hooks to brains...
+   └─ test/tester → anthropic/claude/code: +1
+
+✨ hooks
+   └─ 1 created
+
+🧢 apply hooks to enrolled actors...
+   └─ hash=__HEX__: +1
+
+"
+`;
+
 exports[`hook dispatcher (one process per claude event) given: [case4] a role whose PreToolUse row runs slower than the wire floor when: [t0] the hooks sync then: the init a human reads matches the snapshot 1`] = `
 "
 🔧 init 1 role(s)...
@@ -447,7 +464,7 @@ exports[`hook dispatcher (one process per claude event) given: [case4] a role wh
 "
 `;
 
-exports[`hook dispatcher (one process per claude event) given: [case4] a role whose PreToolUse row runs slower than the wire floor when: [t0] the hooks sync then: the settings a human reads match the snapshot 1`] = `
+exports[`hook dispatcher (one process per claude event) given: [case4] a role whose PreToolUse row runs slower than the wire floor when: [t0] the hooks sync then: the settings a human reads match the snapshot, each timeout in seconds as claude reads it 1`] = `
 "{
   "SessionStart": [
     {
@@ -456,9 +473,7 @@ exports[`hook dispatcher (one process per claude event) given: [case4] a role wh
         {
           "type": "command",
           "command": "bash ./node_modules/rhachet/bin/hooks.dispatch.sh .claude/hooks.dispatch.manifest SessionStart",
-          "timeout": {
-            "seconds": 65
-          },
+          "timeout": 65,
           "author": "rhachet/hooks.dispatch"
         }
       ]
@@ -471,9 +486,7 @@ exports[`hook dispatcher (one process per claude event) given: [case4] a role wh
         {
           "type": "command",
           "command": "bash ./node_modules/rhachet/bin/hooks.dispatch.sh .claude/hooks.dispatch.manifest PreToolUse",
-          "timeout": {
-            "seconds": 95
-          },
+          "timeout": 95,
           "author": "rhachet/hooks.dispatch"
         }
       ]
@@ -486,9 +499,7 @@ exports[`hook dispatcher (one process per claude event) given: [case4] a role wh
         {
           "type": "command",
           "command": "bash ./node_modules/rhachet/bin/hooks.dispatch.sh .claude/hooks.dispatch.manifest UserPromptSubmit",
-          "timeout": {
-            "seconds": 65
-          },
+          "timeout": 65,
           "author": "rhachet/hooks.dispatch"
         }
       ]
@@ -501,9 +512,7 @@ exports[`hook dispatcher (one process per claude event) given: [case4] a role wh
         {
           "type": "command",
           "command": "bash ./node_modules/rhachet/bin/hooks.dispatch.sh .claude/hooks.dispatch.manifest Stop",
-          "timeout": {
-            "seconds": 65
-          },
+          "timeout": 65,
           "author": "rhachet/hooks.dispatch"
         }
       ]
@@ -585,8 +594,6 @@ exports[`hook dispatcher (one process per claude event) given: [case7] a repo sy
 
 ✨ hooks
    └─ 1 deleted
-
-
 === the role adds a row back ===
 🔭 search for linked roles with hooks...
    └─ test/tester
@@ -595,7 +602,5 @@ exports[`hook dispatcher (one process per claude event) given: [case7] a repo sy
    └─ test/tester → anthropic/claude/code: +1
 
 ✨ hooks
-   └─ 1 created
-
-"
+   └─ 1 created"
 `;
