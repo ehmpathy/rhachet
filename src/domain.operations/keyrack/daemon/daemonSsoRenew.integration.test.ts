@@ -129,7 +129,10 @@ const genDaemonForRenew = async (input: {
 };
 
 /**
- * .what = unlock an sso grant with a max expiry, an hour out unless named
+ * .what = unlock an sso grant with a max expiry, two hours out unless named
+ * .why = the mock role creds live an hour (MOCK_AWS_CREDENTIAL_TTL_S). a max at or under
+ *        that would clamp the first renew to the max, and status would read `off`; the
+ *        default must sit past the creds so a renew leaves the renewal `on`
  */
 const unlockSsoGrant = async (input: {
   socketPath: string;
@@ -143,7 +146,7 @@ const unlockSsoGrant = async (input: {
       {
         slug: input.grant.slug,
         expiresAtMax: asIsoTimeStamp(
-          new Date(Date.now() + (input.maxInMs ?? 3_600_000)),
+          new Date(Date.now() + (input.maxInMs ?? 7_200_000)),
         ),
       },
     ],
