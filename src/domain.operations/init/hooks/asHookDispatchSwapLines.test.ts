@@ -74,6 +74,22 @@ describe('asHookDispatchSwapLines', () => {
     }),
   );
 
+  test('a brain whose manifest is gone names zero dispatchers, its wires taken back', () => {
+    const lines = asHookDispatchSwapLines({
+      swaps: [
+        genSwap({
+          rules: 0,
+          rulesByEvent: [],
+          dispatchers: 0,
+          dispatchersSet: 4,
+          roleHooksTakenBack: 0,
+        }),
+      ],
+    });
+    expect(lines[0]).toEqual('🪝 hook dispatchers set');
+    expect(lines.join('\n')).toMatchSnapshot();
+  });
+
   test('a re-sync with dispatchers in place and no role hook to move prints naught', () => {
     expect(
       asHookDispatchSwapLines({

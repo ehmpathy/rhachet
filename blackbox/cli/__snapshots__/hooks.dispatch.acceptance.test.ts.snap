@@ -272,17 +272,62 @@ bash: .claude/gone.sh: No such file or directory
 `;
 
 exports[`hook dispatcher (one process per claude event) given: [case2] a repo synced once, whose role then adds a row on a tool and an event no prior row named then: the calls a human reads match the snapshot 1`] = `
-"=== a later Agent row, under the first wire ===
+"=== before: a tool no row names, under the first wire ===
+exit = 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+=== before: a talk with no talk row ===
+exit = 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+=== before: a stop with no stop row ===
+exit = 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+=== a later Agent row, under the first wire ===
 exit = 0
 --- stdout ---
 agent guard ran
 
 --- stderr ---
 (empty)
+=== the first Bash row, under the first wire ===
+exit = 0
+--- stdout ---
+bash guard ran
+
+--- stderr ---
+(empty)
+=== a Read call no row names ===
+exit = 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
 === a later talk row, under the first wire ===
 exit = 0
 --- stdout ---
 talk guard ran
+
+--- stderr ---
+(empty)
+=== a later stop row, under the first wire ===
+exit = 0
+--- stdout ---
+stop guard ran
+
+--- stderr ---
+(empty)
+=== a later boot row, under the first wire ===
+exit = 0
+--- stdout ---
+boot guard ran
 
 --- stderr ---
 (empty)
@@ -297,4 +342,92 @@ exit = 2
    ├─ reads = v1
    └─ fix = run \`npx rhx init --hooks\`, with the rhachet this repo installs, to rewrite it
 "
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case3] an enrolled clone actor, whose role then adds a row on a tool no prior row named then: the clone calls a human reads match the snapshot 1`] = `
+"=== a later Agent row, under the clone wire ===
+exit = 0
+--- stdout ---
+agent guard ran
+
+--- stderr ---
+(empty)
+=== a Bash call, under the clone wire ===
+exit = 0
+--- stdout ---
+bash guard ran
+
+--- stderr ---
+(empty)
+=== a Stop, under the clone wire, with no stop row ===
+exit = 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)"
+`;
+
+exports[`hook dispatcher (one process per claude event) given: [case4] a role whose PreToolUse row runs slower than the wire floor when: [t0] the hooks sync then: the settings a human reads match the snapshot 1`] = `
+"{
+  "SessionStart": [
+    {
+      "matcher": "*",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bash ./node_modules/rhachet/bin/hooks.dispatch.sh .claude/hooks.dispatch.manifest SessionStart",
+          "timeout": {
+            "seconds": 65
+          },
+          "author": "rhachet/hooks.dispatch"
+        }
+      ]
+    }
+  ],
+  "PreToolUse": [
+    {
+      "matcher": "*",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bash ./node_modules/rhachet/bin/hooks.dispatch.sh .claude/hooks.dispatch.manifest PreToolUse",
+          "timeout": {
+            "seconds": 95
+          },
+          "author": "rhachet/hooks.dispatch"
+        }
+      ]
+    }
+  ],
+  "UserPromptSubmit": [
+    {
+      "matcher": "*",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bash ./node_modules/rhachet/bin/hooks.dispatch.sh .claude/hooks.dispatch.manifest UserPromptSubmit",
+          "timeout": {
+            "seconds": 65
+          },
+          "author": "rhachet/hooks.dispatch"
+        }
+      ]
+    }
+  ],
+  "Stop": [
+    {
+      "matcher": "*",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bash ./node_modules/rhachet/bin/hooks.dispatch.sh .claude/hooks.dispatch.manifest Stop",
+          "timeout": {
+            "seconds": 65
+          },
+          "author": "rhachet/hooks.dispatch"
+        }
+      ]
+    }
+  ]
+}"
 `;

@@ -9,5 +9,8 @@
 | F5 | the acceptance tests under `blackbox/` sit inside the "only `src/**` and its tests" bound | clean | open: for the director | 85% |
 | F6 | the per-brain catch in `setHookDispatchersForTarget` stays as it is | clean | open: for the director | 92% |
 | F7 | a raised wire timeout goes unreported this round | clean | open: for the director | 85% |
+| F8 | two stitch integration tests that skip in ci stay out of this pr | clean | open: for the director | 80% |
+| F9 | a later row prints the hooks report, not the swap report | clean | open: for the director | 75% |
+| F10 | transformer caselists and given-level thens keep the file shape | clean | open: for the director | 85% |
 
 entries: `inventory.of=fulcrums.case=F$n-$slug.md`

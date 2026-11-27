@@ -1977,10 +1977,24 @@ module.exports = { getRoleRegistry };
           });
         expect(
           [
+            '=== before: a tool no row names, under the first wire ===',
+            asView(scene.before.agent),
+            '=== before: a talk with no talk row ===',
+            asView(scene.before.talk),
+            '=== before: a stop with no stop row ===',
+            asView(scene.before.stop),
             '=== a later Agent row, under the first wire ===',
             asView(scene.after.agent),
+            '=== the first Bash row, under the first wire ===',
+            asView(scene.after.bash),
+            '=== a Read call no row names ===',
+            asView(scene.after.read),
             '=== a later talk row, under the first wire ===',
             asView(scene.after.talk),
+            '=== a later stop row, under the first wire ===',
+            asView(scene.after.stop),
+            '=== a later boot row, under the first wire ===',
+            asView(scene.after.boot),
             '=== a corrupt manifest, met by a tool no row names ===',
             asView(scene.corrupt.agent),
           ].join('\n'),
@@ -2019,6 +2033,12 @@ module.exports = { getRoleRegistry };
 
         then('the wire the first sync wrote runs the new Agent row', () => {
           expect(scene.after.agent).toEqual({ code: 0, stdout: 'agent guard ran\n', stderr: '' });
+        });
+
+        then('the later sync names the rows it added, with no swap report (vision case=4 [t2], F9)', () => {
+          expect(scene.initLater.stdout).toContain('test/tester → anthropic/claude/code: +4');
+          expect(scene.initLater.stdout).toContain('4 created');
+          expect(scene.initLater.stdout).not.toContain('🪝 hook dispatchers set');
         });
 
         then('the wire the first sync wrote runs the new talk row', () => {
@@ -2136,7 +2156,11 @@ module.exports = { getRoleRegistry };
         const commandOf = (event: string): string => asHooksOfEvent({ settings, event })[0]!.command;
         const dispatch = (event: string, payload: string) =>
           runAsClaude({ cwd, command: commandOf(event), payload });
-        const before = { agent: dispatch('PreToolUse', asPayloadOfTool('Agent')) };
+        const payloadStop = JSON.stringify({ session_id: 'abc', hook_event_name: 'Stop', stop_hook_active: false });
+        const before = {
+          agent: dispatch('PreToolUse', asPayloadOfTool('Agent')),
+          stop: dispatch('Stop', payloadStop),
+        };
 
         // the later sync: the role adds an Agent row; the actor pass re-derives the clone manifest
         const initLater = syncHooks({ hooks: HOOKS_LATER, args: ['init', '--hooks'] });
@@ -2145,9 +2169,29 @@ module.exports = { getRoleRegistry };
           agent: dispatch('PreToolUse', asPayloadOfTool('Agent')),
           bash: dispatch('PreToolUse', asPayloadOfTool('Bash')),
           read: dispatch('PreToolUse', asPayloadOfTool('Read')),
+          stop: dispatch('Stop', payloadStop),
         };
 
-        return { initFirst, enroll, initLater, settings, settingsTextFirst, settingsTextLater, before, after };
+        return { cwd, initFirst, enroll, initLater, settings, settingsTextFirst, settingsTextLater, before, after };
+      });
+
+      then('the clone calls a human reads match the snapshot', () => {
+        const asView = (call: { code: number | null; stdout: string; stderr: string }): string =>
+          asCallView({
+            code: call.code,
+            stdout: call.stdout.split(scene.cwd).join('$CWD'),
+            stderr: call.stderr.split(scene.cwd).join('$CWD'),
+          });
+        expect(
+          [
+            '=== a later Agent row, under the clone wire ===',
+            asView(scene.after.agent),
+            '=== a Bash call, under the clone wire ===',
+            asView(scene.after.bash),
+            '=== a Stop, under the clone wire, with no stop row ===',
+            asView(scene.after.stop),
+          ].join('\n'),
+        ).toMatchSnapshot();
       });
 
       then('the syncs and the enroll succeed', () => {
@@ -2166,9 +2210,10 @@ module.exports = { getRoleRegistry };
         }
       });
 
-      when('[t0] the clone calls a tool no row names yet', () => {
-        then('the call exits 0 with no bytes', () => {
+      when('[t0] the clone calls a tool no row names yet, and stops (vision case=5)', () => {
+        then('each call exits 0 with no bytes', () => {
           expect(scene.before.agent).toEqual({ code: 0, stdout: '', stderr: '' });
+          expect(scene.before.stop).toEqual({ code: 0, stdout: '', stderr: '' });
         });
       });
 
@@ -2185,7 +2230,80 @@ module.exports = { getRoleRegistry };
           expect(scene.after.bash).toEqual({ code: 0, stdout: 'bash guard ran\n', stderr: '' });
           expect(scene.after.read).toEqual({ code: 0, stdout: '', stderr: '' });
         });
+
+        then('the clone still stops quietly: its manifest holds no stop row', () => {
+          expect(scene.after.stop).toEqual({ code: 0, stdout: '', stderr: '' });
+        });
       });
     },
   );
+
+  given('[case4] a role whose PreToolUse row runs slower than the wire floor', () => {
+    // a 90s rule: the PreToolUse wire must rise to 95s, so claude never kills the dispatcher first
+    const REGISTRY_SLOW = `
+const getRoleRegistry = () => ({
+  slug: 'test',
+  readme: { uri: 'readme.md' },
+  roles: [
+    {
+      slug: 'tester',
+      name: 'Tester',
+      purpose: 'test role with one slow hook',
+      readme: { uri: 'roles/tester/readme.md' },
+      traits: [],
+      skills: { dirs: { uri: 'roles/tester/skills' }, refs: [] },
+      briefs: { dirs: { uri: 'roles/tester/briefs' } },
+      inits: { dirs: { uri: 'roles/tester/inits' } },
+      hooks: {
+        onBrain: {
+          onTool: [{ command: 'echo "slow guard ran"', timeout: 'PT90S', filter: { what: 'Bash' } }],
+        },
+      },
+    },
+  ],
+});
+module.exports = { getRoleRegistry };
+`;
+
+    const scene = useBeforeAll(async () => {
+      const cwd = (await genTestTempRepo({ fixture: 'with-hook-dispatch' })).path;
+      setRhachetLinkedInto({ cwd });
+      writeFileSync(join(cwd, 'node_modules/rhachet-roles-test/dist/index.js'), REGISTRY_SLOW);
+      const init = invokeRhachetCliBinary({
+        args: ['init', '--roles', 'tester', '--hooks'],
+        cwd,
+        env: { HOME: genTempDir({ slug: 'hooks-dispatch-slow-home' }) },
+      });
+      const settings = JSON.parse(readFileSync(join(cwd, '.claude/settings.of.repo.json'), 'utf-8'));
+      return { init, settings };
+    });
+
+    when('[t0] the hooks sync', () => {
+      then('the sync succeeds', () => {
+        expect(scene.init.status).toEqual(0);
+      });
+
+      then('only the slow event wire rises above the floor, by the margin', () => {
+        const timeoutsByEvent = Object.fromEntries(
+          ['SessionStart', 'PreToolUse', 'UserPromptSubmit', 'Stop'].map((event) => [
+            event,
+            // this fixture's test brain writes the timeout as an iso-duration shape
+            (scene.settings.hooks[event] as Array<{ hooks: Array<{ timeout: { seconds: number } }> }>).map(
+              (entry) => entry.hooks.map((hook) => hook.timeout.seconds),
+            ),
+          ]),
+        );
+        expect(timeoutsByEvent).toEqual({
+          SessionStart: [[65]],
+          PreToolUse: [[95]],
+          UserPromptSubmit: [[65]],
+          Stop: [[65]],
+        });
+      });
+
+      then('the settings a human reads match the snapshot', () => {
+        expect(JSON.stringify(scene.settings.hooks, null, 2)).toMatchSnapshot();
+      });
+    });
+  });
 });

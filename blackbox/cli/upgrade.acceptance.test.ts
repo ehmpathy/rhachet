@@ -1604,16 +1604,21 @@ describe('rhachet upgrade', () => {
         const settings = JSON.parse(
           readFileSync(join(scene.repo.path, '.claude', 'settings.of.repo.json'), 'utf-8'),
         );
-        // read by position: the fixture's test brain keys `onTalk` raw, not as `UserPromptSubmit`
-        const authorsPerEvent = Object.values(
-          settings.hooks as Record<string, Array<{ hooks: Array<{ author: string }> }>>,
-        ).map((entries) => entries.flatMap((entry) => entry.hooks.map((hook) => hook.author)));
-        expect(authorsPerEvent).toEqual([
-          ['rhachet/hooks.dispatch'],
-          ['rhachet/hooks.dispatch'],
-          ['rhachet/hooks.dispatch'],
-          ['rhachet/hooks.dispatch'],
-        ]);
+        // the fixture's test brain maps no onTalk event, so it keys that wire `onTalk` raw
+        const authorsPerEvent = Object.fromEntries(
+          Object.entries(
+            settings.hooks as Record<string, Array<{ hooks: Array<{ author: string }> }>>,
+          ).map(([event, entries]) => [
+            event,
+            entries.flatMap((entry) => entry.hooks.map((hook) => hook.author)),
+          ]),
+        );
+        expect(authorsPerEvent).toEqual({
+          SessionStart: ['rhachet/hooks.dispatch'],
+          PreToolUse: ['rhachet/hooks.dispatch'],
+          onTalk: ['rhachet/hooks.dispatch'],
+          Stop: ['rhachet/hooks.dispatch'],
+        });
       });
 
       then('the manifest holds the three rules', () => {
