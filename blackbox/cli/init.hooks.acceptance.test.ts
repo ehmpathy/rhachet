@@ -985,11 +985,13 @@ module.exports = { getRoleRegistry };
         );
 
         then('stdout names each exclude it dropped, beneath the actor', () => {
+          // .note = the layout-first pass writes the repo actor's excludes before the role
+          //   inits, so the drop is reported under the repo actor's brain dir
           expect(repo.resultFirst.stdout).toContain(
-            'claudeMdExcludes dropped /home/camper/.claude/CLAUDE.md',
+            '/home/camper/.claude/CLAUDE.md — a claudeMdExcludes entry rhachet does not derive',
           );
           expect(repo.resultFirst.stdout).toContain(
-            'claudeMdExcludes dropped /home/fixturehuman/.claude/CLAUDE.md',
+            '/home/fixturehuman/.claude/CLAUDE.md — a claudeMdExcludes entry rhachet does not derive',
           );
         });
 
@@ -1006,7 +1008,7 @@ module.exports = { getRoleRegistry };
           //   group is never cut mid-branch; the role list above it varies with the fixture
           const lines = repo.resultFirst.stdout.split('\n');
           const start = lines.findIndex((line) =>
-            line.startsWith('🧢 apply hooks to enrolled actors'),
+            line.startsWith('🧠 brain://repo=ambient'),
           );
           expect(start).toBeGreaterThan(-1);
           const end = lines.findIndex(

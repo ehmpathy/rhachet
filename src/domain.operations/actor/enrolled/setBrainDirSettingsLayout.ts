@@ -10,6 +10,7 @@ import {
   lstatSync,
   mkdirSync,
   readdirSync,
+  readFileSync,
   readlinkSync,
   rmSync,
 } from 'node:fs';
@@ -118,10 +119,7 @@ export const setBrainDirSettingsLayoutWithinLock = (input: {
   // the `.home` mirror's dirs must be real dirs: through a link (say `.home -> ~`) the mirror
   //   leaf IS the human's home settings, and an arrow swapped in over it would destroy them.
   //   refuse before any mutation, as above
-  for (const pathMirrorDir of [
-    dirname(dirname(pathHome)),
-    dirname(pathHome),
-  ]) {
+  for (const pathMirrorDir of [dirname(dirname(pathHome)), dirname(pathHome)]) {
     const statMirrorDir = lstatSync(pathMirrorDir, { throwIfNoEntry: false });
     if (statMirrorDir && !statMirrorDir.isDirectory())
       throw new ConstraintError('the .home mirror must hold real dirs', {
@@ -142,7 +140,10 @@ export const setBrainDirSettingsLayoutWithinLock = (input: {
   // the home link: the one name that holds this box's home path, so it stays out of git.
   //   a box with no grove drops it, so the chain ends inside the brain dir and no write
   //   through it can create the human's home settings
+  //   the mirror ignores itself before its leaf exists, so the absolute home path is never
+  //   tracked — on every entry command, and even when a later step of the run faults
   mkdirSync(dirname(pathHome), { recursive: true });
+  setMirrorGitignore({ pathMirrorRoot: dirname(dirname(pathHome)) });
   const effectsHome = isGrovePresent
     ? setArrow({
         name: CLAUDE_SETTINGS_FILENAMES.home,
@@ -181,6 +182,26 @@ export const setBrainDirSettingsLayoutWithinLock = (input: {
       ...effectsLocal,
     ],
   };
+};
+
+/**
+ * .what = the `.gitignore` the `.home` mirror holds: it ignores the whole mirror, itself included
+ */
+const MIRROR_GITIGNORE_CONTENT = '*\n';
+
+/**
+ * .what = findsert the `.home` mirror's own `.gitignore`
+ * .why = the mirror's leaf is an absolute home path. the brain dir's `.gitignore` also ignores
+ *   it, but that file is written by a later step (`setRepoActorBrainDir`), which `rhx roles init`
+ *   never runs and a fault can skip. the mirror ignores itself, so no entry command can stage it
+ */
+const setMirrorGitignore = (input: { pathMirrorRoot: string }): void => {
+  const path = join(input.pathMirrorRoot, '.gitignore');
+  const stat = lstatSync(path, { throwIfNoEntry: false });
+  if (stat?.isFile() && readFileSync(path, 'utf8') === MIRROR_GITIGNORE_CONTENT)
+    return;
+  if (stat && !stat.isFile()) rmSync(path, { recursive: true, force: true });
+  setFileAtomic({ path, content: MIRROR_GITIGNORE_CONTENT });
 };
 
 /**

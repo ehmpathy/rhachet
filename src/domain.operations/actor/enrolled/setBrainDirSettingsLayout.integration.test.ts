@@ -512,6 +512,11 @@ describe('setBrainDirSettingsLayout', () => {
               name: 'settings.of.grove.json',
               target: '.home/.claude/settings.json',
             },
+            {
+              kind: 'LINKED',
+              name: 'settings.local.json',
+              target: 'settings.of.repo.json',
+            },
           ]);
         });
       });

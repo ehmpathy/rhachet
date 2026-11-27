@@ -22,7 +22,7 @@ exports[`rhachet init --hooks given: [case8] a role that declares a role boot ho
    ├─ linked
    │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ replaced
-      └─ .claude/settings.json — a real file was here; this box has no ~/.claude/settings.json, so rhachet removed it and its content is gone (keep durable allows in a role or ~/.claude/settings.json)
+      └─ .claude/settings.json → settings.of.grove.json — a real file was here; its content is gone, rhachet owns this name (keep durable allows in a role or ~/.claude/settings.json)
 
 🔧 init 1 role(s)...
 
@@ -97,10 +97,10 @@ exports[`rhachet init --hooks given: [case9] a hook a human added by hand beside
 `;
 
 exports[`rhachet init --hooks given: [case9] a repo actor whose committed file names two homes in claudeMdExcludes when: [t0] init --hooks runs then: the tree this case changes matches snapshot, whole 1`] = `
-"🧢 apply hooks to enrolled actors...
-   └─ repo=ambient
-      ├─ claudeMdExcludes dropped /HOME_DIR/.claude/CLAUDE.md — an absolute path; the excludes keep only portable globs
-      └─ claudeMdExcludes dropped /HOME_DIR/.claude/CLAUDE.md — an absolute path; the excludes keep only portable globs"
+"🧠 brain://repo=ambient
+   └─ unexcluded
+      ├─ /HOME_DIR/.claude/CLAUDE.md — a claudeMdExcludes entry rhachet does not derive; rhachet owns this key, so it was dropped
+      └─ /HOME_DIR/.claude/CLAUDE.md — a claudeMdExcludes entry rhachet does not derive; rhachet owns this key, so it was dropped"
 `;
 
 exports[`rhachet init --hooks given: [case10] a role hook whose matcher the dispatcher cannot read when: [t0] init --roles tester,reviewer --hooks then: the stdout and stderr are locked: stderr 1`] = `""`;
@@ -110,7 +110,7 @@ exports[`rhachet init --hooks given: [case10] a role hook whose matcher the disp
    ├─ linked
    │  └─ .claude → .agent/.actors/actor.via.repo=ambient/brain/.claude
    └─ replaced
-      └─ .claude/settings.json — a real file was here; this box has no ~/.claude/settings.json, so rhachet removed it and its content is gone (keep durable allows in a role or ~/.claude/settings.json)
+      └─ .claude/settings.json → settings.of.grove.json — a real file was here; its content is gone, rhachet owns this name (keep durable allows in a role or ~/.claude/settings.json)
 
 🔧 init 2 role(s)...
 

@@ -499,6 +499,10 @@ exports[`rhx enroll --roles (acceptance) given: [case2f] a committed repo actor 
 
 exports[`rhx enroll --roles (acceptance) given: [case2f] a committed repo actor file that names two homes in claudeMdExcludes when: [t0] a bare enroll runs then: the cleaned repo actor file matches snapshot 1`] = `
 "{
+  "claudeMdExcludes": [
+    "**/!(brain)/.claude/CLAUDE.md",
+    "**/CLAUDE.local.md"
+  ],
   "permissions": {
     "allow": "<some allow entries>",
     "deny": [
@@ -632,10 +636,6 @@ exports[`rhx enroll --roles (acceptance) given: [case2f] a committed repo actor 
     "command": "node -e \\"import('rhachet-roles-bhrain/cli/route.status.line').then(m => m.routeStatusLine())\\"",
     "padding": 0
   },
-  "claudeMdExcludes": [
-    "**/!(brain)/.claude/CLAUDE.md",
-    "**/CLAUDE.local.md"
-  ],
   "attribution": {
     "commit": "",
     "pr": ""
