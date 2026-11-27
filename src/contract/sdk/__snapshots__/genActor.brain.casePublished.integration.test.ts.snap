@@ -1,0 +1,13 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`genActor.brain.casePublished (integration) given: [case1] published pattern (rhachet-roles-example.published) when: [t3] author.act({ brain: notInAllowlist, skill }) then: throws error, and no brain is called 1`] = `
+"✋ ConstraintError: brain not in actor allowlist
+
+{
+  "brainSlugFull": "openai/codex",
+  "allowlistSlugs": [
+    "mock/primary",
+    "anthropic/claude/code/haiku"
+  ]
+}"
+`;

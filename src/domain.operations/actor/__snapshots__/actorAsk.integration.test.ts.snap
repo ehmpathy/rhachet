@@ -1,0 +1,119 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`actorAsk (integration) given: [case1] the tester role, and a mocked repl brain that records each call when: [t0] actorAsk is called with a prompt then: the whole envelope the caller receives is snapped 1`] = `
+BrainOutput {
+  "calls": null,
+  "episode": BrainEpisode {
+    "exchanges": [
+      BrainExchange {
+        "exid": null,
+        "hash": "59edafee1397333f3efb8b8457c6a1f20f8823c63dc02b8f8aee34a4a86d648f",
+        "input": "say hello",
+        "output": "{"answer":"hello from the brain"}",
+      },
+    ],
+    "exid": null,
+    "hash": "27c1e2b53095a1faf5654e6b87c967f8854cce47f5b2d534708892d7dc8b5ca7",
+  },
+  "metrics": BrainOutputMetrics {
+    "cost": {
+      "cash": {
+        "deets": {
+          "cache": {
+            "get": "USD 0.00",
+            "set": "USD 0.00",
+          },
+          "input": "USD 0.003",
+          "output": "USD 0.007_500",
+        },
+        "total": "USD 0.01",
+      },
+      "time": {
+        "milliseconds": 1500,
+      },
+    },
+    "size": {
+      "chars": {
+        "cache": {
+          "get": 0,
+          "set": 0,
+        },
+        "input": 4000,
+        "output": 2000,
+      },
+      "tokens": {
+        "cache": {
+          "get": 0,
+          "set": 0,
+        },
+        "input": 1000,
+        "output": 500,
+      },
+    },
+  },
+  "output": {
+    "answer": "hello from the brain",
+  },
+  "series": BrainSeries {
+    "episodes": [
+      BrainEpisode {
+        "exchanges": [
+          BrainExchange {
+            "exid": null,
+            "hash": "59edafee1397333f3efb8b8457c6a1f20f8823c63dc02b8f8aee34a4a86d648f",
+            "input": "say hello",
+            "output": "{"answer":"hello from the brain"}",
+          },
+        ],
+        "exid": null,
+        "hash": "27c1e2b53095a1faf5654e6b87c967f8854cce47f5b2d534708892d7dc8b5ca7",
+      },
+    ],
+    "exid": null,
+    "hash": "dc001a2512a5670a7ff1c410d9c01acca4f2b70c2ea62089a05336721632b741",
+  },
+}
+`;
+
+exports[`actorAsk (integration) given: [case2] a mocked repl told to fill an output the schema refuses when: [t0] actorAsk is called with the default schema then: the call rejects at parse, and names the absent key 1`] = `
+"✋ ConstraintError: genMockedBrainRepl's answer to 'ask' does not fit the caller's schema
+
+{
+  "mock": "genMockedBrainRepl",
+  "verb": "ask",
+  "output": {
+    "verdict": "ok"
+  },
+  "issues": [
+    {
+      "path": "answer",
+      "message": "Invalid input: expected string, received undefined"
+    }
+  ],
+  "hint": "set output.ask to the shape the caller's schema wants"
+}"
+`;
+
+exports[`actorAsk (integration) given: [case3] a mocked repl told an output for act, but none for ask when: [t0] actorAsk is called then: the call rejects loud, and names the verb the mock was not told 1`] = `
+"✋ ConstraintError: genMockedBrainRepl was told an output, but none for 'ask'
+
+{
+  "mock": "genMockedBrainRepl",
+  "verb": "ask",
+  "outputVerbsTold": [
+    "act"
+  ],
+  "hint": "add output.ask, in the shape the caller's schema wants"
+}"
+`;
+
+exports[`actorAsk (integration) given: [case4] a mocked atom told an empty output, so none for ask when: [t0] actorAsk is called then: the call rejects loud, and names the verb the atom was not told 1`] = `
+"✋ ConstraintError: genMockedBrainAtom was told an empty output, so none for 'ask'
+
+{
+  "mock": "genMockedBrainAtom",
+  "verb": "ask",
+  "outputVerbsTold": [],
+  "hint": "add output.ask, in the shape the caller's schema wants"
+}"
+`;
