@@ -6,7 +6,7 @@ import type { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGran
 /**
  * .what = one renew try, settled into a renewal or an operational fault, within a bound
  * .why = the renew calls out to the mech's upstream, which can hang. a hang that never settles
- *        would hold the key's in-flight slot forever, and the key would die with no mark.
+ *        would hold the key's in-flight slot forever, and the key would die with no status named.
  *        the bound turns a hang into a counted fault, so it can halt and be named
  *
  * .note = only an operational fault (ConstraintError, MalfunctionError) is settled into

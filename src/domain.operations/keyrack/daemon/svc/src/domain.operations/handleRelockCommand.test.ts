@@ -6,7 +6,7 @@ import { genSampleKeyrackSsoGrant } from '@src/.test/assets/genSampleKeyrackSsoG
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
 import { KeyrackKeyReach } from '@src/domain.objects/keyrack/KeyrackKeyReach';
 import { createDaemonKeyStore } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonKeyStore';
-import { createDaemonRenewRecord } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonRenewRecord';
+import { createDaemonRenewalRecord } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonRenewalRecord';
 import { asKeyrackKeyReachField } from '@src/domain.operations/keyrack/reach/asKeyrackKeyReachField';
 
 import { handleRelockCommand } from './handleRelockCommand';
@@ -76,7 +76,7 @@ describe('handleRelockCommand', () => {
         const keyStore = genStoreWithThreeReachesOfOneSlug();
         const result = handleRelockCommand(
           { env: 'prep' },
-          { keyStore, renewRecord: createDaemonRenewRecord() },
+          { keyStore, renewalRecord: createDaemonRenewalRecord() },
         );
 
         expect(result.relocked).toEqual(['ahbode.prep.TOKEN']);
@@ -87,7 +87,7 @@ describe('handleRelockCommand', () => {
         const keyStore = genStoreWithThreeReachesOfOneSlug();
         handleRelockCommand(
           { env: 'prep' },
-          { keyStore, renewRecord: createDaemonRenewRecord() },
+          { keyStore, renewalRecord: createDaemonRenewalRecord() },
         );
 
         expect(keyStore.size()).toEqual(0);
@@ -101,7 +101,7 @@ describe('handleRelockCommand', () => {
           const keyStore = genStoreWithThreeReachesOfOneSlug();
           const result = handleRelockCommand(
             {},
-            { keyStore, renewRecord: createDaemonRenewRecord() },
+            { keyStore, renewalRecord: createDaemonRenewalRecord() },
           );
 
           expect(result.relocked).toEqual(['ahbode.prep.TOKEN']);
@@ -115,7 +115,7 @@ describe('handleRelockCommand', () => {
         const keyStore = genStoreWithThreeReachesOfOneSlug();
         const result = handleRelockCommand(
           { slugs: ['ahbode.prep.TOKEN'] },
-          { keyStore, renewRecord: createDaemonRenewRecord() },
+          { keyStore, renewalRecord: createDaemonRenewalRecord() },
         );
 
         expect(result.relocked).toEqual(['ahbode.prep.TOKEN']);
@@ -138,7 +138,7 @@ describe('handleRelockCommand', () => {
             slugs: ['ahbode.prep.TOKEN'],
             reach: new KeyrackKeyReach({ exid: 'github://org=ehmpathy' }),
           },
-          { keyStore, renewRecord: createDaemonRenewRecord() },
+          { keyStore, renewalRecord: createDaemonRenewalRecord() },
         );
 
         expect(result.relocked).toEqual(['ahbode.prep.TOKEN']);
@@ -152,7 +152,7 @@ describe('handleRelockCommand', () => {
             slugs: ['ahbode.prep.TOKEN'],
             reach: new KeyrackKeyReach({ exid: 'github://org=ehmpathy' }),
           },
-          { keyStore, renewRecord: createDaemonRenewRecord() },
+          { keyStore, renewalRecord: createDaemonRenewalRecord() },
         );
 
         expect(keyStore.get({ slug: 'ahbode.prep.TOKEN' })).not.toBeNull();
@@ -183,7 +183,7 @@ describe('handleRelockCommand', () => {
         const keyStore = genStore();
         const result = handleRelockCommand(
           { env: 'prep' },
-          { keyStore, renewRecord: createDaemonRenewRecord() },
+          { keyStore, renewalRecord: createDaemonRenewalRecord() },
         );
 
         expect(result.relocked).toEqual([
@@ -195,17 +195,17 @@ describe('handleRelockCommand', () => {
   });
 
   /**
-   * .what = a relock purges the renew record on every path, so a renew never revives a key
+   * .what = a relock purges the renewal record on every path, so a renew never revives a key
    *         a human locked
    * .why = the record is seeded through the unlock handler, as the daemon fills it; each
    *        path's purge goes red here if removed
    */
   given('[case4] an sso key the daemon renews', () => {
-    const capAt = asIsoTimeStamp(new Date(Date.now() + 9 * 60 * 60_000));
+    const expiresAtMax = asIsoTimeStamp(new Date(Date.now() + 9 * 60 * 60_000));
     const reach = new KeyrackKeyReach({ exid: 'github://org=ehmpathy' });
     const genDaemonWithRenew = (input: { reach?: KeyrackKeyReach }) => {
       const keyStore = createDaemonKeyStore();
-      const renewRecord = createDaemonRenewRecord();
+      const renewalRecord = createDaemonRenewalRecord();
       const grant = genSampleKeyrackSsoGrant({ expiresAt, reach: input.reach });
       handleUnlockCommand(
         {
@@ -213,20 +213,20 @@ describe('handleRelockCommand', () => {
           renewals: [
             {
               slug: grant.slug,
-              capAt,
+              expiresAtMax,
               ...asKeyrackKeyReachField({ reach: input.reach }),
             },
           ],
         },
-        { keyStore, renewRecord },
+        { keyStore, renewalRecord },
       );
-      return { keyStore, renewRecord, grant };
+      return { keyStore, renewalRecord, grant };
     };
 
     when('[t0] the unlock is in', () => {
       then('the record holds a renew entry', () => {
         const daemon = genDaemonWithRenew({});
-        expect(daemon.renewRecord.size()).toEqual(1);
+        expect(daemon.renewalRecord.size()).toEqual(1);
       });
     });
 
@@ -234,7 +234,7 @@ describe('handleRelockCommand', () => {
       then('the renew entry is purged', () => {
         const daemon = genDaemonWithRenew({});
         handleRelockCommand({ slugs: [daemon.grant.slug] }, daemon);
-        expect(daemon.renewRecord.size()).toEqual(0);
+        expect(daemon.renewalRecord.size()).toEqual(0);
       });
     });
 
@@ -242,7 +242,7 @@ describe('handleRelockCommand', () => {
       then('the renew entry is purged', () => {
         const daemon = genDaemonWithRenew({});
         handleRelockCommand({ env: 'camp' }, daemon);
-        expect(daemon.renewRecord.size()).toEqual(0);
+        expect(daemon.renewalRecord.size()).toEqual(0);
       });
     });
 
@@ -250,7 +250,7 @@ describe('handleRelockCommand', () => {
       then('the renew entry stays', () => {
         const daemon = genDaemonWithRenew({});
         handleRelockCommand({ env: 'prep' }, daemon);
-        expect(daemon.renewRecord.size()).toEqual(1);
+        expect(daemon.renewalRecord.size()).toEqual(1);
       });
     });
 
@@ -258,7 +258,7 @@ describe('handleRelockCommand', () => {
       then('the renew entry is purged', () => {
         const daemon = genDaemonWithRenew({});
         handleRelockCommand({}, daemon);
-        expect(daemon.renewRecord.size()).toEqual(0);
+        expect(daemon.renewalRecord.size()).toEqual(0);
       });
     });
 
@@ -266,63 +266,63 @@ describe('handleRelockCommand', () => {
       then('the renew entry at that reach is purged', () => {
         const daemon = genDaemonWithRenew({ reach });
         handleRelockCommand({ slugs: [daemon.grant.slug], reach }, daemon);
-        expect(daemon.renewRecord.size()).toEqual(0);
+        expect(daemon.renewalRecord.size()).toEqual(0);
       });
     });
   });
 
   /**
-   * .what = a marked entry that outlived its grant is a key the human can still lock
-   * .why = a lapse or halt mark stays in status past its grant (F5) and keeps the daemon
+   * .what = a stopped renewal that outlived its grant is a key the human can still lock
+   * .why = a lapsed or halted entry stays in status past its grant (F5) and keeps the daemon
    *        alive; a relock that missed it would leave both behind
    */
   given('[case5] a lapsed entry whose grant has left the store', () => {
-    const capAt = asIsoTimeStamp(new Date(Date.now() + 9 * 60 * 60_000));
-    const genDaemonWithMarkOnly = () => {
+    const expiresAtMax = asIsoTimeStamp(new Date(Date.now() + 9 * 60 * 60_000));
+    const genDaemonWithLapsedOnly = () => {
       const keyStore = createDaemonKeyStore();
-      const renewRecord = createDaemonRenewRecord();
+      const renewalRecord = createDaemonRenewalRecord();
       const grant = genSampleKeyrackSsoGrant({ expiresAt });
       handleUnlockCommand(
-        { keys: [grant], renewals: [{ slug: grant.slug, capAt }] },
-        { keyStore, renewRecord },
+        { keys: [grant], renewals: [{ slug: grant.slug, expiresAtMax }] },
+        { keyStore, renewalRecord },
       );
-      const before = renewRecord.get({ slug: grant.slug })!;
-      renewRecord.setIfHeld({
-        address: renewRecord.entries()[0]!.address,
+      const before = renewalRecord.get({ slug: grant.slug })!;
+      renewalRecord.setIfHeld({
+        address: renewalRecord.entries()[0]!.address,
         before,
-        after: { ...before, mark: { kind: 'lapsed', error: null } },
+        after: { ...before, status: 'lapsed' },
       });
       keyStore.del({ slug: grant.slug });
-      return { keyStore, renewRecord, grant };
+      return { keyStore, renewalRecord, grant };
     };
 
     when('[t0] relocked by the slug', () => {
-      then('the key is reported locked and the mark is purged', () => {
-        const daemon = genDaemonWithMarkOnly();
+      then('the key is reported locked and the entry is purged', () => {
+        const daemon = genDaemonWithLapsedOnly();
         const result = handleRelockCommand(
           { slugs: [daemon.grant.slug] },
           daemon,
         );
         expect(result.relocked).toEqual([daemon.grant.slug]);
-        expect(daemon.renewRecord.size()).toEqual(0);
+        expect(daemon.renewalRecord.size()).toEqual(0);
       });
     });
 
     when('[t1] relocked by its env', () => {
-      then('the key is reported locked and the mark is purged', () => {
-        const daemon = genDaemonWithMarkOnly();
+      then('the key is reported locked and the entry is purged', () => {
+        const daemon = genDaemonWithLapsedOnly();
         const result = handleRelockCommand({ env: 'camp' }, daemon);
         expect(result.relocked).toEqual([daemon.grant.slug]);
-        expect(daemon.renewRecord.size()).toEqual(0);
+        expect(daemon.renewalRecord.size()).toEqual(0);
       });
     });
 
     when('[t2] relocked whole', () => {
-      then('the key is reported locked and the mark is purged', () => {
-        const daemon = genDaemonWithMarkOnly();
+      then('the key is reported locked and the entry is purged', () => {
+        const daemon = genDaemonWithLapsedOnly();
         const result = handleRelockCommand({}, daemon);
         expect(result.relocked).toEqual([daemon.grant.slug]);
-        expect(daemon.renewRecord.size()).toEqual(0);
+        expect(daemon.renewalRecord.size()).toEqual(0);
       });
     });
   });
@@ -339,7 +339,7 @@ describe('handleRelockCommand', () => {
                 env: 'prep',
                 reach: new KeyrackKeyReach({ exid: 'github://org=ehmpathy' }),
               },
-              { keyStore, renewRecord: createDaemonRenewRecord() },
+              { keyStore, renewalRecord: createDaemonRenewalRecord() },
             ),
           );
           expect(error).toBeInstanceOf(MalfunctionError);

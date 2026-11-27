@@ -5,7 +5,7 @@ import {
   createDaemonKeyStore,
   type DaemonKeyStore,
 } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonKeyStore';
-import { createDaemonRenewRecord } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonRenewRecord';
+import { createDaemonRenewalRecord } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonRenewalRecord';
 import { getOneGrantRenewal } from '@src/domain.operations/keyrack/daemon/svc/src/domain.operations/getOneGrantRenewal';
 import { handleKeyrackDaemonConnection } from '@src/domain.operations/keyrack/daemon/svc/src/domain.operations/handleKeyrackDaemonConnection';
 import { scheduleAutoTermination } from '@src/domain.operations/keyrack/daemon/svc/src/domain.operations/scheduleAutoTermination';
@@ -39,22 +39,22 @@ export const createKeyrackDaemonServer = (input: {
   // create the key store
   const keyStore = createDaemonKeyStore();
 
-  // create the renew record, which outlives each grant it renews
-  const renewRecord = createDaemonRenewRecord();
+  // create the renewal record, which outlives each grant it renews
+  const renewalRecord = createDaemonRenewalRecord();
 
   // start the demand clock; born here so this function's signature stays fixed
   // .why = createKeyrackDaemonServer has 7 call sites (1 prod + 6 test); to take
   // the clock as an input would ripple the change into every one of them
   const activity = genDaemonActivityClock();
 
-  // schedule auto-termination when the daemon holds no keys, no renew record, and
+  // schedule auto-termination when the daemon holds no keys, no renewal record, and
   // serves no demand
-  scheduleAutoTermination({ keyStore, activity, renewRecord });
+  scheduleAutoTermination({ keyStore, activity, renewalRecord });
 
   // renew each opted-in grant before it expires, via its mech adapter
   const renewTick = scheduleDaemonRenewTick({
     keyStore,
-    renewRecord,
+    renewalRecord,
     getOneRenewal: getOneGrantRenewal,
   });
 
@@ -67,7 +67,7 @@ export const createKeyrackDaemonServer = (input: {
       { socket },
       {
         keyStore,
-        renewRecord,
+        renewalRecord,
         homeHash,
         activity,
         // .why = injected rather than imported by the handler, so the handler's cost

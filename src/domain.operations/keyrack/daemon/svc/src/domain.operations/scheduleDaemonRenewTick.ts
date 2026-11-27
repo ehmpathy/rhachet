@@ -1,11 +1,11 @@
 import { now } from 'iso-time';
 
 import type { DaemonKeyStore } from '../domain.objects/daemonKeyStore';
-import type { DaemonRenewRecord } from '../domain.objects/daemonRenewRecord';
+import type { DaemonRenewalRecord } from '../domain.objects/daemonRenewalRecord';
 import { getOneDurationMsFromEnv } from './getOneDurationMsFromEnv';
 import type { getOneGrantRenewal } from './getOneGrantRenewal';
 import { renewDaemonGrantsDue } from './renewDaemonGrantsDue';
-import { setAllRenewEntriesHaltedByDefect } from './setAllRenewEntriesHaltedByDefect';
+import { setAllRenewalEntriesHaltedByDefect } from './setAllRenewalEntriesHaltedByDefect';
 
 /**
  * .what = run the renew tick on an interval, for the daemon's whole life
@@ -26,7 +26,7 @@ import { setAllRenewEntriesHaltedByDefect } from './setAllRenewEntriesHaltedByDe
  */
 export const scheduleDaemonRenewTick = (input: {
   keyStore: DaemonKeyStore;
-  renewRecord: DaemonRenewRecord;
+  renewalRecord: DaemonRenewalRecord;
   getOneRenewal: typeof getOneGrantRenewal;
 }): NodeJS.Timeout => {
   const tickMs = getOneDurationMsFromEnv({
@@ -51,7 +51,7 @@ export const scheduleDaemonRenewTick = (input: {
       { now: now() },
       {
         keyStore: input.keyStore,
-        renewRecord: input.renewRecord,
+        renewalRecord: input.renewalRecord,
         inflight,
         windowMs,
         renewTimeoutMs,
@@ -61,11 +61,11 @@ export const scheduleDaemonRenewTick = (input: {
       // .why = the process boundary. only a defect in the tick's own orchestration reaches
       //        here: operational faults and per-key defects settle on their own entry. a
       //        rethrow from a timer would crash the daemon and evict every caller's keys,
-      //        so the defect lands as a `halted` mark on each idle unmarked entry, where
+      //        so the defect lands as a `halted` status on each idle `on` entry, where
       //        `keyrack status` names it
-      setAllRenewEntriesHaltedByDefect(
+      setAllRenewalEntriesHaltedByDefect(
         { defect },
-        { renewRecord: input.renewRecord, inflight },
+        { renewalRecord: input.renewalRecord, inflight },
       );
       console.error('[keyrack-daemon] renew tick defect', defect);
     });

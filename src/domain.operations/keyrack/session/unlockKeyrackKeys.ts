@@ -175,7 +175,7 @@ export const unlockKeyrackKeys = async (
   //         scope — the arrays never escape as shared state — which is exactly the isolated-mutation
   //         zone the rule sanctions with this note
   const keysToUnlock: KeyrackKeyGrant[] = [];
-  const renewalsToSend: KeyrackDaemonUnlockRenewal[] = []; // keys the daemon may renew, with caps
+  const renewalsToSend: KeyrackDaemonUnlockRenewal[] = []; // keys the daemon may renew, each with its max expiry
   const keysOmitted: KeyrackKeyOmission[] = [];
   const addressesUnlocked = new Set<string>(); // dedupe by ADDRESS — see the .note below
   const slugsHeldAtReach = new Set<string>(); // slugs the rack holds at SOME reach
@@ -435,14 +435,14 @@ export const unlockKeyrackKeys = async (
       // maxDuration cap, and the credential's OWN life as the mech reports it (e17)
       // .note = the clock read happens HERE, in the orchestrator, and is handed in. a
       //         `compute*` may take no i/o, and a clock is i/o — see the purity note there
-      // the per-key cap, bound once so the grant expiry and the renew cap share one bound
+      // the per-key max, bound once so the grant expiry and the renewal max share one bound
       const maxDurationMs = hostConfig.maxDuration
         ? asDurationMs({ duration: hostConfig.maxDuration })
         : null;
-      // one clock read per key, so a grant clipped to its cap sits exactly at the renew
-      // cap; two reads ms apart would let the first renew read as an advance
+      // one clock read per key, so a grant clipped to its max sits exactly at the renewal
+      // max; two reads ms apart would let the first renew read as an advance
       const nowAtKey = now();
-      const { expiresAt, expiresAtCap, cappedByMaxDuration } = computeExpiresAt(
+      const { expiresAt, expiresAtMax, cappedByMaxDuration } = computeExpiresAt(
         {
           now: nowAtKey,
           requestedDurationMs,
@@ -471,10 +471,10 @@ export const unlockKeyrackKeys = async (
         repoManifest?.org ??
         'unknown';
 
-      // opt a key into renew when its mech can renew it, capped at the human's bound
+      // opt a key into renew when its mech can renew it, held to the human's bound
       // .why = the daemon renews such a grant before its upstream creds expire, but never
-      //        past min(requested duration, maxDuration) from now — `expiresAtCap`. the
-      //        stored `expiresAt` folds that bound into the upstream expiry, so the cap must
+      //        past min(requested duration, maxDuration) from now — `expiresAtMax`. the
+      //        stored `expiresAt` folds that bound into the upstream expiry, so the max must
       //        cross the socket on its own
       // .note = computed before either push, so a throw here leaves the key in neither list
       //         rather than both unlocked and `errored`
@@ -482,7 +482,7 @@ export const unlockKeyrackKeys = async (
         ? {
             slug: effectiveSlug,
             ...asKeyrackKeyReachField({ reach: hostConfig.reach }),
-            capAt: expiresAtCap,
+            expiresAtMax: expiresAtMax,
           }
         : null;
 
@@ -554,7 +554,7 @@ export const unlockKeyrackKeys = async (
       renewals: renewalsToSend,
     });
 
-    // a daemon from a prior build files no renew; name it, or its keys die unmarked
+    // a daemon from a prior build files no renew; name it, or its keys die unnamed
     const slugsUnfiled = getAllKeyrackRenewalsUnfiled({
       renewalsSent: renewalsToSend,
       renewable,

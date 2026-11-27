@@ -1,5 +1,5 @@
 import { asKeyrackSlugFullOrNull } from '@src/domain.operations/keyrack/asKeyrackSlugFullOrNull';
-import type { DaemonStatusRow } from '@src/domain.operations/keyrack/daemon/sdk';
+import type { DaemonStatusKey } from '@src/domain.operations/keyrack/daemon/sdk';
 import { getAllKeyrackSlugsForOrg } from '@src/domain.operations/keyrack/getAllKeyrackSlugsForOrg';
 
 /**
@@ -42,7 +42,7 @@ import { getAllKeyrackSlugsForOrg } from '@src/domain.operations/keyrack/getAllK
  *         the reason it names no org. that is the rule `list` already held
  */
 export const getAllKeyrackStatusKeysForFilter = (input: {
-  keys: DaemonStatusRow[];
+  keys: DaemonStatusKey[];
 
   /**
    * .what = the env to keep, or null for no filter
@@ -53,7 +53,7 @@ export const getAllKeyrackStatusKeysForFilter = (input: {
 
   /** .what = the literal org segment to keep, or null for no filter */
   org: string | null;
-}): DaemonStatusRow[] => {
+}): DaemonStatusKey[] => {
   // the env axis, read through the SAME validated decoder `list` uses, never the stored field
   const keysForEnv = input.env
     ? input.keys.filter(

@@ -1,5 +1,5 @@
 import { MalfunctionError } from 'helpful-errors';
-import type { IsoTimeStamp } from 'iso-time';
+import type { IsoDuration, IsoTimeStamp } from 'iso-time';
 
 import type { KeyrackKeyReach } from '@src/domain.objects/keyrack/KeyrackKeyReach';
 import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath';
@@ -14,7 +14,7 @@ import { sendKeyrackDaemonCommand } from '@src/domain.operations/keyrack/daemon/
  * .why = the row is named once so a field cannot land on the response type and be
  *        forgotten on the generic — the same wire/domain seam DaemonKeyRow closes for GET
  */
-export interface DaemonStatusRow {
+export interface DaemonStatusKey {
   slug: string;
   env: string;
   org: string;
@@ -41,31 +41,27 @@ export interface DaemonStatusRow {
   expiresAt: IsoTimeStamp | null;
 
   /**
-   * .what = milliseconds until this grant dies — `null` when it never does
-   * .note = 🟡 `null`, never `Infinity`: the socket is JSON, and `JSON.stringify(Infinity)`
-   *         is `null`. a client that read a bare `number` would compute
-   *         `Math.round(null / 1000 / 60)` as `0`, and render a key that never expires as
-   *         already dead
+   * .what = how long this grant has left — `null` when it never dies
+   * .note = 🟡 `null`, never an infinite duration: the socket is JSON, which cannot carry
+   *         `Infinity`. a key that never expires must never render as already dead
+   * .note = OPTIONAL on the wire: a daemon from an older build sends none, so the cli
+   *         derives it from `expiresAt` (`asKeyrackStatusKey`)
    */
-  ttlLeftMs: number | null;
+  expiresIn?: IsoDuration | null;
 
   /**
-   * .what = the renew state of an sso key the daemon renews before expiry
+   * .what = the renewal state of a key the daemon renews before expiry
    * .note = OPTIONAL, never nullable — absent for every key the daemon does not renew,
    *         so the json of every other key stays as it was
-   * .note = `mark` names why renews stopped: `lapsed` (the sso portal session ended) or
-   *         `halted` (a fault held for a full window of ticks, or a code defect at once,
-   *         with its error)
+   * .note = `status`: `on` (a renewal will come), `off` (the grant already expires at its
+   *         max, so none will move it), `lapsed` (the mech's upstream session ended), or
+   *         `halted` (a fault held for a full window of ticks, or a code defect at once)
+   * .note = `error` holds a halt's cause; `null` for every other status
    */
-  renew?: {
-    renewedCount: number;
-    mark: { kind: 'lapsed' | 'halted'; error: string | null } | null;
-
-    /**
-     * .what = true when the grant already expires at its cap, so no renew will move it
-     * .note = present only when true; an older daemon never sends it
-     */
-    isAtCap?: true;
+  renewal?: {
+    status: 'on' | 'off' | 'lapsed' | 'halted';
+    count: { renewed: number };
+    error: string | null;
   };
 }
 
@@ -78,7 +74,7 @@ export interface DaemonStatusRow {
 export const daemonAccessStatus = async (input?: {
   owner?: string | null;
   socketPath?: string;
-}): Promise<{ keys: DaemonStatusRow[] } | null> => {
+}): Promise<{ keys: DaemonStatusKey[] } | null> => {
   // derive socketPath from owner if not provided
   const socketPath =
     input?.socketPath ?? getKeyrackDaemonSocketPath({ owner: input?.owner });
@@ -91,7 +87,7 @@ export const daemonAccessStatus = async (input?: {
 
   const socket = await connectToKeyrackDaemon({ socketPath });
 
-  const response = await sendKeyrackDaemonCommand<{ keys: DaemonStatusRow[] }>({
+  const response = await sendKeyrackDaemonCommand<{ keys: DaemonStatusKey[] }>({
     socket,
     command: 'STATUS',
   });

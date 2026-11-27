@@ -1,6 +1,6 @@
 /**
  * .what = the error texts each sso proof gate reads as "the portal session ended"
- * .why = a session end is a `lapse` (one mark, a hand unlock cures it); every other
+ * .why = a session end is a `lapse` (one stop, a hand unlock cures it); every other
  *        error is a fault the caller retries. the line between them lives here, named,
  *        so a reader never has to simulate an inline `||` chain to see it
  *

@@ -1,6 +1,6 @@
 import type { DaemonActivityClock } from '../domain.objects/daemonActivityClock';
 import type { DaemonKeyStore } from '../domain.objects/daemonKeyStore';
-import type { DaemonRenewRecord } from '../domain.objects/daemonRenewRecord';
+import type { DaemonRenewalRecord } from '../domain.objects/daemonRenewalRecord';
 import { getOneDurationMsFromEnv } from './getOneDurationMsFromEnv';
 
 /**
@@ -21,12 +21,12 @@ export const scheduleAutoTermination = (input: {
   // exit — the defect this operation exists to fix, re-created from the inside.
   // Pick makes that a compile error rather than a code review's job
   activity: Pick<DaemonActivityClock, 'getLastAt'>;
-  // .why = the read half of the renew record only: a held renew entry is purpose. an
+  // .why = the read half of the renewal record only: a held renew entry is purpose. an
   // active one may be past expiry after a sleep, owed a renew on the next tick; a
-  // marked one (lapsed or halted) must stay visible in status until a human acts
-  renewRecord: Pick<DaemonRenewRecord, 'size'>;
+  // stopped one (lapsed or halted) must stay visible in status until a human acts
+  renewalRecord: Pick<DaemonRenewalRecord, 'size'>;
 }): NodeJS.Timeout => {
-  const { keyStore, activity, renewRecord } = input;
+  const { keyStore, activity, renewalRecord } = input;
 
   // env vars allow shorter interval + window for integration tests
   const checkIntervalMs = getOneDurationMsFromEnv({
@@ -45,8 +45,8 @@ export const scheduleAutoTermination = (input: {
     // survive while live keys are held, whatever the query rate
     if (entries.length > 0) return;
 
-    // survive while a renew record is held, live grant or not
-    if (renewRecord.size() > 0) return;
+    // survive while a renewal record is held, live grant or not
+    if (renewalRecord.size() > 0) return;
 
     // survive while demand is recent; the clock starts at daemon start, so this also
     // grants a fresh daemon a full window of startup grace before it can idle out

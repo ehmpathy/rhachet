@@ -1364,7 +1364,7 @@ describe('unlockKeyrackKeys', () => {
 
     when('[t2] the human unlocks with a --duration', () => {
       then(
-        'the renewal sent carries the cap the duration sets, from one clock read',
+        'the renewal sent carries the max the duration sets, from one clock read',
         async () => {
           const T0 = new Date('2026-11-20T00:00:00.000Z').getTime();
           jest.useFakeTimers({ advanceTimers: false });
@@ -1386,7 +1386,7 @@ describe('unlockKeyrackKeys', () => {
 
           const sent = jest.mocked(daemonAccessUnlock).mock.calls.at(-1)?.[0];
           expect(sent?.renewals).toHaveLength(1);
-          expect(new Date(sent!.renewals[0]!.capAt).getTime()).toEqual(
+          expect(new Date(sent!.renewals[0]!.expiresAtMax).getTime()).toEqual(
             T0 + 2 * 60 * 60 * 1000,
           );
         },

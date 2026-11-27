@@ -3,54 +3,58 @@ import { given, then, when } from 'test-fns';
 
 import { genSampleKeyrackSsoGrant } from '@src/.test/assets/genSampleKeyrackSsoGrant';
 import { createDaemonKeyStore } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonKeyStore';
-import { createDaemonRenewRecord } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonRenewRecord';
+import { createDaemonRenewalRecord } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonRenewalRecord';
 
 import { handleStatusCommand } from './handleStatusCommand';
 import { handleUnlockCommand } from './handleUnlockCommand';
 
 /**
- * .what = the status row says when a renewed grant is already at its cap
- * .why = a grant at its cap is never due, so a status that read only the entry's
- *        presence would claim `renew = on` for a key that will end at its cap
+ * .what = the status key says `off` when a renewed grant already expires at its max
+ * .why = a grant at its max is never due, so a status that read only the entry's
+ *        presence would claim `renewal = on` for a key that will end at its max
  */
 describe('handleStatusCommand', () => {
   const expiresAt = asIsoTimeStamp(new Date(Date.now() + 5 * 60_000));
 
-  const genStatusRow = (input: { capAt: IsoTimeStamp }) => {
+  const genStatusKey = (input: { expiresAtMax: IsoTimeStamp }) => {
     const keyStore = createDaemonKeyStore();
-    const renewRecord = createDaemonRenewRecord();
+    const renewalRecord = createDaemonRenewalRecord();
     const grant = genSampleKeyrackSsoGrant({ expiresAt });
     handleUnlockCommand(
       {
         keys: [grant],
-        renewals: [{ slug: grant.slug, capAt: input.capAt }],
+        renewals: [{ slug: grant.slug, expiresAtMax: input.expiresAtMax }],
       },
-      { keyStore, renewRecord },
+      { keyStore, renewalRecord },
     );
     const status = handleStatusCommand(
       {},
-      { keyStore, renewRecord, homeHash: 'test' },
+      { keyStore, renewalRecord, homeHash: 'test' },
     );
-    return status.keys.find((row) => row.slug === grant.slug);
+    return status.keys.find((key) => key.slug === grant.slug);
   };
 
   given('[case1] an sso key the daemon renews', () => {
-    when('[t0] its cap lies past the grant expiry', () => {
-      then('the row carries no isAtCap', () => {
-        const row = genStatusRow({
-          capAt: asIsoTimeStamp(new Date(Date.now() + 9 * 60 * 60_000)),
+    when('[t0] its max lies past the grant expiry', () => {
+      then('the renewal reads `on`', () => {
+        const key = genStatusKey({
+          expiresAtMax: asIsoTimeStamp(new Date(Date.now() + 9 * 60 * 60_000)),
         });
-        expect(row?.renew).toEqual({ renewedCount: 0, mark: null });
+        expect(key?.renewal).toEqual({
+          status: 'on',
+          count: { renewed: 0 },
+          error: null,
+        });
       });
     });
 
-    when('[t1] the grant already expires at its cap', () => {
-      then('the row says isAtCap', () => {
-        const row = genStatusRow({ capAt: expiresAt });
-        expect(row?.renew).toEqual({
-          renewedCount: 0,
-          mark: null,
-          isAtCap: true,
+    when('[t1] the grant already expires at its max', () => {
+      then('the renewal reads `off`', () => {
+        const key = genStatusKey({ expiresAtMax: expiresAt });
+        expect(key?.renewal).toEqual({
+          status: 'off',
+          count: { renewed: 0 },
+          error: null,
         });
       });
     });

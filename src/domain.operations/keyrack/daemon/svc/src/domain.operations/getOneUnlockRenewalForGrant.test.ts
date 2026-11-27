@@ -5,7 +5,7 @@ import { genSampleKeyrackSsoGrant } from '@src/.test/assets/genSampleKeyrackSsoG
 
 import { getOneUnlockRenewalForGrant } from './getOneUnlockRenewalForGrant';
 
-const CAP_AT = asIsoTimeStamp('2026-11-14T09:00:00Z');
+const EXPIRES_AT_MAX = asIsoTimeStamp('2026-11-14T09:00:00Z');
 const EXPIRES_AT = asIsoTimeStamp('2026-11-14T01:00:00Z');
 
 describe('getOneUnlockRenewalForGrant', () => {
@@ -13,7 +13,7 @@ describe('getOneUnlockRenewalForGrant', () => {
     when('[t0] the grant is looked up', () => {
       then('that renewal is returned', () => {
         const grant = genSampleKeyrackSsoGrant({ expiresAt: EXPIRES_AT });
-        const renewal = { slug: grant.slug, capAt: CAP_AT };
+        const renewal = { slug: grant.slug, expiresAtMax: EXPIRES_AT_MAX };
         expect(
           getOneUnlockRenewalForGrant({ grant, renewals: [renewal] }),
         ).toEqual(renewal);
@@ -28,7 +28,9 @@ describe('getOneUnlockRenewalForGrant', () => {
         expect(
           getOneUnlockRenewalForGrant({
             grant,
-            renewals: [{ slug: 'ahbode.camp.OTHER_KEY', capAt: CAP_AT }],
+            renewals: [
+              { slug: 'ahbode.camp.OTHER_KEY', expiresAtMax: EXPIRES_AT_MAX },
+            ],
           }),
         ).toBeNull();
       });
@@ -46,7 +48,7 @@ describe('getOneUnlockRenewalForGrant', () => {
               {
                 slug: grant.slug,
                 reach: { exid: 'github://org=ahbode' },
-                capAt: CAP_AT,
+                expiresAtMax: EXPIRES_AT_MAX,
               },
             ],
           }),

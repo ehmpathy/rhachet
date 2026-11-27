@@ -1,11 +1,13 @@
+import { asIsoTimeStamp } from 'iso-time';
+
 import { daoKeyrackHostManifest } from '@src/access/daos/daoKeyrackHostManifest';
 import type { KeyrackKeyRecipient } from '@src/domain.objects/keyrack';
 import { getKeyrackDaemonSocketPath } from '@src/domain.operations/keyrack/daemon/infra/getKeyrackDaemonSocketPath';
-import type { DaemonStatusRow } from '@src/domain.operations/keyrack/daemon/sdk';
+import type { DaemonStatusKey } from '@src/domain.operations/keyrack/daemon/sdk';
 import { daemonAccessStatus } from '@src/domain.operations/keyrack/daemon/sdk';
 import { genContextKeyrack } from '@src/domain.operations/keyrack/genContextKeyrack';
 
-import { asKeyrackStatusRow } from './asKeyrackStatusRow';
+import { asKeyrackStatusKey } from './asKeyrackStatusKey';
 
 /**
  * .what = get status of unlocked keys in daemon
@@ -17,7 +19,7 @@ export const getKeyrackStatus = async (input?: {
   owner?: string | null;
   prikeys?: string[];
 }): Promise<{
-  keys: DaemonStatusRow[];
+  keys: DaemonStatusKey[];
   recipients: KeyrackKeyRecipient[];
   owner: string | null;
   socketPath: string;
@@ -44,7 +46,9 @@ export const getKeyrackStatus = async (input?: {
   );
 
   return {
-    keys: result.keys.map((row) => asKeyrackStatusRow({ row })),
+    keys: result.keys.map((key) =>
+      asKeyrackStatusKey({ key, now: asIsoTimeStamp(new Date()) }),
+    ),
     recipients: hostManifestResult?.manifest.recipients ?? [],
     owner,
     socketPath,

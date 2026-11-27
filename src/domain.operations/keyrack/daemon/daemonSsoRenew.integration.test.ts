@@ -26,7 +26,7 @@ import { spawnKeyrackDaemonBackground } from './svc';
  *        a human finishes a browser login. no ci runner holds one, so a real-sso case
  *        here would fail in every ci run
  * .real = the live two-expiry proof in the 5.1 execution yield (a real portal, a real
- *        role, `renewedCount: 2`), and `getOneAwsSsoSessionProof.integration.test.ts`,
+ *        role, two renews), and `getOneAwsSsoSessionProof.integration.test.ts`,
  *        which drives the real aws cli and sdk through the absent-session case
  */
 const MOCK_AWS_CLI_DIR = join(
@@ -129,12 +129,12 @@ const genDaemonForRenew = async (input: {
 };
 
 /**
- * .what = unlock an sso grant with a cap, an hour out unless named
+ * .what = unlock an sso grant with a max expiry, an hour out unless named
  */
 const unlockSsoGrant = async (input: {
   socketPath: string;
   grant: KeyrackKeyGrant;
-  capInMs?: number;
+  maxInMs?: number;
 }): Promise<void> => {
   await daemonAccessUnlock({
     socketPath: input.socketPath,
@@ -142,8 +142,8 @@ const unlockSsoGrant = async (input: {
     renewals: [
       {
         slug: input.grant.slug,
-        capAt: asIsoTimeStamp(
-          new Date(Date.now() + (input.capInMs ?? 3_600_000)),
+        expiresAtMax: asIsoTimeStamp(
+          new Date(Date.now() + (input.maxInMs ?? 3_600_000)),
         ),
       },
     ],
@@ -168,60 +168,65 @@ describe('keyrack daemon sso renew', () => {
     });
   });
 
-  given('[case1] an sso grant near expiry, portal live, cap ahead', () => {
-    const scene = useBeforeAll(async () => {
-      const daemon = await genDaemonForRenew({
-        slug: 'live',
-        portalState: '',
+  given(
+    '[case1] an sso grant near expiry, portal live, max expiry ahead',
+    () => {
+      const scene = useBeforeAll(async () => {
+        const daemon = await genDaemonForRenew({
+          slug: 'live',
+          portalState: '',
+        });
+        const grant = genSsoGrant({ expiresInMs: 2_500 });
+        await unlockSsoGrant({ socketPath: daemon.socketPath, grant });
+
+        // wait past the grant's own expiry
+        await sleep(4_000);
+        return { daemon, grant };
       });
-      const grant = genSsoGrant({ expiresInMs: 2_500 });
-      await unlockSsoGrant({ socketPath: daemon.socketPath, grant });
 
-      // wait past the grant's own expiry
-      await sleep(4_000);
-      return { daemon, grant };
-    });
-
-    afterAll(() => killKeyrackDaemon({ socketPath: scene.daemon.socketPath }));
-
-    when('[t0] a consumer gets the key after its original expiry', () => {
-      // one socket read, shared by both asserts
-      const result = useThen('the daemon answers the get', async () =>
-        daemonAccessGet({
-          socketPath: scene.daemon.socketPath,
-          slugs: [scene.grant.slug],
-        }),
+      afterAll(() =>
+        killKeyrackDaemon({ socketPath: scene.daemon.socketPath }),
       );
 
-      then('the key is still granted — the renew kept it alive', () => {
-        expect(result?.keys.map((key: { slug: string }) => key.slug)).toEqual([
-          scene.grant.slug,
-        ]);
-      });
+      when('[t0] a consumer gets the key after its original expiry', () => {
+        // one socket read, shared by both asserts
+        const result = useThen('the daemon answers the get', async () =>
+          daemonAccessGet({
+            socketPath: scene.daemon.socketPath,
+            slugs: [scene.grant.slug],
+          }),
+        );
 
-      then('its expiry moved out to the renewed role creds', () => {
-        const expiresAt = result?.keys[0]?.expiresAt;
-        expect(expiresAt).toBeDefined();
-        const expiresAtMs = new Date(expiresAt!).getTime();
-        expect(expiresAtMs - Date.now()).toBeGreaterThan(50 * 60 * 1000);
-      });
-    });
-
-    when('[t1] keyrack status runs', () => {
-      then('the key shows a renew count and no mark', async () => {
-        const status = await daemonAccessStatus({
-          socketPath: scene.daemon.socketPath,
+        then('the key is still granted — the renew kept it alive', () => {
+          expect(result?.keys.map((key: { slug: string }) => key.slug)).toEqual(
+            [scene.grant.slug],
+          );
         });
-        const row = status?.keys.find((key) => key.slug === scene.grant.slug);
-        expect(row?.renew?.renewedCount).toBeGreaterThanOrEqual(1);
-        expect(row?.renew?.mark).toBeNull();
+
+        then('its expiry moved out to the renewed role creds', () => {
+          const expiresAt = result?.keys[0]?.expiresAt;
+          expect(expiresAt).toBeDefined();
+          const expiresAtMs = new Date(expiresAt!).getTime();
+          expect(expiresAtMs - Date.now()).toBeGreaterThan(50 * 60 * 1000);
+        });
       });
 
-      then('the browser login was never invoked', () => {
-        expect(existsSync(scene.daemon.loginLog)).toBe(false);
+      when('[t1] keyrack status runs', () => {
+        then('the key shows renewal `on`, with a renew count', async () => {
+          const status = await daemonAccessStatus({
+            socketPath: scene.daemon.socketPath,
+          });
+          const key = status?.keys.find((it) => it.slug === scene.grant.slug);
+          expect(key?.renewal?.count.renewed).toBeGreaterThanOrEqual(1);
+          expect(key?.renewal?.status).toEqual('on');
+        });
+
+        then('the browser login was never invoked', () => {
+          expect(existsSync(scene.daemon.loginLog)).toBe(false);
+        });
       });
-    });
-  });
+    },
+  );
 
   given('[case2] an sso grant near expiry, portal lapsed', () => {
     const scene = useBeforeAll(async () => {
@@ -247,14 +252,15 @@ describe('keyrack daemon sso renew', () => {
       });
 
       then(
-        'status still names the key, expired and marked lapsed',
+        'status still names the key, expired, its renewal lapsed',
         async () => {
           const status = await daemonAccessStatus({
             socketPath: scene.daemon.socketPath,
           });
-          const row = status?.keys.find((key) => key.slug === scene.grant.slug);
-          expect(row?.ttlLeftMs).toEqual(0);
-          expect(row?.renew?.mark).toEqual({ kind: 'lapsed', error: null });
+          const key = status?.keys.find((it) => it.slug === scene.grant.slug);
+          expect(key?.expiresIn).toEqual({ seconds: 0 });
+          expect(key?.renewal?.status).toEqual('lapsed');
+          expect(key?.renewal?.error).toBeNull();
         },
       );
 
@@ -285,9 +291,9 @@ describe('keyrack daemon sso renew', () => {
         const status = await daemonAccessStatus({
           socketPath: scene.daemon.socketPath,
         });
-        const row = status?.keys.find((key) => key.slug === scene.grant.slug);
-        expect(row?.renew?.mark?.kind).toEqual('halted');
-        expect(row?.renew?.mark?.error).toContain('export-credentials');
+        const key = status?.keys.find((it) => it.slug === scene.grant.slug);
+        expect(key?.renewal?.status).toEqual('halted');
+        expect(key?.renewal?.error).toContain('export-credentials');
       });
 
       then('the browser login was never invoked', () => {
@@ -319,10 +325,10 @@ describe('keyrack daemon sso renew', () => {
           const status = await daemonAccessStatus({
             socketPath: scene.daemon.socketPath,
           });
-          const row = status?.keys.find((key) => key.slug === scene.grant.slug);
-          expect(row?.renew?.renewedCount).toEqual(0);
-          expect(row?.renew?.mark?.kind).toEqual('halted');
-          expect(row?.renew?.mark?.error).toContain(
+          const key = status?.keys.find((it) => it.slug === scene.grant.slug);
+          expect(key?.renewal?.count.renewed).toEqual(0);
+          expect(key?.renewal?.status).toEqual('halted');
+          expect(key?.renewal?.error).toContain(
             'aws sso renew returned no expiry',
           );
         },
@@ -343,7 +349,7 @@ describe('keyrack daemon sso renew', () => {
         renewals: [
           {
             slug: grant.slug,
-            capAt: asIsoTimeStamp(new Date(Date.now() + 3_600_000)),
+            expiresAtMax: asIsoTimeStamp(new Date(Date.now() + 3_600_000)),
           },
         ],
       });
@@ -383,13 +389,13 @@ describe('keyrack daemon sso renew', () => {
       );
 
       when('[t0] the fault has cleared', () => {
-        then('the key renewed, with no mark', async () => {
+        then('the key renewed, its renewal still `on`', async () => {
           const status = await daemonAccessStatus({
             socketPath: scene.daemon.socketPath,
           });
-          const row = status?.keys.find((key) => key.slug === scene.grant.slug);
-          expect(row?.renew?.renewedCount).toBeGreaterThanOrEqual(1);
-          expect(row?.renew?.mark).toBeNull();
+          const key = status?.keys.find((it) => it.slug === scene.grant.slug);
+          expect(key?.renewal?.count.renewed).toBeGreaterThanOrEqual(1);
+          expect(key?.renewal?.status).toEqual('on');
         });
       });
     },
@@ -429,44 +435,44 @@ describe('keyrack daemon sso renew', () => {
     },
   );
 
-  given('[case8] an sso grant whose cap lies seconds out', () => {
+  given('[case8] an sso grant whose max expiry lies seconds out', () => {
     const scene = useBeforeAll(async () => {
       const daemon = await genDaemonForRenew({
-        slug: 'cap',
+        slug: 'max',
         portalState: '',
       });
       const grant = genSsoGrant({ expiresInMs: 1_500 });
       await unlockSsoGrant({
         socketPath: daemon.socketPath,
         grant,
-        capInMs: 3_000,
+        maxInMs: 3_000,
       });
 
-      // the renew lands before the grant expires, clipped to the cap
+      // the renew lands before the grant expires, clipped to the max
       await sleep(1_500);
-      const statusAtCap = await daemonAccessStatus({
+      const statusAtMax = await daemonAccessStatus({
         socketPath: daemon.socketPath,
       });
 
-      // then wait past the cap
+      // then wait past the max
       await sleep(3_000);
-      return { daemon, grant, statusAtCap };
+      return { daemon, grant, statusAtMax };
     });
 
     afterAll(() => killKeyrackDaemon({ socketPath: scene.daemon.socketPath }));
 
-    when('[t0] the renew has clipped the grant to its cap', () => {
-      then('status says the grant is at its cap', () => {
-        const row = scene.statusAtCap?.keys.find(
-          (key) => key.slug === scene.grant.slug,
+    when('[t0] the renew has clipped the grant to its max', () => {
+      then('status says the renewal is `off`', () => {
+        const key = scene.statusAtMax?.keys.find(
+          (it) => it.slug === scene.grant.slug,
         );
-        expect(row?.renew?.renewedCount).toBeGreaterThanOrEqual(1);
-        expect(row?.renew?.isAtCap).toEqual(true);
+        expect(key?.renewal?.count.renewed).toBeGreaterThanOrEqual(1);
+        expect(key?.renewal?.status).toEqual('off');
       });
     });
 
-    when('[t1] the cap has passed', () => {
-      then('a consumer reads the key as locked — the cap held', async () => {
+    when('[t1] the max expiry has passed', () => {
+      then('a consumer reads the key as locked — the max held', async () => {
         const result = await daemonAccessGet({
           socketPath: scene.daemon.socketPath,
           slugs: [scene.grant.slug],

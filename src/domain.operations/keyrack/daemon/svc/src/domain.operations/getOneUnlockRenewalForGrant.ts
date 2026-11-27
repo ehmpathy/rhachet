@@ -8,7 +8,7 @@ import { asKeyrackKeySlugAtReach } from '@src/domain.operations/keyrack/reach/as
  *        address. the unlock opts in only a grant whose mech adapter can renew, so the
  *        daemon keeps no list of renewable mechs of its own
  *
- * .note = matched by full address (slug at reach), the key the renew record files under
+ * .note = matched by full address (slug at reach), the key the renewal record files under
  */
 export const getOneUnlockRenewalForGrant = (input: {
   grant: KeyrackKeyGrant;

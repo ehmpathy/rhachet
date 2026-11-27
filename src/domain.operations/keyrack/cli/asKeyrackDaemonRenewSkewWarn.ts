@@ -1,6 +1,6 @@
 /**
  * .what = the warn for keys a daemon from a prior build will not renew
- * .why = the unlock succeeds and status shows no mark, so without this line the key dies
+ * .why = the unlock succeeds and status names no halt, so without this line the key dies
  *        at its first upstream expiry with no cause named — the overnight dark tunnel the
  *        renew exists to end. the fix is a prune, so the next unlock spawns a fresh daemon
  *
@@ -13,7 +13,7 @@ export const asKeyrackDaemonRenewSkewWarn = (input: {
   const flagOwner = input.owner ? ` --owner ${input.owner}` : '';
   return [
     `🟡 the keyrack daemon is from an older build and will not renew ${input.slugs.length === 1 ? 'this key' : `these ${input.slugs.length} keys`}`,
-    // each slug sits above the `fix` leaf, so every slug row is a mid branch
+    // each slug sits above the `fix` leaf, so every slug line is a mid branch
     ...input.slugs.map((slug) => `   ├─ ${slug}`),
     '   └─ fix',
     `      ├─ rhx keyrack daemon prune${flagOwner}`,

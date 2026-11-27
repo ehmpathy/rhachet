@@ -2,10 +2,10 @@ import { asIsoTimeStamp } from 'iso-time';
 
 import { getAllKeyrackRenewalsUnfiled } from './getAllKeyrackRenewalsUnfiled';
 
-const CAP_AT = asIsoTimeStamp('2026-11-20T03:00:00.000Z');
+const EXPIRES_AT_MAX = asIsoTimeStamp('2026-11-20T03:00:00.000Z');
 const RENEWALS_SENT = [
-  { slug: 'ahbode.camp.AWS_PROFILE', capAt: CAP_AT },
-  { slug: 'ahbode.prep.AWS_PROFILE', capAt: CAP_AT },
+  { slug: 'ahbode.camp.AWS_PROFILE', expiresAtMax: EXPIRES_AT_MAX },
+  { slug: 'ahbode.prep.AWS_PROFILE', expiresAtMax: EXPIRES_AT_MAX },
 ];
 
 const TEST_CASES = [

@@ -5,13 +5,16 @@ exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon,
   {
     "env": "test",
     "expiresAt": "__REDACTED__",
+    "expiresIn": "__REDACTED__",
     "org": "testorg",
-    "renew": {
-      "mark": null,
-      "renewedCount": "__N__",
+    "renewal": {
+      "count": {
+        "renewed": "__N__",
+      },
+      "error": null,
+      "status": "on",
     },
     "slug": "testorg.test.AWS_PROFILE",
-    "ttlLeftMs": "__REDACTED__",
   },
 ]
 `;
@@ -27,7 +30,7 @@ exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon,
       ├─ env: test
       ├─ org: testorg
       ├─ expires in: __6-15__m
-      └─ renewed = __N__x
+      └─ renewal = on
 
 "
 `;
@@ -49,10 +52,13 @@ exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon,
   {
     "env": "test",
     "expiresAt": "__REDACTED__",
+    "expiresIn": "__REDACTED__",
     "org": "testorg",
-    "renew": {
-      "mark": {
-        "error": "💥 MalfunctionError: aws configure export-credentials failed with unexpected error
+    "renewal": {
+      "count": {
+        "renewed": "__N__",
+      },
+      "error": "💥 MalfunctionError: aws configure export-credentials failed with unexpected error
 
 {
   "profileName": "testorg-test",
@@ -66,12 +72,9 @@ exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon,
     "stderr": "mock aws: connection reset by peer\\n"
   }
 }",
-        "kind": "halted",
-      },
-      "renewedCount": "__N__",
+      "status": "halted",
     },
     "slug": "testorg.test.AWS_PROFILE",
-    "ttlLeftMs": "__REDACTED__",
   },
 ]
 `;
@@ -87,25 +90,12 @@ exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon,
       ├─ env: test
       ├─ org: testorg
       ├─ expires in: __6-15__m
-      ├─ renewed = __N__x
-      └─ halted
-         ├─ renew stopped on a fault it could not clear
-         ├─ 💥 MalfunctionError: aws configure export-credentials failed with unexpected error
-         │  └─ full error
-         │     └─ rhx keyrack status --env test --json
-         └─ fix
-            ├─ rhx keyrack unlock --env test
-            │  ├─ once the fault above clears
-            │  └─ if the sso session ended meanwhile, a human must finish the browser login
-            └─ rhx keyrack daemon prune
-               ├─ if the fault lives in the daemon's own env
-               ├─ drops every key the daemon holds; a key kept only in the daemon will not come back
-               └─ then unlock again
+      └─ renewal = halted
 
 "
 `;
 
-exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t2] the human runs the rendered fix once the fault clears then: the cure unlock stdout matches snapshot 1`] = `
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t2] the human unlocks the key once the fault clears then: the cure unlock stdout matches snapshot 1`] = `
 "
 🔓 keyrack unlock
    └─ testorg.test.AWS_PROFILE
@@ -122,16 +112,16 @@ exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon,
   {
     "env": "test",
     "expiresAt": "__REDACTED__",
+    "expiresIn": "__REDACTED__",
     "org": "testorg",
-    "renew": {
-      "mark": {
-        "error": null,
-        "kind": "lapsed",
+    "renewal": {
+      "count": {
+        "renewed": "__N__",
       },
-      "renewedCount": "__N__",
+      "error": null,
+      "status": "lapsed",
     },
     "slug": "testorg.test.AWS_PROFILE",
-    "ttlLeftMs": "__REDACTED__",
   },
 ]
 `;
@@ -147,12 +137,7 @@ exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon,
       ├─ env: test
       ├─ org: testorg
       ├─ expires in: __6-15__m
-      ├─ renewed = __N__x
-      └─ lapsed
-         ├─ sso session ended, no renew until the next unlock
-         └─ fix
-            └─ rhx keyrack unlock --env test
-               └─ a human must finish the browser login for a new sso session
+      └─ renewal = lapsed
 
 "
 `;
@@ -174,16 +159,18 @@ exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon,
   {
     "env": "test",
     "expiresAt": "__REDACTED__",
+    "expiresIn": {
+      "seconds": 0,
+    },
     "org": "testorg",
-    "renew": {
-      "mark": {
-        "error": null,
-        "kind": "lapsed",
+    "renewal": {
+      "count": {
+        "renewed": 0,
       },
-      "renewedCount": 0,
+      "error": null,
+      "status": "lapsed",
     },
     "slug": "testorg.test.AWS_PROFILE",
-    "ttlLeftMs": 0,
   },
 ]
 `;
@@ -198,17 +185,12 @@ exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon,
    └─ testorg.test.AWS_PROFILE
       ├─ env: test
       ├─ org: testorg
-      ├─ expired
-      └─ lapsed
-         ├─ sso session ended, no renew until the next unlock
-         └─ fix
-            └─ rhx keyrack unlock --env test
-               └─ a human must finish the browser login for a new sso session
+      └─ expired
 
 "
 `;
 
-exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t5] the human runs the rendered fix from the lapse then: the cure unlock stdout matches snapshot 1`] = `
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t5] the human unlocks the key after the lapse then: the cure unlock stdout matches snapshot 1`] = `
 "
 🔓 keyrack unlock testorg.test.AWS_PROFILE
    ├─ with sso prior?
@@ -230,14 +212,16 @@ exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon,
   {
     "env": "test",
     "expiresAt": "__REDACTED__",
+    "expiresIn": "__REDACTED__",
     "org": "testorg",
-    "renew": {
-      "isAtCap": true,
-      "mark": null,
-      "renewedCount": 0,
+    "renewal": {
+      "count": {
+        "renewed": 0,
+      },
+      "error": null,
+      "status": "off",
     },
     "slug": "testorg.test.AWS_PROFILE",
-    "ttlLeftMs": "__REDACTED__",
   },
 ]
 `;
@@ -253,9 +237,7 @@ exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon,
       ├─ env: test
       ├─ org: testorg
       ├─ expires in: __1-5__m
-      └─ renew = off
-         └─ at its cap — ends at expiry, unlock to extend
-            └─ rhx keyrack unlock --env test
+      └─ renewal = off
 
 "
 `;
@@ -268,7 +250,7 @@ exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon,
 "
 `;
 
-exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t8] the human relocks a key the renew has marked then: the relock stdout matches snapshot 1`] = `
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t8] the human relocks a key whose renewal lapsed then: the relock stdout matches snapshot 1`] = `
 "
 🔒 keyrack relock
    └─ testorg.test.AWS_PROFILE: pruned 🔒
@@ -281,13 +263,16 @@ exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon,
   {
     "env": "test",
     "expiresAt": "__REDACTED__",
+    "expiresIn": "__REDACTED__",
     "org": "testorg",
-    "renew": {
-      "mark": null,
-      "renewedCount": 0,
+    "renewal": {
+      "count": {
+        "renewed": 0,
+      },
+      "error": null,
+      "status": "on",
     },
     "slug": "testorg.test.AWS_PROFILE",
-    "ttlLeftMs": "__REDACTED__",
   },
 ]
 `;
@@ -303,7 +288,7 @@ exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon,
       ├─ env: test
       ├─ org: testorg
       ├─ expires in: __16+__m
-      └─ renew = on
+      └─ renewal = on
 
 "
 `;
@@ -338,7 +323,7 @@ exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon,
 }
 `;
 
-exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t14] the renew faults in the daemon own env, and the rendered prune cures it then: the healthy-cli unlock stdout matches snapshot 1`] = `
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t14] the renew faults in the daemon own env, and a daemon prune cures it then: the healthy-cli unlock stdout matches snapshot 1`] = `
 "
 🔓 keyrack unlock
    └─ testorg.test.AWS_PROFILE
@@ -350,7 +335,7 @@ exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon,
 "
 `;
 
-exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t14] the renew faults in the daemon own env, and the rendered prune cures it then: the prune and its unlock stdout match snapshot 1`] = `
+exports[`keyrack status: sso renew given: [case1] an sso key held by the daemon, through renew, halt, cure, lapse when: [t14] the renew faults in the daemon own env, and a daemon prune cures it then: the prune and its unlock stdout match snapshot 1`] = `
 {
   "pruned": "
 🔐 keyrack daemon prune

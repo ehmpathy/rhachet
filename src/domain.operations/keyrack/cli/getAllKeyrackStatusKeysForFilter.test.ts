@@ -1,6 +1,6 @@
 import { given, then, when } from 'test-fns';
 
-import type { DaemonStatusRow } from '@src/domain.operations/keyrack/daemon/sdk';
+import type { DaemonStatusKey } from '@src/domain.operations/keyrack/daemon/sdk';
 
 import { getAllKeyrackStatusKeysForFilter } from './getAllKeyrackStatusKeysForFilter';
 
@@ -13,14 +13,14 @@ import { getAllKeyrackStatusKeysForFilter } from './getAllKeyrackStatusKeysForFi
 describe('getAllKeyrackStatusKeysForFilter', () => {
   /**
    * .note = `asRow` states the full shape once, so each case below spells only the fields it
-   *         is about. `expiresAt` and `ttlLeftMs` are required by the interface and are inert
+   *         is about. `expiresAt` and `expiresIn` are required by the interface and are inert
    *         to this narrow — it reads `slug`, `env`, and `org` alone
    */
   const asRow = (input: {
     slug: string;
     env: string;
     org: string;
-  }): DaemonStatusRow => ({ ...input, expiresAt: null, ttlLeftMs: null });
+  }): DaemonStatusKey => ({ ...input, expiresAt: null, expiresIn: null });
 
   const rowMachineWide = asRow({
     slug: '@all.camp.MACHINE_KEY',

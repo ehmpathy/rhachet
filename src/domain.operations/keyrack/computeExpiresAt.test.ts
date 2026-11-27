@@ -132,16 +132,16 @@ describe('computeExpiresAt', () => {
       });
 
       then(
-        'expiresAtCap holds bounds 1 and 2 alone, past the grant clamp',
+        'expiresAtMax holds bounds 1 and 2 alone, past the grant clamp',
         () => {
-          const { expiresAt, expiresAtCap } = computeExpiresAt({
+          const { expiresAt, expiresAtMax } = computeExpiresAt({
             now: NOW,
             requestedDurationMs: 540 * MIN,
             maxDurationMs: 120 * MIN,
             grantExpiresAt: atMinutesFromNow(55),
           });
           expect(expiresAt).toEqual(atMinutesFromNow(55));
-          expect(expiresAtCap).toEqual(atMinutesFromNow(120));
+          expect(expiresAtMax).toEqual(atMinutesFromNow(120));
         },
       );
     });

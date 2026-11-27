@@ -15,9 +15,9 @@ import { sendKeyrackDaemonCommand } from '@src/domain.operations/keyrack/daemon/
 export const daemonAccessUnlock = async (input: {
   keys: KeyrackKeyGrant[];
   /**
-   * .what = the keys the daemon may renew before expiry, each with its cap
-   * .why = the stored `expiresAt` already folds the cap into the role creds' expiry,
-   *        so the cap would be lost at unlock. a key absent here is never renewed
+   * .what = the keys the daemon may renew before expiry, each with its max expiry
+   * .why = the stored `expiresAt` already folds the max into the role creds' expiry,
+   *        so the max would be lost at unlock. a key absent here is never renewed
    * .note = required, so each unlock path decides; `[]` where none of its keys renew
    */
   renewals: KeyrackDaemonUnlockRenewal[];

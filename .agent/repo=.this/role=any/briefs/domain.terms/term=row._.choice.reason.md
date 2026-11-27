@@ -87,7 +87,23 @@ are a **class** and an **interface** rather than two object literals, so the sam
 assignment does not express it. that asymmetry is why the clamp was not simply duplicated —
 recorded here so the gap is a known one rather than an oversight.
 
+## .disputes
+
+### dispute: key  —  raised 2026-11-24  —  status: RESOLVED (key wins; row is forbidden)
+- raised.by  = the commander, review of ehmpathy/rhachet#759
+- claim      = `row` is a table word. the socket sends a list of keys, so each element is a
+               key; `DaemonStatusKey` names what it holds, where `DaemonStatusRow` names only
+               the container shape it sits in
+- counter    = the row was coined to mark the wire/domain seam; a rename to `key` could blur
+               the wire shape with `KeyrackKeyGrant`, the domain object
+- resolution = `key` wins. the seam is held by the prefix (`Daemon…` is the wire, `Keyrack…`
+               is the domain) and by the compile clamp in `handleCommands.test.ts`, never by the
+               word `row`. `row` joins the forbidden synonyms. `DaemonStatusRow` is now
+               `DaemonStatusKey`; `DaemonKeyRow` is main's and untouched, so its rename is a
+               caught dream rather than churn in an unrelated change
+
 ## .see also
+- `rule.forbid.term-row-mark-cap` — the rule that enforces the outcome
 - `rule.require.shapefit` — a type that does not fit is a defect, bitten or not
 - `define.term.arch.adapters` — the adjacent boundary vocabulary
 - `term=reach._.choice.reason.md` — the axis whose addition first exposed the two-declaration seam

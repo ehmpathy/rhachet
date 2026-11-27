@@ -25,4 +25,4 @@ the "a toggle the human could flip" read is real for a first-time reader, and no
 
 ## .verdict
 
-open — to the commander at the pr.
+ruled by the commander at #759 (r4696113871, 2026-11-25): `renewal = on` is the right amount of information. the count leaf goes, and the slot reads `renewal = <state>` (see F36).

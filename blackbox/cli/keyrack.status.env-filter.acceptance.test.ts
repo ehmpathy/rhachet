@@ -123,7 +123,7 @@ describe('keyrack status --env', () => {
         parsed.socketPath = '__REDACTED__';
         for (const key of parsed.keys) {
           key.expiresAt = '__REDACTED__';
-          key.ttlLeftMs = '__REDACTED__';
+          key.expiresIn = '__REDACTED__';
         }
         for (const recipient of parsed.recipients ?? []) {
           recipient.addedAt = '__REDACTED__';
@@ -155,7 +155,7 @@ describe('keyrack status --env', () => {
         parsed.socketPath = '__REDACTED__';
         for (const key of parsed.keys) {
           key.expiresAt = '__REDACTED__';
-          key.ttlLeftMs = '__REDACTED__';
+          key.expiresIn = '__REDACTED__';
         }
         for (const recipient of parsed.recipients ?? []) {
           recipient.addedAt = '__REDACTED__';

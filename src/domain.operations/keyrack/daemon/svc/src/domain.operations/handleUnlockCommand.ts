@@ -1,7 +1,7 @@
 import type { KeyrackDaemonUnlockRenewal } from '@src/domain.objects/keyrack/KeyrackDaemonUnlockRenewal';
 import type { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
 import type { DaemonKeyStore } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonKeyStore';
-import type { DaemonRenewRecord } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonRenewRecord';
+import type { DaemonRenewalRecord } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonRenewalRecord';
 import { asKeyrackKeySlugAtReach } from '@src/domain.operations/keyrack/reach/asKeyrackKeySlugAtReach';
 
 import { getOneUnlockRenewalForGrant } from './getOneUnlockRenewalForGrant';
@@ -10,12 +10,12 @@ import { getOneUnlockRenewalForGrant } from './getOneUnlockRenewalForGrant';
  * .what = handle UNLOCK command to store grants with TTL
  * .why = caches credentials in daemon memory for session-time access
  *
- * .note = a grant that arrives with a renewal is filed in the renew record, which
+ * .note = a grant that arrives with a renewal is filed in the renewal record, which
  *         replaces any prior entry at its address: a hand unlock cures a lapse or halt
- *         mark and restarts the renew count
+ *         and restarts the renew count
  * .note = a grant that arrives with no renewal drops any entry at its exact address,
  *         so an older entry can never renew over the human's fresh grant. renew is
- *         opt-in by the cli; a key with no cap is never renewed
+ *         opt-in by the cli; a key with no max is never renewed
  * .note = `renewals` is optional, a deliberate waiver of rule.forbid.undefined-inputs: this
  *         input is the daemon's socket payload, a wire boundary. one daemon serves every
  *         repo on the host, and a cli from an older rhachet sends no `renewals`; a required
@@ -32,7 +32,7 @@ export const handleUnlockCommand = (
   },
   context: {
     keyStore: DaemonKeyStore;
-    renewRecord: DaemonRenewRecord;
+    renewalRecord: DaemonRenewalRecord;
   },
 ): { unlocked: string[]; renewable: string[] } => {
   // .note = deliberate mutation (rule.require.immutable-vars scoped-zone carve-out): the
@@ -46,33 +46,36 @@ export const handleUnlockCommand = (
     context.keyStore.set({ grant });
     unlockedSlugs.push(grant.slug);
 
-    // file a renewable grant with its cap; drop any prior entry otherwise
+    // file a renewable grant with its max; drop any prior entry otherwise
     const renewal = getOneUnlockRenewalForGrant({
       grant,
       renewals: input.renewals ?? [],
     });
     if (renewal) {
-      context.renewRecord.set({ grant, capAt: renewal.capAt });
+      context.renewalRecord.set({ grant, expiresAtMax: renewal.expiresAtMax });
       renewableSlugs.push(grant.slug);
       continue;
     }
 
     // an older cli sends no `renewals` field at all: a renew another unlock filed is
-    //   kept, on the fresh grant and under its prior cap, so a stale cli on a shared
+    //   kept, on the fresh grant and under its prior max, so a stale cli on a shared
     //   host never silently ends it. only a grant of the same mech keeps it, since the
     //   renew path is the mech's
     const entryPrior =
       input.renewals === undefined
-        ? context.renewRecord.get({ slug: grant.slug, reach: grant.reach })
+        ? context.renewalRecord.get({ slug: grant.slug, reach: grant.reach })
         : null;
     if (entryPrior && entryPrior.grant.source.mech === grant.source.mech) {
-      context.renewRecord.set({ grant, capAt: entryPrior.capAt });
+      context.renewalRecord.set({
+        grant,
+        expiresAtMax: entryPrior.expiresAtMax,
+      });
       renewableSlugs.push(grant.slug);
       continue;
     }
 
     // otherwise drop any prior entry, so it never renews over the fresh grant
-    context.renewRecord.delAt({
+    context.renewalRecord.delAt({
       address: asKeyrackKeySlugAtReach({
         slug: grant.slug,
         reach: grant.reach,

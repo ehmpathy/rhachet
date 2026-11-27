@@ -4,7 +4,7 @@ import { given, then, when } from 'test-fns';
 import { genSampleKeyrackSsoGrant } from '@src/.test/assets/genSampleKeyrackSsoGrant';
 import { KeyrackKeyGrant } from '@src/domain.objects/keyrack/KeyrackKeyGrant';
 import { createDaemonKeyStore } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonKeyStore';
-import { createDaemonRenewRecord } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonRenewRecord';
+import { createDaemonRenewalRecord } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonRenewalRecord';
 
 import { handleUnlockCommand } from './handleUnlockCommand';
 
@@ -15,31 +15,31 @@ import { handleUnlockCommand } from './handleUnlockCommand';
  *        cli that files none must drop it
  */
 describe('handleUnlockCommand', () => {
-  const capAt = asIsoTimeStamp(new Date(Date.now() + 9 * 60 * 60_000));
+  const expiresAtMax = asIsoTimeStamp(new Date(Date.now() + 9 * 60 * 60_000));
 
   const genDaemonWithRenew = () => {
     const keyStore = createDaemonKeyStore();
-    const renewRecord = createDaemonRenewRecord();
+    const renewalRecord = createDaemonRenewalRecord();
     const grant = genSampleKeyrackSsoGrant({
       expiresAt: asIsoTimeStamp(new Date(Date.now() + 60_000)),
     });
     handleUnlockCommand(
-      { keys: [grant], renewals: [{ slug: grant.slug, capAt }] },
-      { keyStore, renewRecord },
+      { keys: [grant], renewals: [{ slug: grant.slug, expiresAtMax }] },
+      { keyStore, renewalRecord },
     );
-    return { keyStore, renewRecord, grant };
+    return { keyStore, renewalRecord, grant };
   };
 
   given('[case1] an sso key whose renew a current cli filed', () => {
     when('[t0] an older cli unlocks it again, with no renewals field', () => {
-      then('the renew is kept, on the fresh grant, under its prior cap', () => {
+      then('the renew is kept, on the fresh grant, under its prior max', () => {
         const daemon = genDaemonWithRenew();
         const grantFresh = genSampleKeyrackSsoGrant({
           expiresAt: asIsoTimeStamp(new Date(Date.now() + 120_000)),
         });
         const reply = handleUnlockCommand({ keys: [grantFresh] }, daemon);
-        const entry = daemon.renewRecord.get({ slug: grantFresh.slug });
-        expect(entry?.capAt).toEqual(capAt);
+        const entry = daemon.renewalRecord.get({ slug: grantFresh.slug });
+        expect(entry?.expiresAtMax).toEqual(expiresAtMax);
         expect(entry?.grant.expiresAt).toEqual(grantFresh.expiresAt);
         expect(reply.renewable).toEqual([grantFresh.slug]);
       });
@@ -53,7 +53,7 @@ describe('handleUnlockCommand', () => {
           source: { vault: 'os.secure', mech: 'PERMANENT_VIA_REPLICA' },
         });
         handleUnlockCommand({ keys: [grantOther] }, daemon);
-        expect(daemon.renewRecord.size()).toEqual(0);
+        expect(daemon.renewalRecord.size()).toEqual(0);
       });
     });
 
@@ -64,7 +64,7 @@ describe('handleUnlockCommand', () => {
           { keys: [daemon.grant], renewals: [] },
           daemon,
         );
-        expect(daemon.renewRecord.size()).toEqual(0);
+        expect(daemon.renewalRecord.size()).toEqual(0);
         expect(reply.renewable).toEqual([]);
       });
     });
@@ -74,15 +74,15 @@ describe('handleUnlockCommand', () => {
     when('[t0] an older cli unlocks it, with no renewals field', () => {
       then('no renew is filed', () => {
         const keyStore = createDaemonKeyStore();
-        const renewRecord = createDaemonRenewRecord();
+        const renewalRecord = createDaemonRenewalRecord();
         const grant = genSampleKeyrackSsoGrant({
           expiresAt: asIsoTimeStamp(new Date(Date.now() + 60_000)),
         });
         const reply = handleUnlockCommand(
           { keys: [grant] },
-          { keyStore, renewRecord },
+          { keyStore, renewalRecord },
         );
-        expect(renewRecord.size()).toEqual(0);
+        expect(renewalRecord.size()).toEqual(0);
         expect(reply.renewable).toEqual([]);
       });
     });

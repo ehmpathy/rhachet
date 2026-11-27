@@ -7,6 +7,7 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 import { MalfunctionError } from 'helpful-errors';
+import { type IsoDuration, toMilliseconds } from 'iso-time';
 import { given, then, useBeforeAll, when } from 'test-fns';
 
 import { envIsolated } from '@/blackbox/.test/infra/envIsolated';
@@ -26,7 +27,7 @@ import { killKeyrackDaemonForTests } from '@/blackbox/.test/infra/killKeyrackDae
  *        a human finishes a browser login. no ci runner holds one, and the journey must
  *        also end and restore the portal at will, which no real portal permits
  * .real = the live two-expiry proof in the 5.1 execution yield (a real portal, a real
- *        role, `renewedCount: 2`), and `getOneAwsSsoSessionProof.integration.test.ts`,
+ *        role, two renews), and `getOneAwsSsoSessionProof.integration.test.ts`,
  *        which drives the real aws cli and sdk through the absent-session case
  */
 const MOCK_AWS_CLI_DIR = join(__dirname, '../.test/assets/mock-aws-cli');
@@ -63,11 +64,10 @@ const asLoginLogPath = (input: { home: string }): string =>
 
 /**
  * .what = mask the values a renew moves on every tick
- * .why = the count and the ttl differ per run; the shape is what the snapshot pins
+ * .why = the minutes left differ per run; the shape is what the snapshot pins
  */
 const asRenewSnapshotSafe = (output: string): string =>
   asSnapshotSafe(output)
-    .replace(/renewed = \d+x/g, 'renewed = __N__x')
     .replace(
       /expires in: (\d+)m/g,
       (_, minutes: string) => `expires in: ${asMinutesBand({ minutes: Number(minutes) })}m`,
@@ -76,7 +76,7 @@ const asRenewSnapshotSafe = (output: string): string =>
 /**
  * .what = a coarse band for a minute count: `0` stays exact, the rest fall in a band
  * .why = the count drifts per run, yet the band is what parts the journey's states: a
- *        capped grant (1-5), the daemon's 7m role creds (6-15), a far expiry (16+). an
+ *        grant at its max (1-5), the daemon's 7m role creds (6-15), a far expiry (16+). an
  *        exact `0` keeps the old "already dead" bug visible
  */
 const asMinutesBand = (input: { minutes: number }): string => {
@@ -89,49 +89,48 @@ const asMinutesBand = (input: { minutes: number }): string => {
 /**
  * .what = the `keys` of a `status --json` payload, with per-run values masked
  * .why = the shared `asKeyrackStatusSnapshotSafe` masks what every status payload moves
- *        (expiry, ttl, socket); the renew adds one more per-run value, its count
- * .note = a mark's error is pinned whole — its metadata, argv and cause — with only its
+ *        (expiry, time left, socket); the renewal adds one more per-run value, its count
+ * .note = a halt's error is pinned whole — its metadata, argv and cause — with only its
  *         per-run fragments (temp paths) masked, so a loss of the cause goes red
- * .note = a `null` ttl (a key that never expires) stays `null`; only a number is masked,
- *         so the snap still parts "never" from "some minutes"
+ * .note = a `null` expiresIn (a key that never expires) and a zero one (expired) stay
+ *         exact; only a live duration is masked, so the snap still parts the three
  * .note = the `as` sits at a json boundary (the shared masker returns a parsed payload);
  *         the shape is the cli's `status --json` contract, which the snapshot itself pins
  */
 const asRenewKeysSnapshotSafe = (input: {
   stdout: string;
 }): Array<Record<string, unknown>> => {
-  // the raw rows, read before the shared masker hides the ttl
-  const keysRaw = (JSON.parse(input.stdout).keys ?? []) as StatusRow[];
+  // the raw keys, read before the shared masker hides the time left
+  const keysRaw = (JSON.parse(input.stdout).keys ?? []) as StatusKey[];
   return (
     (asKeyrackStatusSnapshotSafe({ stdout: input.stdout }).keys ?? []) as Array<
-      Record<string, unknown> & { renew?: StatusRow['renew'] }
+      Record<string, unknown> & { renewal?: StatusKey['renewal'] }
     >
-  ).map((key, index) => ({
-    ...key,
-    // .why = `null` (never expires) and `0` (expired) stay exact; only a live count masks
-    ttlLeftMs:
-      keysRaw[index]?.ttlLeftMs === null || keysRaw[index]?.ttlLeftMs === 0
-        ? keysRaw[index]!.ttlLeftMs
-        : key.ttlLeftMs,
-    ...(key.renew
-      ? {
-          renew: {
-            ...key.renew,
-            // .why = `0` stays exact: it is the one count that says "will renew, not yet run"
-            renewedCount: key.renew.renewedCount === 0 ? 0 : '__N__',
-            mark: key.renew.mark
-              ? {
-                  ...key.renew.mark,
-                  error:
-                    key.renew.mark.error === null
-                      ? null
-                      : asSnapshotSafe(key.renew.mark.error),
-                }
-              : null,
-          },
-        }
-      : {}),
-  }));
+  ).map((key, index) => {
+    const expiresInMs = asExpiresInMs({ key: keysRaw[index]! });
+    return {
+      ...key,
+      expiresIn:
+        expiresInMs === null || expiresInMs === 0
+          ? keysRaw[index]!.expiresIn
+          : key.expiresIn,
+      ...(key.renewal
+        ? {
+            renewal: {
+              ...key.renewal,
+              // .why = `0` stays exact: it is the one count that says "will renew, not yet run"
+              count: {
+                renewed: key.renewal.count.renewed === 0 ? 0 : '__N__',
+              },
+              error:
+                key.renewal.error === null
+                  ? null
+                  : asSnapshotSafe(key.renewal.error),
+            },
+          }
+        : {}),
+    };
+  });
 };
 
 /**
@@ -139,76 +138,60 @@ const asRenewKeysSnapshotSafe = (input: {
  * .why = a red setup step names its own next move (rule.require.failloud)
  */
 const HINT_SETUP =
-  'read the cli stderr in this error; re-run this file alone to rule out a cold spawn. the daemon spawns with no log, so its own trace is the status row';
+  'read the cli stderr in this error; re-run this file alone to rule out a cold spawn. the daemon spawns with no log, so its own trace is the status key';
 
 /**
- * .what = the argv of the fix command a status render names, without its `rhx` head
- * .why = the journey cures with the exact command status tells the human to run, so a
- *        drift in the rendered command fails here, never at a human's keyboard
+ * .what = the status key of this journey's key, from `status --json`
  */
-const asFixArgsFromStatus = (input: {
-  stdout: string;
-  command: 'unlock' | 'daemon prune';
-}): string[] => {
-  const line = input.stdout
-    .split('\n')
-    .find((l) => l.match(/[├└]─ rhx keyrack (.+?)( --|$)/)?.[1] === input.command);
-  if (!line)
-    throw new MalfunctionError('status rendered no fix command', {
-      command: input.command,
-      stdout: input.stdout,
-      hint: 'read the status stdout in this error; the mark leaf may have moved its fix',
-    });
-  return line.slice(line.indexOf('rhx ') + 'rhx '.length).trim().split(' ');
-};
-
-/**
- * .what = the status row of this journey's key, from `status --json`
- */
-type StatusRow = {
+type StatusKey = {
   slug: string;
-  ttlLeftMs: number | null;
-  renew?: {
-    renewedCount: number;
-    mark: { kind: 'lapsed' | 'halted'; error: string | null } | null;
-    isAtCap?: true;
+  expiresIn: IsoDuration | null;
+  renewal?: {
+    status: 'on' | 'off' | 'lapsed' | 'halted';
+    count: { renewed: number };
+    error: string | null;
   };
 };
 
 /**
- * .what = poll `keyrack status --json` until the key's row meets a predicate
+ * .what = the time a status key has left, in milliseconds, or null if it never expires
+ * .why = a poll compares time left against a bound; the wire carries a duration
+ */
+const asExpiresInMs = (input: { key: StatusKey }): number | null =>
+  input.key.expiresIn === null ? null : toMilliseconds(input.key.expiresIn);
+
+/**
+ * .what = poll `keyrack status --json` until the journey's key meets a predicate
  * .why = the renew runs on the daemon's own tick; a poll waits exactly as long as the
  *        tick takes, never a guessed sleep
  */
-const pollStatusRowUntil = async (input: {
+const pollStatusKeyUntil = async (input: {
   cwd: string;
   env: Record<string, string | undefined>;
-  until: (row: StatusRow) => boolean;
+  until: (key: StatusKey) => boolean;
   label: string;
-  owner?: string;
-}): Promise<StatusRow> => {
+}): Promise<StatusKey> => {
   const deadline = Date.now() + 30_000;
-  const argsOwner = input.owner ? ['--owner', input.owner] : [];
-  // .note = deliberate mutation: each poll's row is kept, so a timeout can name the last
-  const rowsSeen: Array<StatusRow | null> = [];
+  // .note = deliberate mutation: each poll's key is kept, so a timeout can name the last
+  const keysSeen: Array<StatusKey | null> = [];
   while (Date.now() < deadline) {
     const result = await invokeRhachetCliBinaryAsync({
-      args: ['keyrack', 'status', ...argsOwner, '--json'],
+      args: ['keyrack', 'status', '--json'],
       cwd: input.cwd,
       env: input.env,
     });
     // .note = a json boundary: JSON.parse yields any. the shape is the cli's `status --json`
-    //         contract; a drift fails the row lookup or the predicate, never passes silently
-    const parsed = JSON.parse(result.stdout) as { keys?: StatusRow[] };
-    const row = (parsed.keys ?? []).find((key) => key.slug === SLUG) ?? null;
-    rowsSeen.push(row);
-    if (row && input.until(row)) return row;
+    //         contract; a drift fails the key lookup or the predicate, never passes silently
+    const parsed = JSON.parse(result.stdout) as { keys?: StatusKey[] };
+    const key = (parsed.keys ?? []).find((it) => it.slug === SLUG) ?? null;
+    keysSeen.push(key);
+    if (key && input.until(key)) return key;
     await new Promise((done) => setTimeout(done, 250));
   }
-  throw new MalfunctionError('status never reached the awaited renew state', {
+  throw new MalfunctionError('status never reached the awaited renewal state', {
     label: input.label,
-    rowLast: rowsSeen.at(-1) ?? null,
-    hint: 'read rowLast in this error; the tick may not have fired, or the journey state an earlier `when` left may differ — run the whole [case1] journey, not one step',
+    keyLast: keysSeen.at(-1) ?? null,
+    hint: 'read keyLast in this error; the tick may not have fired, or the journey state an earlier `when` left may differ — run the whole [case1] journey, not one step',
   });
 };
 
@@ -295,11 +278,11 @@ describe('keyrack status: sso renew', () => {
         }),
       );
 
-      const row = useBeforeAll(async () =>
-        pollStatusRowUntil({
+      const key = useBeforeAll(async () =>
+        pollStatusKeyUntil({
           cwd: scene.repo.path,
           env: scene.env,
-          until: (r) => (r.renew?.renewedCount ?? 0) >= 1,
+          until: (k) => (k.renewal?.count.renewed ?? 0) >= 1,
           label: 'renewed',
         }),
       );
@@ -320,14 +303,15 @@ describe('keyrack status: sso renew', () => {
         expect(asRenewSnapshotSafe(unlockResult.stdout)).toMatchSnapshot();
       });
 
-      then('the daemon renews the key on its own tick, with no mark', () => {
-        expect(row.renew?.renewedCount).toBeGreaterThanOrEqual(1);
-        expect(row.renew?.mark).toEqual(null);
+      then('the daemon renews the key on its own tick, its renewal `on`', () => {
+        expect(key.renewal?.count.renewed).toBeGreaterThanOrEqual(1);
+        expect(key.renewal?.status).toEqual('on');
       });
 
-      then('status names the renew', () => {
+      then('status reads `renewal = on`, and no count', () => {
         expect(human.status).toEqual(0);
-        expect(human.stdout).toMatch(/renewed = \d+x/);
+        expect(human.stdout).toContain('renewal = on');
+        expect(human.stdout).not.toMatch(/renewed/);
       });
 
       // .why = the snapshot masks every minute count, so a live renewed key that reads
@@ -348,10 +332,13 @@ describe('keyrack status: sso renew', () => {
         }),
       );
 
-      then('status --json carries the renew with no mark', () => {
+      then('status --json carries the renewal, `on`, with no error', () => {
         expect(json.status).toEqual(0);
-        const [key] = asRenewKeysSnapshotSafe({ stdout: json.stdout });
-        expect(key).toMatchObject({ slug: SLUG, renew: { mark: null } });
+        const [keyMasked] = asRenewKeysSnapshotSafe({ stdout: json.stdout });
+        expect(keyMasked).toMatchObject({
+          slug: SLUG,
+          renewal: { status: 'on', error: null },
+        });
       });
 
       then('status --json matches snapshot', () => {
@@ -360,12 +347,12 @@ describe('keyrack status: sso renew', () => {
     });
 
     when('[t1] the renew faults every tick', () => {
-      const row = useBeforeAll(async () => {
+      const key = useBeforeAll(async () => {
         writeFileSync(scene.portalStateFile, 'fault', 'utf-8');
-        return pollStatusRowUntil({
+        return pollStatusKeyUntil({
           cwd: scene.repo.path,
           env: scene.env,
-          until: (r) => r.renew?.mark?.kind === 'halted',
+          until: (k) => k.renewal?.status === 'halted',
           label: 'halted',
         });
       });
@@ -386,21 +373,18 @@ describe('keyrack status: sso renew', () => {
         }),
       );
 
-      then('the key is marked halted, with the fault named', () => {
-        expect(row.renew?.mark?.kind).toEqual('halted');
-        expect(row.renew?.mark?.error).toContain('export-credentials');
+      then('the renewal halts, with the fault named in --json', () => {
+        expect(key.renewal?.status).toEqual('halted');
+        expect(key.renewal?.error).toContain('export-credentials');
       });
 
-      // .why = the snapshot pins the headline only; the cause below it rides the json in full
-      then('the json mark keeps the whole cause, below its headline', () => {
-        expect(row.renew?.mark?.error).toContain(
-          'mock aws: connection reset by peer',
-        );
+      then('the json error keeps the whole cause, below its headline', () => {
+        expect(key.renewal?.error).toContain('mock aws: connection reset by peer');
       });
 
-      then('status names the halt and its cause', () => {
-        expect(human.stdout).toContain('halted');
-        expect(human.stdout).toContain('renew stopped on a fault it could not clear');
+      then('status reads `renewal = halted`, with the cause left to --json', () => {
+        expect(human.stdout).toContain('renewal = halted');
+        expect(human.stdout).not.toContain('export-credentials');
       });
 
       then('status stdout matches snapshot', () => {
@@ -412,64 +396,49 @@ describe('keyrack status: sso renew', () => {
       });
     });
 
-    when('[t2] the human runs the rendered fix once the fault clears', () => {
-      // .note = one block reads the fix and runs it, so the argv reaches the cli as a plain array
+    when('[t2] the human unlocks the key once the fault clears', () => {
       const fix = useBeforeAll(async () => {
-        const halted = await invokeRhachetCliBinaryAsync({
-          args: ['keyrack', 'status'],
-          cwd: scene.repo.path,
-          env: scene.env,
-        });
-        const args = asFixArgsFromStatus({
-          stdout: halted.stdout,
-          command: 'unlock',
-        });
         rmSync(scene.portalStateFile, { force: true });
-        const result = await invokeRhachetCliBinaryAsync({
-          args,
+        return invokeRhachetCliBinaryAsync({
+          args: ['keyrack', 'unlock', '--env', 'test'],
           cwd: scene.repo.path,
           env: scene.env,
         });
-        return { args, result };
       });
 
-      then('the rendered fix is the unlock of the key env', () => {
-        expect(fix.args).toEqual(['keyrack', 'unlock', '--env', 'test']);
-      });
-
-      const row = useBeforeAll(async () =>
-        pollStatusRowUntil({
+      const key = useBeforeAll(async () =>
+        pollStatusKeyUntil({
           cwd: scene.repo.path,
           env: scene.env,
           // .why = the unlock resets the count to 0; wait for a renew to land after it,
           //        so the cure is proven and the next step starts from a renewed key
-          until: (r) =>
-            !!r.renew && r.renew.mark === null && r.renew.renewedCount >= 1,
+          until: (k) =>
+            k.renewal?.status === 'on' && k.renewal.count.renewed >= 1,
           label: 'cured',
         }),
       );
 
       then('the unlock succeeds', () => {
-        expect(fix.result.status).toEqual(0);
+        expect(fix.status).toEqual(0);
       });
 
       then('the cure unlock stdout matches snapshot', () => {
-        expect(asRenewSnapshotSafe(fix.result.stdout)).toMatchSnapshot();
+        expect(asRenewSnapshotSafe(fix.stdout)).toMatchSnapshot();
       });
 
-      then('the mark is cured and the renew resumes', () => {
-        expect(row.renew?.mark).toEqual(null);
-        expect(row.renew?.renewedCount).toBeGreaterThanOrEqual(1);
+      then('the halt is cured and the renewal resumes', () => {
+        expect(key.renewal?.status).toEqual('on');
+        expect(key.renewal?.count.renewed).toBeGreaterThanOrEqual(1);
       });
     });
 
     when('[t3] the portal session ends', () => {
-      const row = useBeforeAll(async () => {
+      const key = useBeforeAll(async () => {
         writeFileSync(scene.portalStateFile, 'lapsed', 'utf-8');
-        return pollStatusRowUntil({
+        return pollStatusKeyUntil({
           cwd: scene.repo.path,
           env: scene.env,
-          until: (r) => r.renew?.mark?.kind === 'lapsed',
+          until: (k) => k.renewal?.status === 'lapsed',
           label: 'lapsed',
         });
       });
@@ -490,8 +459,8 @@ describe('keyrack status: sso renew', () => {
         }),
       );
 
-      // .why = a mark stops the renew, never the access: the live grant still serves
-      const gotUnderMark = useBeforeAll(async () =>
+      // .why = a lapse stops the renew, never the access: the live grant still serves
+      const gotUnderLapse = useBeforeAll(async () =>
         invokeRhachetCliBinaryAsync({
           args: ['keyrack', 'get', '--key', SLUG, '--json'],
           cwd: scene.repo.path,
@@ -500,18 +469,18 @@ describe('keyrack status: sso renew', () => {
       );
 
       then('a consumer get is still granted while the grant lives', () => {
-        expect(gotUnderMark.status).toEqual(0);
-        expect(JSON.parse(gotUnderMark.stdout).status).toEqual('granted');
+        expect(gotUnderLapse.status).toEqual(0);
+        expect(JSON.parse(gotUnderLapse.stdout).status).toEqual('granted');
       });
 
-      then('the key is marked lapsed, with no browser opened', () => {
-        expect(row.renew?.mark).toEqual({ kind: 'lapsed', error: null });
+      then('the renewal lapses, with no browser opened', () => {
+        expect(key.renewal?.status).toEqual('lapsed');
+        expect(key.renewal?.error).toEqual(null);
         expect(existsSync(asLoginLogPath({ home: scene.repo.path }))).toBe(false);
       });
 
-      then('status names the lapse', () => {
-        expect(human.stdout).toContain('lapsed');
-        expect(human.stdout).toContain('sso session ended, no renew until the next unlock');
+      then('status reads `renewal = lapsed`', () => {
+        expect(human.stdout).toContain('renewal = lapsed');
       });
 
       then('status stdout matches snapshot', () => {
@@ -527,7 +496,7 @@ describe('keyrack status: sso renew', () => {
       // .why = the view after a night away: the role creds run out under a lapse. a fresh
       //        unlock from a cli whose own portal reads live (a separate state file, absent)
       //        files a grant that expires in 2s; the daemon's portal still reads lapsed, so
-      //        the renew marks it and the grant expires out of the store
+      //        the renewal lapses and the grant expires out of the store
       const unlockResult = useBeforeAll(async () =>
         invokeRhachetCliBinaryAsync({
           args: ['keyrack', 'unlock', '--env', 'test'],
@@ -540,11 +509,12 @@ describe('keyrack status: sso renew', () => {
         }),
       );
 
-      const row = useBeforeAll(async () =>
-        pollStatusRowUntil({
+      const key = useBeforeAll(async () =>
+        pollStatusKeyUntil({
           cwd: scene.repo.path,
           env: scene.env,
-          until: (r) => r.renew?.mark?.kind === 'lapsed' && r.ttlLeftMs === 0,
+          until: (k) =>
+            k.renewal?.status === 'lapsed' && asExpiresInMs({ key: k }) === 0,
           label: 'expired and lapsed',
         }),
       );
@@ -577,24 +547,19 @@ describe('keyrack status: sso renew', () => {
         expect(unlockResult.status).toEqual(0);
       });
 
-      then('the key outlives its grant, marked lapsed', () => {
-        expect(row.ttlLeftMs).toEqual(0);
-        expect(row.renew?.mark).toEqual({ kind: 'lapsed', error: null });
+      then('the key outlives its grant in status, its renewal lapsed', () => {
+        expect(asExpiresInMs({ key })).toEqual(0);
+        expect(key.renewal?.status).toEqual('lapsed');
       });
 
       then('the renew still opened no browser', () => {
         expect(existsSync(asLoginLogPath({ home: scene.repo.path }))).toBe(false);
       });
 
-      then('status names the key expired and lapsed, with the fix', () => {
-        expect(human.stdout).toContain('expired');
-        expect(human.stdout).toContain('sso session ended, no renew until the next unlock');
-        expect(asFixArgsFromStatus({ stdout: human.stdout, command: 'unlock' })).toEqual([
-          'keyrack',
-          'unlock',
-          '--env',
-          'test',
-        ]);
+      then('status reads `expired` alone', () => {
+        expect(human.stdout).toContain('└─ expired');
+        expect(human.stdout).not.toContain('renewal =');
+        expect(human.stdout).not.toContain('expires in: 0m');
       });
 
       then('status stdout matches snapshot', () => {
@@ -619,57 +584,46 @@ describe('keyrack status: sso renew', () => {
       });
     });
 
-    when('[t5] the human runs the rendered fix from the lapse', () => {
-      // .why = the fix runs the browser login (the mock `sso login` starts a fresh portal
-      //        session), then the daemon renews again from it
-      const fix = useBeforeAll(async () => {
-        const lapsed = await invokeRhachetCliBinaryAsync({
-          args: ['keyrack', 'status'],
+    when('[t5] the human unlocks the key after the lapse', () => {
+      // .why = the unlock runs the browser login (the mock `sso login` starts a fresh
+      //        portal session), then the daemon renews again from it
+      const fix = useBeforeAll(async () =>
+        invokeRhachetCliBinaryAsync({
+          args: ['keyrack', 'unlock', '--env', 'test'],
           cwd: scene.repo.path,
           env: scene.env,
-        });
-        const args = asFixArgsFromStatus({
-          stdout: lapsed.stdout,
-          command: 'unlock',
-        });
-        const result = await invokeRhachetCliBinaryAsync({
-          args,
-          cwd: scene.repo.path,
-          env: scene.env,
-        });
-        return { args, result };
-      });
+        }),
+      );
 
-      const row = useBeforeAll(async () =>
-        pollStatusRowUntil({
+      const key = useBeforeAll(async () =>
+        pollStatusKeyUntil({
           cwd: scene.repo.path,
           env: scene.env,
-          until: (r) =>
-            !!r.renew && r.renew.mark === null && r.renew.renewedCount >= 1,
+          until: (k) =>
+            k.renewal?.status === 'on' && k.renewal.count.renewed >= 1,
           label: 'cured from lapse',
         }),
       );
 
-      then('the fix runs the browser login and succeeds', () => {
-        expect(fix.args).toEqual(['keyrack', 'unlock', '--env', 'test']);
-        expect(fix.result.status).toEqual(0);
-        expect(fix.result.stdout).toContain('authenticated as');
+      then('the unlock runs the browser login and succeeds', () => {
+        expect(fix.status).toEqual(0);
+        expect(fix.stdout).toContain('authenticated as');
       });
 
       then('the cure unlock stdout matches snapshot', () => {
-        expect(asRenewSnapshotSafe(fix.result.stdout)).toMatchSnapshot();
+        expect(asRenewSnapshotSafe(fix.stdout)).toMatchSnapshot();
       });
 
-      then('the lapse is cured and the renew resumes', () => {
-        expect(row.renew?.mark).toEqual(null);
-        expect(row.renew?.renewedCount).toBeGreaterThanOrEqual(1);
-        expect(row.ttlLeftMs).toBeGreaterThan(0);
+      then('the lapse is cured and the renewal resumes', () => {
+        expect(key.renewal?.status).toEqual('on');
+        expect(key.renewal?.count.renewed).toBeGreaterThanOrEqual(1);
+        expect(asExpiresInMs({ key })).toBeGreaterThan(0);
       });
     });
 
     when('[t6] the key is unlocked with a duration shorter than its role creds', () => {
-      // .why = a 5m bound against 7m role creds stores the grant at its cap, so no renew
-      //        can move it; status must say where the key ends, never `renew = on`
+      // .why = a 5m bound against 7m role creds stores the grant at its max, so no renew
+      //        can move it; status must read `renewal = off`, never `renewal = on`
       const unlockResult = useBeforeAll(async () =>
         invokeRhachetCliBinaryAsync({
           args: [
@@ -687,21 +641,21 @@ describe('keyrack status: sso renew', () => {
         }),
       );
 
-      const row = useBeforeAll(async () => {
+      const key = useBeforeAll(async () => {
         if (unlockResult.status !== 0)
           throw new MalfunctionError('the bounded unlock failed', {
             unlockResult,
             hint: HINT_SETUP,
           });
-        return pollStatusRowUntil({
+        return pollStatusKeyUntil({
           cwd: scene.repo.path,
           env: scene.env,
-          until: (r) => r.renew?.isAtCap === true,
-          label: 'at cap',
+          until: (k) => k.renewal?.status === 'off',
+          label: 'at max',
         });
       });
 
-      // .note = beforeAll hooks run in order, so this reads status after the row is at cap
+      // .note = beforeAll hooks run in order, so this reads status after the key is at max
       const human = useBeforeAll(async () =>
         invokeRhachetCliBinaryAsync({
           args: ['keyrack', 'status'],
@@ -710,17 +664,14 @@ describe('keyrack status: sso renew', () => {
         }),
       );
 
-      then('the row says the grant is at its cap, with no mark', () => {
-        expect(row.renew?.isAtCap).toEqual(true);
-        expect(row.renew?.mark).toEqual(null);
-        expect(row.ttlLeftMs).toBeLessThanOrEqual(5 * 60_000);
+      then('the key reads renewal `off`, within its bound', () => {
+        expect(key.renewal?.status).toEqual('off');
+        expect(asExpiresInMs({ key })).toBeLessThanOrEqual(5 * 60_000);
       });
 
-      then('status names where the key ends, never renew = on', () => {
-        expect(human.stdout).toContain(
-          'at its cap — ends at expiry, unlock to extend',
-        );
-        expect(human.stdout).not.toContain('renew = on');
+      then('status reads `renewal = off`, never `renewal = on`', () => {
+        expect(human.stdout).toContain('renewal = off');
+        expect(human.stdout).not.toContain('renewal = on');
       });
 
       then('status stdout matches snapshot', () => {
@@ -773,9 +724,9 @@ describe('keyrack status: sso renew', () => {
         expect(asRenewSnapshotSafe(relockResult.stdout)).toMatchSnapshot();
       });
 
-      then('past several ticks, status holds no row for the key', () => {
-        // .note = a json boundary, as in pollStatusRowUntil
-        const parsed = JSON.parse(after.json.stdout) as { keys?: StatusRow[] };
+      then('past several ticks, status holds the key no more', () => {
+        // .note = a json boundary, as in pollStatusKeyUntil
+        const parsed = JSON.parse(after.json.stdout) as { keys?: StatusKey[] };
         expect((parsed.keys ?? []).some((key) => key.slug === SLUG)).toBe(
           false,
         );
@@ -788,12 +739,12 @@ describe('keyrack status: sso renew', () => {
       });
     });
 
-    when('[t8] the human relocks a key the renew has marked', () => {
-      // .why = a marked entry outlives its grant in status (F5), so a relock must clear
-      //        the mark too, or the key would still be named after the human locked it.
-      //        the grant expires first, so the relock finds the key in the renew record
+    when('[t8] the human relocks a key whose renewal lapsed', () => {
+      // .why = a lapsed entry outlives its grant in status (F5), so a relock must clear
+      //        it too, or the key would still be named after the human locked it.
+      //        the grant expires first, so the relock finds the key in the renewal record
       //        alone, as in [t4]: the daemon's portal reads lapsed, the cli's reads live
-      const marked = useBeforeAll(async () => {
+      const lapsed = useBeforeAll(async () => {
         writeFileSync(scene.portalStateFile, 'lapsed');
         const unlocked = await invokeRhachetCliBinaryAsync({
           args: ['keyrack', 'unlock', '--env', 'test', '--key', 'AWS_PROFILE'],
@@ -805,15 +756,16 @@ describe('keyrack status: sso renew', () => {
           },
         });
         if (unlocked.status !== 0)
-          throw new MalfunctionError('the unlock before the mark failed', {
+          throw new MalfunctionError('the unlock before the lapse failed', {
             unlocked,
             hint: HINT_SETUP,
           });
-        return pollStatusRowUntil({
+        return pollStatusKeyUntil({
           cwd: scene.repo.path,
           env: scene.env,
-          until: (r) => r.renew?.mark?.kind === 'lapsed' && r.ttlLeftMs === 0,
-          label: 'expired and marked lapsed before the relock',
+          until: (k) =>
+            k.renewal?.status === 'lapsed' && asExpiresInMs({ key: k }) === 0,
+          label: 'expired and lapsed before the relock',
         });
       });
 
@@ -833,23 +785,23 @@ describe('keyrack status: sso renew', () => {
         return { relocked, json };
       });
 
-      then('the key was expired and marked lapsed before the relock', () => {
-        expect(marked.renew?.mark?.kind).toEqual('lapsed');
-        expect(marked.ttlLeftMs).toEqual(0);
+      then('the key was expired and its renewal lapsed before the relock', () => {
+        expect(lapsed.renewal?.status).toEqual('lapsed');
+        expect(asExpiresInMs({ key: lapsed })).toEqual(0);
       });
 
       then('the relock succeeds', () => {
         expect(after.relocked.status).toEqual(0);
       });
 
-      // .why = the key lives in the renew record alone here; the relock still names it
+      // .why = the key lives in the renewal record alone here; the relock still names it
       then('the relock stdout matches snapshot', () => {
         expect(asRenewSnapshotSafe(after.relocked.stdout)).toMatchSnapshot();
       });
 
       then('past several ticks, status names the key no more', () => {
-        // .note = a json boundary, as in pollStatusRowUntil
-        const parsed = JSON.parse(after.json.stdout) as { keys?: StatusRow[] };
+        // .note = a json boundary, as in pollStatusKeyUntil
+        const parsed = JSON.parse(after.json.stdout) as { keys?: StatusKey[] };
         expect((parsed.keys ?? []).some((key) => key.slug === SLUG)).toBe(
           false,
         );
@@ -857,7 +809,7 @@ describe('keyrack status: sso renew', () => {
     });
 
     when('[t9] a renew faults for a few ticks, then the fault clears (a blip)', () => {
-      // .why = a blip must never mark the key: the renew retries on the next tick and
+      // .why = a blip must never stop the renewal: the renew retries on the next tick and
       //        lands once the fault clears (c9)
       const blip = useBeforeAll(async () => {
         // a fresh unlock; the mock login starts a live portal session
@@ -872,10 +824,10 @@ describe('keyrack status: sso renew', () => {
             hint: HINT_SETUP,
           });
         writeFileSync(scene.portalStateFile, '');
-        const before = await pollStatusRowUntil({
+        const before = await pollStatusKeyUntil({
           cwd: scene.repo.path,
           env: scene.env,
-          until: (r) => (r.renew?.renewedCount ?? 0) >= 1,
+          until: (k) => (k.renewal?.count.renewed ?? 0) >= 1,
           label: 'renewed before the blip',
         });
 
@@ -883,19 +835,20 @@ describe('keyrack status: sso renew', () => {
         writeFileSync(scene.portalStateFile, 'fault');
         await new Promise((done) => setTimeout(done, 750));
         writeFileSync(scene.portalStateFile, '');
-        const after = await pollStatusRowUntil({
+        const after = await pollStatusKeyUntil({
           cwd: scene.repo.path,
           env: scene.env,
-          until: (r) =>
-            (r.renew?.renewedCount ?? 0) > (before.renew?.renewedCount ?? 0),
+          until: (k) =>
+            (k.renewal?.count.renewed ?? 0) >
+            (before.renewal?.count.renewed ?? 0),
           label: 'renewed after the blip',
         });
         return { after };
       });
 
-      then('the renew resumes, with no mark', () => {
-        expect(blip.after.renew?.mark).toEqual(null);
-        expect(blip.after.ttlLeftMs).toBeGreaterThan(0);
+      then('the renewal resumes, still `on`', () => {
+        expect(blip.after.renewal?.status).toEqual('on');
+        expect(asExpiresInMs({ key: blip.after })).toBeGreaterThan(0);
       });
     });
 
@@ -940,11 +893,12 @@ describe('keyrack status: sso renew', () => {
         // .note = every renew before this point faulted, so the first one that lands
         //         lands after the grant's own expiry, by construction
         writeFileSync(scene.portalStateFile, '');
-        const row = await pollStatusRowUntil({
+        const key = await pollStatusKeyUntil({
           cwd: scene.repo.path,
           env: scene.env,
-          until: (r) =>
-            (r.renew?.renewedCount ?? 0) >= 1 && (r.ttlLeftMs ?? 0) > 0,
+          until: (k) =>
+            (k.renewal?.count.renewed ?? 0) >= 1 &&
+            (asExpiresInMs({ key: k }) ?? 0) > 0,
           label: 'revived after the late wake',
         });
         const gotAwake = await invokeRhachetCliBinaryAsync({
@@ -952,19 +906,19 @@ describe('keyrack status: sso renew', () => {
           cwd: scene.repo.path,
           env: scene.env,
         });
-        return { row, gotAwake };
+        return { key, gotAwake };
       });
 
-      then('after the wake, the renew revives the key, with no mark', () => {
-        expect(wake.row.renew?.mark).toEqual(null);
+      then('after the wake, the renew revives the key, its renewal `on`', () => {
+        expect(wake.key.renewal?.status).toEqual('on');
         expect(wake.gotAwake.status).toEqual(0);
         expect(wake.gotAwake.stdout).toContain('"status": "granted"');
       });
     });
 
-    when('[t11] a renew clips the grant to a cap seconds out', () => {
-      // .why = the cap is the human's bound: a renew never moves a key past it, and at
-      //        the cap the key locks as it would with no renew (c8)
+    when('[t11] a renew clips the grant to a max expiry seconds out', () => {
+      // .why = the max expiry is the human's bound: a renew never moves a key past it, and
+      //        at the max the key locks as it would with no renew (c8)
       const clip = useBeforeAll(async () => {
         const unlocked = await invokeRhachetCliBinaryAsync({
           args: [
@@ -985,37 +939,37 @@ describe('keyrack status: sso renew', () => {
             unlocked,
             hint: HINT_SETUP,
           });
-        const row = await pollStatusRowUntil({
+        const key = await pollStatusKeyUntil({
           cwd: scene.repo.path,
           env: scene.env,
-          until: (r) =>
-            (r.renew?.renewedCount ?? 0) >= 1 && r.renew?.isAtCap === true,
-          label: 'renewed up to the cap',
+          until: (k) =>
+            (k.renewal?.count.renewed ?? 0) >= 1 && k.renewal?.status === 'off',
+          label: 'renewed up to the max',
         });
 
-        // past the 6s cap
+        // past the 6s max
         await new Promise((done) => setTimeout(done, 6_500));
-        const gotPastCap = await invokeRhachetCliBinaryAsync({
+        const gotPastMax = await invokeRhachetCliBinaryAsync({
           args: ['keyrack', 'get', '--key', SLUG, '--json'],
           cwd: scene.repo.path,
           env: scene.env,
         });
-        return { row, gotPastCap };
+        return { key, gotPastMax };
       });
 
-      then('the renew lands and stops at the cap', () => {
-        expect(clip.row.renew?.isAtCap).toEqual(true);
-        expect(clip.row.ttlLeftMs).toBeLessThanOrEqual(6_000);
+      then('the renew lands and stops at the max: the renewal reads `off`', () => {
+        expect(clip.key.renewal?.status).toEqual('off');
+        expect(asExpiresInMs({ key: clip.key })).toBeLessThanOrEqual(6_000);
       });
 
-      then('past the cap, a consumer get is locked — the cap held', () => {
-        expect(clip.gotPastCap.status).toEqual(2);
-        expect(clip.gotPastCap.stdout).toContain('"status": "locked"');
+      then('past the max, a consumer get is locked — the max held', () => {
+        expect(clip.gotPastMax.status).toEqual(2);
+        expect(clip.gotPastMax.stdout).toContain('"status": "locked"');
       });
     });
 
     when('[t12] the key is unlocked with role creds far from their expiry', () => {
-      // .why = a key outside the renew window, under its cap, waits for its window; the
+      // .why = a key outside the renew window, under its max, waits for its window; the
       //        human must read that the daemon WILL renew it, before any renew lands (c1)
       const far = useBeforeAll(async () => {
         const unlocked = await invokeRhachetCliBinaryAsync({
@@ -1028,20 +982,20 @@ describe('keyrack status: sso renew', () => {
             unlocked,
             hint: HINT_SETUP,
           });
-        await pollStatusRowUntil({
+        await pollStatusKeyUntil({
           cwd: scene.repo.path,
           env: scene.env,
-          until: (r) => (r.ttlLeftMs ?? 0) > 30 * 60_000,
+          until: (k) => (asExpiresInMs({ key: k }) ?? 0) > 30 * 60_000,
           label: 'held far from expiry',
         });
 
         // past more than ten ticks: a renew that fired outside its window would read the
         // daemon's 420s role creds as no later expiry, a fault, and halt the key by now
         await new Promise((done) => setTimeout(done, 3_000));
-        const row = await pollStatusRowUntil({
+        const key = await pollStatusKeyUntil({
           cwd: scene.repo.path,
           env: scene.env,
-          until: (r) => (r.ttlLeftMs ?? 0) > 30 * 60_000,
+          until: (k) => (asExpiresInMs({ key: k }) ?? 0) > 30 * 60_000,
           label: 'still held far from expiry, past ten ticks',
         });
         const human = await invokeRhachetCliBinaryAsync({
@@ -1054,25 +1008,24 @@ describe('keyrack status: sso renew', () => {
           cwd: scene.repo.path,
           env: scene.env,
         });
-        return { row, human, json };
+        return { key, human, json };
       });
 
-      then('the row carries a renew not yet run, with no mark and no cap', () => {
-        expect(far.row.renew?.renewedCount).toEqual(0);
-        expect(far.row.renew?.mark).toEqual(null);
-        expect(far.row.renew?.isAtCap).toBeUndefined();
+      then('the key carries a renewal `on`, not yet run', () => {
+        expect(far.key.renewal?.count.renewed).toEqual(0);
+        expect(far.key.renewal?.status).toEqual('on');
       });
 
       then('status says the daemon will renew it', () => {
         expect(far.human.status).toEqual(0);
-        expect(far.human.stdout).toContain('renew = on');
+        expect(far.human.stdout).toContain('renewal = on');
       });
 
       then('status stdout matches snapshot', () => {
         expect(asRenewSnapshotSafe(far.human.stdout)).toMatchSnapshot();
       });
 
-      // .why = `renewedCount: 0, mark: null` is the one wire shape that says "will renew"
+      // .why = `status: 'on'` with `count.renewed: 0` is the wire shape that says "will renew"
       then('status --json matches snapshot', () => {
         expect(asRenewKeysSnapshotSafe({ stdout: far.json.stdout })).toMatchSnapshot();
       });
@@ -1108,13 +1061,13 @@ describe('keyrack status: sso renew', () => {
           return got;
         };
         const gets = [await getOne(), await getOne(), await getOne()];
-        const row = await pollStatusRowUntil({
+        const key = await pollStatusKeyUntil({
           cwd: scene.repo.path,
           env: scene.env,
-          until: (r) => (r.renew?.renewedCount ?? 0) >= 1,
+          until: (k) => (k.renewal?.count.renewed ?? 0) >= 1,
           label: 'renewed past the short grant',
         });
-        return { gets, row };
+        return { gets, key };
       });
 
       then('every get is granted, past the first grant expiry', () => {
@@ -1130,21 +1083,21 @@ describe('keyrack status: sso renew', () => {
       then('the get past expiry matches snapshot', () => {
         expect({
           verdicts: reads.gets.map((got) => JSON.parse(got.stdout).status),
-          isRenewed: (reads.row.renew?.renewedCount ?? 0) >= 1,
+          isRenewed: (reads.key.renewal?.count.renewed ?? 0) >= 1,
           getPastExpiry: JSON.parse(asSnapshotSafe(reads.gets[2]!.stdout)),
         }).toMatchSnapshot();
       });
 
-      then('the renew carried it, with no mark', () => {
-        expect(reads.row.renew?.renewedCount).toBeGreaterThanOrEqual(1);
-        expect(reads.row.renew?.mark).toEqual(null);
+      then('the renew carried it, its renewal still `on`', () => {
+        expect(reads.key.renewal?.count.renewed).toBeGreaterThanOrEqual(1);
+        expect(reads.key.renewal?.status).toEqual('on');
       });
     });
 
-    when('[t14] the renew faults in the daemon own env, and the rendered prune cures it', () => {
+    when('[t14] the renew faults in the daemon own env, and a daemon prune cures it', () => {
       // .why = the daemon renews from the env it was spawned with, so a fault that lives
-      //        there survives an unlock from a healthy cli (c19). the walk runs the prune
-      //        that status prints, then its unlock, and the renew resumes
+      //        there survives an unlock from a healthy cli (c19). the walk runs a daemon
+      //        prune, then an unlock, and the renew resumes
       // .note = the daemon is respawned with a portal state path of its own; a fault in
       //         that file reaches the daemon's renew alone, as a stale config path would
       const sick = useBeforeAll(async () => {
@@ -1174,10 +1127,10 @@ describe('keyrack status: sso renew', () => {
 
         // the fault lands in the daemon's env alone; the cli's own path stays live
         writeFileSync(daemonStateFile, 'fault');
-        const halted = await pollStatusRowUntil({
+        const halted = await pollStatusKeyUntil({
           cwd: scene.repo.path,
           env: scene.env,
-          until: (r) => r.renew?.mark?.kind === 'halted',
+          until: (k) => k.renewal?.status === 'halted',
           label: 'halted on a fault in the daemon env',
         });
 
@@ -1188,60 +1141,43 @@ describe('keyrack status: sso renew', () => {
           cwd: scene.repo.path,
           env: scene.env,
         });
-        const haltedAgain = await pollStatusRowUntil({
+        const haltedAgain = await pollStatusKeyUntil({
           cwd: scene.repo.path,
           env: scene.env,
-          until: (r) => r.renew?.mark?.kind === 'halted',
+          until: (k) => k.renewal?.status === 'halted',
           label: 'halted again past a healthy unlock',
         });
-        const human = await invokeRhachetCliBinaryAsync({
-          args: ['keyrack', 'status'],
-          cwd: scene.repo.path,
-          env: scene.env,
-        });
-        return { halted, rearmed, haltedAgain, human };
+        return { halted, rearmed, haltedAgain };
       });
 
       const cure = useBeforeAll(async () => {
-        const argsPrune = asFixArgsFromStatus({
-          stdout: sick.human.stdout,
-          command: 'daemon prune',
-        });
-        const argsUnlock = asFixArgsFromStatus({
-          stdout: sick.human.stdout,
-          command: 'unlock',
-        });
         const pruned = await invokeRhachetCliBinaryAsync({
-          args: argsPrune,
+          args: ['keyrack', 'daemon', 'prune'],
           cwd: scene.repo.path,
           env: scene.env,
         });
         const unlocked = await invokeRhachetCliBinaryAsync({
-          args: argsUnlock,
+          args: ['keyrack', 'unlock', '--env', 'test'],
           cwd: scene.repo.path,
           env: scene.env,
         });
-        const row = await pollStatusRowUntil({
+        const key = await pollStatusKeyUntil({
           cwd: scene.repo.path,
           env: scene.env,
-          until: (r) =>
-            !!r.renew && r.renew.mark === null && r.renew.renewedCount >= 1,
+          until: (k) =>
+            k.renewal?.status === 'on' && k.renewal.count.renewed >= 1,
           label: 'renewed after the prune',
         });
-        return { argsPrune, pruned, unlocked, row };
+        return { pruned, unlocked, key };
       });
 
-      then('the fault halts the key', () => {
-        expect(sick.halted.renew?.mark?.kind).toEqual('halted');
+      then('the fault halts the renewal', () => {
+        expect(sick.halted.renewal?.status).toEqual('halted');
       });
 
-      then('an unlock from a healthy cli does not clear it: the key halts again', () => {
+      then('an unlock from a healthy cli does not clear it: the renewal halts again', () => {
         expect(sick.rearmed.status).toEqual(0);
-        expect(sick.haltedAgain.renew?.mark?.kind).toEqual('halted');
-      });
-
-      then('the rendered prune is the daemon prune, with no owner', () => {
-        expect(cure.argsPrune).toEqual(['keyrack', 'daemon', 'prune']);
+        expect(sick.haltedAgain.renewal?.status).toEqual('halted');
       });
 
       then('the prune and its unlock succeed', () => {
@@ -1249,9 +1185,9 @@ describe('keyrack status: sso renew', () => {
         expect(cure.unlocked.status).toEqual(0);
       });
 
-      then('the respawned daemon renews the key, with no mark', () => {
-        expect(cure.row.renew?.mark).toEqual(null);
-        expect(cure.row.renew?.renewedCount).toBeGreaterThanOrEqual(1);
+      then('the respawned daemon renews the key, its renewal `on`', () => {
+        expect(cure.key.renewal?.status).toEqual('on');
+        expect(cure.key.renewal?.count.renewed).toBeGreaterThanOrEqual(1);
       });
 
       // .why = the one render where an unlock reads as success while the key stays broken
@@ -1259,7 +1195,7 @@ describe('keyrack status: sso renew', () => {
         expect(asRenewSnapshotSafe(sick.rearmed.stdout)).toMatchSnapshot();
       });
 
-      // .why = what the prune prints, beside the halt render's warn on its cost
+      // .why = what the prune prints, and the unlock that follows it
       then('the prune and its unlock stdout match snapshot', () => {
         expect({
           pruned: asRenewSnapshotSafe(cure.pruned.stdout).replace(
@@ -1273,13 +1209,13 @@ describe('keyrack status: sso renew', () => {
 
     when('[t15] the portal session ends while the key waits on a halt', () => {
       // .why = a halt stops every probe, so the portal can lapse while it waits; the
-      //        rendered fix then opens a browser login, which the halt render must name
+      //        unlock that cures the halt then opens a browser login, and must succeed
       const walk = useBeforeAll(async () => {
         writeFileSync(scene.portalStateFile, 'fault');
-        const halted = await pollStatusRowUntil({
+        const halted = await pollStatusKeyUntil({
           cwd: scene.repo.path,
           env: scene.env,
-          until: (r) => r.renew?.mark?.kind === 'halted',
+          until: (k) => k.renewal?.status === 'halted',
           label: 'halted before the portal lapse',
         });
         writeFileSync(scene.portalStateFile, 'lapsed');
@@ -1290,37 +1226,27 @@ describe('keyrack status: sso renew', () => {
         });
         const loginLog = `${scene.repo.path}/.mock-aws-login.log`;
         rmSync(loginLog, { force: true });
-        const args = asFixArgsFromStatus({
-          stdout: human.stdout,
-          command: 'unlock',
-        });
         const fixed = await invokeRhachetCliBinaryAsync({
-          args,
+          args: ['keyrack', 'unlock', '--env', 'test'],
           cwd: scene.repo.path,
           env: { ...scene.env, MOCK_AWS_LOGIN_LOG: loginLog },
         });
-        const row = await pollStatusRowUntil({
+        const key = await pollStatusKeyUntil({
           cwd: scene.repo.path,
           env: scene.env,
-          until: (r) =>
-            !!r.renew && r.renew.mark === null && r.renew.renewedCount >= 1,
+          until: (k) =>
+            k.renewal?.status === 'on' && k.renewal.count.renewed >= 1,
           label: 'renewed after the login',
         });
-        return { halted, human, fixed, isLoginRun: existsSync(loginLog), row };
+        return { halted, human, fixed, isLoginRun: existsSync(loginLog), key };
       });
 
-      then('the key is still marked halted, not lapsed: the halt stopped the probes', () => {
-        expect(walk.halted.renew?.mark?.kind).toEqual('halted');
-        expect(walk.human.stdout).toContain('halted');
+      then('the renewal stays halted, not lapsed: the halt stopped the probes', () => {
+        expect(walk.halted.renewal?.status).toEqual('halted');
+        expect(walk.human.stdout).toContain('renewal = halted');
       });
 
-      then('the halt render says a human may need to finish a browser login', () => {
-        expect(walk.human.stdout).toContain(
-          'if the sso session ended meanwhile, a human must finish the browser login',
-        );
-      });
-
-      then('the rendered fix ran a browser login, and succeeded', () => {
+      then('the unlock ran a browser login, and succeeded', () => {
         expect(walk.isLoginRun).toBe(true);
         expect(walk.fixed.status).toEqual(0);
       });
@@ -1329,109 +1255,10 @@ describe('keyrack status: sso renew', () => {
         expect(asRenewSnapshotSafe(walk.fixed.stdout)).toMatchSnapshot();
       });
 
-      then('the renew resumes, with no mark', () => {
-        expect(walk.row.renew?.mark).toEqual(null);
-        expect(walk.row.renew?.renewedCount).toBeGreaterThanOrEqual(1);
+      then('the renewal resumes, `on`', () => {
+        expect(walk.key.renewal?.status).toEqual('on');
+        expect(walk.key.renewal?.count.renewed).toBeGreaterThanOrEqual(1);
       });
-    });
-  });
-
-  given('[case2] an sso key on a named owner rack, through a lapse', () => {
-    // .why = the cli hands the rack's owner to the render, so the fix it prints reaches
-    //        the same rack. a human on a named rack who runs a fix for the default rack
-    //        unlocks the wrong one
-    const OWNER = 'ehmpath.renew';
-    beforeAll(() => killKeyrackDaemonForTests({ owner: OWNER }));
-    afterAll(() => killKeyrackDaemonForTests({ owner: OWNER }));
-
-    const walk = useBeforeAll(async () => {
-      const repo = await genTestTempRepo({ fixture: 'minimal' });
-      const portalStateFile = `${repo.path}/.mock-aws-portal-state`;
-      const env = envForRenew({ home: repo.path, portalStateFile });
-
-      // an owner rack, a repo manifest, and an sso profile
-      await invokeRhachetCliBinary({
-        args: ['keyrack', 'init', '--owner', OWNER],
-        cwd: repo.path,
-        env: envIsolated(repo.path),
-      });
-      mkdirSync(`${repo.path}/.agent`, { recursive: true });
-      writeFileSync(
-        `${repo.path}/.agent/keyrack.yml`,
-        'org: testorg\n\nenv.test:\n  - AWS_PROFILE\n',
-        'utf-8',
-      );
-      mkdirSync(`${repo.path}/.aws`, { recursive: true });
-      writeFileSync(
-        `${repo.path}/.aws/config`,
-        [
-          '[profile testorg-test]',
-          'sso_session = mock-portal',
-          'sso_account_id = 123456789012',
-          'sso_role_name = AdministratorAccess',
-          'region = us-east-1',
-          '',
-          '[sso-session mock-portal]',
-          'sso_start_url = https://mock-portal.awsapps.com/start',
-          'sso_region = us-east-1',
-          '',
-        ].join('\n'),
-        'utf-8',
-      );
-
-      // set and unlock the key on the owner rack
-      const setResult = invokeRhachetCliBinary({
-        args: [
-          'keyrack',
-          'set',
-          '--owner',
-          OWNER,
-          '--key',
-          'AWS_PROFILE',
-          '--env',
-          'test',
-          '--vault',
-          'aws.config',
-          '--exid',
-          'testorg-test',
-          '--json',
-        ],
-        cwd: repo.path,
-        env,
-      });
-      const unlocked = await invokeRhachetCliBinaryAsync({
-        args: ['keyrack', 'unlock', '--owner', OWNER, '--env', 'test'],
-        cwd: repo.path,
-        env,
-      });
-      if (setResult.status !== 0 || unlocked.status !== 0)
-        throw new MalfunctionError('the owner rack setup failed', {
-          setResult,
-          unlocked,
-          hint: HINT_SETUP,
-        });
-
-      // the portal ends; the renew marks the key lapsed
-      writeFileSync(portalStateFile, 'lapsed', 'utf-8');
-      await pollStatusRowUntil({
-        cwd: repo.path,
-        env,
-        owner: OWNER,
-        until: (r) => r.renew?.mark?.kind === 'lapsed',
-        label: 'lapsed on the owner rack',
-      });
-      const human = await invokeRhachetCliBinaryAsync({
-        args: ['keyrack', 'status', '--owner', OWNER],
-        cwd: repo.path,
-        env,
-      });
-      return { human };
-    });
-
-    then('the rendered fix names the owner rack', () => {
-      expect(asFixArgsFromStatus({ stdout: walk.human.stdout, command: 'unlock' })).toEqual(
-        ['keyrack', 'unlock', '--owner', OWNER, '--env', 'test'],
-      );
     });
   });
 });

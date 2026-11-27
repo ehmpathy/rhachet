@@ -37,7 +37,12 @@ axis = case (occurrences, declared as they arise)
 | F31 | the sso portal boundary is proven live, never in ci | clean | best-guessed | 80% |
 | F32 | the extant unit mocks move to injection in their own pr | dirty | best-guessed | 75% |
 | F33 | a transformer caselist keeps its data-driven shape | clean | best-guessed | 85% |
-| F34 | the renew leaf keeps its state and count labels | clean | best-guessed | 75% |
+| F34 | the renew leaf keeps its state and count labels | clean | ruled (r4696113871) | 75% |
 | F35 | the daemon files a renew on the unlock's opt-in alone | clean | best-guessed | 75% |
+| F36 | the renewal leaf is one state word | clean | best-guessed | 70% |
+| F37 | the renewal bound is `expiresAtMax` | clean | best-guessed | 70% |
+| F38 | the status wire type is `DaemonStatusKey` | clean | best-guessed | 75% |
+| F39 | `keyrack status --json` carries `expiresIn`, never `ttlLeftMs` | clean | best-guessed | 75% |
+| F40 | the renewal entry is a noun tree | clean | best-guessed | 75% |
 
 gaps: none owed.

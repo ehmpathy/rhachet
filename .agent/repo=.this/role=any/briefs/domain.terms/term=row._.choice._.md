@@ -1,13 +1,18 @@
 # domain.term: row
 
-term.chosen   = row
+term.chosen   = key   # superseded: `row` lost its dispute, see `.disputes` in the reason file
 term.kind     = noun
 term.synonyms.forbidden:
+- row
 - dto
 - payload
 - wire
 - record
 - entry
+
+🟡 **`row` is forbidden in new names and new prose.** a wire element of a `keys: [...]` list is a
+**key** (`DaemonStatusKey`). the seam this cluster guards is held by the `Daemon…` prefix and the
+compile clamp, never by the word. the body below is kept as the record of why the seam matters.
 
 ## .what
 
@@ -51,7 +56,7 @@ to copy one row onto the other is as wrong as to let them drift apart.
 
 ## .refs
 - `src/domain.operations/keyrack/daemon/sdk/src/domain.operations/daemonAccessGet.ts:21`     # DaemonKeyRow
-- `src/domain.operations/keyrack/daemon/sdk/src/domain.operations/daemonAccessStatus.ts:17`  # DaemonStatusRow
+- `src/domain.operations/keyrack/daemon/sdk/src/domain.operations/daemonAccessStatus.ts`     # DaemonStatusKey (was DaemonStatusRow)
 - `src/domain.operations/keyrack/daemon/svc/src/domain.operations/handleCommands.test.ts`    # the clamp that holds each row to its server
 
 ## .reason

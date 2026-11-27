@@ -1,7 +1,7 @@
 import type { KeyrackDaemonCommand } from '@src/domain.objects/keyrack/KeyrackDaemonCommand';
 import type { DaemonActivityClock } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonActivityClock';
 import type { DaemonKeyStore } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonKeyStore';
-import type { DaemonRenewRecord } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonRenewRecord';
+import type { DaemonRenewalRecord } from '@src/domain.operations/keyrack/daemon/svc/src/domain.objects/daemonRenewalRecord';
 
 import type { Socket } from 'node:net';
 import { handleGetCommand } from './handleGetCommand';
@@ -40,7 +40,7 @@ export const handleKeyrackDaemonConnection = (
   input: { socket: Socket },
   context: {
     keyStore: DaemonKeyStore;
-    renewRecord: DaemonRenewRecord;
+    renewalRecord: DaemonRenewalRecord;
     homeHash: string;
     // .why = the write half of the clock only. the connection handler reports demand;
     // it never reads the lease. paired with scheduleAutoTermination, which takes the
@@ -177,7 +177,7 @@ const processRequest = (
   input: { request: DaemonRequest },
   context: {
     keyStore: DaemonKeyStore;
-    renewRecord: DaemonRenewRecord;
+    renewalRecord: DaemonRenewalRecord;
     homeHash: string;
   },
 ): DaemonResponse => {

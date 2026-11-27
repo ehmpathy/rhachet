@@ -5,13 +5,13 @@
 
 export { daemonAccessGet } from './src/domain.operations/daemonAccessGet';
 export { daemonAccessRelock } from './src/domain.operations/daemonAccessRelock';
-// .why.type = `DaemonStatusRow` is the SHAPE `daemonAccessStatus` returns, so a caller that
+// .why.type = `DaemonStatusKey` is the SHAPE `daemonAccessStatus` returns, so a caller that
 //        holds the operation needs the type in the same breath. absent from this contract, six
 //        callers reached past it into `./src/domain.operations/daemonAccessStatus` — a
 //        scope-leak that the sdk's own boundary exists to forbid, and one this index already
 //        answers for `DaemonResponse` below (`rule.require.solve-at-cause`)
 export {
-  type DaemonStatusRow,
+  type DaemonStatusKey,
   daemonAccessStatus,
 } from './src/domain.operations/daemonAccessStatus';
 export { daemonAccessUnlock } from './src/domain.operations/daemonAccessUnlock';

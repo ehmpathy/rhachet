@@ -10,7 +10,7 @@ import { asKeyrackStatusKeyBranch } from './asKeyrackStatusKeyBranch';
  * .what = a fixed expiry stamp for the fixtures below
  * .why = ⚠️ these fixtures read `expiresAt: 0` until 2026-08-06 — an epoch-zero NUMBER,
  *        which is 1970 and matches no key the daemon could ever hold. that value was not
- *        carelessness, it was the wire type's lie made visible: `DaemonStatusRow.expiresAt`
+ *        carelessness, it was the wire type's lie made visible: `DaemonStatusKey.expiresAt`
  *        declared `number` while the server sent an iso stamp, so `0` was the cheapest
  *        value that satisfied the compiler. a wrong type does not merely fail to catch bad
  *        data — it MANUFACTURES it, one fixture at a time
@@ -33,10 +33,9 @@ describe('asKeyrackStatusKeyBranch', () => {
           env: 'prep',
           org: 'ahbode',
           expiresAt: EXPIRES_AT,
-          ttlLeftMs: 55 * 60 * 1000,
+          expiresIn: { minutes: 55 },
         },
         isLast: true,
-        owner: 'ehmpath',
       });
 
       then(
@@ -58,14 +57,14 @@ describe('asKeyrackStatusKeyBranch', () => {
     // .note = this is the vision's headline demo: three keys, ONE name. same owner, same
     //         org, same env — the sole difference is which reach each opens
     const RACK = [
-      { reach: undefined, ttlLeftMs: 55 * 60 * 1000 },
+      { reach: undefined, expiresIn: { minutes: 55 } },
       {
         reach: asKeyrackKeyReach({ exid: 'github://org=ehmpathy' }),
-        ttlLeftMs: 55 * 60 * 1000,
+        expiresIn: { minutes: 55 },
       },
       {
         reach: asKeyrackKeyReach({ exid: 'beav@ehmpathy.com' }),
-        ttlLeftMs: 540 * 60 * 1000,
+        expiresIn: { minutes: 540 },
       },
     ];
 
@@ -78,10 +77,9 @@ describe('asKeyrackStatusKeyBranch', () => {
             org: 'ahbode',
             ...asKeyrackKeyReachField({ reach: held.reach }),
             expiresAt: EXPIRES_AT,
-            ttlLeftMs: held.ttlLeftMs,
+            expiresIn: held.expiresIn,
           },
           isLast: index === RACK.length - 1,
-          owner: 'ehmpath',
         }),
       );
 
@@ -117,7 +115,7 @@ describe('asKeyrackStatusKeyBranch', () => {
    * .what = a key the daemon holds with NO expiry at all
    * .why = `daemonKeyStore` treats an absent `expiresAt` as "no expiration — always valid",
    *        so this is a first-class stored state rather than a corner. `handleStatusCommand`
-   *        yields its ttl as `null`, and this branch is the only place that value is read
+   *        yields its `expiresIn` as `null`, and this branch is the only place that value is read
    *
    * .note = ⚠️ this case had ZERO coverage until 2026-08-06, and it rendered WRONG. the
    *         server computed `Infinity`; the socket is JSON, and `JSON.stringify(Infinity)`
@@ -136,10 +134,9 @@ describe('asKeyrackStatusKeyBranch', () => {
           env: 'prep',
           org: 'ahbode',
           expiresAt: null,
-          ttlLeftMs: null,
+          expiresIn: null,
         },
         isLast: true,
-        owner: 'ehmpath',
       });
 
       // ⚠️ THE clamp. under the extant arithmetic this line reads `expires in: 0m`
@@ -158,9 +155,9 @@ describe('asKeyrackStatusKeyBranch', () => {
   });
 
   /**
-   * .what = the renew states of an sso key the daemon renews before expiry
-   * .why = status is where the renew is seen at work, and where a lapse or a halt is
-   *        named with its fix. each state is snapped so the rendered tree is reviewed
+   * .what = the renewal states of an sso key the daemon renews before expiry
+   * .why = status shows one leaf for the renewal, `renewal = <status>`, and an expired key
+   *        shows `expired` alone; the count and a halt's cause live in `--json`
    */
   const SSO_KEY = {
     slug: 'ahbode.camp.AWS_PROFILE',
@@ -169,147 +166,74 @@ describe('asKeyrackStatusKeyBranch', () => {
     expiresAt: EXPIRES_AT,
   };
 
-  given('[case4] an sso key the daemon has renewed', () => {
-    when('[t0] it is rendered', () => {
+  given('[case4] an sso key the daemon renews', () => {
+    when('[t0] the renewal is on', () => {
       const lines = asKeyrackStatusKeyBranch({
         key: {
           ...SSO_KEY,
-          ttlLeftMs: 52 * 60 * 1000,
-          renew: { renewedCount: 4, mark: null },
+          expiresIn: { minutes: 52 },
+          renewal: { status: 'on', count: { renewed: 4 }, error: null },
         },
         isLast: true,
-        owner: 'ehmpath',
       });
 
-      then('it shows the renew count as a leaf, with no colon', () => {
+      then('it shows the expiry, then `renewal = on`, and no count', () => {
         expect(lines).toContain('      ├─ expires in: 52m');
-        expect(lines).toContain('      └─ renewed = 4x');
+        expect(lines.at(-1)).toEqual('      └─ renewal = on');
+        expect(lines.some((line) => line.includes('4'))).toBe(false);
       });
 
-      then('it renders the renewed shape', () => {
+      then('it renders the renewal-on shape', () => {
+        expect(lines).toMatchSnapshot();
+      });
+    });
+
+    when('[t1] the key carries no renewal (an older cli filed none)', () => {
+      const lines = asKeyrackStatusKeyBranch({
+        key: { ...SSO_KEY, expiresIn: { minutes: 55 } },
+        isLast: true,
+      });
+
+      then('no renewal leaf is emitted', () => {
+        expect(lines.at(-1)).toEqual('      └─ expires in: 55m');
+        expect(lines.some((line) => line.includes('renewal'))).toBe(false);
+      });
+    });
+
+    when('[t2] the grant already expires at its max', () => {
+      const lines = asKeyrackStatusKeyBranch({
+        key: {
+          ...SSO_KEY,
+          expiresIn: { minutes: 5 },
+          renewal: { status: 'off', count: { renewed: 4 }, error: null },
+        },
+        isLast: true,
+      });
+
+      then('the renewal reads `off`, never `on`', () => {
+        expect(lines.at(-1)).toEqual('      └─ renewal = off');
+      });
+
+      then('it renders the renewal-off shape', () => {
         expect(lines).toMatchSnapshot();
       });
     });
   });
 
-  given('[case5] an sso key not yet renewed since its unlock', () => {
-    when('[t0] it is rendered', () => {
+  given('[case5] an sso key whose renewal stopped', () => {
+    when('[t0] the portal session lapsed, the grant still lives', () => {
       const lines = asKeyrackStatusKeyBranch({
         key: {
           ...SSO_KEY,
-          ttlLeftMs: 55 * 60 * 1000,
-          renew: { renewedCount: 0, mark: null },
+          expiresIn: { minutes: 8 },
+          renewal: { status: 'lapsed', count: { renewed: 0 }, error: null },
         },
         isLast: true,
-        owner: 'ehmpath',
       });
 
-      then('the renew reads as on, before its first renew lands', () => {
-        expect(lines.at(-1)).toEqual('      └─ renew = on');
-        expect(lines.some((line) => line.includes('renewed'))).toBe(false);
-      });
-
-      then('it renders the renew-on shape', () => {
-        expect(lines).toMatchSnapshot();
-      });
-    });
-
-    when(
-      '[t1] the key carries no renew at all (an older cli filed none)',
-      () => {
-        const lines = asKeyrackStatusKeyBranch({
-          key: { ...SSO_KEY, ttlLeftMs: 55 * 60 * 1000 },
-          isLast: true,
-          owner: 'ehmpath',
-        });
-
-        then('no renew leaf is emitted, so its absence is the cue', () => {
-          expect(lines.at(-1)).toEqual('      └─ expires in: 55m');
-          expect(lines.some((line) => line.includes('renew'))).toBe(false);
-        });
-
-        then('it renders the no-renew shape', () => {
-          expect(lines).toMatchSnapshot();
-        });
-      },
-    );
-
-    when('[t2] the grant already expires at its cap', () => {
-      const lines = asKeyrackStatusKeyBranch({
-        key: {
-          ...SSO_KEY,
-          ttlLeftMs: 5 * 60 * 1000,
-          renew: { renewedCount: 0, mark: null, isAtCap: true },
-        },
-        isLast: true,
-        owner: 'ehmpath',
-      });
-
-      then('the renew reads as off, never on, and names where it ends', () => {
-        expect(lines).toContain('      └─ renew = off');
-        expect(lines).toContain(
-          '         └─ at its cap — ends at expiry, unlock to extend',
-        );
-        expect(lines.at(-1)).toMatch(
-          /^ {12}└─ rhx keyrack unlock --owner ehmpath --env \S+$/,
-        );
-        expect(lines.some((line) => line.includes('renew = on'))).toBe(false);
-      });
-
-      then('it renders the at-cap shape', () => {
-        expect(lines).toMatchSnapshot();
-      });
-    });
-  });
-
-  given('[case5b] an sso key whose renews reached its cap', () => {
-    when('[t0] it is rendered', () => {
-      const lines = asKeyrackStatusKeyBranch({
-        key: {
-          ...SSO_KEY,
-          ttlLeftMs: 30 * 60 * 1000,
-          renew: { renewedCount: 4, mark: null, isAtCap: true },
-        },
-        isLast: true,
-        owner: 'ehmpath',
-      });
-
-      then('the count says the key ends at its cap', () => {
-        expect(lines).toContain('      └─ renewed = 4x');
-        expect(lines).toContain(
-          '         └─ at its cap — ends at expiry, unlock to extend',
-        );
-        expect(lines.at(-1)).toMatch(
-          /^ {12}└─ rhx keyrack unlock --owner ehmpath --env \S+$/,
-        );
-      });
-
-      then('the render matches its snapshot', () => {
-        expect(lines).toMatchSnapshot();
-      });
-    });
-  });
-
-  given('[case6] an sso key whose portal session lapsed', () => {
-    when('[t0] the grant still lives', () => {
-      const lines = asKeyrackStatusKeyBranch({
-        key: {
-          ...SSO_KEY,
-          ttlLeftMs: 8 * 60 * 1000,
-          renew: { renewedCount: 0, mark: { kind: 'lapsed', error: null } },
-        },
-        isLast: true,
-        owner: 'ehmpath',
-      });
-
-      then('it names the lapse and the fix', () => {
-        expect(lines).toContain('      └─ lapsed');
-        expect(lines).toContain(
-          '         ├─ sso session ended, no renew until the next unlock',
-        );
-        expect(lines).toContain(
-          '            └─ rhx keyrack unlock --owner ehmpath --env camp',
-        );
+      then('it shows the expiry, then `renewal = lapsed`', () => {
+        expect(lines).toContain('      ├─ expires in: 8m');
+        expect(lines.at(-1)).toEqual('      └─ renewal = lapsed');
       });
 
       then('it renders the lapsed shape', () => {
@@ -317,179 +241,67 @@ describe('asKeyrackStatusKeyBranch', () => {
       });
     });
 
-    when('[t1] the grant has expired', () => {
+    when('[t1] the renewal lapsed and the grant has expired', () => {
       const lines = asKeyrackStatusKeyBranch({
         key: {
           ...SSO_KEY,
-          ttlLeftMs: 0,
-          renew: { renewedCount: 6, mark: { kind: 'lapsed', error: null } },
+          expiresIn: { seconds: 0 },
+          renewal: { status: 'lapsed', count: { renewed: 6 }, error: null },
         },
         isLast: true,
-        owner: 'ehmpath',
       });
 
-      then('it reads `expired`, never `expires in: 0m`', () => {
-        expect(lines).toContain('      ├─ expired');
+      then('it reads `expired` alone, never `expires in: 0m`', () => {
+        expect(lines.at(-1)).toEqual('      └─ expired');
         expect(lines.some((line) => line.includes('expires in'))).toBe(false);
+        expect(lines.some((line) => line.includes('renewal'))).toBe(false);
       });
 
-      then('it renders the lapsed-and-expired shape', () => {
+      then('it renders the expired shape', () => {
         expect(lines).toMatchSnapshot();
       });
     });
-  });
 
-  given('[case7] an sso key whose renew halted on a persistent fault', () => {
-    when('[t0] the grant has expired', () => {
+    when('[t2] the renewal halted and the grant has expired', () => {
       const lines = asKeyrackStatusKeyBranch({
         key: {
           ...SSO_KEY,
-          ttlLeftMs: 0,
-          renew: {
-            renewedCount: 2,
-            mark: {
-              kind: 'halted',
-              error:
-                'aws configure export-credentials failed with unexpected error',
-            },
+          expiresIn: { seconds: 0 },
+          renewal: {
+            status: 'halted',
+            count: { renewed: 2 },
+            error: 'aws configure export-credentials failed',
           },
         },
         isLast: true,
-        owner: 'ehmpath',
       });
 
-      then('it names the halt, the last error, and the fix', () => {
-        expect(lines).toContain('      └─ halted');
-        expect(lines).toContain(
-          '         ├─ renew stopped on a fault it could not clear',
-        );
-        expect(lines).toContain(
-          '         ├─ aws configure export-credentials failed with unexpected error',
-        );
+      then('it reads `expired` alone; the cause lives in `--json`', () => {
+        expect(lines.at(-1)).toEqual('      └─ expired');
+        expect(lines.join('\n')).not.toContain('export-credentials');
+      });
+    });
+
+    when('[t3] the renewal halted and the grant still lives', () => {
+      const lines = asKeyrackStatusKeyBranch({
+        key: {
+          ...SSO_KEY,
+          expiresIn: { minutes: 3 },
+          renewal: {
+            status: 'halted',
+            count: { renewed: 2 },
+            error: 'aws configure export-credentials failed',
+          },
+        },
+        isLast: true,
+      });
+
+      then('it shows the expiry, then `renewal = halted`', () => {
+        expect(lines).toContain('      ├─ expires in: 3m');
+        expect(lines.at(-1)).toEqual('      └─ renewal = halted');
       });
 
       then('it renders the halted shape', () => {
-        expect(lines).toMatchSnapshot();
-      });
-    });
-
-    when('[t1] the error carries a helpful error metadata block', () => {
-      // the shape the daemon stores: a headline, a blank line, then a json block
-      const lines = asKeyrackStatusKeyBranch({
-        key: {
-          ...SSO_KEY,
-          ttlLeftMs: 0,
-          renew: {
-            renewedCount: 2,
-            mark: {
-              kind: 'halted',
-              error: [
-                '💥 MalfunctionError: aws configure export-credentials failed with unexpected error',
-                '',
-                '{',
-                '  "profileName": "ahbode-camp"',
-                '}',
-              ].join('\n'),
-            },
-          },
-        },
-        isLast: true,
-        owner: 'ehmpath',
-      });
-
-      then(
-        'each line is a tree line — the leaf holds the headline only',
-        () => {
-          expect(lines).toContain(
-            '         ├─ 💥 MalfunctionError: aws configure export-credentials failed with unexpected error',
-          );
-          expect(lines.every((line) => !line.includes('\n'))).toEqual(true);
-          expect(lines.join('\n')).not.toContain('profileName');
-        },
-      );
-
-      then('it renders the headline-only shape', () => {
-        expect(lines).toMatchSnapshot();
-      });
-    });
-
-    when('[t2] the halt was a code defect', () => {
-      const lines = asKeyrackStatusKeyBranch({
-        key: {
-          ...SSO_KEY,
-          ttlLeftMs: 0,
-          renew: {
-            renewedCount: 0,
-            mark: {
-              kind: 'halted',
-              error: '💥 defect TypeError: grant.expiresAt is not a function',
-            },
-          },
-        },
-        isLast: true,
-        owner: 'ehmpath',
-      });
-
-      then('it names a defect no retry clears, and offers no prune', () => {
-        expect(lines).toContain(
-          '         ├─ renew stopped on a code defect, which no retry clears',
-        );
-        expect(lines.join('\n')).toContain(
-          'report the defect, with its full error above',
-        );
-        expect(lines.join('\n')).not.toContain('daemon prune');
-      });
-
-      then('it renders the defect-halt shape', () => {
-        expect(lines).toMatchSnapshot();
-      });
-    });
-  });
-
-  given('[case8] a marked key in a rack with no owner', () => {
-    when('[t0] it is rendered', () => {
-      const lines = asKeyrackStatusKeyBranch({
-        key: {
-          ...SSO_KEY,
-          ttlLeftMs: 0,
-          renew: { renewedCount: 0, mark: { kind: 'lapsed', error: null } },
-        },
-        isLast: false,
-        owner: null,
-      });
-
-      then('the fix names no owner flag', () => {
-        expect(lines).toContain('   │        └─ rhx keyrack unlock --env camp');
-      });
-
-      then('it renders the no-owner shape', () => {
-        expect(lines).toMatchSnapshot();
-      });
-    });
-  });
-
-  given('[case9] a marked sudo sso key', () => {
-    when('[t0] it is rendered', () => {
-      const lines = asKeyrackStatusKeyBranch({
-        key: {
-          slug: 'ahbode.sudo.AWS_PROFILE',
-          env: 'sudo',
-          org: 'ahbode',
-          expiresAt: EXPIRES_AT,
-          ttlLeftMs: 0,
-          renew: { renewedCount: 1, mark: { kind: 'lapsed', error: null } },
-        },
-        isLast: true,
-        owner: 'ehmpath',
-      });
-
-      then('the fix names the key, since a sudo env sweep is refused', () => {
-        expect(lines).toContain(
-          '            └─ rhx keyrack unlock --owner ehmpath --env sudo --key AWS_PROFILE',
-        );
-      });
-
-      then('it renders the sudo fix shape', () => {
         expect(lines).toMatchSnapshot();
       });
     });
