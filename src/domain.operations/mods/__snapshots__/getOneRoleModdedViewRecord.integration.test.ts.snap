@@ -6,7 +6,7 @@ exports[`getOneRoleModdedViewRecord given: [case4] a record whose refusal is ill
 {
   "path": "/TMP_ROLE_DIR/.modded.json",
   "problem": "its shape is not { sources: { briefs, skills }, paths, hookBasis: null | { version }, refusal: null | { message, metadata, paths } }",
-  "fix": "delete /TMP_ROLE_DIR/.modded.json, then run rhx init --roles +ehmpathy/mechanic to re-link the role"
+  "fix": "delete .agent/repo=ehmpathy/role=mechanic/.modded.json, then run rhx init --roles +ehmpathy/mechanic to re-link the role"
 }"
 `;
 
@@ -16,7 +16,7 @@ exports[`getOneRoleModdedViewRecord given: [case4] a record whose refusal is ill
 {
   "path": "/TMP_ROLE_DIR/.modded.json",
   "problem": "its shape is not { sources: { briefs, skills }, paths, hookBasis: null | { version }, refusal: null | { message, metadata, paths } }",
-  "fix": "delete /TMP_ROLE_DIR/.modded.json, then run rhx init --roles +ehmpathy/mechanic to re-link the role"
+  "fix": "delete .agent/repo=ehmpathy/role=mechanic/.modded.json, then run rhx init --roles +ehmpathy/mechanic to re-link the role"
 }"
 `;
 
@@ -26,7 +26,7 @@ exports[`getOneRoleModdedViewRecord given: [case4] a record whose refusal is ill
 {
   "path": "/TMP_ROLE_DIR/.modded.json",
   "problem": "its shape is not { sources: { briefs, skills }, paths, hookBasis: null | { version }, refusal: null | { message, metadata, paths } }",
-  "fix": "delete /TMP_ROLE_DIR/.modded.json, then run rhx init --roles +ehmpathy/mechanic to re-link the role"
+  "fix": "delete .agent/repo=ehmpathy/role=mechanic/.modded.json, then run rhx init --roles +ehmpathy/mechanic to re-link the role"
 }"
 `;
 
@@ -36,7 +36,7 @@ exports[`getOneRoleModdedViewRecord given: [case4] a record whose refusal is ill
 {
   "path": "/TMP_ROLE_DIR/.modded.json",
   "problem": "its shape is not { sources: { briefs, skills }, paths, hookBasis: null | { version }, refusal: null | { message, metadata, paths } }",
-  "fix": "delete /TMP_ROLE_DIR/.modded.json, then run rhx init --roles +ehmpathy/mechanic to re-link the role"
+  "fix": "delete .agent/repo=ehmpathy/role=mechanic/.modded.json, then run rhx init --roles +ehmpathy/mechanic to re-link the role"
 }"
 `;
 
@@ -46,6 +46,6 @@ exports[`getOneRoleModdedViewRecord given: [case4] a record whose refusal is ill
 {
   "path": "/TMP_ROLE_DIR/.modded.json",
   "problem": "its shape is not { sources: { briefs, skills }, paths, hookBasis: null | { version }, refusal: null | { message, metadata, paths } }",
-  "fix": "delete /TMP_ROLE_DIR/.modded.json, then run rhx init --roles +ehmpathy/mechanic to re-link the role"
+  "fix": "delete .agent/repo=ehmpathy/role=mechanic/.modded.json, then run rhx init --roles +ehmpathy/mechanic to re-link the role"
 }"
 `;
