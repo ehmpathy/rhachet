@@ -88,5 +88,6 @@ export const HOOK_DISPATCH_RHX_SHORT_CIRCUITS: string[] = [
   'enroll',
   'actor',
   'clone',
+  'brains',
   'init',
 ];

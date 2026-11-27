@@ -31,7 +31,7 @@ every glyph fills exactly one slot:
 | slot | role | glyphs |
 |------|------|--------|
 | **role-mascot** | a ROLE's own voice — never rhachet's | (supplier-role only — see below) |
-| **domain-root** | roots a DOMAIN's output | `🔐` keyrack · `🎭` actor · `😶` clone · `🧹` clone prune · `📦` upgrade · `🧢` role · `🥾` boot · `🧮` measurement · `🪝` hooks |
+| **domain-root** | roots a DOMAIN's output | `🔐` keyrack · `🎭` actor · `😶` clone · `🧹` clone prune · `📦` upgrade · `🧢` role · `🥾` boot · `🧮` measurement · `🪝` hooks · `🧠` brain |
 | **verb-artifact** | names the OPERATION, inline after the `😶` clone face | `🎙️` clone say (speak in) · `🎧` clone get (listen out) |
 | **error-class** | names the fault owner — one of exactly two | `✋` caller-must-fix · `💥` server-must-fix |
 | **status-leaf** | one fact about a step | `✨` success · `✓`/`✗` ok/fail · `🫧` absent · `♻️` reuse · `🟡` degraded |
@@ -75,6 +75,7 @@ root; a rhachet tree roots on its domain glyph.
 | `🥾` | domain-root | **boot** — a boot is what you put on before you walk, so the glyph names the domain rather than a mood. 🟡 **reserved — no surface emits it**: every boot surface sits under `roles *` (a `--manifest` render included), so `🧢` roots them all. `🥾` is held for a surface outside `roles *` that roots the boot act itself |
 | `🧮` | domain-root | **measurement** (`🧮 calc.tokens …`) — an abacus counts, so the glyph names the act of measure rather than a mood. registered on purpose: a measurement skill is repo-generic, so it may wear no role-mascot, and the neutral slots cannot root a tree. distinct from `🔭` lookup: `🔭` DISCOVERS what exists, `🧮` QUANTIFIES what was found. a categorical measurement counts as well: `🧮 get.package.format` probes a package and grades it cjs / dual / esm-only, a verdict a test computes, not a file it finds |
 | `🪝` | domain-root | **hooks** (`🪝 apply hooks to brains…`, `🪝 hook dispatchers set`, and the dispatcher's stderr tail `🪝 hooks.dispatch <event> blocked by <rule>`) — a hook is what a brain's events catch on, so the glyph names the domain rather than a mood. registered on purpose: the role-hook sync and the hook dispatcher speak it, `🧢` roots the role surfaces but not the brain's event hooks, and the dispatcher's tail must name the speaker in a line claude shows beside a rule's own stderr. `U+1FA9D` is `East_Asian_Width=W`, so it renders two cells wide on every terminal |
+| `🧠` | domain-root | **brain** (`🧠 brains auth get`, `🧠 brains auth use …`) — the brain of `actor = 🧠 brain ⊕ 🧢 role` (`define.rhachet.v3`), so the glyph names the domain rather than a mood. it roots every `brains *` surface: the account logins and their usage. distinct from `🧢` role: `🧢` is what a brain wears, `🧠` is the brain itself and the paid account it runs on |
 | `🔌` | connection | a literal socket / port (`🔌 reach this clone`) |
 | `💡` | callout | an actionable tip (`💡 tip` header — see below) |
 | `🟡` | callout · status-leaf | a caution, and a **degraded** leaf — a step that succeeded on a weaker basis than the full one (`🟡 probe-blind (older clone) — verified by transcript`). registered here on purpose: it is the width-safe caution glyph, and `✨`/`🫧`/`♻️` cover only success, absence, and reuse, so a partial success had no leaf of its own |

@@ -69,6 +69,12 @@ if [ "$1" = "keyrack" ]; then
   exec "$SCRIPT_DIR/run.jit" keyrack "$@"
 fi
 
+# short-circuit brains commands (top-level rhachet command, not a skill; via jit path)
+if [ "$1" = "brains" ]; then
+  shift
+  exec "$SCRIPT_DIR/run.jit" brains "$@"
+fi
+
 # short-circuit upgrade command (top-level rhachet command, not a skill)
 if [ "$1" = "upgrade" ]; then
   shift

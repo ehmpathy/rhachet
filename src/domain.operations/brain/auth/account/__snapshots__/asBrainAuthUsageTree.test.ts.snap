@@ -1,0 +1,73 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asBrainAuthUsageTree given: [case1] three accounts: signed in, one renewed and capped, one dead when: [t0] the tree is rendered then: the tree matches its snapshot 1`] = `
+"🧠 brains auth get
+   ├─ owner = ehmpath
+   ├─ a@example.com (signed in)
+   │  ├─ session = █████████░ 92% used, resets in 6h
+   │  ├─ week = ████░░░░░░ 40% used, resets in 4d
+   │  └─ saved resets = 2
+   ├─ c@example.com (renewed)
+   │  ├─ session = █░░░░░░░░░ 10% used, resets in 25m
+   │  ├─ week = ██████████ capped, resets in 1d
+   │  └─ saved resets = unknown
+   ├─ d@example.com
+   │  └─ dead — the stored login no longer opens it; run \`rhx brains auth set --brain claude --account d@example.com\`
+   └─ note = each (renewed) login was rotated by this read; its new token is parked back in the keyrack"
+`;
+
+exports[`asBrainAuthUsageTree given: [case2] no accounts held when: [t0] the tree is rendered then: it names the owner it read, and the set that adds one 1`] = `
+"🧠 brains auth get
+   ├─ owner = ehmpath
+   └─ no accounts held
+      └─ add one via \`rhx brains auth set\` (it files into the keyrack; \`rhx keyrack init --owner ehmpath\` first, if none)"
+`;
+
+exports[`asBrainAuthUsageTree given: [case3] no stored login rotated: one read, one dead, one rate-limited when: [t0] the tree is rendered then: the tree matches its snapshot 1`] = `
+"🧠 brains auth get
+   ├─ owner = ehmpath
+   ├─ a@example.com (signed in)
+   │  ├─ session = █████████░ 92% used, resets in 6h
+   │  ├─ week = ████░░░░░░ 40% used, resets in 4d
+   │  └─ saved resets = 2
+   ├─ d@example.com
+   │  └─ dead — the stored login no longer opens it; run \`rhx brains auth set --brain claude --account d@example.com\`
+   └─ e@example.com
+      └─ rate-limited — the provider asked to wait; not dead, retry later"
+`;
+
+exports[`asBrainAuthUsageTree given: [case4] a signed-in login whose token lapsed, and a stored one the provider could not reach when: [t0] the tree is rendered then: the tree matches its snapshot 1`] = `
+"🧠 brains auth get
+   ├─ owner = ehmpath
+   ├─ a@example.com (signed in)
+   │  └─ unverified — the signed-in token lapsed, and a read never refreshes it; any claude session renews it
+   └─ f@example.com
+      └─ unreadable — server, network, or a reply shape rhachet cannot read; a retry may help, or may find the stored login spent"
+`;
+
+exports[`asBrainAuthUsageTree given: [case5] a signed-in login the provider refused when: [t0] the tree is rendered then: the fix is a claude login, never a stored-login set 1`] = `
+"🧠 brains auth get
+   ├─ owner = ehmpath
+   └─ a@example.com (signed in)
+      └─ dead — the provider refused the signed-in login; run \`/login\` in any claude session"
+`;
+
+exports[`asBrainAuthUsageTree given: [case6] windows the provider reports with no reset time when: [t0] one window holds use, one holds none then: a window with no use reads not yet opened 1`] = `
+"🧠 brains auth get
+   ├─ owner = ehmpath
+   └─ g@example.com
+      ├─ session = ██░░░░░░░░ 20% used, reset unknown
+      ├─ week = ░░░░░░░░░░ 0% used, not yet opened
+      └─ saved resets = unknown"
+`;
+
+exports[`asBrainAuthUsageTree given: [case7] a stored login the keyrack will not open when: [t0] the tree is rendered beside a read row then: the locked row names the unlock, and the read row still renders 1`] = `
+"🧠 brains auth get
+   ├─ owner = ehmpath
+   ├─ a@example.com (signed in)
+   │  ├─ session = █████████░ 92% used, resets in 6h
+   │  ├─ week = ████░░░░░░ 40% used, resets in 4d
+   │  └─ saved resets = 2
+   └─ h@example.com
+      └─ locked — the keyrack holds this login but will not open it; run \`rhx keyrack unlock --owner ehmpath --env prep\`"
+`;

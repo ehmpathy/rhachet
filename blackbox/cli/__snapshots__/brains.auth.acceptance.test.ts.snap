@@ -1,0 +1,400 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`brains auth given: [case1] a home with no login and no keyrack when: [t0] \`brains auth get\` then: the output matches its snapshot 1`] = `
+"🧠 brains auth get
+   ├─ owner = ehmpath
+   └─ no accounts held
+      └─ add one via \`rhx brains auth set\` (it files into the keyrack; \`rhx keyrack init --owner ehmpath\` first, if none)
+"
+`;
+
+exports[`brains auth given: [case1] a home with no login and no keyrack when: [t1] \`brains auth get --output json\` then: the raw json matches its snapshot 1`] = `
+"{
+  "owner": "ehmpath",
+  "accounts": []
+}
+"
+`;
+
+exports[`brains auth given: [case1] a home with no login and no keyrack when: [t2] \`brains auth get --account\` names an account not held then: the refusal matches its snapshot 1`] = `
+"
+✋ ConstraintError: no stored credential for b@example.com
+
+{
+  "hint": "rhx brains auth set --brain claude --account b@example.com",
+  "held": [],
+  "signedIn": "none"
+}
+
+[args] brains,auth,get,--account,b@example.com
+
+"
+`;
+
+exports[`brains auth given: [case2] \`brains auth set\` with no human at a terminal when: [t0] it runs with piped stdin then: the refusal matches its snapshot 1`] = `
+"
+✋ ConstraintError: a first login needs a human at a browser
+
+{
+  "hint": "ask your human to run, at a real terminal: rhx brains auth set --brain claude",
+  "why": "stdin is not a terminal"
+}
+
+[args] brains,auth,set,--brain,claude
+
+"
+`;
+
+exports[`brains auth given: [case2] \`brains auth set\` with no human at a terminal when: [t1] it names a brain with no auth adapter then: the refusal matches its snapshot 1`] = `
+"
+✋ ConstraintError: no auth adapter for this brain
+
+{
+  "hint": "rhx brains auth set --brain claude",
+  "brain": "nobrain",
+  "brainsSupported": "claude"
+}
+
+[args] brains,auth,set,--brain,nobrain
+
+"
+`;
+
+exports[`brains auth given: [case3] \`brains auth use\` without a full ask when: [t0] no --scope is supplied then: the refusal matches its snapshot 1`] = `
+"
+✋ ConstraintError: no --scope supplied
+
+{
+  "hint": "rhx brains auth use --account b@example.com --scope grove",
+  "scopes": "grove (every clone on this box) · tree (clones of one worktree, to come) · clone (one clone, to come)"
+}
+
+[args] brains,auth,use,--account,b@example.com
+
+"
+`;
+
+exports[`brains auth given: [case3] \`brains auth use\` without a full ask when: [t1] a scope not yet supported is asked for then: the refusal matches its snapshot 1`] = `
+"
+✋ ConstraintError: this scope is not yet supported
+
+{
+  "hint": "rhx brains auth use --account b@example.com --scope grove   # clone and tree scope are not yet built",
+  "scope": "clone"
+}
+
+[args] brains,auth,use,--account,b@example.com,--scope,clone
+
+"
+`;
+
+exports[`brains auth given: [case3] \`brains auth use\` without a full ask when: [t2] no --account is supplied then: the refusal matches its snapshot 1`] = `
+"
+✋ ConstraintError: no --account supplied
+
+{
+  "hint": "rhx brains auth use --account <email> --scope grove   # accounts held: rhx brains auth get"
+}
+
+[args] brains,auth,use,--scope,grove
+
+"
+`;
+
+exports[`brains auth given: [case3] \`brains auth use\` without a full ask when: [t3] a scope that does not exist is asked for then: the refusal matches its snapshot 1`] = `
+"
+✋ ConstraintError: unknown scope
+
+{
+  "hint": "rhx brains auth use --account b@example.com --scope grove",
+  "scope": "foo",
+  "scopes": "grove (every clone on this box) · tree (clones of one worktree, to come) · clone (one clone, to come)"
+}
+
+[args] brains,auth,use,--account,b@example.com,--scope,foo
+
+"
+`;
+
+exports[`brains auth given: [case3] \`brains auth use\` without a full ask when: [t4] no --scope is supplied, with --output json then: the refusal matches its snapshot 1`] = `
+"{
+  "class": "ConstraintError",
+  "message": "no --scope supplied",
+  "hint": "rhx brains auth use --account b@example.com --scope grove",
+  "reachState": null,
+  "reachCause": null,
+  "metadata": {
+    "scopes": "grove (every clone on this box) · tree (clones of one worktree, to come) · clone (one clone, to come)",
+    "hint": "rhx brains auth use --account b@example.com --scope grove"
+  }
+}
+"
+`;
+
+exports[`brains auth given: [case3] \`brains auth use\` without a full ask when: [t5] a bare \`brains auth use\`, the form a first-time human types then: the refusal matches its snapshot 1`] = `
+"
+✋ ConstraintError: no --account supplied
+
+{
+  "hint": "rhx brains auth use --account <email> --scope grove   # accounts held: rhx brains auth get"
+}
+
+[args] brains,auth,use
+
+"
+`;
+
+exports[`brains auth given: [case3] \`brains auth use\` without a full ask when: [t6] the tree scope, which is not yet supported then: the refusal matches its snapshot 1`] = `
+"
+✋ ConstraintError: this scope is not yet supported
+
+{
+  "hint": "rhx brains auth use --account b@example.com --scope grove   # clone and tree scope are not yet built",
+  "scope": "tree"
+}
+
+[args] brains,auth,use,--account,b@example.com,--scope,tree
+
+"
+`;
+
+exports[`brains auth given: [case4] the help a caller reads to find each verb and its flags when: [t0] \`brains --help\` then: the help matches its snapshot 1`] = `
+"Usage: rhachet brains [options] [command]
+
+manage brain credentials — auth set, get, use
+
+Options:
+  -h, --help      display help for command
+
+Commands:
+  auth            brain account logins — set, get, use
+  help [command]  display help for command
+"
+`;
+
+exports[`brains auth given: [case4] the help a caller reads to find each verb and its flags when: [t1] \`brains auth --help\` then: the help matches its snapshot 1`] = `
+"Usage: rhachet brains auth [options] [command]
+
+brain account logins — set, get, use
+
+Options:
+  -h, --help      display help for command
+
+Commands:
+  set [options]   log into a brain account and store it in the keyrack
+  get [options]   show each brain account and its usage windows; the read renews
+                  each stored login, since a refresh token is single use
+  use [options]   put a stored brain account to use at a scope
+  help [command]  display help for command
+"
+`;
+
+exports[`brains auth given: [case4] the help a caller reads to find each verb and its flags when: [t2] \`brains auth set --help\` then: the help matches its snapshot 1`] = `
+"Usage: rhachet brains auth set [options]
+
+log into a brain account and store it in the keyrack
+
+Options:
+  --brain <slug>     the brain whose account to log into (default: "claude")
+  --owner <owner>    keyrack owner that holds the accounts (default: "ehmpath")
+  --output <mode>    output mode — tree or json (default: "tree")
+  --account <email>  the account to log in as; a login of any other is refused
+  -h, --help         display help for command
+
+examples
+  rhx brains auth set                              # log in at a browser; the login files into the keyrack
+  rhx brains auth set --account b@example.com      # refuse a login of any other account
+"
+`;
+
+exports[`brains auth given: [case4] the help a caller reads to find each verb and its flags when: [t3] \`brains auth get --help\` then: the help matches its snapshot 1`] = `
+"Usage: rhachet brains auth get [options]
+
+show each brain account and its usage windows; the read renews each stored
+login, since a refresh token is single use
+
+Options:
+  --brain <slug>     the brain whose account to read (default: "claude")
+  --owner <owner>    keyrack owner that holds the accounts (default: "ehmpath")
+  --output <mode>    output mode — tree or json (default: "tree")
+  --account <email>  one stored account to read, or @all for every one (default:
+                     "@all")
+  -h, --help         display help for command
+
+examples
+  rhx brains auth get                             # every account, as a table
+  rhx brains auth get --account a@example.com     # one account; rotates its stored login
+  rhx brains auth get --output json               # for a machine to parse
+
+each read rotates the stored login of each account it reads, and parks the new one back.
+poll no faster than once per 5 minutes, since each read writes the keyrack
+"
+`;
+
+exports[`brains auth given: [case4] the help a caller reads to find each verb and its flags when: [t4] \`brains auth use --help\` then: the help matches its snapshot 1`] = `
+"Usage: rhachet brains auth use [options]
+
+put a stored brain account to use at a scope
+
+Options:
+  --brain <slug>     the brain whose account to use (default: "claude")
+  --owner <owner>    keyrack owner that holds the accounts (default: "ehmpath")
+  --output <mode>    output mode — tree or json (default: "tree")
+  --account <email>  the stored account to use (required)
+  --scope <scope>    where to use it, required — grove, the login every clone on
+                     this box reads (clone and tree to come)
+  -h, --help         display help for command
+
+examples
+  rhx brains auth use --account b@example.com --scope grove                  # swap the box login to b
+  rhx brains auth use --account b@example.com --scope grove --output json    # for a machine to parse
+"
+`;
+
+exports[`brains auth given: [case5] \`brains auth use\` from a dir outside any repo when: [t0] a grove use names an account the keyrack does not hold then: the refusal matches its snapshot 1`] = `
+"
+✋ ConstraintError: no stored credential for b@example.com
+
+{
+  "hint": "rhx brains auth set --brain claude --account b@example.com",
+  "held": [],
+  "signedIn": "none"
+}
+
+[args] brains,auth,use,--account,b@example.com,--scope,grove
+
+"
+`;
+
+exports[`brains auth given: [case6] a home signed in on a login whose access token lapsed when: [t0] \`brains auth get\` then: the tree matches its snapshot 1`] = `
+"🧠 brains auth get
+   ├─ owner = ehmpath
+   └─ a@example.com (signed in)
+      └─ unverified — the signed-in token lapsed, and a read never refreshes it; any claude session renews it
+"
+`;
+
+exports[`brains auth given: [case6] a home signed in on a login whose access token lapsed when: [t1] \`brains auth get --output json\` then: the raw json matches its snapshot 1`] = `
+"{
+  "owner": "ehmpath",
+  "accounts": [
+    {
+      "email": "a@example.com",
+      "account": null,
+      "status": "unverified",
+      "windows": [],
+      "savedResets": null,
+      "signedIn": true,
+      "renewed": false
+    }
+  ]
+}
+"
+`;
+
+exports[`brains auth given: [case6] a home signed in on a login whose access token lapsed when: [t2] \`brains auth use --scope grove\` over the lapsed login then: the refusal matches its snapshot 1`] = `
+"
+✋ ConstraintError: the grove's signed-in account is unverified
+
+{
+  "hint": "run any claude session on this box once; it renews the login. then retry",
+  "signedIn": "a@example.com",
+  "why": "its live access token has lapsed, and a refresh would end the session it serves"
+}
+
+[args] brains,auth,use,--account,b@example.com,--scope,grove
+
+"
+`;
+
+exports[`brains auth given: [case7] \`brains auth use\` where an env credential outranks the grove login when: [t0] a grove use runs with CLAUDE_CODE_OAUTH_TOKEN set then: the refusal matches its snapshot 1`] = `
+"
+✋ ConstraintError: an env credential outranks the grove login
+
+{
+  "hint": "unset CLAUDE_CODE_OAUTH_TOKEN   # in the env where clones spawn",
+  "target": "b@example.com",
+  "outrankers": [
+    "CLAUDE_CODE_OAUTH_TOKEN"
+  ]
+}
+
+[args] brains,auth,use,--account,b@example.com,--scope,grove
+
+"
+`;
+
+exports[`brains auth given: [case8] \`brains auth get\` names a brain with no auth adapter when: [t0] \`brains auth get --brain codex\` then: the refusal matches its snapshot 1`] = `
+"
+✋ ConstraintError: no auth adapter for this brain
+
+{
+  "hint": "rhx brains auth get --brain claude",
+  "brain": "codex",
+  "brainsSupported": "claude"
+}
+
+[args] brains,auth,get,--brain,codex
+
+"
+`;
+
+exports[`brains auth given: [case9] \`brains auth set\` at a real terminal (case=1, case=6) when: [t0] the owner has no keyrack then: the refusal matches its snapshot 1`] = `
+"
+✋ ConstraintError: no keyrack for this owner, so a login cannot be filed
+
+{
+  "hint": "rhx keyrack init --owner ehmpath   # then retry",
+  "owner": "ehmpath"
+}
+
+[args] brains,auth,set,--brain,claude
+
+"
+`;
+
+exports[`brains auth given: [case9] \`brains auth set\` at a real terminal (case=1, case=6) when: [t1] it runs inside a clone, though a pty is attached then: the refusal matches its snapshot 1`] = `
+"
+✋ ConstraintError: a first login needs a human at a browser
+
+{
+  "hint": "ask your human to run, at a real terminal: rhx brains auth set --brain claude",
+  "why": "this runs inside a clone"
+}
+
+[args] brains,auth,set,--brain,claude
+
+"
+`;
+
+exports[`brains auth given: [case9] \`brains auth set\` at a real terminal (case=1, case=6) when: [t2] a keyrack is ready, and claude is not on the PATH then: the output matches its snapshot 1`] = `
+"ℹ a claude session opens in an isolated dir — type /login, finish the browser login, then /exit
+
+💥 MalfunctionError: the claude cli could not be started
+
+{
+  "hint": "install claude code, then retry: rhx brains auth set --brain claude",
+  "cause": {
+    "class": "Error",
+    "message": "spawnSync claude ENOENT"
+  }
+}
+
+[args] brains,auth,set,--brain,claude
+
+"
+`;
+
+exports[`brains auth given: [case9] \`brains auth set\` at a real terminal (case=1, case=6) when: [t3] a keyrack is ready, and claude exits with no login then: the output matches its snapshot 1`] = `
+"ℹ a claude session opens in an isolated dir — type /login, finish the browser login, then /exit
+
+✋ ConstraintError: the login did not complete
+
+{
+  "hint": "run the command again, type /login in claude, finish the browser login, then /exit"
+}
+
+[args] brains,auth,set,--brain,claude
+
+"
+`;

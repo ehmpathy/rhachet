@@ -8,10 +8,12 @@ import { asJsonParsedOrNull } from '@src/infra/json/asJsonParsedOrNull';
  *
  * .note = a file that does not parse reads as null, not as an error; the callers read
  *   an unknown shape as "not a login we can judge", and claude-code judges it itself
+ * .note = `block` is the whole oauth object, for a reader that needs more than the refresh
+ *   token (`asClaudeGroveOauth`)
  */
 export const asBrainAuthOauth = (input: {
   content: string | null;
-}): { refreshToken: unknown } | null => {
+}): { refreshToken: unknown; block: Record<string, unknown> } | null => {
   if (input.content === null) return null;
 
   // a file we cannot read as json carries no oauth block we can trust
@@ -23,5 +25,6 @@ export const asBrainAuthOauth = (input: {
   if (!oauth || typeof oauth !== 'object') return null;
   return {
     refreshToken: 'refreshToken' in oauth ? oauth.refreshToken : null,
+    block: oauth as Record<string, unknown>, // a json object, narrowed above
   };
 };

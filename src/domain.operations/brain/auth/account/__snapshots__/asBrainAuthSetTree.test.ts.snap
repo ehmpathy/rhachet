@@ -1,0 +1,21 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asBrainAuthSetTree given: [case1] a new account filed when: [t0] the provider named its org then: the tree matches its snapshot 1`] = `
+"🧠 brains auth set
+   ├─ owner = ehmpath
+   ├─ one@example.com
+   │  ├─ org = org-one
+   │  └─ key = @all.prep.BRAINS_AUTH__OF__CLAUDE_CODE_OAUTH_TOKEN
+   ├─ stored
+   └─ next = rhx brains auth use --account one@example.com --scope grove"
+`;
+
+exports[`asBrainAuthSetTree given: [case2] an account set again, with no org named when: [t0] the outcome is renewed then: the tree matches its snapshot 1`] = `
+"🧠 brains auth set
+   ├─ owner = ehmpath
+   ├─ two@example.com
+   │  ├─ org = unknown
+   │  └─ key = @all.prep.BRAINS_AUTH__OF__CLAUDE_CODE_OAUTH_TOKEN
+   ├─ renewed — already held; the new login replaces the held one
+   └─ next = rhx brains auth use --account two@example.com --scope grove"
+`;

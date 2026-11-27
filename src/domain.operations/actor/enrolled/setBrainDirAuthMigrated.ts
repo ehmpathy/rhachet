@@ -43,7 +43,7 @@ export const setBrainDirAuthMigrated = async (
   // a live brain-dir login may be the box's only live token; adopt it under the lock
   const brainDirAuthContent = getFileContentOrNull({ path: brainDirAuthPath });
   const isAdopted = await withBrainAuthWriteLock(
-    { brainAuthPath: input.brainAuthPath },
+    { brainAuthPath: input.brainAuthPath, retry: 'enroll' },
     () => {
       const isAdoptable = isBrainDirAuthAdoptable({
         brainDirAuthContent,

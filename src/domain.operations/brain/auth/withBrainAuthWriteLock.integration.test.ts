@@ -33,7 +33,7 @@ describe('withBrainAuthWriteLock', () => {
         // .note = deliberate mutation: the holder captures a read from inside the closure
         const heldWithin = { value: false };
         const returned = await withBrainAuthWriteLock(
-          { brainAuthPath: scene.brainAuthPath },
+          { brainAuthPath: scene.brainAuthPath, retry: 'enroll' },
           () => {
             heldWithin.value = existsSync(scene.lockPath);
             return 'done';
@@ -58,7 +58,7 @@ describe('withBrainAuthWriteLock', () => {
     when('[t1] the procedure throws', () => {
       const result = useThen('it runs', async () => {
         const error = await withBrainAuthWriteLock(
-          { brainAuthPath: scene.brainAuthPath },
+          { brainAuthPath: scene.brainAuthPath, retry: 'enroll' },
           () => {
             throw new Error('procedure fault');
           },
@@ -90,7 +90,7 @@ describe('withBrainAuthWriteLock', () => {
           rmdirSync(scene.lockPath);
         }, 300);
         const ranAfterRelease = await withBrainAuthWriteLock(
-          { brainAuthPath: scene.brainAuthPath },
+          { brainAuthPath: scene.brainAuthPath, retry: 'enroll' },
           () => released.value,
         );
         return { ranAfterRelease };
@@ -115,7 +115,7 @@ describe('withBrainAuthWriteLock', () => {
         const longAgo = new Date(Date.now() - 60_000);
         utimesSync(scene.lockPath, longAgo, longAgo);
         const returned = await withBrainAuthWriteLock(
-          { brainAuthPath: scene.brainAuthPath },
+          { brainAuthPath: scene.brainAuthPath, retry: 'enroll' },
           () => 'ran',
         );
         return { returned };
@@ -137,7 +137,7 @@ describe('withBrainAuthWriteLock', () => {
     when('[t0] the peer swaps in its own fresh lock dir', () => {
       const result = useThen('it runs', async () => {
         const returned = await withBrainAuthWriteLock(
-          { brainAuthPath: scene.brainAuthPath },
+          { brainAuthPath: scene.brainAuthPath, retry: 'enroll' },
           () => {
             // the peer makes its dir first, so its inode differs from ours
             const peerDir = `${scene.lockPath}.peer`;
@@ -168,7 +168,7 @@ describe('withBrainAuthWriteLock', () => {
     when('[t0] the lock ages toward stale while the procedure runs', () => {
       const result = useThen('it runs', async () => {
         const returned = await withBrainAuthWriteLock(
-          { brainAuthPath: scene.brainAuthPath },
+          { brainAuthPath: scene.brainAuthPath, retry: 'enroll' },
           async () => {
             // age the held lock past the stale bound, then outlast one refresh
             const longAgo = new Date(Date.now() - 60_000);
@@ -196,7 +196,7 @@ describe('withBrainAuthWriteLock', () => {
     when('[t0] the procedure ends after the lock dir was removed', () => {
       const result = useThen('it runs', async () => {
         const returned = await withBrainAuthWriteLock(
-          { brainAuthPath: scene.brainAuthPath },
+          { brainAuthPath: scene.brainAuthPath, retry: 'enroll' },
           () => {
             rmdirSync(scene.lockPath);
             return 'ran';
@@ -216,7 +216,7 @@ describe('withBrainAuthWriteLock', () => {
       () => {
         const result = useThen('it runs', async () => {
           const returned = await withBrainAuthWriteLock(
-            { brainAuthPath: scene.brainAuthPath },
+            { brainAuthPath: scene.brainAuthPath, retry: 'enroll' },
             async () => {
               rmdirSync(scene.lockPath);
               await new Promise((done) => setTimeout(done, 5_500));
@@ -252,9 +252,12 @@ describe('withBrainAuthWriteLock', () => {
         // .note = deliberate mutation: the procedure marks whether it ran
         const ran = { value: false };
         const error = await getError(
-          withBrainAuthWriteLock({ brainAuthPath: scene.brainAuthPath }, () => {
-            ran.value = true;
-          }),
+          withBrainAuthWriteLock(
+            { brainAuthPath: scene.brainAuthPath, retry: 'enroll' },
+            () => {
+              ran.value = true;
+            },
+          ),
         );
         clearInterval(holder);
         const holderLockKept = existsSync(scene.lockPath);
