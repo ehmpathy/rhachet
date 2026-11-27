@@ -150,6 +150,22 @@ const asPayloadBash = (command: string): string =>
   });
 
 /**
+ * .what = a claude PreToolUse payload for a call to any tool
+ */
+const asPayloadOfTool = (tool: string): string =>
+  JSON.stringify({ session_id: 'abc', hook_event_name: 'PreToolUse', tool_name: tool, tool_input: {} });
+
+/**
+ * .what = link the rhachet this repo builds into a fixture repo, as a consumer reaches it
+ */
+const setRhachetLinkedInto = (input: { cwd: string }): void => {
+  mkdirSync(join(input.cwd, 'node_modules/.bin'), { recursive: true });
+  symlinkSync(join(REPO_ROOT, 'bin/rhx'), join(input.cwd, 'node_modules/.bin/rhx'));
+  symlinkSync(join(REPO_ROOT, 'bin/run'), join(input.cwd, 'node_modules/.bin/rhachet'));
+  symlinkSync(REPO_ROOT, join(input.cwd, 'node_modules/rhachet'));
+};
+
+/**
  * .what = a v1 manifest of `foreign` rows, each a declared command the dispatcher runs as claude ran it
  * .why = the merge, matcher and watchdog paths are reached with no fixture role churn
  */
@@ -224,13 +240,7 @@ describe('hook dispatcher (one process per claude event)', () => {
       setAllExecutable({ dir: join(cwd, 'node_modules/rhachet-roles-test/roles') });
 
       // the rhachet this repo builds, reached as a consumer reaches it
-      mkdirSync(join(cwd, 'node_modules/.bin'), { recursive: true });
-      symlinkSync(join(REPO_ROOT, 'bin/rhx'), join(cwd, 'node_modules/.bin/rhx'));
-      symlinkSync(
-        join(REPO_ROOT, 'bin/run'),
-        join(cwd, 'node_modules/.bin/rhachet'),
-      );
-      symlinkSync(REPO_ROOT, join(cwd, 'node_modules/rhachet'));
+      setRhachetLinkedInto({ cwd });
 
       // link the role and sync its hooks
       const init = invokeRhachetCliBinary({
@@ -1043,8 +1053,6 @@ describe('hook dispatcher (one process per claude event)', () => {
       const manifest = asManifestOfCommands({
         rows: [{ event: 'PreToolUse', matcher: 'mcp__.*', timeout: 5, command: 'echo mcp rule ran' }],
       });
-      const asPayloadOfTool = (tool: string): string =>
-        JSON.stringify({ hook_event_name: 'PreToolUse', tool_name: tool, tool_input: {} });
       const result = useBeforeAll(async () => ({
         fits: scene.dispatchManifest({
           name: 'regex-fits',
@@ -1864,8 +1872,7 @@ describe('hook dispatcher (one process per claude event)', () => {
   given(
     '[case2] a repo synced once, whose role then adds a row on a tool and an event no prior row named',
     () => {
-      // the settings wire each event whole (`*`) at the first sync, so a row the role adds later
-      //   reaches every seat through the manifest alone: no settings write, no respawn
+      // each event is wired whole (`*`) at the first sync, so a later row needs no settings write
       const asRoleRegistry = (input: { hooks: string }): string => `
 const getRoleRegistry = () => ({
   slug: 'test',
@@ -1896,17 +1903,12 @@ module.exports = { getRoleRegistry };
         ],
         onTalk: [{ command: 'echo "talk guard ran"', timeout: 'PT10S' }],
       }`;
-      const asPayloadOfTool = (tool: string): string =>
-        JSON.stringify({ session_id: 'abc', hook_event_name: 'PreToolUse', tool_name: tool, tool_input: {} });
       const payloadTalk = JSON.stringify({ session_id: 'abc', hook_event_name: 'UserPromptSubmit', prompt: 'hi' });
       const payloadStop = JSON.stringify({ session_id: 'abc', hook_event_name: 'Stop', stop_hook_active: false });
 
       const scene = useBeforeAll(async () => {
         const cwd = (await genTestTempRepo({ fixture: 'with-hook-dispatch' })).path;
-        mkdirSync(join(cwd, 'node_modules/.bin'), { recursive: true });
-        symlinkSync(join(REPO_ROOT, 'bin/rhx'), join(cwd, 'node_modules/.bin/rhx'));
-        symlinkSync(join(REPO_ROOT, 'bin/run'), join(cwd, 'node_modules/.bin/rhachet'));
-        symlinkSync(REPO_ROOT, join(cwd, 'node_modules/rhachet'));
+        setRhachetLinkedInto({ cwd });
         const registryPath = join(cwd, 'node_modules/rhachet-roles-test/dist/index.js');
         const settingsPath = join(cwd, '.claude/settings.of.repo.json');
         const syncHooks = (input: { hooks: string; args: string[] }) => {
@@ -1946,11 +1948,37 @@ module.exports = { getRoleRegistry };
         };
 
         // last: a corrupt manifest, met by a tool no row names
-        const manifestRel = commandOf('PreToolUse').split(' ')[2]!;
+        const manifestRel = commandOf('PreToolUse')
+          .split(' ')
+          .find((word) => word.endsWith('/hooks.dispatch.manifest'));
+        if (!manifestRel)
+          throw new MalfunctionError('the dispatcher command names no manifest path', {
+            command: commandOf('PreToolUse'),
+            hint: 'read the init --hooks output; each dispatcher command should end `<manifest> <event>`',
+          });
         writeFileSync(join(cwd, manifestRel), 'not a manifest\n');
         const corrupt = { agent: dispatch('PreToolUse', asPayloadOfTool('Agent')) };
 
-        return { initFirst, initLater, settings, settingsTextFirst, settingsTextLater, before, after, corrupt };
+        return { cwd, initFirst, initLater, settings, settingsTextFirst, settingsTextLater, before, after, corrupt };
+      });
+
+      then('the calls a human reads match the snapshot', () => {
+        const asView = (call: { code: number | null; stdout: string; stderr: string }): string =>
+          asCallView({
+            code: call.code,
+            stdout: call.stdout.split(scene.cwd).join('$CWD'),
+            stderr: call.stderr.split(scene.cwd).join('$CWD'),
+          });
+        expect(
+          [
+            '=== a later Agent row, under the first wire ===',
+            asView(scene.after.agent),
+            '=== a later talk row, under the first wire ===',
+            asView(scene.after.talk),
+            '=== a corrupt manifest, met by a tool no row names ===',
+            asView(scene.corrupt.agent),
+          ].join('\n'),
+        ).toMatchSnapshot();
       });
 
       then('both syncs succeed', () => {
@@ -1959,19 +1987,15 @@ module.exports = { getRoleRegistry };
       });
 
       then('the first sync wires every mapped event with one `*` dispatcher, rows or not', () => {
+        const events = ['PreToolUse', 'SessionStart', 'Stop', 'UserPromptSubmit'];
+        expect(Object.keys(scene.settings.hooks).sort()).toEqual(events);
         expect(
-          Object.entries(scene.settings.hooks).map(([event, entries]) => ({
+          events.map((event) => ({
             event,
-            matchers: (entries as Array<{ matcher: string }>).map((entry) => entry.matcher),
+            matchers: (scene.settings.hooks[event] as Array<{ matcher: string }>).map((entry) => entry.matcher),
             dispatchers: asHooksOfEvent({ settings: scene.settings, event }).length,
           })),
-        ).toEqual(
-          ['SessionStart', 'PreToolUse', 'UserPromptSubmit', 'Stop'].map((event) => ({
-            event,
-            matchers: ['*'],
-            dispatchers: 1,
-          })),
-        );
+        ).toEqual(events.map((event) => ({ event, matchers: ['*'], dispatchers: 1 })));
       });
 
       when('[t0] a tool and an event no row names yet are called (vision case=3, case=5)', () => {

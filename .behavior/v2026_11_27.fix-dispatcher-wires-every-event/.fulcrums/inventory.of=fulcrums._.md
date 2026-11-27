@@ -6,5 +6,7 @@
 | F2 | the wire timeout sits at a fixed floor (60 s), not the rows' max | clean | ruled: holds (director, 2026-11-27) | 85% |
 | F3 | a mapped event with zero rows still gets its wire | clean | ruled: holds (director, 2026-11-27) | 88% |
 | F4 | a repo with no manifest stays wire-less, by an explicit guard | clean | ruled: holds (director, 2026-11-27) | 95% |
+| F5 | the acceptance tests under `blackbox/` sit inside the "only `src/**` and its tests" bound | clean | open: for the director | 85% |
+| F6 | the per-brain catch in `setHookDispatchersForTarget` stays as it is | clean | open: for the director | 92% |
 
 entries: `inventory.of=fulcrums.case=F$n-$slug.md`

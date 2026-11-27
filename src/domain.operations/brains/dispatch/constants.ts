@@ -2,7 +2,7 @@ import type { BrainHookEvent } from '@src/domain.objects/BrainHookEvent';
 
 /**
  * .what = the claude hook event each rhachet hook event lands under, as the claude adapter maps it
- * .note = `filter.when: 'after'` still lands under PreToolUse, as the adapter places it today
+ * .note = `filter.when: 'after'` lands under PreToolUse, where the adapter places it
  */
 export const CLAUDE_EVENT_OF_BRAIN_HOOK_EVENT: Record<BrainHookEvent, string> =
   {
@@ -46,7 +46,7 @@ export const HOOK_DISPATCH_EVENTS: string[] = BRAIN_HOOK_EVENTS.map(
  *   the same value as `__rhx_dispatch_grace`
  * .note = `timeoutFloorSeconds` is the least rule timeout a wire covers; a wire's timeout is
  *   `max(floor, slowest rule) + margin`, so a later row within the floor moves no wire, and an
- *   event with no rows still holds a timeout. 60 s is the slowest rule any role declares today
+ *   event with no rows still holds a timeout. a rule slower than the floor moves its wire
  */
 export const HOOK_DISPATCH = {
   manifest: 'hooks.dispatch.manifest',
@@ -60,7 +60,7 @@ export const HOOK_DISPATCH = {
 /**
  * .what = the shape of a matcher read as an exact list of tool names (`Bash|Write`, `Read,Edit`),
  *   never as a regex
- * .why = the sync (portability check, dispatcher matcher union) and the dispatcher bash must agree
+ * .why = the sync's portability check and the dispatcher bash must agree
  *   on which matchers are lists; `bin/hooks.dispatch.sh` holds the same pattern, and
  *   `constants.manifest-parity.integration.test.ts` goes red the day the two differ
  */

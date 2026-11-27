@@ -270,3 +270,31 @@ bash: .claude/gone.sh: No such file or directory
   "stdout": "",
 }
 `;
+
+exports[`hook dispatcher (one process per claude event) given: [case2] a repo synced once, whose role then adds a row on a tool and an event no prior row named then: the calls a human reads match the snapshot 1`] = `
+"=== a later Agent row, under the first wire ===
+exit = 0
+--- stdout ---
+agent guard ran
+
+--- stderr ---
+(empty)
+=== a later talk row, under the first wire ===
+exit = 0
+--- stdout ---
+talk guard ran
+
+--- stderr ---
+(empty)
+=== a corrupt manifest, met by a tool no row names ===
+exit = 2
+--- stdout ---
+(empty)
+--- stderr ---
+✋ ConstraintError: hook dispatch manifest version is not one this dispatcher reads
+   ├─ manifest = .claude/hooks.dispatch.manifest
+   ├─ header = not a manifest
+   ├─ reads = v1
+   └─ fix = run \`npx rhx init --hooks\`, with the rhachet this repo installs, to rewrite it
+"
+`;

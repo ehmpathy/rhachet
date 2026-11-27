@@ -211,13 +211,27 @@ describe('asSettingsWithHookDispatchers', () => {
         });
 
         then('hand-added hooks remain, beside the fresh dispatchers', () => {
-          expect(commandsOf({ settings: result, event: 'Stop' })).toEqual([
-            'echo hand',
-            commandOf('Stop'),
-          ]);
-          expect(commandsOf({ settings: result, event: 'PreToolUse' })).toEqual(
-            ['echo hand', commandOf('PreToolUse')],
-          );
+          const dispatcherOf = (event: string) => ({
+            type: 'command',
+            command: commandOf(event),
+            timeout:
+              HOOK_DISPATCH.timeoutFloorSeconds +
+              HOOK_DISPATCH.timeoutMarginSeconds,
+            author: HOOK_DISPATCH.author,
+          });
+          expect(result.hooks).toEqual({
+            Stop: [{ matcher: '*', hooks: [handHook, dispatcherOf('Stop')] }],
+            SessionStart: [
+              { matcher: '*', hooks: [dispatcherOf('SessionStart')] },
+            ],
+            PreToolUse: [
+              { matcher: 'Bash', hooks: [handHook] },
+              { matcher: '*', hooks: [dispatcherOf('PreToolUse')] },
+            ],
+            UserPromptSubmit: [
+              { matcher: '*', hooks: [dispatcherOf('UserPromptSubmit')] },
+            ],
+          });
         });
       });
     },
@@ -322,6 +336,43 @@ describe('asSettingsWithHookDispatchers', () => {
             ).toEqual(['Write', '*']);
           },
         );
+      });
+    },
+  );
+
+  given(
+    '[case6] a union entry from an older sync, which a hand-added hook shares with the dispatcher',
+    () => {
+      const settings: ClaudeCodeSettings = {
+        hooks: {
+          PreToolUse: [
+            { matcher: 'Bash|Write', hooks: [handHook, priorDispatcherHook] },
+          ],
+        },
+      };
+
+      when('[t0] the rules are set again', () => {
+        const result = asSettingsWithHookDispatchers({
+          settings,
+          rules: [genRule({ event: 'PreToolUse', matcher: 'Bash' })],
+          manifestPathRel: MANIFEST_PATH,
+        });
+
+        then('the hand-added hook stays under its own matcher, alone', () => {
+          expect(result.hooks?.PreToolUse?.[0]).toEqual({
+            matcher: 'Bash|Write',
+            hooks: [handHook],
+          });
+        });
+
+        then('the dispatcher leaves the union entry for a `*` entry', () => {
+          expect(
+            result.hooks?.PreToolUse?.map((entry) => entry.matcher),
+          ).toEqual(['Bash|Write', '*']);
+          expect(commandsOf({ settings: result, event: 'PreToolUse' })).toEqual(
+            ['echo hand', commandOf('PreToolUse')],
+          );
+        });
       });
     },
   );

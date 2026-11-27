@@ -111,8 +111,8 @@ const isSameHook = (left: BrainHook, right: BrainHook): boolean =>
 
 /**
  * .what = whether two hooks match in key, timeout and matcher, so a rewrite would change naught
- * .note = the matcher still counts: a found dispatcher with a filter (a union wire an older sync
- *   wrote) differs from the desired `*`, so the sync rewrites it in place
+ * .note = the matcher counts: a found dispatcher with a filter (a union wire a prior sync wrote)
+ *   differs from the desired `*`, so the sync rewrites it in place
  */
 const isSameBody = (left: BrainHook, right: BrainHook): boolean =>
   isSameHook(left, right) &&

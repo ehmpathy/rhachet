@@ -1,6 +1,10 @@
 import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
-import { genBrainHooksAdapterForClaudeCode } from '@src/_topublish/rhachet-brains-anthropic/src';
+import {
+  genBrainHooksAdapterForClaudeCode,
+  readClaudeCodeSettings,
+  writeClaudeCodeSettings,
+} from '@src/_topublish/rhachet-brains-anthropic/src';
 import { BrainHook } from '@src/domain.objects/BrainHook';
 import { BrainHookFilter } from '@src/domain.objects/BrainHookFilter';
 import type { BrainHooksAdapter } from '@src/domain.objects/BrainHooksAdapter';
@@ -150,6 +154,9 @@ describe('setHookDispatchersViaAdapter', () => {
     asRule({ event: 'Stop', matcher: '*' }),
   ];
 
+  // a hook a human added by hand: no author, so no sync may move it
+  const HAND_HOOK = { type: 'command', command: 'echo hand', timeout: 7 };
+
   /**
    * .what = a temp repo whose claude settings already hold the dispatchers RULES need
    */
@@ -162,7 +169,7 @@ describe('setHookDispatchersViaAdapter', () => {
       rules: RULES,
       manifestPathRel: '.claude/hooks.dispatch.manifest',
     });
-    return { adapter };
+    return { adapter, repoPath };
   };
 
   given(
@@ -187,9 +194,17 @@ describe('setHookDispatchersViaAdapter', () => {
           expect(result.calls).toEqual([]);
         });
 
-        then('the Stop dispatcher stays in place', () => {
-          expect(result.after.map((hook) => hook.event)).toContain('onStop');
-        });
+        then(
+          'the Stop dispatcher stays in place, beside the other three',
+          () => {
+            expect(
+              result.after
+                .filter((hook) => hook.author === HOOK_DISPATCH.author)
+                .map((hook) => hook.event)
+                .sort(),
+            ).toEqual(['onBoot', 'onStop', 'onTalk', 'onTool']);
+          },
+        );
       });
     },
   );
@@ -243,6 +258,22 @@ describe('setHookDispatchersViaAdapter', () => {
             filter: new BrainHookFilter({ what: 'Bash|Write' }),
           }),
         });
+
+        // a hook a human added by hand, under the union's own matcher
+        const settings = await readClaudeCodeSettings({ from: base.repoPath });
+        await writeClaudeCodeSettings({
+          settings: {
+            ...settings,
+            hooks: {
+              ...settings.hooks,
+              PreToolUse: [
+                ...(settings.hooks?.PreToolUse ?? []),
+                { matcher: 'Bash|Write', hooks: [HAND_HOOK] },
+              ],
+            },
+          },
+          to: base.repoPath,
+        });
         return base;
       });
 
@@ -270,6 +301,16 @@ describe('setHookDispatchersViaAdapter', () => {
               .filter((hook) => hook.author === HOOK_DISPATCH.author)
               .map((hook) => hook.filter?.what ?? '*'),
           ).toEqual(['*', '*', '*', '*']);
+        });
+
+        then('the hand-added hook stays under its own matcher', async () => {
+          const settings = await readClaudeCodeSettings({
+            from: scene.repoPath,
+          });
+          expect(settings.hooks?.PreToolUse).toContainEqual({
+            matcher: 'Bash|Write',
+            hooks: [HAND_HOOK],
+          });
         });
       });
     },

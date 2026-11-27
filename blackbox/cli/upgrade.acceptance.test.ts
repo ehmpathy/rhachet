@@ -1604,8 +1604,7 @@ describe('rhachet upgrade', () => {
         const settings = JSON.parse(
           readFileSync(join(scene.repo.path, '.claude', 'settings.of.repo.json'), 'utf-8'),
         );
-        // .note = the fixture's test brain keys each event by its own name (`onTalk` stays raw), so
-        //   this reads the shape: four events, each with the one dispatcher and naught else
+        // read by position: the fixture's test brain keys `onTalk` raw, not as `UserPromptSubmit`
         const authorsPerEvent = Object.values(
           settings.hooks as Record<string, Array<{ hooks: Array<{ author: string }> }>>,
         ).map((entries) => entries.flatMap((entry) => entry.hooks.map((hook) => hook.author)));
