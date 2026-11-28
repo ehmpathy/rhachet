@@ -36,10 +36,11 @@ ORIGINAL_ARGS=("$@")
 show_help() {
   echo "🧮 boot.compact.probe — does a live clone re-read its boot on /compact?"
   echo "   ├─ usage"
-  echo "   │  └─ rhx boot.compact.probe [--roles <spec>] [--model <model>] [--door <system|add-dir>]"
+  echo "   │  └─ rhx boot.compact.probe [--roles <spec>] [--model <model>] [--door <system|add-dir>] [--bin <dir>]"
   echo "   ├─ options"
   echo "   │  ├─ --roles    the --roles spec passed to rhx enroll; -driver when absent"
   echo "   │  ├─ --model    the brain model; haiku when absent"
+  echo "   │  ├─ --bin      a dir put first on PATH, so the clone spawns that claude; the PATH claude when absent"
   echo "   │  └─ --door     where the sentinel lands; system when absent"
   echo "   │     ├─ system   the actor's boot.md, read as the system prompt"
   echo "   │     └─ add-dir  the clone's spawn boot CLAUDE.md, read as memory"
@@ -50,6 +51,7 @@ show_help() {
   echo "   ├─ examples"
   echo "   │  ├─ rhx boot.compact.probe"
   echo "   │  ├─ rhx boot.compact.probe --door add-dir"
+  echo "   │  ├─ rhx boot.compact.probe --bin node_modules/.cache/rhachet.test.claude-cli/node_modules/.bin"
   echo "   │  └─ rhx boot.compact.probe --model sonnet"
   echo "   └─ spends real tokens — two short turns and one compaction"
   exit 0
@@ -111,9 +113,18 @@ fi
 ROLES="-driver"
 MODEL="haiku"
 DOOR="system"
+BIN_DIR=""
 
 while [[ $# -gt 0 ]]; do
   case $1 in
+    --bin)
+      require_val flag=--bin value="${2:-}"
+      if [[ ! -x "$2/claude" ]]; then
+        fail kind=constraint what="--bin holds no executable claude: $2" hint="the journey's pinned claude is at node_modules/.cache/rhachet.test.claude-cli/node_modules/.bin, once a real-brain suite has run"
+      fi
+      BIN_DIR="$(cd "$2" && pwd)"
+      shift 2
+      ;;
     --door)
       require_val flag=--door value="${2:-}"
       if [[ "$2" != "system" && "$2" != "add-dir" ]]; then
@@ -240,6 +251,10 @@ say_and_await() {
 #   .note = `command` skips a shell function named `claude`. a host may export one that wraps the
 #     cli in `rhx enroll claude`, which would enroll a clone here and print no version; the enroll
 #     spawns the PATH binary, so the PATH binary is the one to ask
+# --bin puts its claude first on PATH, for the version read and the enroll alike
+if [[ -n "$BIN_DIR" ]]; then
+  export PATH="$BIN_DIR:$PATH"
+fi
 BRAIN_CLI_VERSION=""
 if ! BRAIN_CLI_VERSION=$(command claude --version 2>&1); then
   fail kind=malfunction what="the brain cli version could not be read" detail="$BRAIN_CLI_VERSION" hint="the probe spawns the claude on PATH; check it with: command -v claude"

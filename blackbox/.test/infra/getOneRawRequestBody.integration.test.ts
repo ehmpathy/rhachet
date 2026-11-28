@@ -115,4 +115,46 @@ describe('getOneRawRequestBody', () => {
       });
     });
   });
+
+  given('[case6] a side request with no boot, then two requests that carry it', () => {
+    // a brain cli opens with a side request (a session title) whose system block is its own
+    const dir = genTempDir({ slug: 'raw-request-body-side' });
+    const asBody = (input: { system: string; message: string }) =>
+      JSON.stringify({
+        system: [{ type: 'text', text: input.system }],
+        tools: [],
+        messages: [{ role: 'user', content: input.message }],
+      });
+    writeFileSync(join(dir, 'side.request.json'), asBody({ system: 'title this session', message: 'side' }));
+    writeFileSync(join(dir, 'one.request.json'), asBody({ system: 'the boot', message: 'turn one' }));
+    writeFileSync(join(dir, 'two.request.json'), asBody({ system: 'the boot', message: 'turn two' }));
+    writeFileSync(
+      join(dir, 'index.jsonl'),
+      ['side', 'one', 'two']
+        .map((name) => JSON.stringify({ request_file: `${name}.request.json` }))
+        .join('\n'),
+    );
+
+    when('[t0] the body is read with systemHolds', () => {
+      then('the first kept request is the first that carries the boot, never the side one', async () => {
+        const body = await getOneRawRequestBody({ dir, systemHolds: 'the boot' });
+        expect(body.messageFirst).toContain('turn one');
+      });
+
+      then('which last reads the latest request that carries the boot', async () => {
+        const body = await getOneRawRequestBody({ dir, systemHolds: 'the boot', which: 'last' });
+        expect(body.messageFirst).toContain('turn two');
+      });
+    });
+
+    when('[t1] no request carries the text', () => {
+      then('it fails as a named malfunction that names the text it sought', async () => {
+        const error = await getError(
+          getOneRawRequestBody({ dir, systemHolds: 'absent text', timeoutMs: 300 }),
+        );
+        expect(error).toBeInstanceOf(MalfunctionError);
+        expect(error.message).toContain('holds absent text');
+      });
+    });
+  });
 });

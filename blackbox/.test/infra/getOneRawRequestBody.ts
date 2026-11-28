@@ -29,22 +29,44 @@ const isReadFaultRetryable = (error: unknown): error is { message: string } => {
  *         no published types. only the fields read below are named; a shape change surfaces
  *         as a named malfunction here, or a clamp failure on the strings compared
  */
+type RawRequestBody = { system?: unknown; tools?: unknown; messages?: unknown[] };
+
 const readOpenerOnce = (input: {
   dir: string;
-}): { system?: unknown; tools?: unknown; messages?: unknown[] } => {
+  which: 'first' | 'last';
+  systemHolds: string | null;
+}): RawRequestBody => {
   const lines = readFileSync(join(input.dir, 'index.jsonl'), 'utf-8')
     .split('\n')
     .filter((line) => line.trim().length > 0);
   if (lines.length === 0)
     throw new OpenerNotYetError('the index lists no request yet');
 
-  const entry = JSON.parse(lines[0]!) as { request_file?: unknown };
-  if (typeof entry.request_file !== 'string')
-    throw new OpenerNotYetError('the first index row names no request_file');
+  // every logged body, in send order
+  const bodies = lines.map((line) => {
+    const entry = JSON.parse(line) as { request_file?: unknown };
+    if (typeof entry.request_file !== 'string')
+      throw new OpenerNotYetError('an index row names no request_file');
+    return JSON.parse(
+      readFileSync(join(input.dir, entry.request_file), 'utf-8'),
+    ) as RawRequestBody;
+  });
 
-  return JSON.parse(
-    readFileSync(join(input.dir, entry.request_file), 'utf-8'),
-  ) as { system?: unknown; tools?: unknown; messages?: unknown[] };
+  // a brain cli sends side requests (a session title, say) with a system block of its own;
+  //   `systemHolds` keeps only the requests whose system block holds the given text
+  const bodiesKept =
+    input.systemHolds === null
+      ? bodies
+      : bodies.filter((body) =>
+          JSON.stringify(body.system ?? null).includes(input.systemHolds!),
+        );
+  if (bodiesKept.length === 0)
+    throw new OpenerNotYetError(
+      `no logged request has a system block that holds ${input.systemHolds}`,
+    );
+  return input.which === 'first'
+    ? bodiesKept[0]!
+    : bodiesKept[bodiesKept.length - 1]!;
 };
 
 /**
@@ -61,7 +83,17 @@ const readOpenerOnce = (input: {
 export const getOneRawRequestBody = async (input: {
   dir: string;
   timeoutMs?: number;
-}): Promise<{ system: string; tools: string; messageFirst: string }> => {
+  /** which request: the session's opener (default), or the latest one logged */
+  which?: 'first' | 'last';
+  /** keep only requests whose system block holds this text; every request when absent */
+  systemHolds?: string;
+}): Promise<{
+  system: string;
+  tools: string;
+  messageFirst: string;
+  /** every message, where a compaction's summary and a re-read memory file land */
+  messages: string;
+}> => {
   const timeoutMs = input.timeoutMs ?? 10_000;
   const deadline = Date.now() + timeoutMs;
 
@@ -69,7 +101,11 @@ export const getOneRawRequestBody = async (input: {
   let faultLast = 'no attempt ran'; // .note = deliberate mutation, scoped to the poll
   while (Date.now() <= deadline) {
     try {
-      const body = readOpenerOnce({ dir: input.dir });
+      const body = readOpenerOnce({
+        dir: input.dir,
+        which: input.which ?? 'first',
+        systemHolds: input.systemHolds ?? null,
+      });
 
       // expose the two blocks the cache shares across sessions, and the first message
       //   (where a CLAUDE.md memory would land, were that door open)
@@ -77,6 +113,7 @@ export const getOneRawRequestBody = async (input: {
         system: JSON.stringify(body.system ?? null),
         tools: JSON.stringify(body.tools ?? null),
         messageFirst: JSON.stringify(body.messages?.[0] ?? null),
+        messages: JSON.stringify(body.messages ?? null),
       };
     } catch (error) {
       if (!isReadFaultRetryable(error)) throw error;
