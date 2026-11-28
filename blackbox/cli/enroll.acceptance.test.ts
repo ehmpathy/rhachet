@@ -1281,8 +1281,10 @@ describe('rhx enroll --roles (acceptance)', () => {
 
       then('claudeMdExcludes holds the portable globs alone — no home path', () => {
         expect(JSON.parse(scene.contentFirst).claudeMdExcludes).toEqual([
-          '**/!(brain)/.claude/CLAUDE.md',
+          '**/.claude/AGENTS.md',
+          '**/.claude/CLAUDE.md',
           '**/CLAUDE.local.md',
+          '**/.claude/rules/**',
         ]);
         expect(scene.contentFirst).not.toContain('/home/');
       });

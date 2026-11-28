@@ -886,14 +886,8 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
         };
       });
 
-      then('the temp home is not named brain*, the one gap the glob spares (F1)', () => {
-        expect(basename(scene.home)).not.toMatch(/^brain/);
-      });
-
-      then('the written excludes name the common glob and no home', () => {
-        expect(probe.settings.claudeMdExcludes).toContain(
-          '**/!(brain)/.claude/CLAUDE.md',
-        );
+      then('the written excludes name the every-door glob and no home', () => {
+        expect(probe.settings.claudeMdExcludes).toContain('**/.claude/CLAUDE.md');
         expect(JSON.stringify(probe.settings)).not.toContain(scene.home);
       });
 

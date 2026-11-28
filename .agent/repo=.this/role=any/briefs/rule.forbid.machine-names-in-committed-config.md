@@ -5,7 +5,7 @@
 
 ```json
 👎  "claudeMdExcludes": [ "/home/vlad/.claude/CLAUDE.md" ]
-👍  "claudeMdExcludes": [ "**/!(brain)/.claude/CLAUDE.md" ]
+👍  "claudeMdExcludes": [ "**/.claude/CLAUDE.md" ]
 ```
 
 ## .why
@@ -32,7 +32,7 @@ yes → a machine name hides in it. replace the literal with a glob, or a path r
 
 - the writer's integration test scans what it writes for the repo actor: `getAllMachineNamesInText`
   over the written file → `[]`, and a re-write under another HOME → identical bytes
-  (`genBrainCliConfigArtifact.integration.test.ts`, `[case8]`; the absent-key twin is `[case9]`)
+  (`genBrainCliConfigArtifact.integration.test.ts`, `[case11]`; the absent-key twin is `[case12]`)
 - `src/.test/committedConfigNamesNoMachine.integration.test.ts` scans every tracked file in this
   repo's own repo actor brain dir and every tracked link target there, so a hand edit, a stale
   render, or a home link fails ci
@@ -62,4 +62,4 @@ names a home, user or host · a home glob shipped with no proof the consumer mat
 ## .see also
 
 - `define.brain-dir-layout-is-one-for-every-actor` — which brain dir files are tracked
-- `src/domain.operations/enroll/getClaudeMdExcludesList.ts` — `CLAUDE_MD_EXCLUDE_HOME_GLOB` and its proof
+- `src/domain.operations/enroll/getClaudeMdExcludesList.ts` — the every-door globs, which name no machine
