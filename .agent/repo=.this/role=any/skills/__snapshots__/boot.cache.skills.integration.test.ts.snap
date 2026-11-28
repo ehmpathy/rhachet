@@ -347,10 +347,11 @@ exports[`boot.cache.skills given: [case2] clone.cache.usage when: [t8] a clone d
 exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t0] help is asked then: it exits 0 and names every option 1`] = `
 "🧮 boot.compact.probe — does a live clone re-read its boot on /compact?
    ├─ usage
-   │  └─ rhx boot.compact.probe [--roles <spec>] [--model <model>] [--door <system|add-dir>]
+   │  └─ rhx boot.compact.probe [--roles <spec>] [--model <model>] [--door <system|add-dir>] [--bin <dir>]
    ├─ options
    │  ├─ --roles    the --roles spec passed to rhx enroll; -driver when absent
    │  ├─ --model    the brain model; haiku when absent
+   │  ├─ --bin      a dir put first on PATH, so the clone spawns that claude; the PATH claude when absent
    │  └─ --door     where the sentinel lands; system when absent
    │     ├─ system   the actor's boot.md, read as the system prompt
    │     └─ add-dir  the clone's spawn boot CLAUDE.md, read as memory
@@ -361,6 +362,7 @@ exports[`boot.cache.skills given: [case3] boot.compact.probe when: [t0] help is 
    ├─ examples
    │  ├─ rhx boot.compact.probe
    │  ├─ rhx boot.compact.probe --door add-dir
+   │  ├─ rhx boot.compact.probe --bin node_modules/.cache/rhachet.test.claude-cli/node_modules/.bin
    │  └─ rhx boot.compact.probe --model sonnet
    └─ spends real tokens — two short turns and one compaction
 "
