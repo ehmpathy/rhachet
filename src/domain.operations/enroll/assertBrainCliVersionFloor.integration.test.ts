@@ -26,7 +26,7 @@ describe('assertBrainCliVersionFloor', () => {
     when('[t0] the floor is asserted', () => {
       then('it passes and returns the version', () => {
         const dir = genTempDir({ slug: 'version-floor-at' });
-        const env = genShimEnv({ dir, body: 'echo "2.1.277 (Claude Code)"' });
+        const env = genShimEnv({ dir, body: 'echo "2.1.280 (Claude Code)"' });
         expect(
           assertBrainCliVersionFloor({
             bin: 'claude',
@@ -34,7 +34,7 @@ describe('assertBrainCliVersionFloor', () => {
             onAbsent: 'refuse',
           }),
         ).toEqual({
-          version: { major: 2, minor: 1, patch: 277 },
+          version: { major: 2, minor: 1, patch: 280 },
         });
       });
     });
@@ -44,11 +44,11 @@ describe('assertBrainCliVersionFloor', () => {
     when('[t0] the floor is asserted', () => {
       then('it passes', () => {
         const dir = genTempDir({ slug: 'version-floor-above' });
-        const env = genShimEnv({ dir, body: 'echo "2.1.279 (Claude Code)"' });
+        const env = genShimEnv({ dir, body: 'echo "2.1.282 (Claude Code)"' });
         expect(
           assertBrainCliVersionFloor({ bin: 'claude', env, onAbsent: 'refuse' })
             .version?.patch,
-        ).toEqual(279);
+        ).toEqual(282);
       });
     });
   });
@@ -59,7 +59,7 @@ describe('assertBrainCliVersionFloor', () => {
         'a ConstraintError names the binary, version, floor and fix',
         async () => {
           const dir = genTempDir({ slug: 'version-floor-below' });
-          const env = genShimEnv({ dir, body: 'echo "2.1.276 (Claude Code)"' });
+          const env = genShimEnv({ dir, body: 'echo "2.1.279 (Claude Code)"' });
           const error = await getError(() =>
             assertBrainCliVersionFloor({
               bin: 'claude',
@@ -69,8 +69,8 @@ describe('assertBrainCliVersionFloor', () => {
           );
           expect(error).toBeInstanceOf(ConstraintError);
           expect(error.message).toContain("'claude'");
-          expect(error.message).toContain('2.1.276');
-          expect(error.message).toContain('2.1.277');
+          expect(error.message).toContain('2.1.279');
+          expect(error.message).toContain('2.1.280');
           expect(error.message).toContain('claude update');
         },
       );
@@ -79,7 +79,7 @@ describe('assertBrainCliVersionFloor', () => {
     when('[t1] the floor is asserted with onAbsent=permit', () => {
       then('it still refuses — only ABSENCE is permitted', async () => {
         const dir = genTempDir({ slug: 'version-floor-below-permit' });
-        const env = genShimEnv({ dir, body: 'echo "2.1.276 (Claude Code)"' });
+        const env = genShimEnv({ dir, body: 'echo "2.1.279 (Claude Code)"' });
         const error = await getError(() =>
           assertBrainCliVersionFloor({
             bin: 'claude',
@@ -88,8 +88,8 @@ describe('assertBrainCliVersionFloor', () => {
           }),
         );
         expect(error).toBeInstanceOf(ConstraintError);
-        expect(error.message).toContain('2.1.276');
-        expect(error.message).toContain('2.1.277');
+        expect(error.message).toContain('2.1.279');
+        expect(error.message).toContain('2.1.280');
       });
     });
   });
@@ -99,7 +99,7 @@ describe('assertBrainCliVersionFloor', () => {
     () => {
       /**
        * .what = the measured failure from vision case 3: a pnpm shim at 2.1.87 wins
-       *   PATH while a newer 2.1.278 sits behind it
+       *   PATH while a newer 2.1.281 sits behind it
        */
       const genTwoBinaryEnv = (input: {
         dir: string;
@@ -144,7 +144,7 @@ describe('assertBrainCliVersionFloor', () => {
             const { env, winner } = genTwoBinaryEnv({
               dir,
               winnerVersion: '2.1.87',
-              shadowedVersion: '2.1.278',
+              shadowedVersion: '2.1.281',
             });
             const error = await getError(() =>
               assertBrainCliVersionFloor({
@@ -170,7 +170,7 @@ describe('assertBrainCliVersionFloor', () => {
               const { env, winner, shadowed } = genTwoBinaryEnv({
                 dir,
                 winnerVersion: '2.1.87',
-                shadowedVersion: '2.1.278',
+                shadowedVersion: '2.1.281',
               });
               const error = await getError(() =>
                 assertBrainCliVersionFloor({
@@ -183,7 +183,7 @@ describe('assertBrainCliVersionFloor', () => {
 
               // the newer one, by path and by version
               expect(error.message).toContain(shadowed);
-              expect(error.message).toContain('2.1.278');
+              expect(error.message).toContain('2.1.281');
 
               // and which of the two wins PATH
               expect(error.message).toContain('wins your PATH');
@@ -229,7 +229,7 @@ describe('assertBrainCliVersionFloor', () => {
     when('[t0] the floor is asserted with onAbsent=refuse', () => {
       then('a ConstraintError names the install command', async () => {
         const dir = genTempDir({ slug: 'version-floor-absent' });
-        const env = genShimEnv({ dir, body: 'echo "2.1.277"' });
+        const env = genShimEnv({ dir, body: 'echo "2.1.280"' });
         const error = await getError(() =>
           assertBrainCliVersionFloor({
             bin: 'claude-absent-from-path',
@@ -248,7 +248,7 @@ describe('assertBrainCliVersionFloor', () => {
     when('[t1] the floor is asserted with onAbsent=permit', () => {
       then('it passes with a null version — the floor binds no reader', () => {
         const dir = genTempDir({ slug: 'version-floor-absent-permit' });
-        const env = genShimEnv({ dir, body: 'echo "2.1.277"' });
+        const env = genShimEnv({ dir, body: 'echo "2.1.280"' });
         expect(
           assertBrainCliVersionFloor({
             bin: 'claude-absent-from-path',
@@ -310,7 +310,7 @@ describe('assertBrainCliVersionFloor', () => {
         const dir = genTempDir({ slug: 'version-floor-unparseable' });
         const env = genShimEnv({
           dir,
-          body: 'echo "2.1.277-beta (Claude Code)"',
+          body: 'echo "2.1.280-beta (Claude Code)"',
         });
         const error = await getError(() =>
           assertBrainCliVersionFloor({
@@ -320,7 +320,7 @@ describe('assertBrainCliVersionFloor', () => {
           }),
         );
         expect(error).toBeInstanceOf(MalfunctionError);
-        expect(error.message).toContain('2.1.277-beta (Claude Code)');
+        expect(error.message).toContain('2.1.280-beta (Claude Code)');
       });
     });
   });

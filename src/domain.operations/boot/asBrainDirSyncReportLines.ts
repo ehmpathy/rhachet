@@ -1,6 +1,9 @@
+import { asCountPhrase } from '@src/utils/asCountPhrase';
 import { asTreeBranch } from '@src/utils/asTreeBranch';
 
 import { basename } from 'node:path';
+import { asBootDriftFaultRow } from './asBootDriftFaultRow';
+import { asBootDriftFaultsOfSync } from './asBootDriftFaultsOfSync';
 import { asBrainDirBootScopeLabel } from './asBrainDirBootScopeLabel';
 import type { BrainDirBootRender } from './BrainDirBootRender';
 import { BRAIN_DIR_BOOT_FILENAMES } from './constants';
@@ -31,10 +34,11 @@ type ReportGroup = { label: string; rows: string[] };
  *   part of the output that says their `.claude` MOVED
  *   (`rule.require.treestruct-output`).
  *
- * .note = a no-op emits NAUGHT. a sync that moved naught, linked naught and re-rendered
- *   an identical corpus has no news, and success is not news (either it halts, or it is
- *   silent). the failure path is loud elsewhere — `asBrainDirBootFailureLines` plus a
- *   nonzero exit — so silence here can only mean "as it was".
+ * .note = a no-op emits NAUGHT, with one exception. a sync that moved naught, linked naught
+ *   and re-rendered an identical corpus has no news, and success is not news. the exception
+ *   is an actor whose clones hold spawn boots: its `drift` branch always answers, `no change`
+ *   included, since an editor's question after an edit is whether its live clones got it.
+ *   the failure path is loud elsewhere — `asBrainDirBootFailureLines` plus a nonzero exit.
  *
  * .note = the glyph is 🧠, the domain-root glyph for a brain (`define.rhachet.v3`). a
  *   brain dir is that same concept at a smaller grain, never a second concept, so it
@@ -113,10 +117,38 @@ export const asBrainDirSyncReportLines = (input: {
       rows: ['reset — hand edits dropped; rhachet owns this file'],
     });
 
-  // a corpus that re-rendered identical bytes, with no migration and no link change, is no news.
-  //   under `.agent/actors.yml`, a corpus whose bytes changed is news: a manifest edit just moved
-  //   the roleset every clone of this actor boots. with no manifest the report stays as it was,
-  //   news only on a created corpus, so an absent actors.yml keeps today's output (the wish)
+  // the drift: whether the live clones of this actor get the change, at their next compaction.
+  //   an actor with no clone that holds a spawn boot has no clone to tell; one with some always
+  //   answers, "no change" included, and a fault always shows
+  //   .note = deliberate mutation: `groups` is this render's local accumulator, as for each group above
+  const drift = render.drift;
+  const driftFaults = asBootDriftFaultsOfSync({ render });
+  const isDriftNews =
+    drift !== null && (drift.clones.length > 0 || driftFaults.length > 0);
+  if (drift && isDriftNews)
+    groups.push({
+      label: 'drift',
+      rows: [
+        ...(drift.rewritten.length > 0
+          ? [
+              asCountPhrase({
+                count: drift.rewritten.length,
+                one: 'clone drift re-written; a live clone takes it at its next compaction',
+                many: 'clone drifts re-written; a live clone takes its own at its next compaction',
+              }),
+            ]
+          : []),
+        ...(drift.rewritten.length === 0 && driftFaults.length === 0
+          ? ['no change']
+          : []),
+        ...driftFaults.map((fault) => asBootDriftFaultRow({ fault })),
+      ],
+    });
+
+  // a corpus that re-rendered identical bytes, with no migration, no link change, and no drift,
+  //   is no news. under `.agent/actors.yml`, a corpus whose bytes changed is news: a manifest
+  //   edit just moved the roleset every clone of this actor boots. with no manifest the report
+  //   stays as it was, news only on a created corpus, so an absent actors.yml keeps today's output
   const isBootOnly = groups.length === 1;
   const isNewsOfCorpus =
     render.bootMdCreated || (isManifestRepo && render.bootMdChanged);

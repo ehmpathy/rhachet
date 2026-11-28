@@ -1,6 +1,7 @@
 import { MalfunctionError } from 'helpful-errors';
 
 import type { RoleLinkRefAtFocus } from '@src/domain.objects/RoleLinkRefAtFocus';
+import { getActorOndiskDirOfBrainDir } from '@src/domain.operations/actor/enrolled/getActorOndiskDirOfBrainDir';
 import { setFileAtomic } from '@src/infra/setFileAtomic';
 
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
@@ -17,9 +18,14 @@ import { getOneRoleBootContent } from './getOneRoleBootContent';
 import { setBrainDirPointerFiles } from './setBrainDirPointerFiles';
 
 /**
- * .what = render roles into one brain dir's `boot.md`, then its pointer files
+ * .what = render roles into one brain dir's `boot.md`, then its pointer files, then re-write the
+ *         drift of every clone of its actor that holds a spawn boot
  * .why = a clone boots from its brain dir; the corpus is written at render time, never
  *        per session, so every clone of one brain dir reads the same bytes
+ *
+ * .note = the drift write reaches past the brain dir, into each clone's `boots/serial=*` dir
+ *         (`setActorBootDrifts`): a live clone of the actor takes the new boot at its next
+ *         compaction. the outcome rides back as `drift`, null for a brain dir with no actor
  *
  * .note = roles render from `repoPath`'s `.agent/` after the one rhachet intro brief
  *         (`getOneRhachetBootIntro`): the published roles first, then the boundary line,
@@ -85,6 +91,22 @@ export const setBrainDirBoot = async (input: {
   const { agentsMdReset } = setBrainDirPointerFiles({
     brainDir: input.brainDir,
   });
+
+  // carry the new boot to every live clone of the actor, as the drift beside its spawn boot.
+  //   the sweep and its delta load here, on demand: a `--help` or a render-free call never
+  //   reaches them (`rule.require.thinnest-import-path`)
+  const actorDir = getActorOndiskDirOfBrainDir({ brainDir: input.brainDir });
+  const drift =
+    actorDir === null
+      ? null
+      : {
+          actorDir,
+          ...(await import('./setActorBootDrifts')).setActorBootDrifts({
+            actorDir,
+            bootMdPathCurrent: bootMdPath,
+          }),
+        };
+
   return {
     scope: input.scope,
     bootMdPath,
@@ -92,5 +114,6 @@ export const setBrainDirBoot = async (input: {
     agentsMdReset,
     bootMdCreated,
     bootMdChanged,
+    drift,
   };
 };

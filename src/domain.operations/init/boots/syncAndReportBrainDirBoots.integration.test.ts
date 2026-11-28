@@ -3,8 +3,15 @@ import { getError, given, then, when } from 'test-fns';
 
 import { genSampleRepoWithRoles } from '@src/.test/assets/genSampleRepoWithRoles';
 import { ContextCli } from '@src/domain.objects/ContextCli';
+import { genActorBootSpawned } from '@src/domain.operations/boot/genActorBootSpawned';
 
-import { chmodSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { syncAndReportBrainDirBoots } from './syncAndReportBrainDirBoots';
 
@@ -65,7 +72,7 @@ describe('syncAndReportBrainDirBoots', () => {
           );
           expect(error).toBeInstanceOf(ConstraintError);
           expect(error.message).toContain('2.1.276');
-          expect(error.message).toContain('2.1.277');
+          expect(error.message).toContain('2.1.280');
           expect(error.message).toContain('claude update');
 
           // the refusal precedes the write — no corpus, and no repo symlink
@@ -84,7 +91,7 @@ describe('syncAndReportBrainDirBoots', () => {
         const { repoPath, context } = genRepoWithRole({
           slug: 'sweep-floor-at',
         });
-        const env = genShimEnv({ dir: repoPath, version: '2.1.277' });
+        const env = genShimEnv({ dir: repoPath, version: '2.1.280' });
         const result = await syncAndReportBrainDirBoots(
           { repoPath, env },
           context,
@@ -126,4 +133,59 @@ describe('syncAndReportBrainDirBoots', () => {
       );
     });
   });
+
+  given(
+    '[case4] two clones with spawn boots, one of which cannot be written',
+    () => {
+      when('[t0] a brief changes and the sweep runs', () => {
+        then(
+          'the other clone takes the drift, and the exit code names the fault',
+          async () => {
+            // render once; a clone spawns on that boot; the brief changes; a second clone spawns
+            const { repoPath, context } = genRepoWithRole({
+              slug: 'sweep-drift-fault',
+            });
+            const env = genShimEnv({ dir: repoPath, version: '2.1.280' });
+            const actorDir = join(
+              repoPath,
+              REPO_ACTOR_BRAIN_DIR_REL,
+              '..',
+              '..',
+            );
+            const briefPath = join(
+              repoPath,
+              '.agent/repo=.this/role=any/briefs/core.md',
+            );
+            await syncAndReportBrainDirBoots({ repoPath, env }, context);
+            const spawnedFaulted = genActorBootSpawned({
+              actorDir,
+              serial: 'aaaa',
+            })!;
+            writeFileSync(briefPath, 'any brief body, second\n');
+            await syncAndReportBrainDirBoots({ repoPath, env }, context);
+            const spawnedOk = genActorBootSpawned({
+              actorDir,
+              serial: 'bbbb',
+            })!;
+
+            // the first spawn boot cannot take a write; the brief changes again
+            chmodSync(spawnedFaulted.dir, 0o500);
+            writeFileSync(briefPath, 'any brief body, third\n');
+            try {
+              const result = await syncAndReportBrainDirBoots(
+                { repoPath, env },
+                context,
+              );
+              expect(result.exitCode).toEqual(1);
+              expect(
+                readFileSync(join(spawnedOk.dir, 'CLAUDE.md'), 'utf8'),
+              ).toContain('any brief body, third');
+            } finally {
+              chmodSync(spawnedFaulted.dir, 0o700);
+            }
+          },
+        );
+      });
+    },
+  );
 });

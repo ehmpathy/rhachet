@@ -187,7 +187,8 @@ comes from `@mechanic`. so `rhx clone @builder` ≡ `rhx clone actor://builder`.
   `genBrainCliConfigArtifact`. the source of truth is `base ⊕ delta`, never a hand-kept copy.
 - **the sync invariant extends** — a derived actor is in sync with `base ⊕ its own delta`. add
   `achiever` to builder → every derived clone's effective roles become `builder.roles + achiever −
-  driver`, inherited at next spawn (live clones on respawn; no hot reload). the delta rides *on top of*
+  driver`, inherited at next spawn (a live clone takes the new boot's briefs at its next compaction,
+  via the boot drift; hooks and settings only at respawn). the delta rides *on top of*
   a live base; it does not fork away from it. that tether is the whole point of a derived actor vs a
   frozen snapshot.
 - **the invariant, refined** — the earlier "identified by exactly one of slug or hash — never both" now

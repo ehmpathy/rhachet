@@ -1,4 +1,5 @@
 import * as fs from 'fs/promises';
+import * as os from 'os';
 import * as path from 'path';
 import { genTempDir, given, then, useBeforeAll, when } from 'test-fns';
 
@@ -12,10 +13,7 @@ import { withRepoMutex } from '@src/infra/lock/withRepoMutex';
 import { EventEmitter, once } from 'node:events';
 import { asBrainCliSpawnArgs } from './asBrainCliSpawnArgs';
 import { genBrainCliConfigArtifact } from './genBrainCliConfigArtifact';
-import {
-  CLAUDE_MD_EXCLUDE_HOME_GLOB,
-  getClaudeMdExcludesList,
-} from './getClaudeMdExcludesList';
+import { getClaudeMdExcludesList } from './getClaudeMdExcludesList';
 
 const HASH_EXID = 'hash=abc12345';
 const REPO_EXID = 'repo=ambient';
@@ -149,21 +147,14 @@ describe('genBrainCliConfigArtifact', () => {
       });
 
       then(
-        'carries claudeMdExcludes for every repo door (D5, D12)',
+        'carries claudeMdExcludes for every repo door and its own door (D5, D12)',
         async () => {
           const content = await fs.readFile(result.configPath, 'utf-8');
           const settings = JSON.parse(content) as {
             claudeMdExcludes?: string[];
           };
-          expect(settings.claudeMdExcludes).toEqual(
-            getClaudeMdExcludesList({
-              repoPath: scene.repoPath,
-              repoActorBrainDir: asBrainDir({
-                repoPath: scene.repoPath,
-                exid: REPO_EXID,
-              }),
-            }),
-          );
+          expect(settings.claudeMdExcludes).toEqual(getClaudeMdExcludesList());
+          expect(settings.claudeMdExcludes).toContain('**/.claude/CLAUDE.md');
         },
       );
     });
@@ -195,24 +186,16 @@ describe('genBrainCliConfigArtifact', () => {
         expect(settings.hooks).toEqual(settingsWithHooks.hooks);
       });
 
-      then('never excludes its own doors — they are its own boot', async () => {
-        const content = await fs.readFile(result.configPath, 'utf-8');
-        const settings: { claudeMdExcludes: string[] } = JSON.parse(content);
-        const ownBrainDir = asBrainDir({
-          repoPath: scene.repoPath,
-          exid: REPO_EXID,
-        });
-        expect(
-          settings.claudeMdExcludes.filter(
-            (p) =>
-              p.startsWith(`${ownBrainDir}/`) ||
-              p.startsWith(`${path.join(scene.repoPath, '.claude')}/`),
-          ),
-        ).toEqual([]);
-        expect(settings.claudeMdExcludes).toContain(
-          CLAUDE_MD_EXCLUDE_HOME_GLOB,
-        );
-      });
+      then(
+        'excludes every door, its own too, with no host path in its tracked file',
+        async () => {
+          const content = await fs.readFile(result.configPath, 'utf-8');
+          const settings: { claudeMdExcludes: string[] } = JSON.parse(content);
+          expect(settings.claudeMdExcludes).toEqual(getClaudeMdExcludesList());
+          expect(content).not.toContain(scene.repoPath);
+          expect(content).not.toContain(os.homedir());
+        },
+      );
     });
   });
 
@@ -740,14 +723,11 @@ describe('genBrainCliConfigArtifact', () => {
           };
         });
 
-        then('the excludes are the common pair alone', () => {
+        then('the excludes are the every-door globs alone', () => {
           const settings: { claudeMdExcludes: string[] } = JSON.parse(
             result.content,
           );
-          expect(settings.claudeMdExcludes).toEqual([
-            '**/!(brain)/.claude/CLAUDE.md',
-            '**/CLAUDE.local.md',
-          ]);
+          expect(settings.claudeMdExcludes).toEqual(getClaudeMdExcludesList());
         });
 
         then(
@@ -773,10 +753,10 @@ describe('genBrainCliConfigArtifact', () => {
         const result = useBeforeAll(async () => {
           const first = await genRepoActor();
           const contentBefore = await fs.readFile(first.configPath, 'utf-8');
-          // .note = deliberate mutation: the writer once read the home via `getHomeDir()`
-          //   (`process.env.HOME`) and has no seam to inject one, so the env is the only lever
-          //   that shows a home-derived value would move the bytes. scoped to this one write and
-          //   restored in `finally`, as `withTempHome` does; jest runs this file's steps in series
+          // .note = deliberate mutation: the writer has no seam to inject a home, so the env is
+          //   the only lever that shows a home-derived value would move the bytes. scoped to this
+          //   one write and restored in `finally`, as `withTempHome` does; jest runs this file's
+          //   steps in series
           const homePrior = process.env.HOME;
           process.env.HOME = '/Users/fixturehuman';
           const second = await genRepoActor().finally(() =>
@@ -811,12 +791,11 @@ describe('genBrainCliConfigArtifact', () => {
         }),
       );
 
-      then('the excludes are the common pair alone', async () => {
+      then('the excludes are the every-door globs alone', async () => {
         const content = await fs.readFile(result.configPath, 'utf-8');
-        expect(JSON.parse(content).claudeMdExcludes).toEqual([
-          '**/!(brain)/.claude/CLAUDE.md',
-          '**/CLAUDE.local.md',
-        ]);
+        expect(JSON.parse(content).claudeMdExcludes).toEqual(
+          getClaudeMdExcludesList(),
+        );
       });
     });
   });

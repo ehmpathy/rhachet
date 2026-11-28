@@ -1,4 +1,4 @@
-import { MalfunctionError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 import { genTempDir, given, then, useBeforeAll, useThen, when } from 'test-fns';
 
 import { execSync, spawnSync } from 'node:child_process';
@@ -24,6 +24,7 @@ import {
 import { setupRoleFixtureRepo } from '@/blackbox/.test/infra/roleFixtureRepo';
 import { seedRoleAuthoredHooks } from '@/blackbox/.test/infra/seedRoleAuthoredHooks';
 import { setupStubBrainPath } from '@/blackbox/.test/infra/setupStubBrainPath';
+import { spawnRhachetCliBackground } from '@/blackbox/.test/infra/spawnRhachetCliBackground';
 import { waitForFile } from '@/blackbox/.test/infra/waitForFile';
 
 import {
@@ -40,7 +41,7 @@ import {
   symlinkSync,
   writeFileSync,
 } from 'node:fs';
-import { join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 
 /**
  * .what = replaces any test-fns temp dir path with a stable `$TESTDIR` token
@@ -120,10 +121,9 @@ const setupArgvRecorderBrainPath = (input: {
     stubPath,
     [
       '#!/usr/bin/env bash',
-      'if [ "$1" = "--version" ]; then echo "2.1.277 (Claude Code)"; exit 0; fi',
+      'if [ "$1" = "--version" ]; then echo "2.1.280 (Claude Code)"; exit 0; fi',
       `printf '%s\\0' "$@" > "${recordPath}.tmp.$$"`,
-      `mv "${recordPath}.tmp.$$" "${recordPath}"`,
-      'exit 0',
+      `mv "${recordPath}.tmp.$$" "${recordPath}"`,      'exit 0',
       '',
     ].join('\n'),
     'utf-8',
@@ -626,16 +626,14 @@ describe('rhx enroll --roles (acceptance)', () => {
       });
 
       then('the authored default-roleset config body is locked to a snapshot', () => {
-        // the default-roleset config IS the primary user experience — snapshot the
+        // the default-roleset config IS the primary human experience — snapshot the
         // full authored hook set so a regression that silently drops OR adds a default
         // role surfaces in the pr diff (the toContain checks above cannot catch a
         // widened set that keeps too much)
         //
-        // .note = its `claudeMdExcludes` holds two entries where [case2]'s hash actor holds
-        //   eight, by design: an actor's list never names its OWN doors, and this bare enroll
-        //   lands in the repo actor, whose doors are the repo's. so only the human's home
-        //   CLAUDE.md and `CLAUDE.local.md` remain. a hash actor additionally names the repo
-        //   actor's doors (define.brain-dir-repo-vs-actor, .invariants)
+        // .note = its `claudeMdExcludes` are the same four globs every actor holds: they close
+        //   every brain dir door, own door included, so the boot loads once, from the system
+        //   prompt; the drift reaches the clone through its `--add-dir` spawn boot dir (F8)
         expect(
           asSnapshotSafe(readEnrollmentConfig({ dir })),
         ).toMatchSnapshot();
@@ -1283,8 +1281,10 @@ describe('rhx enroll --roles (acceptance)', () => {
 
       then('claudeMdExcludes holds the portable globs alone — no home path', () => {
         expect(JSON.parse(scene.contentFirst).claudeMdExcludes).toEqual([
-          '**/!(brain)/.claude/CLAUDE.md',
+          '**/.claude/AGENTS.md',
+          '**/.claude/CLAUDE.md',
           '**/CLAUDE.local.md',
+          '**/.claude/rules/**',
         ]);
         expect(scene.contentFirst).not.toContain('/home/');
       });
@@ -2312,9 +2312,11 @@ describe('rhx enroll leaf clone (acceptance)', () => {
       });
 
       // 🔴 the env half of the boot door, at the far end of the pty spawn (via the detached
-      //   host): without it the clone reads its boot twice, once per door
-      then('the pty child spawns with the CLAUDE.md door off', () => {
-        expect(dumped.disableClaudeMds).toEqual('1');
+      //   host): the add-dir door on, so a compaction re-reads the boot drift, and no
+      //   switch that would shut it (the excludes keep the boot to one load)
+      then('the pty child spawns with the add-dir CLAUDE.md door on', () => {
+        expect(dumped.addDirClaudeMd).toEqual('1');
+        expect(dumped.disableClaudeMds).toEqual(null);
       });
     });
   });
@@ -2478,8 +2480,9 @@ describe('rhx enroll leaf clone (acceptance)', () => {
       });
 
       // 🔴 the env half of the boot door, at the far end of the plain (print-mode) spawn
-      then('the plain child spawns with the CLAUDE.md door off', () => {
-        expect(dumped.disableClaudeMds).toEqual('1');
+      then('the plain child spawns with the add-dir CLAUDE.md door on', () => {
+        expect(dumped.addDirClaudeMd).toEqual('1');
+        expect(dumped.disableClaudeMds).toEqual(null);
       });
     });
   });
@@ -3059,7 +3062,8 @@ describe('rhx enroll --as slug collision (acceptance)', () => {
 /**
  * .what = the argv a real enroll hands the brain cli, read at the far end of the spawn
  * .why = rhachet owns the boot context: every clone spawns with `--system-prompt-file
- *   <actor boot.md>`, so the vendor default prompt is gone and the corpus is the system
+ *   <its spawn boot's boot.md>` (the actor's boot bytes at spawn, kept per clone under
+ *   `boots/serial=<serial>/`), so the vendor default prompt is gone and the corpus is the system
  *   prompt, where the prompt cache shares it across sessions. this clamps that the pair
  *   survives every layer between the argv builder and the cli, that no other prompt flag
  *   rides beside it, and that a passthrough cannot fork it
@@ -3088,19 +3092,34 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
         return { list: await readRecordedBrainArgv({ recordPath: scene.recordPath }) };
       });
 
-      then('`--system-prompt-file` is followed by the actor boot.md', () => {
+      then('`--system-prompt-file` is followed by the spawn boot the clone spawns on', () => {
         const index = argv.list.indexOf('--system-prompt-file');
         expect(index).toBeGreaterThan(-1);
         expect(argv.list[index + 1]).toMatch(
-          /\.agent\/\.actors\/actor\.via\.(repo|hash)=[^/]+\/brain\/\.claude\/boot\.md$/,
+          /\.agent\/\.actors\/actor\.via\.(repo|hash)=[^/]+\/boots\/serial=[0-9a-f-]{36}\/boot\.md$/,
         );
       });
 
-      then('the boot file it names holds the rendered corpus', () => {
+      then('the boot file it names holds the actor rendered corpus, byte for byte', () => {
         const index = argv.list.indexOf('--system-prompt-file');
         const bootMdPath = argv.list[index + 1]!;
-        expect(existsSync(bootMdPath)).toEqual(true);
+        const actorBootMdPath = join(
+          dirname(dirname(dirname(bootMdPath))),
+          'brain',
+          '.claude',
+          'boot.md',
+        );
         expect(readFileSync(bootMdPath, 'utf8')).toContain('<brief.');
+        expect(readFileSync(bootMdPath, 'utf8')).toEqual(
+          readFileSync(actorBootMdPath, 'utf8'),
+        );
+      });
+
+      then('`--add-dir` names that spawn boot dir, where the drift rides', () => {
+        const index = argv.list.indexOf('--add-dir');
+        const bootMdPath = argv.list[argv.list.indexOf('--system-prompt-file') + 1]!;
+        expect(argv.list[index + 1]).toEqual(dirname(bootMdPath));
+        expect(readFileSync(join(dirname(bootMdPath), 'CLAUDE.md'), 'utf8')).toEqual('');
       });
 
       then('`--system-prompt-file` appears exactly once', () => {
@@ -3117,20 +3136,31 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
           expect(argv.list).not.toContain(flag);
       });
 
-      then('the prefix is exact: config source, config, then the boot file', () => {
+      then('the prefix is exact: config source, config, the drift dir, then the boot file', () => {
         expect(argv.list.slice(0, 2)).toEqual(['--setting-sources', 'user']);
         expect(argv.list[2]).toEqual('--settings');
         expect(argv.list[3]).toMatch(
           /\.agent\/\.actors\/actor\.via\.(repo|hash)=[^/]+\/brain\/\.claude\/settings\.of\.repo\.json$/,
         );
-        expect(argv.list[4]).toEqual('--system-prompt-file');
-        expect(argv.list).toHaveLength(6);
+        expect(argv.list[4]).toEqual('--add-dir');
+        expect(argv.list[6]).toEqual('--system-prompt-file');
+        expect(argv.list).toHaveLength(8);
+      });
+
+      then('the spawn boot dir is named by the clone serial', () => {
+        expect(argv.list[5]).toMatch(/\/boots\/serial=[0-9a-f-]{36}$/);
       });
 
       then('the recorded argv is locked to a snapshot', () => {
+        // mask the clone serial: it is fresh on every spawn, which the serial case above guards
         expect(
           argv.list.map((arg) =>
-            arg === '' ? '<empty>' : maskTempDirBothNames({ text: arg, dir }),
+            arg === ''
+              ? '<empty>'
+              : maskTempDirBothNames({ text: arg, dir }).replace(
+                  /serial=[0-9a-f-]{36}/g,
+                  'serial=$SERIAL',
+                ),
           ),
         ).toMatchSnapshot();
       });
@@ -3158,12 +3188,13 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
       });
 
       then('the boot file still leads, and the passthrough follows it in order', () => {
-        expect(argv.list[4]).toEqual('--system-prompt-file');
-        expect(argv.list[5]).toMatch(
-          /\.agent\/\.actors\/actor\.via\.(repo|hash)=[^/]+\/brain\/\.claude\/boot\.md$/,
+        expect(argv.list[4]).toEqual('--add-dir');
+        expect(argv.list[6]).toEqual('--system-prompt-file');
+        expect(argv.list[7]).toMatch(
+          /\.agent\/\.actors\/actor\.via\.(repo|hash)=[^/]+\/boots\/serial=[0-9a-f-]{36}\/boot\.md$/,
         );
-        expect(argv.list).toHaveLength(10);
-        expect(argv.list.slice(6)).toEqual([
+        expect(argv.list).toHaveLength(12);
+        expect(argv.list.slice(8)).toEqual([
           '--model',
           'haiku',
           '--append-system-prompt',
@@ -3266,15 +3297,110 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
         expect(asSnapshotSafe(run.stderr)).toMatchSnapshot();
       });
     });
+
+    /**
+     * .why = a resume replays the system prompt its session first recorded, so no spawn boot names
+     *   the boot it holds: the clone must never be told it holds the current boot
+     */
+    when('[t5] `enroll claude --resume <session>` (a resume)', () => {
+      const result = useThen('exits 0 and the stub records the spawn', async () => {
+        rmSync(scene.recordPath, { force: true });
+        const run = invokeRhachetCliBinary({
+          args: ['enroll', 'claude', '--resume', 'a1b2c3d4'],
+          cwd: dir,
+          env: { PATH: scene.path },
+          logOnError: false,
+        });
+        expect(run.status).toEqual(0);
+        return {
+          run,
+          list: await readRecordedBrainArgv({ recordPath: scene.recordPath }),
+        };
+      });
+
+      then('stderr says the drift is unknown and names respawn', () => {
+        expect(result.run.stderr).toContain(
+          'a resume holds the boot its session first recorded, so it takes no drift at any compaction; respawn to take the current boot',
+        );
+      });
+
+      then('no spawn boot is named: no `--add-dir`, the boot file is the actor boot', () => {
+        expect(result.list).not.toContain('--add-dir');
+        expect(result.list).toContain('--resume');
+        expect(result.list[result.list.indexOf('--system-prompt-file') + 1]).toMatch(
+          /\/brain\/\.claude\/boot\.md$/,
+        );
+      });
+
+      then('exactly one clone carries the resumed marker, and it holds no spawn boot', () => {
+        const actorsDir = join(dir, '.agent', '.actors');
+        const cloneDirs = readdirSync(actorsDir)
+          .filter((name) => name.startsWith('actor.via.'))
+          .flatMap((actor) => {
+            const clonesDir = join(actorsDir, actor, 'clones');
+            if (!existsSync(clonesDir)) return [];
+            return readdirSync(clonesDir)
+              .filter((name) => name.startsWith('serial='))
+              .map((name) => join(clonesDir, name));
+          });
+        const resumed = cloneDirs.filter((cloneDir) =>
+          existsSync(join(cloneDir, 'boot.spawned.resumed')),
+        );
+        expect(resumed).toHaveLength(1);
+        const resumedActorDir = dirname(dirname(resumed[0]!));
+        expect(
+          existsSync(join(resumedActorDir, 'boots', basename(resumed[0]!))),
+        ).toBe(false);
+      });
+
+      then('a later `rhx init` exits 0: a resume holds no drift to fault', () => {
+        const run = invokeRhachetCliBinary({
+          args: ['init', '--hooks'],
+          cwd: dir,
+          logOnError: false,
+        });
+        expect(run.status).toEqual(0);
+      });
+    });
+
+    when('[t5b] `enroll claude --resume <session>` from a human at a terminal (a pty)', () => {
+      const attended = useThen('the attended enroll exits 0 once the brain exits', async () => {
+        // a pty makes the enroll take the attended tree path, which prints its own resume line
+        const handle = spawnRhachetCliBackground({
+          args: ['enroll', 'claude', '--resume', 'a1b2c3d4'],
+          cwd: dir,
+          env: { PATH: scene.path },
+        });
+        try {
+          const code = await handle.waitForExit({ timeoutMs: 60_000 });
+          return { code, output: handle.getOutput() };
+        } finally {
+          await handle.kill();
+        }
+      });
+
+      then('exits 0', () => {
+        expect(attended.code).toEqual(0);
+      });
+
+      then('the human reads the resume line, once', () => {
+        const resumeLines = attended.output
+          .split(/\r?\n/)
+          .filter((line) => line.includes('a resume holds the boot'));
+        expect(resumeLines).toHaveLength(1);
+        expect(resumeLines[0]!.trim()).toMatchSnapshot();
+      });
+    });
   });
 
   /**
-   * .what = a boot edit reaches the next spawn, through the same actor's boot.md
+   * .what = a boot edit reaches the next spawn whole, and a live clone as its drift
    * .why = inventory case 11: after `rhx init` re-renders an actor's boot, each clone spawned
-   *   later boots the new bytes, with no new actor dir. the spawn reads `--system-prompt-file`,
-   *   so the clamp is that the file it names is the one re-rendered in place
-   * .note = the live half (a clone already up keeps its spawn boot through `/compact`) is a
-   *   brain-cli fact; the journey and `rhx boot.compact.probe` hold it
+   *   later boots the new bytes, with no new actor dir; a clone already up keeps its spawn
+   *   bytes as its system prompt, and the edit lands in the drift `CLAUDE.md` beside them,
+   *   which its next compaction reads (`--add-dir`)
+   * .note = whether the brain cli re-reads that drift at `/compact` is a brain-cli fact; the
+   *   journey [t4] and `rhx boot.compact.probe --door add-dir` hold it
    */
   given('[case2] a repo brief that boots whole, edited between two spawns', () => {
     const dir = genTempDir({ slug: 'enroll-boot-edit' });
@@ -3326,6 +3452,38 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
         });
       });
 
+      const readers = useThen('the drift readers name the first spawn, by its own serial', () => {
+        // the chain from a real spawn: its spawn boot, its meta, and the serial its hook inherits
+        const actorDir = dirname(dirname(dirname(before.bootMdPath)));
+        const serials = readdirSync(join(actorDir, 'clones'))
+          .map(String)
+          .filter((name) => name.startsWith('serial='))
+          .map((name) => name.slice('serial='.length));
+        expect(serials).toHaveLength(1);
+        const serial = serials[0]!;
+        const inspect = invokeRhachetCliBinary({
+          args: ['clone', 'boot', 'drift', '--of', `@:${serial}`],
+          cwd: dir,
+          logOnError: false,
+        });
+        const hook = invokeRhachetCliBinary({
+          args: ['clone', 'boot', 'drift', '--when', 'hook.onStop'],
+          cwd: dir,
+          env: { RHACHET_CLONE_SERIAL: serial },
+          logOnError: false,
+        });
+        const meta = JSON.parse(
+          readFileSync(join(dirname(before.bootMdPath), 'boot.meta.json'), 'utf8'),
+        ) as { spawned: { hash: string } };
+        return {
+          inspect,
+          hook,
+          serial,
+          spawnDir: basename(dirname(before.bootMdPath)),
+          spawnedHash: meta.spawned.hash,
+        };
+      });
+
       const after = useThen('the next spawn records its boot file', async () => {
         rmSync(scene.recordPath, { force: true });
         const run = invokeRhachetCliBinary({
@@ -3347,18 +3505,136 @@ describe('rhx enroll owns the system prompt (acceptance)', () => {
         expect(edited.status).toEqual(0);
       });
 
-      then('the boot.md the first spawn read now holds the edit, in place', () => {
-        const content = readFileSync(before.bootMdPath, 'utf8');
-        expect(content).toContain('sentinel=SWELL_AFTER_EDIT');
-        expect(content).not.toContain('sentinel=SWELL_BEFORE_EDIT');
+      then('init tells the editor the live clone gets the edit, at its next compaction', () => {
+        // case=6: the editor asks "do my live clones get this?", and init answers in its drift branch
+        const driftLines = edited.stdout
+          .split('\n')
+          .filter((line) => /─ drift$|clone drifts? re-written/.test(line));
+        expect(driftLines.join('\n')).toContain(
+          '1 clone drift re-written; a live clone takes it at its next compaction',
+        );
+        expect(driftLines).toMatchSnapshot();
       });
 
-      then('the next spawn reads that same file: the edit reaches it', () => {
-        expect(after.bootMdPath).toEqual(before.bootMdPath);
+      then('the first spawn boot is the clone own, keyed by its serial', () => {
+        expect(readers.spawnDir).toEqual(`serial=${readers.serial}`);
+      });
+
+      then('--of reads the first spawn on the boot its meta names, under the threshold', () => {
+        expect(readers.inspect.status).toEqual(0);
+        expect(readers.inspect.stdout).toContain(`spawn boot = ${readers.spawnedHash}`);
+        expect(readers.inspect.stdout).toMatch(/drift = [0-9a-f]{16}/);
+        expect(readers.inspect.stdout).toContain('under the 200 line threshold');
+      });
+
+      then('the hook, with the serial the spawn recorded, exits 0 silent under the threshold', () => {
+        expect(readers.hook.status).toEqual(0);
+        expect(readers.hook.stdout).toEqual('');
+        expect(readers.hook.stderr).toEqual('');
+      });
+
+      then('the boot the first spawn read is kept as it was: its system prompt is never rewritten', () => {
+        const content = readFileSync(before.bootMdPath, 'utf8');
+        expect(content).toEqual(before.bootMdContent);
+      });
+
+      then('the drift beside the first spawn boot now carries the edit, for its next compaction', () => {
+        const drift = readFileSync(join(dirname(before.bootMdPath), 'CLAUDE.md'), 'utf8');
+        expect(drift).toContain('sentinel=SWELL_AFTER_EDIT');
+        expect(drift).toMatch(/\ndrift = [0-9a-f]{16}\n/);
+      });
+
+      then('the next spawn reads its own spawn boot, which holds the edit whole', () => {
+        expect(after.bootMdPath).not.toEqual(before.bootMdPath);
+        const content = readFileSync(after.bootMdPath, 'utf8');
+        expect(content).toContain('sentinel=SWELL_AFTER_EDIT');
+        expect(content).not.toContain('sentinel=SWELL_BEFORE_EDIT');
+        expect(readFileSync(join(dirname(after.bootMdPath), 'CLAUDE.md'), 'utf8')).toEqual('');
       });
 
       then('no new actor dir: the edit changed the content, not the actor', () => {
         expect(after.actorDirs).toEqual(before.actorDirs);
+      });
+    });
+
+    when('[t1] the live spawn boots cannot take their drift, then the brief is edited and a clone spawns', () => {
+      // every spawn boot so far is locked: its dir and its drift file are read-only, so the
+      //   enroll's drift sweep meets a filesystem fault on each
+      const locked = useBeforeAll(async () => {
+        if (process.getuid?.() === 0)
+          throw new ConstraintError('this case needs a non-root runner', {
+            hint: 'root ignores the read-only mode the case sets; run the acceptance suite as a regular user',
+          });
+        const spawnDirs = readdirSync(join(dir, '.agent', '.actors'))
+          .filter((name) => name.startsWith('actor.via.'))
+          .flatMap((actor) => {
+            const bootsDir = join(dir, '.agent', '.actors', actor, 'boots');
+            return existsSync(bootsDir)
+              ? readdirSync(bootsDir).map((name) => join(bootsDir, String(name)))
+              : [];
+          });
+        for (const spawnDir of spawnDirs) {
+          chmodSync(join(spawnDir, 'CLAUDE.md'), 0o400);
+          chmodSync(spawnDir, 0o500);
+        }
+        writeFileSync(briefPath, '# the surf\n\nsentinel=SWELL_AFTER_LOCK\n');
+        return { spawnDirs };
+      });
+      afterAll(() => {
+        for (const spawnDir of locked.spawnDirs) {
+          chmodSync(spawnDir, 0o700);
+          chmodSync(join(spawnDir, 'CLAUDE.md'), 0o600);
+        }
+      });
+
+      const run = useBeforeAll(async () => {
+        rmSync(scene.recordPath, { force: true });
+        return invokeRhachetCliBinary({
+          args: ['enroll', 'claude'],
+          cwd: dir,
+          env: { PATH: scene.path },
+          logOnError: false,
+        });
+      });
+
+      then('the enroll still spawns its clone, exit 0', async () => {
+        expect(run.status).toEqual(0);
+        const list = await readRecordedBrainArgv({ recordPath: scene.recordPath });
+        expect(readFileSync(asBootMdPathOf(list), 'utf8')).toContain(
+          'sentinel=SWELL_AFTER_LOCK',
+        );
+      });
+
+      then('the drift fault is said aloud on stderr, with the fix', () => {
+        expect(run.stderr).toContain('🟡 a boot drift was not written');
+        expect(run.stderr).toContain('live clones keep a stale drift');
+        expect(run.stderr).toContain('to fix, run `rhx init`');
+        expect(run.stdout).not.toContain('a boot drift was not written');
+      });
+
+      then('the fault block matches snapshot', () => {
+        const faultLines = run.stderr
+          .split('\n')
+          .filter((line) => /boot drift was not written|drift not written|to fix, run `rhx init`/.test(line));
+        expect(faultLines.length).toBeGreaterThanOrEqual(3);
+        // each distinct serial masks to its own token, by order of first sight, so two
+        //   clones never snap as one row twice
+        const serialsSeen = [
+          ...new Set(faultLines.join('\n').match(/serial=[0-9a-f-]{36}/g) ?? []),
+        ];
+        expect(serialsSeen).toHaveLength(2);
+        expect(
+          maskTempPaths(
+            asSnapshotSafe(
+              faultLines
+                .join('\n')
+                .replace(
+                  /serial=[0-9a-f-]{36}/g,
+                  (serial) => `serial=$SERIAL${serialsSeen.indexOf(serial) + 1}`,
+                ),
+            ),
+          ),
+        ).toMatchSnapshot();
       });
     });
   });
@@ -3408,5 +3684,4 @@ describe('rhx enroll --help (acceptance)', () => {
       });
     });
   });
-
 });

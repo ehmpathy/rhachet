@@ -1,7 +1,7 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { MalfunctionError } from 'helpful-errors';
+import { ConstraintError, MalfunctionError } from 'helpful-errors';
 
 import { BRAIN_CLI_SPINUP_ENV_DEFAULTS } from '@src/domain.operations/enroll/asBrainCliSpawnEnv';
 
@@ -27,6 +27,17 @@ export const asSentinelsFound = (input: { text: string }): string[] =>
       ),
     ),
   );
+
+/**
+ * .what = every sentinel token a brain was SENT: one raw request's system block and first message
+ * .why = a quote measures whether the model will repeat a token; the request measures whether
+ *   the clone was handed it. haiku can decline to quote its system prompt, so a check that
+ *   rests on what a clone holds reads the request (`getOneRawRequestBody`)
+ */
+export const asSentinelsSent = (input: {
+  body: { system: string; messages: string };
+}): string[] =>
+  asSentinelsFound({ text: `${input.body.system}\n${input.body.messages}` });
 
 /**
  * .what = the built claude-code hooks adapter of this repo
@@ -447,6 +458,11 @@ export const askClaudePrintForSentinels = (input: {
   });
 
 /**
+ * .what = the reply text a brain cli writes in place of an answer when the api refuses the turn
+ */
+const API_REFUSAL_PATTERN = /credit balance is too low|invalid api key/i;
+
+/**
  * .what = re-read the replies until two reads one second apart match, or the deadline
  * .why = a brain may write its turn as more than one message; a fixed wait costs every
  *   ask its full length, where a settle check costs one second past the last message
@@ -537,6 +553,17 @@ export const askCloneForSentinels = async (input: {
         getReplies: async () => (await getReplies()).replies,
         deadline,
       });
+      // a turn the api refused reached no model: it holds no sentinel because naught read the
+      //   boot, so it fails as the credential fault it is, never as an absent sentinel
+      const refusal = settled
+        .slice(countPrior)
+        .find((reply) => API_REFUSAL_PATTERN.test(reply));
+      if (refusal)
+        throw new ConstraintError('the api refused the clone turn; no model read the boot', {
+          address: input.address,
+          refusal,
+          hint: 'the credential this clone reaches is out of credit or invalid. top it up, or point the test env at one that is not, then re-run',
+        });
       return {
         replies: settled.slice(countPrior),
         sentinels: asSentinelsFound({ text: settled.slice(countPrior).join('\n') }),

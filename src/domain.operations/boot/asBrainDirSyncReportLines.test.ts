@@ -22,6 +22,7 @@ const genRender = (
   agentsMdReset: false,
   bootMdCreated: false,
   bootMdChanged: false,
+  drift: null,
   ...overrides,
 });
 
@@ -80,6 +81,92 @@ describe('asBrainDirSyncReportLines', () => {
 
       then('it names the link and the corpus, and naught else', () => {
         expect(lines).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case3c] a corpus re-rendered under live clones of the actor', () => {
+    when(
+      '[t0] three clones hold a spawn boot, two drifts were re-written, and one faulted',
+      () => {
+        const lines = asBrainDirSyncReportLines({
+          render: genRender({
+            drift: {
+              actorDir: '/repo/.agent/.actors/a',
+              clones: ['aaaa', 'bbbb', 'cccc'],
+              rewritten: ['bbbb', 'cccc'],
+              faults: [
+                {
+                  path: '/repo/.agent/.actors/a/boots/serial=aaaa',
+                  reason:
+                    'drift not written (EACCES) — the clone keeps its prior drift',
+                  cause: new Error('EACCES'),
+                },
+              ],
+            },
+          }),
+          symlink: genSymlink({ effect: 'FOUND' }),
+          repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+          isManifestRepo: false,
+        });
+
+        then(
+          'the drift is news: it counts the clones that take it, and names the one it missed',
+          () => {
+            expect(lines.join('\n')).toContain(
+              '2 clone drifts re-written; a live clone takes its own at its next compaction',
+            );
+            expect(lines.join('\n')).toContain(
+              '✗ in serial=aaaa/, drift not written (EACCES)',
+            );
+            expect(lines).toMatchSnapshot();
+          },
+        );
+      },
+    );
+
+    when('[t1] its drift re-wrote naught', () => {
+      const lines = asBrainDirSyncReportLines({
+        render: genRender({
+          drift: {
+            actorDir: '/repo/.agent/.actors/a',
+            clones: ['aaaa', 'bbbb'],
+            rewritten: [],
+            faults: [],
+          },
+        }),
+        symlink: genSymlink({ effect: 'FOUND' }),
+        repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+        isManifestRepo: false,
+      });
+
+      then(
+        'the drift subbranch reads "no change", per vision case=6 [t1]',
+        () => {
+          expect(lines.join('\n')).toContain('drift');
+          expect(lines.join('\n')).toContain('no change');
+          expect(lines).toMatchSnapshot();
+        },
+      );
+    });
+
+    when('[t2] the actor holds no clone with a spawn boot yet', () => {
+      const lines = asBrainDirSyncReportLines({
+        render: genRender({
+          drift: {
+            actorDir: '/repo/.agent/.actors/a',
+            clones: [],
+            rewritten: [],
+            faults: [],
+          },
+        }),
+        symlink: genSymlink({ effect: 'FOUND' }),
+        repoActorBrainDirRel: REPO_ACTOR_BRAIN_DIR_REL,
+        isManifestRepo: false,
+      });
+
+      then('it says NAUGHT — no clone has a drift to take', () => {
+        expect(lines).toEqual([]);
       });
     });
   });

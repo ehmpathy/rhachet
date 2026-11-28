@@ -33,6 +33,37 @@ export type BrainDirBootRender = {
    *        an identical re-render is not. like `bootMdCreated`, it is knowable only at write time
    */
   bootMdChanged: boolean;
+  /**
+   * .what = the drift fan-out this render triggered: the actor, the clones that hold a spawn
+   *         boot and the ones whose drift was re-written (by serial), and each write that faulted
+   * .why = the editor's question after a render is "do my live clones get this?"; each clone
+   *        holds its own drift, so the sweep's own counts answer it
+   * .note = null where the brain dir sits outside the actor layout, so no actor holds it
+   */
+  drift: (BootDriftSweep & { actorDir: string }) | null;
+};
+
+/**
+ * .what = what one drift sweep over an actor's clones did: every clone that holds a spawn boot,
+ *         the ones whose drift was re-written, and each write that faulted; all by serial
+ * .why = the sweep, its summary, and the render each carry this one shape
+ */
+export type BootDriftSweep = {
+  clones: string[];
+  rewritten: string[];
+  faults: BootDriftFault[];
+};
+
+/**
+ * .what = one drift the fan-out could not deliver: the path at fault, why, and the cause
+ * .why = a fault names where and why a clone misses the drift; each one raises the exit code of
+ *        the sync that met it
+ * .note = `path` is the spawn boot dir whose drift write failed
+ */
+export type BootDriftFault = {
+  path: string;
+  reason: string;
+  cause: Error;
 };
 
 /**

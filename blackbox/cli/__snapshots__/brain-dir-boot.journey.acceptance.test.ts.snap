@@ -75,9 +75,20 @@ exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo w
 🪝 apply hooks to brains...
    └─ surfshop/waxer → anthropic/claude/code: +1, -1
 
+🪝 hook dispatchers set
+   └─ anthropic/claude/code
+      ├─ 1 rule → 1 dispatcher, one per event
+      │  └─ SessionStart = 1 rule
+      ├─ 1 role hook moved from the settings into the manifest
+      └─ manifest = .claude/hooks.dispatch.manifest
+
 ✨ hooks
    ├─ 1 created
    └─ 1 deleted
+
+💡 tip
+   ├─ declare these roles in .agent/actors.yml, and \`rhx init\` reads them
+   └─ see https://github.com/ehmpathy/rhachet/blob/main/.agent/repo=.this/role=user/briefs/actors/howto.author-actors-yml.md
 
 "
 `;
@@ -85,14 +96,10 @@ exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo w
 exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t3.0] claude -p under the enrolled actor settings, the human home holds a CLAUDE.md then: the written excludes and the home-sentinel verdicts match snapshot 1`] = `
 "{
   "claudeMdExcludes": [
-    "/TMP_TEST_DIR/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.claude/CLAUDE.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
-    "**/!(brain)/.claude/CLAUDE.md",
+    "**/.claude/AGENTS.md",
+    "**/.claude/CLAUDE.md",
     "**/CLAUDE.local.md",
-    "/TMP_TEST_DIR/.claude/rules/**",
-    "/TMP_TEST_DIR/.agent/.actors/actor.via.repo=ambient/brain/.claude/rules/**"
+    "**/.claude/rules/**"
   ],
   "baseline": {
     "status": 0,
@@ -126,7 +133,13 @@ exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo w
 `;
 
 exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t4] shaper brief changes; rhx init while the [t3] clone lives then: init stdout is locked 1`] = `
-"🔭 search for linked roles with hooks...
+"🧠 brain://hash=fddbc072
+   ├─ boot.md
+   │  └─ upgraded — 1 role
+   └─ drift
+      └─ 2 clone drifts re-written; a live clone takes its own at its next compaction
+
+🔭 search for linked roles with hooks...
    └─ surfshop/waxer
 
 🪝 apply hooks to brains...
@@ -150,7 +163,13 @@ exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo w
 `;
 
 exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo with native roles shaper, glasser, sander and a package role waxer when: [t5.1] lifeguard re-linked; the [t3] actor brain dir read-only; rhx init then: the lifeguard actor re-renders 1`] = `
-"🔭 search for linked roles with hooks...
+"🧠 brain://hash=15cc47ca
+   ├─ boot.md
+   │  └─ upgraded — 1 role
+   └─ drift
+      └─ no change
+
+🔭 search for linked roles with hooks...
    └─ surfshop/waxer
 
 🪝 apply hooks to brains...
@@ -161,7 +180,7 @@ exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo w
 🧢 apply hooks to enrolled actors...
    ├─ hash=15cc47ca
    ├─ hash=6fdfcc44
-   └─ ✗ hash=fddbc072: Error: EACCES: permission denied, open '/TMP_TEST_DIR/.agent/.actors/actor.via.hash=fddbc072/brain/.claude/.settings.of.repo.json.__PID__.__HEX__.tmp'
+   └─ ✗ hash=fddbc072: Error: EACCES: permission denied, open '/TMP_TEST_DIR/.agent/.actors/actor.via.hash=fddbc072/brain/.claude/.hooks.dispatch.manifest.__PID__.__HEX__.tmp'
 
 💥 MalfunctionError: 1 hook sync error — role hooks may be uninstalled
 "
@@ -183,6 +202,12 @@ exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo w
    ├─ subtractions
    │  └─ - surfshop/lifeguard
    └─ untouched (1)
+
+🧠 brain://hash=fddbc072
+   ├─ boot.md
+   │  └─ upgraded — 1 role
+   └─ drift
+      └─ no change
 
 🔭 search for linked roles with hooks...
    └─ surfshop/waxer
@@ -216,6 +241,9 @@ exports[`brain dir boot journey (acceptance, real haiku) given: [case1] a repo w
   ".agent/.actors/actor.via.repo=ambient/brain/.claude/.gitignore",
   ".agent/.actors/actor.via.repo=ambient/brain/.claude/AGENTS.md",
   ".agent/.actors/actor.via.repo=ambient/brain/.claude/CLAUDE.md",
+  ".agent/.actors/actor.via.repo=ambient/brain/.claude/hooks.dispatch.manifest",
+  ".agent/.actors/actor.via.repo=ambient/brain/.claude/settings.json",
+  ".agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.grove.json",
   ".agent/.actors/actor.via.repo=ambient/brain/.claude/settings.of.repo.json",
   ".claude",
 ]

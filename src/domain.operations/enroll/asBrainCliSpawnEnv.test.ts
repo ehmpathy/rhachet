@@ -58,26 +58,31 @@ describe('asBrainCliSpawnEnv', () => {
     });
   });
 
-  given('[case7] a caller env that would reopen the CLAUDE.md door', () => {
-    // 🔴 the boot rides in the system prompt (asBrainCliSpawnArgs). were the CLAUDE.md
-    //   door open too, `CLAUDE.md → AGENTS.md → @boot.md` would load the boot a second
-    //   time, after every per-session value, where no new session can read it from cache
+  given('[case7] a caller env that holds the CLAUDE.md switch', () => {
+    // 🔴 the boot drift rides the spawn boot dir's CLAUDE.md, loaded via `--add-dir`.
+    //   an inherited switch would shut that load too, so a live clone could never take a
+    //   boot edit. the brain dir doors stay shut by the actor's claudeMdExcludes instead
     when('[t0] the spawn env is built', () => {
       const env = asBrainCliSpawnEnv({
-        env: { PATH: '/usr/bin', CLAUDE_CODE_DISABLE_CLAUDE_MDS: '' },
+        env: { PATH: '/usr/bin', CLAUDE_CODE_DISABLE_CLAUDE_MDS: '1' },
         brainDir: '/repo/.agent/.actors/actor.via.hash=abc12345/brain/.claude',
         args: ARGS_WITH_BOOT,
       });
 
-      then('the CLAUDE.md door is off, whatever the caller set', () => {
-        expect(env['CLAUDE_CODE_DISABLE_CLAUDE_MDS']).toEqual('1');
+      then('the switch is dropped, so the drift can load', () => {
+        expect(env).not.toHaveProperty('CLAUDE_CODE_DISABLE_CLAUDE_MDS');
+      });
+
+      then('the add-dir memory load is on', () => {
+        expect(env['CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD']).toEqual(
+          '1',
+        );
       });
     });
   });
 
   given('[case8] an argv that does not carry the boot flag', () => {
-    // 🔴 the pair is derived: a spawn whose argv lacks the boot must keep the CLAUDE.md
-    //   door open, or the clone boots with no briefs at all
+    // 🔴 derived: with no boot in the argv there is no spawn boot dir, so no add-dir load
     when('[t0] the spawn env is built', () => {
       const env = asBrainCliSpawnEnv({
         env: { PATH: '/usr/bin' },
@@ -85,9 +90,15 @@ describe('asBrainCliSpawnEnv', () => {
         args: ['-p', 'hi'],
       });
 
-      then('the CLAUDE.md door stays open', () => {
-        expect(env).not.toHaveProperty('CLAUDE_CODE_DISABLE_CLAUDE_MDS');
-      });
+      then(
+        'the CLAUDE.md door stays open, and no add-dir load is asked',
+        () => {
+          expect(env).not.toHaveProperty('CLAUDE_CODE_DISABLE_CLAUDE_MDS');
+          expect(env).not.toHaveProperty(
+            'CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD',
+          );
+        },
+      );
     });
 
     when('[t1] the caller env already holds the door switch', () => {
@@ -132,7 +143,7 @@ describe('asBrainCliSpawnEnv', () => {
         expect(Object.keys(env).sort()).toEqual(
           [
             'ANTHROPIC_API_KEY',
-            'CLAUDE_CODE_DISABLE_CLAUDE_MDS',
+            'CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD',
             'CLAUDE_CONFIG_DIR',
             'CLAUDE_SECURESTORAGE_CONFIG_DIR',
             'PATH',

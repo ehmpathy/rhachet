@@ -1,0 +1,93 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`asCloneBootDriftLines given: [case1] a clone that spawned on the current boot when: [t0] it is inspected then: the tree matches snapshot 1`] = `
+[
+  "😶 boot drift of @:reviewer",
+  "   ├─ spawn boot = 0123456789abcdef",
+  "   └─ no drift; the clone holds the current boot",
+]
+`;
+
+exports[`asCloneBootDriftLines given: [case1b] a clone spawned before boot drift when: [t0] it is inspected then: it says the clone holds its spawn boot until a respawn 1`] = `
+[
+  "😶 boot drift of @:old",
+  "   └─ spawned before boot drift, so it holds its spawn boot until a respawn",
+]
+`;
+
+exports[`asCloneBootDriftLines given: [case1c] a clone spawned by a resume when: [t0] it is inspected then: it says the drift is unknown and names respawn, never current 1`] = `
+[
+  "😶 boot drift of @:back",
+  "   ├─ a resume holds the boot its session first recorded, which no record here names",
+  "   └─ it takes no drift at any compaction; respawn it to take the current boot",
+]
+`;
+
+exports[`asCloneBootDriftLines given: [case2] a boot that changed only outside the briefs when: [t0] the clone is nudged then: it never reads as no drift, and names respawn as the only cure for the outside part 1`] = `
+[
+  "😶 boot drift of @:reviewer",
+  "   ├─ no block drifted; the boot changed outside the briefs, which only a respawn takes",
+  "   ├─ 212 lines of drift, over the 200 line threshold",
+  "   └─ to take it, respawn the clone — the new boot loads whole, from the shared cache",
+]
+`;
+
+exports[`asCloneBootDriftLines given: [case2] a boot that changed only outside the briefs when: [t1] the clone is inspected then: it names the outside change, and respawn as its one cure: a compaction takes naught of it 1`] = `
+[
+  "😶 boot drift of @:reviewer",
+  "   ├─ spawn boot = 0123456789abcdef",
+  "   ├─ drift = fedcba9876543210",
+  "   ├─ no block drifted; the boot changed outside the briefs, which only a respawn takes",
+  "   └─ 212 lines of drift, over the 200 line threshold; a compaction takes naught of it, so respawn the clone",
+]
+`;
+
+exports[`asCloneBootDriftLines given: [case3] a boot that changed inside a brief and outside the briefs when: [t0] the clone is inspected then: it names both the blocks and the outside change 1`] = `
+[
+  "😶 boot drift of @:reviewer",
+  "   ├─ spawn boot = 0123456789abcdef",
+  "   ├─ drift = fedcba9876543210",
+  "   ├─ 2 blocks drifted since this clone spawned (1 changed, 1 added)",
+  "   ├─ 230 lines of drift, over the 200 line threshold",
+  "   ├─ the boot also changed outside the briefs, which only a respawn takes",
+  "   ├─ the clone reads the drift in at its next compaction",
+  "   ├─ to take it now",
+  "   │  └─ rhx clone say @:reviewer --what /compact",
+  "   └─ after a compaction it holds drift = fedcba9876543210; if it does not, respawn it",
+]
+`;
+
+exports[`asCloneBootDriftLines given: [case3] a boot that changed inside a brief and outside the briefs when: [t1] the clone is nudged then: it names both, then the two ways out 1`] = `
+[
+  "😶 boot drift of @:reviewer",
+  "   ├─ 2 blocks drifted since this clone spawned (1 changed, 1 added)",
+  "   ├─ 230 lines of drift, over the 200 line threshold",
+  "   ├─ the boot also changed outside the briefs, which only a respawn takes",
+  "   └─ to take it",
+  "      ├─ /compact — the clone reads the drift in, its conversation kept",
+  "      │  ├─ type it in this session, or send it: rhx clone say @:reviewer --what /compact",
+  "      │  └─ after it, the clone holds drift = fedcba9876543210",
+  "      └─ respawn — the new boot loads whole, from the shared cache; the sure cure",
+]
+`;
+
+exports[`asCloneBootDriftLines given: [case3b] a drift past the carry cap when: [t0] the clone is nudged then: it never offers /compact; respawn is the one cure 1`] = `
+[
+  "😶 boot drift of @:reviewer",
+  "   ├─ 1000 blocks drifted since this clone spawned (1000 changed)",
+  "   ├─ 12034 lines of drift, over the 200 line threshold",
+  "   ├─ past the 2000 line cap, the drift carries no block, so a compaction takes naught",
+  "   └─ to take it, respawn the clone — the new boot loads whole, from the shared cache",
+]
+`;
+
+exports[`asCloneBootDriftLines given: [case3b] a drift past the carry cap when: [t1] the clone is inspected then: it never reads a held drift hash as a pass 1`] = `
+[
+  "😶 boot drift of @:reviewer",
+  "   ├─ spawn boot = 0123456789abcdef",
+  "   ├─ drift = fedcba9876543210",
+  "   ├─ 1000 blocks drifted since this clone spawned (1000 changed)",
+  "   ├─ 12034 lines of drift, over the 200 line threshold",
+  "   └─ past the 2000 line cap, the drift carries no block, so a compaction takes naught; only a respawn takes the current boot",
+]
+`;

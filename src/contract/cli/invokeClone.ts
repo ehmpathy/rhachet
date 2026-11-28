@@ -4,6 +4,7 @@ import { ConstraintError } from 'helpful-errors';
 import { asCloneVerbAbsentHint } from '@src/domain.operations/clone/cli/asCloneVerbAbsentHint';
 
 import { asCommandVerbNames } from './asCommandVerbNames';
+import { invokeCloneBoot } from './invokeCloneBoot';
 import { invokeCloneGet } from './invokeCloneGet';
 import { invokeCloneList } from './invokeCloneList';
 import { invokeClonePrune } from './invokeClonePrune';
@@ -22,7 +23,7 @@ import { invokeCloneWhoami } from './invokeCloneWhoami';
 export const invokeClone = ({ program }: { program: Command }): void => {
   const clone = program
     .command('clone')
-    .description('reach an enrolled clone: make, list, say, get, whoami, prune')
+    .description('reach and inspect enrolled clones')
     .addHelpText(
       'after',
       [
@@ -54,6 +55,7 @@ export const invokeClone = ({ program }: { program: Command }): void => {
   invokeCloneGet({ clone });
   invokeCloneWhoami({ clone });
   invokeClonePrune({ clone });
+  invokeCloneBoot({ clone });
 
   // refuse an operand that names no verb — the inline form typed on clone, or a typo
   // .note = a sync throw here reaches invoke's top-level catch, which frames it

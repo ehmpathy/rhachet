@@ -973,8 +973,10 @@ module.exports = { getRoleRegistry };
           () => {
             const config = JSON.parse(repo.contentFirst);
             expect(config.claudeMdExcludes).toEqual([
-              '**/!(brain)/.claude/CLAUDE.md',
+              '**/.claude/AGENTS.md',
+              '**/.claude/CLAUDE.md',
               '**/CLAUDE.local.md',
+              '**/.claude/rules/**',
             ]);
             expect(repo.contentFirst).not.toContain('/home/');
           },

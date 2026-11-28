@@ -13,8 +13,11 @@ import {
   invokeRhachetCliBinary,
 } from '@/blackbox/.test/infra/invokeRhachetCliBinary';
 
-import { existsSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 
+import { getBrainOndiskDir } from '@src/domain.operations/actor/enrolled/getBrainOndiskDir';
+import { genActorBootSpawned } from '@src/domain.operations/boot/genActorBootSpawned';
 import { getCloneHistoryDir } from '@src/domain.operations/clone/getCloneHistoryDir';
 import { genSampleCloneOndisk } from '@src/.test/assets/genSampleCloneOndisk';
 
@@ -419,6 +422,67 @@ describe('rhx clone prune (acceptance)', () => {
         // serial/since in each row are masked by asSnapshotSafe; the mode + count +
         // row shape lock against drift, the machine twin of the apply TREE at case2 t0
         expect(asSnapshotSafe(json.stdout)).toMatchSnapshot();
+      });
+    });
+  });
+
+  given('[case2c] each clone holds its own spawn boot', () => {
+    // a DEAD clone and a DEAF clone, each with a spawn boot at `<actor>/boots/serial=<s>/`.
+    // the spawn boot lives and dies with its clone, so prune needs no reap of its own for it
+    const scene = useBeforeAll(async () => {
+      const dir = genTempDir({ slug: 'clone-prune-spawn-boot' });
+      setupEnrollFixture({ dir });
+      const doomed = await genSampleCloneOndisk({
+        repoPath: dir,
+        serial: getUuid(),
+        slug: 'doomed',
+        socketEligible: true,
+        spawnedAt: asIsoTimeStamp('2026-08-11T00:00:00Z'),
+      });
+      const watcher = await genSampleCloneOndisk({
+        repoPath: dir,
+        serial: getUuid(),
+        slug: 'watcher',
+        socketEligible: false,
+        spawnedAt: asIsoTimeStamp('2026-08-11T02:00:00Z'),
+      });
+      const brainDir = getBrainOndiskDir({ actorDir: doomed.actorDir });
+      mkdirSync(brainDir, { recursive: true });
+      writeFileSync(join(brainDir, 'boot.md'), 'paddle out at dawn\n');
+      const spawnedDoomed = genActorBootSpawned({
+        actorDir: doomed.actorDir,
+        serial: doomed.serial,
+      })!;
+      const spawnedWatcher = genActorBootSpawned({
+        actorDir: watcher.actorDir,
+        serial: watcher.serial,
+      })!;
+      return {
+        dir,
+        env: { PATH: process.env.PATH ?? '' },
+        spawnedDoomed,
+        spawnedWatcher,
+      };
+    });
+
+    when('[t0] `clone prune --mode apply` reaps the dead clone', () => {
+      const pruned = useThen('the apply reaps the dead clone', () =>
+        invokeRhachetCliBinary({
+          args: ['clone', 'prune', '--mode', 'apply'],
+          cwd: scene.dir,
+          env: scene.env,
+          logOnError: false,
+        }),
+      );
+
+      then('the dead clone spawn boot leaves disk with it', () => {
+        expect(pruned.status).toEqual(0);
+        expect(pruned.stdout).toContain('pruned: 1 dead clone(s)');
+        expect(existsSync(scene.spawnedDoomed.dir)).toBe(false);
+      });
+
+      then('the DEAF clone keeps its spawn boot', () => {
+        expect(existsSync(scene.spawnedWatcher.dir)).toBe(true);
       });
     });
   });

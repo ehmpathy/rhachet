@@ -6,6 +6,7 @@ import { genSampleRepoWithSubjects } from '@src/.test/assets/genSampleRepoWithSu
 
 import { mkdirSync, readFileSync, readlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { genActorBootSpawned } from './genActorBootSpawned';
 import { BOOT_CACHE_BOUNDARY_LINE } from './getOneBootCacheBoundary';
 import { getOneRhachetBootIntro } from './getOneRhachetBootIntro';
 import { setBrainDirBoot } from './setBrainDirBoot';
@@ -450,5 +451,76 @@ describe('setBrainDirBoot', () => {
         );
       },
     );
+  });
+
+  given('[case6] an actor whose clone holds a spawn boot', () => {
+    when('[t0] a role changes and the brain dir re-renders', () => {
+      then(
+        'the clone drift carries the change, and the render reports it',
+        async () => {
+          // an actor dir laid out as `<actor>/brain/.claude`, rendered once
+          const repoPath = genRepoWithRoles({ slug: 'setBrainDirBoot-c6t0' });
+          const actorDir = join(
+            repoPath,
+            '.agent',
+            '.actors',
+            'actor.via.hash=abc12345',
+          );
+          const brainDir = join(actorDir, 'brain', '.claude');
+          const renderFirst = await setBrainDirBoot({
+            brainDir,
+            roles: ROLES,
+            repoPath,
+            scope: { kind: 'actor', actorExid: 'abc12345' },
+          });
+          expect(renderFirst.drift).toEqual({
+            actorDir,
+            clones: [],
+            rewritten: [],
+            faults: [],
+          });
+
+          // a clone spawns on that boot, and holds it as its spawn boot
+          const spawned = genActorBootSpawned({ actorDir, serial: 'abc' })!;
+
+          // the role brief changes; the brain dir re-renders
+          const briefPath = join(
+            repoPath,
+            '.agent/repo=.this/role=any/briefs/core.md',
+          );
+          writeFileSync(briefPath, 'any brief body, now revised\n');
+          const renderSecond = await setBrainDirBoot({
+            brainDir,
+            roles: ROLES,
+            repoPath,
+            scope: { kind: 'actor', actorExid: 'abc12345' },
+          });
+          expect(renderSecond.drift).toEqual({
+            actorDir,
+            clones: ['abc'],
+            rewritten: ['abc'],
+            faults: [],
+          });
+          expect(
+            readFileSync(join(spawned.dir, 'CLAUDE.md'), 'utf8'),
+          ).toContain('any brief body, now revised');
+        },
+      );
+    });
+  });
+
+  given('[case7] a brain dir outside the actor layout', () => {
+    when('[t0] it renders', () => {
+      then('no actor holds it, so there is no drift fan-out', async () => {
+        const repoPath = genRepoWithRoles({ slug: 'setBrainDirBoot-c7t0' });
+        const render = await setBrainDirBoot({
+          brainDir: join(repoPath, 'a'),
+          roles: ROLES,
+          repoPath,
+          scope: { kind: 'repo', actorExid: 'repo=ambient' },
+        });
+        expect(render.drift).toBeNull();
+      });
+    });
   });
 });

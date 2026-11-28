@@ -33,6 +33,27 @@ exports[`asBrainDirSyncReportLines given: [case3b] a link already in place, and 
 ]
 `;
 
+exports[`asBrainDirSyncReportLines given: [case3c] a corpus re-rendered under live clones of the actor when: [t0] three clones hold a spawn boot, two drifts were re-written, and one faulted then: the drift is news: it counts the clones that take it, and names the one it missed 1`] = `
+[
+  "🧠 brain://repo=ambient",
+  "   ├─ boot.md",
+  "   │  └─ upgraded — 2 roles",
+  "   └─ drift",
+  "      ├─ 2 clone drifts re-written; a live clone takes its own at its next compaction",
+  "      └─ ✗ in serial=aaaa/, drift not written (EACCES) — the clone keeps its prior drift",
+]
+`;
+
+exports[`asBrainDirSyncReportLines given: [case3c] a corpus re-rendered under live clones of the actor when: [t1] its drift re-wrote naught then: the drift subbranch reads "no change", per vision case=6 [t1] 1`] = `
+[
+  "🧠 brain://repo=ambient",
+  "   ├─ boot.md",
+  "   │  └─ upgraded — 2 roles",
+  "   └─ drift",
+  "      └─ no change",
+]
+`;
+
 exports[`asBrainDirSyncReportLines given: [case4] an actor brain dir, which has no <repo>/.claude beneath it when: [t0] a first render, with no symlink then: the header names the actor, and the role word is singular 1`] = `
 [
   "🧠 brain://hash=051970ec",

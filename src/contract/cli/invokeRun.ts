@@ -109,9 +109,7 @@ const emitHelpOutput = (): void => {
     `   │  ├─ enroll      enroll a brain cli as a managed, addressable clone`,
   );
   console.log(`   │  ├─ actor       inspect enrolled actor identities`);
-  console.log(
-    `   │  ├─ clone       reach an enrolled clone: list, say, get, whoami, prune`,
-  );
+  console.log(`   │  ├─ clone       reach and inspect enrolled clones`);
   console.log(`   │  └─ upgrade     upgrade rhachet`);
   console.log(`   └─ options`);
   console.log(

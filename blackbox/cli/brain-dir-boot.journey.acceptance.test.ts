@@ -28,6 +28,8 @@ import { describeBrainLiveOnDemand } from '@src/.test/infra/describeBrainLiveOnD
 import {
   asMaskedClaudeEnvelope,
   asSentinel,
+  asSentinelsFound,
+  asSentinelsSent,
   askClaudePrintForSentinels as askClaudePrintForSentinelsUnbounded,
   askCloneForSentinels as askCloneForSentinelsUnbounded,
   getAllActorHashDirNames,
@@ -69,6 +71,8 @@ jest.setTimeout(600_000);
 const NONCE = getUuid().replace(/-/g, '').slice(0, 10);
 const sentinelOf = (of: string): string => asSentinel({ of, nonce: NONCE });
 const DEFAULT_DIR = join('.agent', '.actors', 'actor.via.repo=ambient');
+// the line every rendered boot opens with: a request whose system block holds it carries the boot
+const BOOT_INTRO = 'you are enrolled via rhachet';
 const DEFAULT_BRAIN_DIR = join(DEFAULT_DIR, 'brain', '.claude');
 
 // end a process by pid; one already gone is the goal met, never a fault
@@ -440,9 +444,12 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
     const t3 = useWhenLabeled({ label: '[t3] rhx enroll claude --roles shaper, real cli, temp HOME', fn: () => {
       const enrolled = useThen('enroll reaches a live clone', async () => {
         const actorsBefore = getAllActorHashDirNames({ dir: scene.dir });
+        // the clone logs its raw request bodies, so a check reads what it was sent
+        const otelDir = join(scene.dir, '.log', 'otel', 't3');
+        mkdirSync(otelDir, { recursive: true });
         const clone = await enrollRealClaudeAndWaitReach({
           dir: scene.dir,
-          env: scene.env,
+          env: { ...scene.env, OTEL_LOG_RAW_API_BODIES: `file:${otelDir}` },
           roles: ['shaper'],
         });
         clonesLive.push(clone.bg);
@@ -462,7 +469,7 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
           'brain',
           '.claude',
         );
-        return { ...clone, actorName, brainDir };
+        return { ...clone, actorName, brainDir, otelDir };
       });
 
       then('the actor brain dir holds CLAUDE.md, AGENTS.md, boot.md', () => {
@@ -501,35 +508,41 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
       });
 
       // a live clone turn on a paid key: run only on the named flag (IS_BRAIN_LIVE)
-      const ask = useThen.runIf(IS_BRAIN_LIVE)('the clone answers its first say (M3)', () =>
-        askCloneForSentinels({
+      // .note = the check reads the clone's raw request, never its reply: a model may decline
+      //   to quote its system prompt, so a quote measures the model, where the request
+      //   measures what the clone was handed
+      const ask = useThen.runIf(IS_BRAIN_LIVE)('the clone answers its first say (M3)', async () => {
+        const asked = await askCloneForSentinels({
           address: enrolled.address,
           dir: scene.dir,
           env: scene.env,
           getScreen: () => enrolled.bg.getOutput(),
-        }),
-      );
-
-      then.runIf(IS_BRAIN_LIVE)('the clone quotes shaper head and tail — the whole corpus arrived', () => {
-        expect(ask.sentinels).toContain(sentinelOf('shaperhead'));
-        expect(ask.sentinels).toContain(sentinelOf('shapertail'));
+        });
+        const body = await getOneRawRequestBody({ dir: enrolled.otelDir, systemHolds: BOOT_INTRO });
+        return { ...asked, sent: asSentinelsSent({ body }) };
       });
 
-      then.runIf(IS_BRAIN_LIVE)('the clone holds no unenrolled role and no user memory', () => {
-        expect(ask.sentinels).not.toContain(sentinelOf('glasserhead'));
-        expect(ask.sentinels).not.toContain(sentinelOf('glassertail'));
-        expect(ask.sentinels).not.toContain(sentinelOf('waxerhead'));
-        expect(ask.sentinels).not.toContain(sentinelOf('user'));
+      then.runIf(IS_BRAIN_LIVE)('the clone is sent shaper head and tail — the whole corpus arrived', () => {
+        expect(ask.sent).toContain(sentinelOf('shaperhead'));
+        expect(ask.sent).toContain(sentinelOf('shapertail'));
+      });
+
+      then.runIf(IS_BRAIN_LIVE)('the clone is sent no unenrolled role and no user memory', () => {
+        expect(ask.sent).not.toContain(sentinelOf('glasserhead'));
+        expect(ask.sent).not.toContain(sentinelOf('glassertail'));
+        expect(ask.sent).not.toContain(sentinelOf('waxerhead'));
+        expect(ask.sent).not.toContain(sentinelOf('user'));
         // the human's repo CLAUDE.md and CLAUDE.local.md stay out of a clone too
-        expect(ask.sentinels).not.toContain(sentinelOf('root'));
-        expect(ask.sentinels).not.toContain(sentinelOf('local'));
+        expect(ask.sent).not.toContain(sentinelOf('root'));
+        expect(ask.sent).not.toContain(sentinelOf('local'));
       });
 
       const relaunch = useThen('two launches of the actor, with two prompts, answer', async () => {
         // two launches with DIFFERENT prompts, as two real sessions open (M2, the assembly clamp)
         // .note = each launch carries the argv and env every enrolled clone spawns with: the
-        //   boot as the system-prompt file, the CLAUDE.md door off. a fixed prompt would
-        //   measure message identity, never whether a new session can read the boot
+        //   boot as the system-prompt file, every brain dir door shut by the enroll config's
+        //   claudeMdExcludes, the add-dir memory load on. a fixed prompt would measure message
+        //   identity, never whether a new session can read the boot
         // .note = each launch logs its raw request bodies, so the clamp reads what claude sent
         const launch = (input: {
           prompt: string;
@@ -543,7 +556,7 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
             env: {
               ...scene.env,
               CLAUDE_CONFIG_DIR: enrolled.brainDir,
-              CLAUDE_CODE_DISABLE_CLAUDE_MDS: '1',
+              CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD: '1',
               OTEL_LOG_RAW_API_BODIES: `file:${input.otelDir}`,
             },
             binPath: scene.binPath,
@@ -747,9 +760,10 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
 
       // the boot door, measured against the real cli: one launch through the vendor
       //   default prompt and the CLAUDE.md door, one through the door a clone spawns with
-      //   (the boot as the system-prompt file, CLAUDE.md off). both carry the enroll config
-      //   prefix (its claudeMdExcludes keep the repo corpus out), so the door is the ONE
-      //   variable. the same corpus must arrive by each, and the vendor prompt is gone
+      //   (the boot as the system-prompt file). both carry the enroll config prefix, whose
+      //   claudeMdExcludes shut every brain dir door, the actor's own too, so the door is the
+      //   ONE variable. the corpus must arrive by the system prompt alone — the CLAUDE.md door
+      //   reads naught, so the boot loads once — and the vendor prompt is gone
       const prompts = useThen('a vendor-door launch and a clone-door launch answer', async () => {
         const launch = async (args: string[], envDoor: Record<string, string>) => {
           const asked = await askClaudePrintForSentinels({
@@ -777,13 +791,23 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
             (envelope.usage?.cache_read_input_tokens ?? 0);
           return { ...asked, inputBilled };
         };
-        // one after the other, so the two launches never contend for the cache they measure
+        // an empty system-prompt file: the clone door with no corpus, so the vendor prompt
+        //   is the one difference from the vendor-door launch, now that neither reads a brief
+        const emptyDir = genTempDir({ slug: 'journey-empty-boot' });
+        const emptyBootPath = join(emptyDir, 'boot.empty.md');
+        writeFileSync(emptyBootPath, '');
+
+        // one after the other, so the launches never contend for the cache they measure
         const vendor = await launch([], {});
         const clone = await launch(
           ['--system-prompt-file', join(enrolled.brainDir, 'boot.md')],
-          { CLAUDE_CODE_DISABLE_CLAUDE_MDS: '1' },
+          { CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD: '1' },
         );
-        return { vendor, clone };
+        const cloneEmpty = await launch(
+          ['--system-prompt-file', emptyBootPath],
+          { CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD: '1' },
+        );
+        return { vendor, clone, cloneEmpty };
       });
 
       then('the cli accepts the boot as its system-prompt file — exit 0', () => {
@@ -802,18 +826,21 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
         expect(prompts.clone.sentinels).not.toContain(sentinelOf('user'));
       });
 
-      then('the vendor door reads the same corpus — no brief lost to the door change', () => {
-        expect([...prompts.vendor.sentinels].sort()).toEqual(
-          [...prompts.clone.sentinels].sort(),
-        );
+      then('the CLAUDE.md door, under the enroll config, reads no brief — so the boot reaches a clone only through the system prompt', () => {
+        expect(prompts.vendor.sentinels).not.toContain(sentinelOf('shaperhead'));
+        expect(prompts.vendor.sentinels).not.toContain(sentinelOf('shapertail'));
       });
 
-      then('the clone door bills measurably less input — the vendor prompt is gone', () => {
-        const removed = prompts.vendor.inputBilled - prompts.clone.inputBilled;
+      then('the clone door bills measurably less input for the same corpus — the vendor prompt is gone', () => {
+        // .note = vendor minus cloneEmpty, never vendor minus clone: under the enroll config the
+        //   vendor door reads no brief, so vendor minus clone would net the corpus against the vendor
+        //   prompt. an empty boot through the clone door holds the corpus equal (none) on both sides
+        const removed = prompts.vendor.inputBilled - prompts.cloneEmpty.inputBilled;
         // .note = the measure the yield records for the clone door
         console.log('system prompt measure', {
           vendor: prompts.vendor.inputBilled,
           clone: prompts.clone.inputBilled,
+          cloneEmpty: prompts.cloneEmpty.inputBilled,
           removed,
         });
 
@@ -821,7 +848,16 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
         //   release. a flag the cli ignored would leave the two launches within a few
         //   tokens of each other, far below this bound
         expect(prompts.vendor.status).toEqual(0);
+        expect(prompts.cloneEmpty.status).toEqual(0);
         expect(removed).toBeGreaterThanOrEqual(1000);
+      });
+
+      then('the clone door bills the corpus on top of the empty boot', () => {
+        // the clone launch is the empty launch plus the actor's corpus, so its bill exceeds the
+        //   empty boot's; with `removed` above, the clone door costs the corpus and no vendor prompt
+        const corpus = prompts.clone.inputBilled - prompts.cloneEmpty.inputBilled;
+        expect(prompts.clone.status).toEqual(0);
+        expect(corpus).toBeGreaterThan(0);
       });
 
       return enrolled;
@@ -862,14 +898,8 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
         };
       });
 
-      then('the temp home is not named brain*, the one gap the glob spares (F1)', () => {
-        expect(basename(scene.home)).not.toMatch(/^brain/);
-      });
-
-      then('the written excludes name the common glob and no home', () => {
-        expect(probe.settings.claudeMdExcludes).toContain(
-          '**/!(brain)/.claude/CLAUDE.md',
-        );
+      then('the written excludes name the every-door glob and no home', () => {
+        expect(probe.settings.claudeMdExcludes).toContain('**/.claude/CLAUDE.md');
         expect(JSON.stringify(probe.settings)).not.toContain(scene.home);
       });
 
@@ -954,33 +984,64 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
         );
         const filesBefore = asBrainDirFileContents({ dir: actorBrainDir });
 
-        // a new clone of the same actor
-        const clone = await enrollRealClaudeAndWaitReach({
-          dir: scene.dir,
-          env: scene.env,
-          roles: ['shaper'],
-        });
-        clonesLive.push(clone.bg);
-        const ask = await askCloneForSentinels({
-          address: clone.address,
-          dir: scene.dir,
-          env: scene.env,
-          getScreen: () => clone.bg.getOutput(),
-        });
-        // free its host slot now: a later step's enroll waits on a slot inside its budget
-        await clone.bg.kill();
-        const filesAfter = asBrainDirFileContents({ dir: actorBrainDir });
-        return { ask, filesBefore, filesAfter, repoBrainDir, settingsPath };
+        // close doors 2 and 3 (door 1 stays: init owns it), whether the clone lands or throws:
+        //   an open door would change what every later init renders
+        const closeDoors = () => {
+          rmSync(join(repoBrainDir, 'rules'), { recursive: true, force: true });
+          const settingsNow = JSON.parse(readFileSync(settingsPath, 'utf-8'));
+          settingsNow.hooks.SessionStart = settingsNow.hooks.SessionStart.filter(
+            (entry: { matcher: string }) =>
+              !entry.matcher.includes('author=repo=.this/role=glasser'),
+          );
+          writeFileSync(settingsPath, `${JSON.stringify(settingsNow, null, 2)}\n`);
+        };
+
+        try {
+          // a new clone of the same actor, which logs its raw request bodies
+          const otelDir = join(scene.dir, '.log', 'otel', 't3.1');
+          mkdirSync(otelDir, { recursive: true });
+          const clone = await enrollRealClaudeAndWaitReach({
+            dir: scene.dir,
+            env: { ...scene.env, OTEL_LOG_RAW_API_BODIES: `file:${otelDir}` },
+            roles: ['shaper'],
+          });
+          clonesLive.push(clone.bg);
+          // free its host slot whether the ask lands or throws: a later step's enroll waits on a
+          //   slot inside its budget, so a leaked slot reddens every later enroll
+          const body = await (async () => {
+            try {
+              await askCloneForSentinels({
+                address: clone.address,
+                dir: scene.dir,
+                env: scene.env,
+                getScreen: () => clone.bg.getOutput(),
+              });
+              return await getOneRawRequestBody({ dir: otelDir, systemHolds: BOOT_INTRO });
+            } finally {
+              await clone.bg.kill();
+            }
+          })();
+          const filesAfter = asBrainDirFileContents({ dir: actorBrainDir });
+          return {
+            sent: asSentinelsSent({ body }),
+            filesBefore,
+            filesAfter,
+            repoBrainDir,
+            settingsPath,
+          };
+        } finally {
+          closeDoors();
+        }
       });
 
-      then('the clone quotes shaper', () => {
-        expect(doors.ask.sentinels).toContain(sentinelOf('shaperhead'));
+      then('the clone is sent shaper', () => {
+        expect(doors.sent).toContain(sentinelOf('shaperhead'));
       });
 
-      then('the clone holds no door: no glasser role, no rule, no hook (M4, M5)', () => {
-        expect(doors.ask.sentinels).not.toContain(sentinelOf('glasserhead'));
-        expect(doors.ask.sentinels).not.toContain(sentinelOf('rule'));
-        expect(doors.ask.sentinels).not.toContain(sentinelOf('hook'));
+      then('the clone is sent no door: no glasser role, no rule, no hook (M4, M5)', () => {
+        expect(doors.sent).not.toContain(sentinelOf('glasserhead'));
+        expect(doors.sent).not.toContain(sentinelOf('rule'));
+        expect(doors.sent).not.toContain(sentinelOf('hook'));
       });
 
       then('the actor brain dir files are byte-unchanged', () => {
@@ -989,17 +1050,10 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
 
       then('the doors close', () => {
         // door 1 stays: init owns it
-        rmSync(join(doors.repoBrainDir, 'rules'), { recursive: true });
-        const settings = JSON.parse(readFileSync(doors.settingsPath, 'utf-8'));
-        settings.hooks.SessionStart = settings.hooks.SessionStart.filter(
-          (entry: { matcher: string }) =>
-            !entry.matcher.includes('author=repo=.this/role=glasser'),
-        );
-        writeFileSync(
-          doors.settingsPath,
-          `${JSON.stringify(settings, null, 2)}\n`,
-        );
         expect(existsSync(join(doors.repoBrainDir, 'rules'))).toBe(false);
+        expect(readFileSync(doors.settingsPath, 'utf-8')).not.toContain(
+          'author=repo=.this/role=glasser',
+        );
       });
     });
 
@@ -1170,6 +1224,25 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
         ).toMatchSnapshot();
       });
 
+      // the [t3] clone spawned on the prior boot, so it now carries a drift: the built binary
+      //   reads it by address, cred-free, off the spawn ref the enroll wrote
+      const drift = useThen('rhx clone boot drift names the [t3] clone drift', async () =>
+        invokeRhachetCliBinaryAsync({
+          args: ['clone', 'boot', 'drift', '--of', t3.address],
+          cwd: scene.dir,
+          env: scene.env,
+        }),
+      );
+
+      then('the drift readout exits 0 and carries the drift a compaction takes', () => {
+        expect(drift.status).toEqual(0);
+        // a slugless clone is shown to a human by its 8-char short serial
+        //   (rule.require.short-serial-for-unslugged-clones)
+        expect(drift.stdout).toContain(`boot drift of @:${t3.serial.slice(0, 8)}`);
+        expect(drift.stdout).toMatch(/drift = [0-9a-f]{16}/);
+        expect(drift.stdout).toContain('1 block drifted since this clone spawned');
+      });
+
       // the [t3] actor enrolled shaper alone, so the waxer hook the repo root carries is
       //   foreign to it: its clones read this brain dir at user scope, where a foreign hook
       //   would fire inside them. the actor row above reads a bare hash for this reason
@@ -1220,30 +1293,46 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
                 });
               }),
         );
-        return askCloneForSentinels({
+        await askCloneForSentinels({
           address: t3.address,
           dir: scene.dir,
           env: scene.env,
           getScreen: () => t3.bg.getOutput(),
         });
+        // the [t3] clone's latest request: the turn after its compaction
+        const body = await getOneRawRequestBody({
+          dir: t3.otelDir,
+          which: 'last',
+          systemHolds: BOOT_INTRO,
+        });
+        return { system: asSentinelsFound({ text: body.system }), messages: asSentinelsFound({ text: body.messages }) };
       };
       const respawnThenAsk = async () => {
+        const otelDirRespawn = join(scene.dir, '.log', 'otel', 't4.respawn');
+        mkdirSync(otelDirRespawn, { recursive: true });
         const clone = await enrollRealClaudeAndWaitReach({
           dir: scene.dir,
-          env: scene.env,
+          env: { ...scene.env, OTEL_LOG_RAW_API_BODIES: `file:${otelDirRespawn}` },
           roles: ['shaper'],
         });
         clonesLive.push(clone.bg);
-        const ask = await askCloneForSentinels({
-          address: clone.address,
-          dir: scene.dir,
-          env: scene.env,
-          getScreen: () => clone.bg.getOutput(),
-        });
-        // free its host slot now: [t5] enrolls next, and waits on a slot inside its budget
-        await clone.bg.kill();
+        // free its host slot whether the ask lands or throws: [t5] enrolls next, and waits on
+        //   a slot inside its budget
+        const body = await (async () => {
+          try {
+            await askCloneForSentinels({
+              address: clone.address,
+              dir: scene.dir,
+              env: scene.env,
+              getScreen: () => clone.bg.getOutput(),
+            });
+            return await getOneRawRequestBody({ dir: otelDirRespawn, systemHolds: BOOT_INTRO });
+          } finally {
+            await clone.bg.kill();
+          }
+        })();
         return {
-          ask,
+          system: asSentinelsFound({ text: body.system }),
           actorsAfter: getAllActorHashDirNames({ dir: scene.dir }),
         };
       };
@@ -1259,18 +1348,20 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
         },
       );
 
-      // the boot reaches a clone as --system-prompt-file, read once at spawn: a compaction keeps
-      //   it (measured by `rhx boot.compact.probe`, 2026-11-02 — the request after /compact holds
-      //   the spawn boot). an edit reaches a live clone only at its next spawn, the case below
-      //   (inventory.of=requirements.case=11). this assert was once the inverse, under the
-      //   CLAUDE.md door; the approved vision of 2026-11-02 named that cost when it moved the door
-      then.runIf(IS_BRAIN_LIVE)('after /compact the live clone still holds its spawn boot, not the edit', () => {
-        expect(both.compacted.sentinels).toContain(sentinelOf('shaperhead'));
-        expect(both.compacted.sentinels).not.toContain(sentinelOf('shapernew'));
+      // the boot reaches a clone as --system-prompt-file, read once at spawn, so its system
+      //   prompt stays the cached spawn boot. the edit rides the drift CLAUDE.md beside the
+      //   clone's own spawn boot (--add-dir), which a compaction re-reads: measured by
+      //   `rhx boot.compact.probe --door add-dir`, 2026-11-17 — the request after /compact holds
+      //   the drift in its messages, the system block unchanged (inventory.of=requirements.case=11)
+      then.runIf(IS_BRAIN_LIVE)('after /compact the live clone is sent its spawn boot, and the edit as drift', () => {
+        // the system block stays the spawn boot; the edit rides the messages, as the drift
+        expect(both.compacted.system).toContain(sentinelOf('shaperhead'));
+        expect(both.compacted.system).not.toContain(sentinelOf('shapernew'));
+        expect(both.compacted.messages).toContain(sentinelOf('shapernew'));
       });
 
-      then.runIf(IS_BRAIN_LIVE)('the new clone quotes the new sentinel at spawn, and no new actor', () => {
-        expect(both.respawn.ask.sentinels).toContain(sentinelOf('shapernew'));
+      then.runIf(IS_BRAIN_LIVE)('the new clone is sent the new sentinel at spawn, and no new actor', () => {
+        expect(both.respawn.system).toContain(sentinelOf('shapernew'));
         expect(both.respawn.actorsAfter).toEqual(changed.actorsBefore);
       });
     });
@@ -1406,29 +1497,38 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
       const run = useThen('a new actor clone answers', async () => {
         const bootBefore = readFileSync(join(t3.brainDir, 'boot.md'), 'utf-8');
         const actorsBefore = getAllActorHashDirNames({ dir: scene.dir });
+        const otelDirNew = join(scene.dir, '.log', 'otel', 't6');
+        mkdirSync(otelDirNew, { recursive: true });
         const enrollThenAsk = async () => {
           const clone = await enrollRealClaudeAndWaitReach({
             dir: scene.dir,
-            env: scene.env,
+            env: { ...scene.env, OTEL_LOG_RAW_API_BODIES: `file:${otelDirNew}` },
             roles: ['shaper', 'sander'],
           });
           clonesLive.push(clone.bg);
           const actorsNew = getAllActorHashDirNames({ dir: scene.dir }).filter(
             (name) => !actorsBefore.includes(name),
           );
-          const askNew = await askCloneForSentinels({
-            address: clone.address,
-            dir: scene.dir,
-            env: scene.env,
-            getScreen: () => clone.bg.getOutput(),
-          });
-          // free its host slot now: [t7.1] enrolls next, and waits on a slot inside its budget
-          await clone.bg.kill();
-          return { actorsNew, askNew };
+          // free its host slot whether the ask lands or throws: [t7.1] enrolls next, and waits
+          //   on a slot inside its budget
+          const body = await (async () => {
+            try {
+              await askCloneForSentinels({
+                address: clone.address,
+                dir: scene.dir,
+                env: scene.env,
+                getScreen: () => clone.bg.getOutput(),
+              });
+              return await getOneRawRequestBody({ dir: otelDirNew, systemHolds: BOOT_INTRO });
+            } finally {
+              await clone.bg.kill();
+            }
+          })();
+          return { actorsNew, sentNew: asSentinelsSent({ body }) };
         };
 
         // the [t3] clone is asked beside the new enroll; neither reads the other
-        const [{ actorsNew, askNew }, askOld] = await Promise.all([
+        const [{ actorsNew, sentNew }] = await Promise.all([
           enrollThenAsk(),
           askCloneForSentinels({
             address: t3.address,
@@ -1437,8 +1537,20 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
             getScreen: () => t3.bg.getOutput(),
           }),
         ]);
+        // the [t3] clone's latest request: the one this ask sent
+        const bodyOld = await getOneRawRequestBody({
+          dir: t3.otelDir,
+          which: 'last',
+          systemHolds: BOOT_INTRO,
+        });
         const bootAfter = readFileSync(join(t3.brainDir, 'boot.md'), 'utf-8');
-        return { actorsNew, askNew, askOld, bootBefore, bootAfter };
+        return {
+          actorsNew,
+          sentNew,
+          sentOld: asSentinelsSent({ body: bodyOld }),
+          bootBefore,
+          bootAfter,
+        };
       });
 
       then('a new actor dir is made', () => {
@@ -1449,13 +1561,13 @@ describeBrainLiveOnDemand('brain dir boot journey (acceptance, real haiku)', () 
         expect(run.bootAfter).toEqual(run.bootBefore);
       });
 
-      then('the [t3] clone holds no sander sentinel', () => {
-        expect(run.askOld.sentinels).not.toContain(sentinelOf('sanderhead'));
-        expect(run.askOld.sentinels).not.toContain(sentinelOf('sandertail'));
+      then('the [t3] clone is sent no sander sentinel', () => {
+        expect(run.sentOld).not.toContain(sentinelOf('sanderhead'));
+        expect(run.sentOld).not.toContain(sentinelOf('sandertail'));
       });
 
-      then('the new clone quotes shaper head, sander head and sander tail', () => {
-        expect(run.askNew.sentinels).toEqual(
+      then('the new clone is sent shaper head, sander head and sander tail', () => {
+        expect(run.sentNew).toEqual(
           expect.arrayContaining([
             sentinelOf('shaperhead'),
             sentinelOf('sanderhead'),

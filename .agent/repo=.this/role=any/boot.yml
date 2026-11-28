@@ -42,8 +42,11 @@ briefs:
     - briefs/domain.terms/**
     - briefs/domain.terms/term=*._.choice.reason.md
     - briefs/domain.terms/term=*._.choice.example=*.md
-    # the requirement cases boot as their index: `inventory.of=requirements._.md` rides at ref
-    # and links every case by path, so a per-case path line adds naught a reader can act on
+    # a recipe for a role author who declares the drift hook; read by the path the pr and F2
+    # cite, at the moment a role declares it, never from a roster read in this repo
+    - briefs/howto.declare-the-boot-drift-hook.md
+    # the requirement cases: the inventory root rides at ref and links each case by path, so a
+    # case is one read away from its row (rule.always.boot-an-oversized-subdomain-as-its-catalog)
     - briefs/behavior/inventory.of=requirements.case=*.md
 
   say:

@@ -1,0 +1,19 @@
+{
+  "key": "1ea164d4668295b0",
+  "kind": "create",
+  "repo": {
+    "owner": "ehmpathy",
+    "name": "rhachet-brains-anthropic"
+  },
+  "exid": null,
+  "title": "fix(hooks): write post-tool and post-compact hooks to PostToolUse and PostCompact",
+  "description": "# 🌙 dream: rhachet-brains-anthropic writes post-tool and post-compact hooks to the wrong claude events\n\nkind · reseed\nowner · ehmpathy/rhachet-brains-anthropic (the published claude code hooks adapter)\ncaught 2026-11-18, on route `v2026_11_17.feat-live-clones-take-boot-drift`, stone 5.3.verification\n\n## .the cue that fired\n\n`npx rhx init --hooks`, run back to back, prints `ehmpathy/mechanic → anthropic/claude/code: ~1` and\n`1 updated` on every run, while `settings.of.repo.json` stays byte-equal.\n\n## .the gap, precisely\n\nthe published adapter, `rhachet-brains-anthropic@0.4.3` (the latest on npm), has no `PostToolUse` and no\n`PostCompact` in its translator (`dist/domain.operations/hooks/` names them only in a `.d.ts`). so:\n\n| declared by `ehmpathy/mechanic` | written to | effect |\n|---|---|---|\n| `onTool` · `posttooluse.guardBorder.onWebfetch` · `filter: { what: 'WebFetch', when: 'after' }` | `PreToolUse`, matcher `WebFetch` | 🔴 fires BEFORE the fetch, so the border guard reads no fetched content |\n| `onBoot` · `postcompact.trust-but-verify` · `filter: { what: 'PostCompact' }` | `SessionStart`, matcher `PostCompact` | 🔴 never fires: SessionStart matches `startup`, `resume`, `clear`, `compact` |\n\nthe read-back of the first returns `filter: { what: 'WebFetch' }` with no `when`, which never equals\nthe declared `when: 'after'`, so rhachet's diff (`syncOneRoleHooksIntoOneBrainRepl.computeHookDiff`)\nmarks it `toUpdate` on every sync, and the adapter rewrites the same bytes. the `~1` is the visible\nsymptom; the two misplaced hooks are the harm.\n\nrhachet's own copy under `src/_topublish/rhachet-brains-anthropic/src/hooks/` already handles both:\n`translateHookToClaudeCode` writes `when: 'after'` to `PostToolUse` and an onBoot `filter.what` of\n`PreCompact`/`PostCompact` to that event; `upsert` drops a hook from its sibling buckets when it moves.\n\n## .the shape of the fix\n\n1. in `ehmpathy/rhachet-brains-anthropic`, port the translate + sibling-bucket upsert from rhachet's\n   `src/_topublish/rhachet-brains-anthropic/src/hooks/`\n2. clamp: sync a role with one `when: 'after'` onTool hook and one `PostCompact` onBoot hook, twice;\n   assert they land in `PostToolUse` and `PostCompact`, and the second sync reports no update\n3. publish; bump `rhachet-brains-anthropic` here; re-run `rhx init --hooks` twice and read\n   `no changes needed`\n\n## .why it is not done in this round\n\nthe defect lives in another repo's published adapter; rhachet only consumes it, and a fix here would\nfork the adapter rather than cure it. it is dispatched to its owner.",
+  "status": null,
+  "via": "gh.issues",
+  "auth": null,
+  "idem": null,
+  "heldSeq": 2,
+  "recordStatus": "QUEUED",
+  "reason": "radio.uses:blocked — global",
+  "deliveredExid": null
+}
